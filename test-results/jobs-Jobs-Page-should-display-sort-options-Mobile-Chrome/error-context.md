@@ -1,0 +1,98 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - button "Open menu" [ref=e3] [cursor=pointer]:
+      - img [ref=e4]
+    - complementary [ref=e5]:
+      - generic [ref=e6]:
+        - link "Columbus Job Assistant" [ref=e7] [cursor=pointer]:
+          - /url: /
+          - img [ref=e9]
+          - generic [ref=e14]:
+            - generic [ref=e15]: Columbus
+            - generic [ref=e16]: Job Assistant
+        - button "Close menu" [ref=e17] [cursor=pointer]:
+          - img [ref=e18]
+      - navigation [ref=e21]:
+        - link "Dashboard" [ref=e22] [cursor=pointer]:
+          - /url: /
+          - img [ref=e23]
+          - generic [ref=e26]: Dashboard
+        - link "Upload" [ref=e27] [cursor=pointer]:
+          - /url: /upload
+          - img [ref=e28]
+          - generic [ref=e31]: Upload
+        - link "My Profile" [ref=e32] [cursor=pointer]:
+          - /url: /profile
+          - img [ref=e33]
+          - generic [ref=e36]: My Profile
+        - link "Documents" [ref=e37] [cursor=pointer]:
+          - /url: /documents
+          - img [ref=e38]
+          - generic [ref=e41]: Documents
+        - link "Jobs" [ref=e42] [cursor=pointer]:
+          - /url: /jobs
+          - img [ref=e43]
+          - generic [ref=e46]: Jobs
+        - link "Interview Prep" [ref=e48] [cursor=pointer]:
+          - /url: /interview
+          - img [ref=e49]
+          - generic [ref=e51]: Interview Prep
+        - link "Analytics" [ref=e52] [cursor=pointer]:
+          - /url: /analytics
+          - img [ref=e53]
+          - generic [ref=e55]: Analytics
+      - generic [ref=e56]:
+        - link "Settings" [ref=e57] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e58]
+          - generic [ref=e61]: Settings
+        - button "System (light)" [ref=e62] [cursor=pointer]:
+          - img [ref=e63]
+          - generic [ref=e65]: System (light)
+      - paragraph [ref=e68]: Press ? for keyboard shortcuts
+    - main [ref=e69]:
+      - generic [ref=e71]:
+        - generic [ref=e73]:
+          - link "Back to Dashboard" [ref=e74] [cursor=pointer]:
+            - /url: /
+            - img [ref=e75]
+            - text: Back to Dashboard
+          - generic [ref=e77]:
+            - generic [ref=e78]:
+              - generic [ref=e79]:
+                - img [ref=e80]
+                - text: Job Tracker
+              - heading "Job Applications" [level=1] [ref=e84]
+              - paragraph [ref=e85]: Track your target jobs, analyze match scores, and generate tailored resumes.
+            - generic [ref=e86]:
+              - generic [ref=e87]:
+                - paragraph [ref=e88]: "0"
+                - paragraph [ref=e89]: Jobs Tracked
+              - button "Add Job" [ref=e90] [cursor=pointer]:
+                - img [ref=e91]
+                - text: Add Job
+        - generic [ref=e93]:
+          - img [ref=e95]
+          - heading "No jobs tracked yet" [level=2] [ref=e98]
+          - paragraph [ref=e99]: Add a job description to analyze your match score and generate a tailored resume.
+          - button "Add Your First Job" [ref=e100] [cursor=pointer]:
+            - img [ref=e101]
+            - text: Add Your First Job
+          - generic [ref=e102]:
+            - generic [ref=e103]:
+              - img [ref=e105]
+              - heading "Paste Job Descriptions" [level=3] [ref=e108]
+              - paragraph [ref=e109]: Copy the full job posting to get accurate analysis.
+            - generic [ref=e110]:
+              - img [ref=e112]
+              - heading "Get Match Scores" [level=3] [ref=e116]
+              - paragraph [ref=e117]: See how well your profile matches each job.
+            - generic [ref=e118]:
+              - img [ref=e120]
+              - heading "Generate Tailored Resumes" [level=3] [ref=e123]
+              - paragraph [ref=e124]: Create customized resumes for each application.
+  - alert [ref=e125]
+```

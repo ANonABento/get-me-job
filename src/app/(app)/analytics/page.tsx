@@ -1,0 +1,517 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  BarChart3,
+  Loader2,
+  Target,
+  Briefcase,
+  MessageSquare,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Star,
+  FileText,
+  Users,
+  GraduationCap,
+  LineChart,
+  Zap,
+  Download,
+  ChevronDown,
+  Printer,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { TrendCharts } from "@/components/analytics/trend-charts";
+import { SuccessDashboard } from "@/components/analytics/success-dashboard";
+import { SkillLearningPaths } from "@/components/learning/skill-learning-paths";
+
+interface Analytics {
+  overview: {
+    profileCompleteness: number;
+    totalJobs: number;
+    totalDocuments: number;
+    totalInterviews: number;
+    totalResumesGenerated: number;
+  };
+  jobs: {
+    byStatus: Record<string, number>;
+    total: number;
+    applied: number;
+    interviewing: number;
+    offered: number;
+    rejected: number;
+  };
+  interviews: {
+    total: number;
+    completed: number;
+    inProgress: number;
+  };
+  skills: {
+    total: number;
+    gaps: string[];
+    byCategory: Record<string, number>;
+  };
+  recent: {
+    jobs: Array<{
+      id: string;
+      title: string;
+      company: string;
+      status: string;
+      createdAt: string;
+    }>;
+  };
+}
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+  saved: { label: "Saved", color: "bg-slate-500", icon: Star },
+  applied: { label: "Applied", color: "bg-blue-500", icon: CheckCircle },
+  interviewing: { label: "Interviewing", color: "bg-amber-500", icon: MessageSquare },
+  offered: { label: "Offered", color: "bg-emerald-500", icon: TrendingUp },
+  rejected: { label: "Rejected", color: "bg-red-500", icon: XCircle },
+};
+
+export default function AnalyticsPage() {
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [exportRange, setExportRange] = useState<string>("all");
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async (format: "csv" | "json") => {
+    setExporting(true);
+    try {
+      const response = await fetch(
+        `/api/analytics/export?format=${format}&range=${exportRange}`
+      );
+      if (!response.ok) throw new Error("Export failed");
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `columbus-analytics-${exportRange}.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export error:", err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, []);
+
+  const fetchAnalytics = async () => {
+    try {
+      const response = await fetch("/api/analytics");
+      if (!response.ok) throw new Error("Failed to fetch analytics");
+      const data = await response.json();
+      setAnalytics(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load analytics");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary" />
+          <p className="mt-4 text-muted-foreground">Loading analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !analytics) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <AlertTriangle className="h-12 w-12 mx-auto text-destructive" />
+          <p className="text-muted-foreground">{error || "Failed to load analytics"}</p>
+          <Button onClick={fetchAnalytics}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const applicationRate = analytics.overview.totalJobs > 0
+    ? Math.round((analytics.jobs.applied / analytics.overview.totalJobs) * 100)
+    : 0;
+
+  const interviewRate = analytics.jobs.applied > 0
+    ? Math.round((analytics.jobs.interviewing / analytics.jobs.applied) * 100)
+    : 0;
+
+  const offerRate = analytics.jobs.interviewing > 0
+    ? Math.round((analytics.jobs.offered / analytics.jobs.interviewing) * 100)
+    : 0;
+
+  return (
+    <div className="min-h-screen pb-24">
+      {/* Hero Section */}
+      <div className="hero-gradient border-b">
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Link>
+
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+            <div className="space-y-4 animate-in">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                <BarChart3 className="h-4 w-4" />
+                Insights
+              </div>
+              <h1 className="text-4xl font-bold tracking-tight">Analytics Dashboard</h1>
+              <p className="text-lg text-muted-foreground max-w-xl">
+                Track your job search progress and identify areas for improvement.
+              </p>
+            </div>
+
+            {/* Export Controls */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0">
+              <Select value={exportRange} onValueChange={setExportRange}>
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="Date range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7d">Last 7 Days</SelectItem>
+                  <SelectItem value="30d">Last 30 Days</SelectItem>
+                  <SelectItem value="90d">Last 90 Days</SelectItem>
+                  <SelectItem value="1y">Last Year</SelectItem>
+                  <SelectItem value="all">All Time</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleExport("csv")}
+                  disabled={exporting}
+                >
+                  {exporting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  CSV
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleExport("json")}
+                  disabled={exporting}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  JSON
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrint}
+                  className="hidden sm:inline-flex"
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="space-y-8">
+          {/* Overview Cards */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Profile Completeness */}
+            <div className="rounded-2xl border bg-card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+                  <Target className="h-5 w-5" />
+                </div>
+                <span className="text-2xl font-bold">{analytics.overview.profileCompleteness}%</span>
+              </div>
+              <h3 className="font-medium mb-2">Profile Complete</h3>
+              <Progress value={analytics.overview.profileCompleteness} className="h-2" />
+              {analytics.overview.profileCompleteness < 100 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  <Link href="/profile" className="text-primary hover:underline">
+                    Complete your profile
+                  </Link> to improve your chances
+                </p>
+              )}
+            </div>
+
+            {/* Total Jobs */}
+            <div className="rounded-2xl border bg-card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500">
+                  <Briefcase className="h-5 w-5" />
+                </div>
+                <span className="text-2xl font-bold">{analytics.overview.totalJobs}</span>
+              </div>
+              <h3 className="font-medium mb-1">Total Jobs Tracked</h3>
+              <p className="text-sm text-muted-foreground">
+                {analytics.jobs.applied} applied
+              </p>
+            </div>
+
+            {/* Interviews */}
+            <div className="rounded-2xl border bg-card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500">
+                  <MessageSquare className="h-5 w-5" />
+                </div>
+                <span className="text-2xl font-bold">{analytics.overview.totalInterviews}</span>
+              </div>
+              <h3 className="font-medium mb-1">Interview Sessions</h3>
+              <p className="text-sm text-muted-foreground">
+                {analytics.interviews.completed} completed
+              </p>
+            </div>
+
+            {/* Resumes */}
+            <div className="rounded-2xl border bg-card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <span className="text-2xl font-bold">{analytics.overview.totalResumesGenerated}</span>
+              </div>
+              <h3 className="font-medium mb-1">Resumes Generated</h3>
+              <p className="text-sm text-muted-foreground">
+                Tailored for each job
+              </p>
+            </div>
+          </div>
+
+          {/* Pipeline & Skills Row */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Job Pipeline */}
+            <div className="rounded-2xl border bg-card p-6">
+              <h3 className="font-semibold mb-6 flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                Application Pipeline
+              </h3>
+
+              <div className="space-y-4">
+                {Object.entries(STATUS_CONFIG).map(([status, config]) => {
+                  const count = analytics.jobs.byStatus[status] || 0;
+                  const percentage = analytics.overview.totalJobs > 0
+                    ? (count / analytics.overview.totalJobs) * 100
+                    : 0;
+
+                  return (
+                    <div key={status} className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <config.icon className={`h-4 w-4 ${config.color.replace("bg-", "text-")}`} />
+                          <span className="font-medium">{config.label}</span>
+                        </div>
+                        <span className="text-muted-foreground">{count} jobs</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={`h-full ${config.color} transition-all duration-500`}
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Conversion Rates */}
+              <div className="mt-6 pt-6 border-t">
+                <h4 className="text-sm font-medium mb-4">Conversion Rates</h4>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <p className="text-2xl font-bold text-blue-500">{applicationRate}%</p>
+                    <p className="text-xs text-muted-foreground">Applied</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-amber-500">{interviewRate}%</p>
+                    <p className="text-xs text-muted-foreground">To Interview</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-emerald-500">{offerRate}%</p>
+                    <p className="text-xs text-muted-foreground">To Offer</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Skills Overview */}
+            <div className="rounded-2xl border bg-card p-6">
+              <h3 className="font-semibold mb-6 flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                Skills Overview
+              </h3>
+
+              {/* Skills by Category */}
+              <div className="space-y-4 mb-6">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">Total Skills</span>
+                  <span className="text-muted-foreground">{analytics.skills.total}</span>
+                </div>
+
+                {Object.entries(analytics.skills.byCategory).map(([category, count]) => (
+                  <div key={category} className="flex items-center justify-between text-sm">
+                    <span className="capitalize">{category}</span>
+                    <span className="text-muted-foreground">{count}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Skill Gaps */}
+              {analytics.skills.gaps.length > 0 && (
+                <div className="pt-6 border-t">
+                  <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    Skill Gaps from Job Listings
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {analytics.skills.gaps.map((skill) => (
+                      <span
+                        key={skill}
+                        className="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 text-xs font-medium capitalize"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    These skills appear frequently in your saved jobs but aren&apos;t in your profile.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="rounded-2xl border bg-card p-6">
+            <h3 className="font-semibold mb-6 flex items-center gap-2">
+              <Clock className="h-5 w-5 text-primary" />
+              Recent Job Activity
+            </h3>
+
+            {analytics.recent.jobs.length > 0 ? (
+              <div className="space-y-3">
+                {analytics.recent.jobs.map((job) => {
+                  const statusConfig = STATUS_CONFIG[job.status] || STATUS_CONFIG.saved;
+                  return (
+                    <Link
+                      key={job.id}
+                      href={`/jobs?highlight=${job.id}`}
+                      className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`p-2 rounded-lg ${statusConfig.color}/10`}>
+                          <statusConfig.icon className={`h-4 w-4 ${statusConfig.color.replace("bg-", "text-")}`} />
+                        </div>
+                        <div>
+                          <p className="font-medium">{job.title}</p>
+                          <p className="text-sm text-muted-foreground">{job.company}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}/10 ${statusConfig.color.replace("bg-", "text-")}`}>
+                          {statusConfig.label}
+                        </span>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {new Date(job.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Briefcase className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                <p>No jobs tracked yet</p>
+                <Link href="/jobs" className="text-primary hover:underline text-sm">
+                  Add your first job
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Advanced Analytics Section */}
+          <div className="space-y-6 pt-4">
+            <div className="flex items-center gap-3 pb-2">
+              <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                <Zap className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">Advanced Insights</h2>
+                <p className="text-sm text-muted-foreground">Deep dive into your job search performance</p>
+              </div>
+            </div>
+
+            {/* Trends */}
+            <div>
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <LineChart className="h-5 w-5 text-primary" />
+                Activity Trends
+              </h3>
+              <ErrorBoundary>
+                <TrendCharts />
+              </ErrorBoundary>
+            </div>
+
+            {/* Success Metrics */}
+            <div>
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <Target className="h-5 w-5 text-primary" />
+                Success Metrics
+              </h3>
+              <ErrorBoundary>
+                <SuccessDashboard />
+              </ErrorBoundary>
+            </div>
+
+            {/* Learning Paths */}
+            <div>
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <GraduationCap className="h-5 w-5 text-primary" />
+                Skill Development
+              </h3>
+              <ErrorBoundary>
+                <SkillLearningPaths />
+              </ErrorBoundary>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,93 +1,66 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
-import { getLLMConfig } from "@/lib/db";
+import { getProfile, getLLMConfig } from "@/lib/db";
 import { LLMClient } from "@/lib/llm/client";
 
 export async function POST(request: NextRequest) {
   try {
-    const { jobId, questionIndex, answer, question } = await request.json();
-
-    if (!answer || answer.trim().length < 10) {
-      return NextResponse.json({
-        feedback: "Your answer was too brief. Try to provide more detail and specific examples.",
-      });
-    }
+    const { jobId, questionIndex, answer } = await request.json();
 
     const job = getJob(jobId);
+    if (!job) {
+      return NextResponse.json({ error: "Job not found" }, { status: 404 });
+    }
+
+    const profile = getProfile();
     const llmConfig = getLLMConfig();
 
-    let feedback: string;
+    let feedback = "";
 
-    if (llmConfig && job) {
-      // Generate personalized feedback with LLM
+    if (llmConfig) {
       const client = new LLMClient(llmConfig);
 
       const response = await client.complete({
         messages: [
           {
             role: "user",
-            content: `You are an interview coach. Provide brief, constructive feedback (2-3 sentences) on this interview answer.
+            content: `You are an interview coach. Provide brief, constructive feedback on this interview answer.
 
-JOB: ${job.title} at ${job.company}
+Job: ${job.title} at ${job.company}
 
-ANSWER:
-"${answer}"
+Candidate's Answer:
+${answer}
 
-Evaluate:
-1. Relevance to a typical interview question
-2. Use of specific examples
-3. Clarity and conciseness
-4. Professional tone
+Provide 2-3 sentences of feedback focusing on:
+- What was good about the answer
+- One specific improvement suggestion
 
-Provide actionable feedback. Be encouraging but honest. Keep it to 2-3 sentences.`,
+Be encouraging but honest.`,
           },
         ],
-        temperature: 0.5,
-        maxTokens: 200,
+        temperature: 0.7,
+        maxTokens: 300,
       });
 
       feedback = response.trim();
     } else {
       // Basic feedback without LLM
-      feedback = generateBasicFeedback(answer);
+      const wordCount = answer.split(/\s+/).length;
+      if (wordCount < 20) {
+        feedback = "Your answer is quite brief. Try to elaborate more with specific examples using the STAR method (Situation, Task, Action, Result).";
+      } else if (wordCount > 200) {
+        feedback = "Good detail in your answer! Consider being more concise - aim for 1-2 minutes when speaking. Focus on the most impactful points.";
+      } else {
+        feedback = "Good job! Your answer has a good length. Remember to include specific metrics and outcomes when possible to make your answers more impactful.";
+      }
     }
 
     return NextResponse.json({ feedback });
   } catch (error) {
-    console.error("Interview answer error:", error);
+    console.error("Answer feedback error:", error);
     return NextResponse.json(
-      { error: "Failed to process answer", details: String(error) },
+      { error: "Failed to process answer" },
       { status: 500 }
     );
   }
-}
-
-function generateBasicFeedback(answer: string): string {
-  const wordCount = answer.split(/\s+/).length;
-
-  const feedback: string[] = [];
-
-  if (wordCount < 30) {
-    feedback.push("Consider providing more detail in your response.");
-  } else if (wordCount > 200) {
-    feedback.push("Your answer was comprehensive. In a real interview, aim to be slightly more concise.");
-  } else {
-    feedback.push("Good length for an interview response.");
-  }
-
-  // Check for STAR elements
-  const hasNumbers = /\d+/.test(answer);
-  const hasAction = /(I led|I managed|I created|I developed|I implemented|I achieved)/i.test(answer);
-
-  if (hasNumbers) {
-    feedback.push("Great use of specific metrics or numbers.");
-  } else {
-    feedback.push("Try to include specific numbers or metrics when possible.");
-  }
-
-  if (hasAction) {
-    feedback.push("Good job highlighting your actions and contributions.");
-  }
-
-  return feedback.join(" ");
 }

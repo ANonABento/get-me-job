@@ -1,0 +1,76 @@
+"use client";
+
+import { Component, type ReactNode } from "react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+  fallback?: ReactNode;
+  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    this.props.onError?.(error, errorInfo);
+  }
+
+  handleReset = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+
+      return (
+        <div className="rounded-xl border bg-card p-6">
+          <div className="flex flex-col items-center text-center">
+            <div className="p-3 rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
+              <AlertTriangle className="h-6 w-6 text-red-500" />
+            </div>
+            <h3 className="font-semibold text-lg mb-2">Something went wrong</h3>
+            <p className="text-sm text-muted-foreground mb-4 max-w-md">
+              {this.state.error?.message || "An unexpected error occurred while loading this component."}
+            </p>
+            <button
+              onClick={this.handleReset}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Try Again
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+interface AsyncBoundaryProps {
+  children: ReactNode;
+  loading?: ReactNode;
+  error?: ReactNode;
+}
+
+export function AsyncBoundary({ children, error }: AsyncBoundaryProps) {
+  return <ErrorBoundary fallback={error}>{children}</ErrorBoundary>;
+}

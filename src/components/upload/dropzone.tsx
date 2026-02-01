@@ -2,9 +2,19 @@
 
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload, File, X, CheckCircle, Loader2 } from "lucide-react";
+import {
+  Upload,
+  FileText,
+  File,
+  X,
+  CheckCircle,
+  Loader2,
+  AlertCircle,
+  CloudUpload,
+} from "lucide-react";
 import { cn, formatFileSize } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 
 interface UploadedFile {
   file: File;
@@ -20,10 +30,22 @@ interface DropzoneProps {
   accept?: Record<string, string[]>;
 }
 
+const fileTypeIcons: Record<string, React.ReactNode> = {
+  pdf: <FileText className="h-6 w-6 text-red-500" />,
+  docx: <FileText className="h-6 w-6 text-blue-500" />,
+  doc: <FileText className="h-6 w-6 text-blue-500" />,
+  txt: <File className="h-6 w-6 text-gray-500" />,
+};
+
+function getFileIcon(filename: string) {
+  const ext = filename.split(".").pop()?.toLowerCase() || "";
+  return fileTypeIcons[ext] || <File className="h-6 w-6 text-muted-foreground" />;
+}
+
 export function Dropzone({
   onUploadComplete,
   maxFiles = 5,
-  maxSize = 10 * 1024 * 1024, // 10MB
+  maxSize = 10 * 1024 * 1024,
   accept = {
     "application/pdf": [".pdf"],
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
@@ -42,7 +64,7 @@ export function Dropzone({
     setFiles((prev) => [...prev, ...newFiles]);
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
     onDrop,
     accept,
     maxFiles,
@@ -60,10 +82,9 @@ export function Dropzone({
     for (let i = 0; i < filesToUpload.length; i++) {
       const fileIndex = files.findIndex((f) => f.file === filesToUpload[i].file);
 
-      // Update status to uploading
       setFiles((prev) =>
         prev.map((f, idx) =>
-          idx === fileIndex ? { ...f, status: "uploading" as const } : f
+          idx === fileIndex ? { ...f, status: "uploading" as const, progress: 0 } : f
         )
       );
 
@@ -71,16 +92,28 @@ export function Dropzone({
         const formData = new FormData();
         formData.append("file", filesToUpload[i].file);
 
+        // Simulate progress updates
+        const progressInterval = setInterval(() => {
+          setFiles((prev) =>
+            prev.map((f, idx) =>
+              idx === fileIndex && f.progress < 90
+                ? { ...f, progress: f.progress + 10 }
+                : f
+            )
+          );
+        }, 100);
+
         const response = await fetch("/api/upload", {
           method: "POST",
           body: formData,
         });
 
+        clearInterval(progressInterval);
+
         if (!response.ok) {
           throw new Error("Upload failed");
         }
 
-        // Update status to success
         setFiles((prev) =>
           prev.map((f, idx) =>
             idx === fileIndex
@@ -89,7 +122,6 @@ export function Dropzone({
           )
         );
       } catch (error) {
-        // Update status to error
         setFiles((prev) =>
           prev.map((f, idx) =>
             idx === fileIndex
@@ -102,84 +134,193 @@ export function Dropzone({
 
     setIsUploading(false);
     const successFiles = files
-      .filter((f) => f.status === "success")
+      .filter((f) => f.status === "success" || f.status === "pending")
       .map((f) => f.file);
     onUploadComplete?.(successFiles);
   };
 
   const pendingFiles = files.filter((f) => f.status === "pending");
+  const hasFiles = files.length > 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Dropzone Area */}
       <div
         {...getRootProps()}
         className={cn(
-          "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
-          isDragActive
-            ? "border-primary bg-primary/5"
-            : "border-muted-foreground/25 hover:border-primary/50"
+          "relative overflow-hidden rounded-2xl border-2 border-dashed p-8 lg:p-12 text-center cursor-pointer transition-all duration-300",
+          isDragActive && !isDragReject && "border-primary bg-primary/5 scale-[1.02]",
+          isDragReject && "border-destructive bg-destructive/5",
+          !isDragActive && "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30"
         )}
       >
         <input {...getInputProps()} />
-        <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
-        <p className="mt-4 text-lg font-medium">
-          {isDragActive
-            ? "Drop your files here"
-            : "Drag & drop files here, or click to select"}
-        </p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Supports PDF, DOCX, and TXT files up to {formatFileSize(maxSize)}
-        </p>
+
+        {/* Background decoration */}
+        <div className="absolute inset-0 opacity-5 pointer-events-none">
+          <div className="absolute top-4 left-4 w-24 h-24 rounded-full bg-primary blur-3xl" />
+          <div className="absolute bottom-4 right-4 w-32 h-32 rounded-full bg-accent blur-3xl" />
+        </div>
+
+        <div className="relative z-10">
+          <div
+            className={cn(
+              "mx-auto w-20 h-20 rounded-2xl flex items-center justify-center transition-all duration-300",
+              isDragActive
+                ? "gradient-bg text-white scale-110"
+                : "bg-muted text-muted-foreground"
+            )}
+          >
+            {isDragActive ? (
+              <CloudUpload className="h-10 w-10 animate-bounce" />
+            ) : (
+              <Upload className="h-10 w-10" />
+            )}
+          </div>
+
+          <h3 className="mt-6 text-xl font-semibold">
+            {isDragReject
+              ? "File type not supported"
+              : isDragActive
+              ? "Drop to upload"
+              : "Drag & drop your resume"}
+          </h3>
+
+          <p className="mt-2 text-muted-foreground">
+            {isDragReject
+              ? "Please upload PDF, DOCX, or TXT files only"
+              : "or click to browse from your computer"}
+          </p>
+
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-sm font-medium">
+              <FileText className="h-4 w-4" />
+              PDF
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-sm font-medium">
+              <FileText className="h-4 w-4" />
+              DOCX
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium">
+              <File className="h-4 w-4" />
+              TXT
+            </span>
+          </div>
+
+          <p className="mt-4 text-xs text-muted-foreground">
+            Maximum file size: {formatFileSize(maxSize)}
+          </p>
+        </div>
       </div>
 
-      {files.length > 0 && (
-        <div className="space-y-2">
-          {files.map((uploadedFile, index) => (
-            <div
-              key={index}
-              className="flex items-center gap-3 rounded-lg border p-3"
-            >
-              <File className="h-8 w-8 text-muted-foreground" />
-              <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{uploadedFile.file.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {formatFileSize(uploadedFile.file.size)}
-                </p>
+      {/* File List */}
+      {hasFiles && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium">
+              {files.length} file{files.length !== 1 ? "s" : ""} selected
+            </h4>
+            {files.some((f) => f.status === "success") && (
+              <span className="text-sm text-success flex items-center gap-1">
+                <CheckCircle className="h-4 w-4" />
+                Uploaded
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            {files.map((uploadedFile, index) => (
+              <div
+                key={index}
+                className={cn(
+                  "group relative flex items-center gap-4 rounded-xl border p-4 transition-all",
+                  uploadedFile.status === "success" && "border-success/50 bg-success/5",
+                  uploadedFile.status === "error" && "border-destructive/50 bg-destructive/5",
+                  uploadedFile.status === "uploading" && "border-primary/50 bg-primary/5"
+                )}
+              >
+                {/* File Icon */}
+                <div className="shrink-0 w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
+                  {getFileIcon(uploadedFile.file.name)}
+                </div>
+
+                {/* File Info */}
+                <div className="flex-1 min-w-0 space-y-1">
+                  <p className="font-medium truncate pr-8">{uploadedFile.file.name}</p>
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <span>{formatFileSize(uploadedFile.file.size)}</span>
+                    {uploadedFile.status === "uploading" && (
+                      <span className="text-primary">{uploadedFile.progress}%</span>
+                    )}
+                  </div>
+
+                  {/* Progress Bar */}
+                  {uploadedFile.status === "uploading" && (
+                    <Progress value={uploadedFile.progress} size="sm" className="mt-2" />
+                  )}
+                </div>
+
+                {/* Status Indicator */}
+                <div className="shrink-0">
+                  {uploadedFile.status === "pending" && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFile(index);
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {uploadedFile.status === "uploading" && (
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  )}
+                  {uploadedFile.status === "success" && (
+                    <CheckCircle className="h-5 w-5 text-success" />
+                  )}
+                  {uploadedFile.status === "error" && (
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-destructive" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeFile(index);
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
-              {uploadedFile.status === "pending" && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeFile(index)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-              {uploadedFile.status === "uploading" && (
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              )}
-              {uploadedFile.status === "success" && (
-                <CheckCircle className="h-5 w-5 text-green-500" />
-              )}
-              {uploadedFile.status === "error" && (
-                <span className="text-sm text-destructive">
-                  {uploadedFile.error}
-                </span>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
+      {/* Upload Button */}
       {pendingFiles.length > 0 && (
-        <Button onClick={uploadFiles} disabled={isUploading} className="w-full">
+        <Button
+          onClick={uploadFiles}
+          disabled={isUploading}
+          size="lg"
+          className="w-full gradient-bg text-white hover:opacity-90"
+        >
           {isUploading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               Uploading...
             </>
           ) : (
-            <>Upload {pendingFiles.length} file(s)</>
+            <>
+              <CloudUpload className="mr-2 h-5 w-5" />
+              Upload {pendingFiles.length} file{pendingFiles.length !== 1 ? "s" : ""}
+            </>
           )}
         </Button>
       )}

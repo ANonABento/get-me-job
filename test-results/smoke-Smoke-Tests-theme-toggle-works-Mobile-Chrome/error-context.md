@@ -1,0 +1,163 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - button "Open menu" [ref=e3] [cursor=pointer]:
+      - img [ref=e4]
+    - complementary [ref=e5]:
+      - generic [ref=e6]:
+        - link "Columbus Job Assistant" [ref=e7] [cursor=pointer]:
+          - /url: /
+          - img [ref=e9]
+          - generic [ref=e14]:
+            - generic [ref=e15]: Columbus
+            - generic [ref=e16]: Job Assistant
+        - button "Close menu" [ref=e17] [cursor=pointer]:
+          - img [ref=e18]
+      - navigation [ref=e21]:
+        - link "Dashboard" [ref=e22] [cursor=pointer]:
+          - /url: /
+          - img [ref=e23]
+          - generic [ref=e26]: Dashboard
+        - link "Upload" [ref=e28] [cursor=pointer]:
+          - /url: /upload
+          - img [ref=e29]
+          - generic [ref=e32]: Upload
+        - link "My Profile" [ref=e33] [cursor=pointer]:
+          - /url: /profile
+          - img [ref=e34]
+          - generic [ref=e37]: My Profile
+        - link "Documents" [ref=e38] [cursor=pointer]:
+          - /url: /documents
+          - img [ref=e39]
+          - generic [ref=e42]: Documents
+        - link "Jobs" [ref=e43] [cursor=pointer]:
+          - /url: /jobs
+          - img [ref=e44]
+          - generic [ref=e47]: Jobs
+        - link "Interview Prep" [ref=e48] [cursor=pointer]:
+          - /url: /interview
+          - img [ref=e49]
+          - generic [ref=e51]: Interview Prep
+        - link "Analytics" [ref=e52] [cursor=pointer]:
+          - /url: /analytics
+          - img [ref=e53]
+          - generic [ref=e55]: Analytics
+      - generic [ref=e56]:
+        - link "Settings" [ref=e57] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e58]
+          - generic [ref=e61]: Settings
+        - button "System (light)" [ref=e62] [cursor=pointer]:
+          - img [ref=e63]
+          - generic [ref=e65]: System (light)
+      - paragraph [ref=e68]: Press ? for keyboard shortcuts
+    - main [ref=e69]:
+      - generic [ref=e71]:
+        - generic [ref=e74]:
+          - generic [ref=e75]:
+            - generic [ref=e76]:
+              - img [ref=e77]
+              - text: AI-Powered Job Assistant
+            - heading "Land your dream job with confidence" [level=1] [ref=e79]:
+              - text: Land your dream job
+              - text: with confidence
+            - paragraph [ref=e80]: Upload your resume, match with jobs, generate tailored applications, and ace your interviews with AI-powered coaching.
+            - generic [ref=e81]:
+              - link "Upload Resume" [ref=e82] [cursor=pointer]:
+                - /url: /upload
+                - img [ref=e83]
+                - text: Upload Resume
+              - link "Add Job" [ref=e86] [cursor=pointer]:
+                - /url: /jobs
+                - img [ref=e87]
+                - text: Add Job
+          - generic [ref=e90]:
+            - generic [ref=e91]:
+              - generic [ref=e92]:
+                - generic [ref=e93]: Profile Completeness
+                - generic [ref=e94]: 25%
+              - progressbar [ref=e96]
+            - generic [ref=e98]:
+              - generic [ref=e99]:
+                - img [ref=e100]
+                - generic [ref=e103]: Jobs Tracked
+              - paragraph [ref=e104]: "0"
+            - generic [ref=e105]:
+              - generic [ref=e106]:
+                - img [ref=e107]
+                - generic [ref=e109]: Applied
+              - paragraph [ref=e110]: "0"
+            - generic [ref=e111]:
+              - generic [ref=e112]:
+                - img [ref=e113]
+                - generic [ref=e115]: Interviews
+              - paragraph [ref=e116]: "0"
+            - generic [ref=e117]:
+              - generic [ref=e118]:
+                - img [ref=e119]
+                - generic [ref=e122]: Progress
+              - paragraph [ref=e123]: 0/4
+        - generic [ref=e124]:
+          - generic [ref=e125]:
+            - heading "Quick Actions" [level=2] [ref=e126]
+            - generic [ref=e127]: Get started in minutes
+          - generic [ref=e128]:
+            - link "Upload Resume Extract your professional info automatically" [ref=e129] [cursor=pointer]:
+              - /url: /upload
+              - img [ref=e131]
+              - heading "Upload Resume" [level=3] [ref=e134]
+              - paragraph [ref=e135]: Extract your professional info automatically
+              - img [ref=e136]
+            - link "Edit Profile Review and refine your career details" [ref=e139] [cursor=pointer]:
+              - /url: /profile
+              - img [ref=e141]
+              - heading "Edit Profile" [level=3] [ref=e144]
+              - paragraph [ref=e145]: Review and refine your career details
+              - img [ref=e146]
+            - link "Track Jobs Get tailored resumes for each application" [ref=e149] [cursor=pointer]:
+              - /url: /jobs
+              - img [ref=e151]
+              - heading "Track Jobs" [level=3] [ref=e154]
+              - paragraph [ref=e155]: Get tailored resumes for each application
+              - img [ref=e156]
+            - link "Interview Prep Practice with AI mock interviews" [ref=e159] [cursor=pointer]:
+              - /url: /interview
+              - img [ref=e161]
+              - heading "Interview Prep" [level=3] [ref=e163]
+              - paragraph [ref=e164]: Practice with AI mock interviews
+              - img [ref=e165]
+        - generic [ref=e169]:
+          - generic [ref=e170]:
+            - img [ref=e172]
+            - generic [ref=e177]:
+              - heading "Your Journey to Success" [level=2] [ref=e178]
+              - paragraph [ref=e179]: Complete these steps to maximize your job search
+          - generic [ref=e180]:
+            - link "1 Upload your resume We'll extract and organize your professional information automatically using AI." [ref=e181] [cursor=pointer]:
+              - /url: /upload
+              - generic [ref=e182]: "1"
+              - generic [ref=e183]:
+                - heading "Upload your resume" [level=3] [ref=e184]
+                - paragraph [ref=e185]: We'll extract and organize your professional information automatically using AI.
+            - link "2 Review your profile Verify the extracted data and add any missing details to strengthen your profile." [ref=e186] [cursor=pointer]:
+              - /url: /profile
+              - generic [ref=e187]: "2"
+              - generic [ref=e188]:
+                - heading "Review your profile" [level=3] [ref=e189]
+                - paragraph [ref=e190]: Verify the extracted data and add any missing details to strengthen your profile.
+            - link "3 Add target jobs Paste job descriptions to generate tailored resumes and see your match score." [ref=e191] [cursor=pointer]:
+              - /url: /jobs
+              - generic [ref=e192]: "3"
+              - generic [ref=e193]:
+                - heading "Add target jobs" [level=3] [ref=e194]
+                - paragraph [ref=e195]: Paste job descriptions to generate tailored resumes and see your match score.
+            - link "4 Ace the interview Practice with AI-powered mock interviews customized to your target roles." [ref=e196] [cursor=pointer]:
+              - /url: /interview
+              - generic [ref=e197]: "4"
+              - generic [ref=e198]:
+                - heading "Ace the interview" [level=3] [ref=e199]
+                - paragraph [ref=e200]: Practice with AI-powered mock interviews customized to your target roles.
+  - alert [ref=e201]
+```

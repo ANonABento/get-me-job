@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
-import { getProfile, getLLMConfig } from "@/lib/db";
+import { getProfile, getLLMConfig, saveGeneratedResume } from "@/lib/db";
 import { generateTailoredResume } from "@/lib/resume/generator";
 import { generateResumeHTML, TEMPLATES } from "@/lib/resume/pdf";
 import { writeFile, mkdir } from "fs/promises";
@@ -68,10 +68,19 @@ export async function POST(
     // Return URL to the HTML file (can be printed to PDF from browser)
     const pdfUrl = `/resumes/${filename}`;
 
+    // Save to database for tracking
+    const savedResume = saveGeneratedResume(
+      params.id,
+      templateId,
+      tailoredResume,
+      pdfUrl
+    );
+
     return NextResponse.json({
       success: true,
       pdfUrl,
       resume: tailoredResume,
+      savedResume,
     });
   } catch (error) {
     console.error("Generate error:", error);

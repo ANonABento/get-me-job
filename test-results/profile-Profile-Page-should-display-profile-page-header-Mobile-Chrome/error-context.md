@@ -1,0 +1,181 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - button "Open menu" [ref=e3] [cursor=pointer]:
+      - img [ref=e4]
+    - complementary [ref=e5]:
+      - generic [ref=e6]:
+        - link "Columbus Job Assistant" [ref=e7] [cursor=pointer]:
+          - /url: /
+          - img [ref=e9]
+          - generic [ref=e14]:
+            - generic [ref=e15]: Columbus
+            - generic [ref=e16]: Job Assistant
+        - button "Close menu" [ref=e17] [cursor=pointer]:
+          - img [ref=e18]
+      - navigation [ref=e21]:
+        - link "Dashboard" [ref=e22] [cursor=pointer]:
+          - /url: /
+          - img [ref=e23]
+          - generic [ref=e26]: Dashboard
+        - link "Upload" [ref=e27] [cursor=pointer]:
+          - /url: /upload
+          - img [ref=e28]
+          - generic [ref=e31]: Upload
+        - link "My Profile" [ref=e32] [cursor=pointer]:
+          - /url: /profile
+          - img [ref=e33]
+          - generic [ref=e36]: My Profile
+        - link "Documents" [ref=e38] [cursor=pointer]:
+          - /url: /documents
+          - img [ref=e39]
+          - generic [ref=e42]: Documents
+        - link "Jobs" [ref=e43] [cursor=pointer]:
+          - /url: /jobs
+          - img [ref=e44]
+          - generic [ref=e47]: Jobs
+        - link "Interview Prep" [ref=e48] [cursor=pointer]:
+          - /url: /interview
+          - img [ref=e49]
+          - generic [ref=e51]: Interview Prep
+        - link "Analytics" [ref=e52] [cursor=pointer]:
+          - /url: /analytics
+          - img [ref=e53]
+          - generic [ref=e55]: Analytics
+      - generic [ref=e56]:
+        - link "Settings" [ref=e57] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e58]
+          - generic [ref=e61]: Settings
+        - button "System (light)" [ref=e62] [cursor=pointer]:
+          - img [ref=e63]
+          - generic [ref=e65]: System (light)
+      - paragraph [ref=e68]: Press ? for keyboard shortcuts
+    - main [ref=e69]:
+      - generic [ref=e71]:
+        - generic [ref=e73]:
+          - link "Back to Dashboard" [ref=e74] [cursor=pointer]:
+            - /url: /
+            - img [ref=e75]
+            - text: Back to Dashboard
+          - generic [ref=e77]:
+            - generic [ref=e78]:
+              - generic [ref=e79]:
+                - img [ref=e80]
+                - text: Your Professional Profile
+              - heading "Kevin Jiang" [level=1] [ref=e82]
+              - paragraph [ref=e83]: Keep your profile up to date for the best job matching results.
+            - generic [ref=e85]:
+              - generic [ref=e86]: 30%
+              - generic [ref=e87]:
+                - paragraph [ref=e88]: Profile Complete
+                - paragraph [ref=e89]: Getting started
+        - generic [ref=e93]:
+          - generic [ref=e94]:
+            - button "Contact Information 2/6 fields" [ref=e95] [cursor=pointer]:
+              - generic [ref=e96]:
+                - img [ref=e98]
+                - generic [ref=e101]:
+                  - heading "Contact Information" [level=3] [ref=e102]
+                  - paragraph [ref=e103]: 2/6 fields
+              - img [ref=e105]
+            - generic [ref=e108]:
+              - generic [ref=e109]:
+                - generic [ref=e110]:
+                  - img [ref=e111]
+                  - text: Full Name
+                - textbox "John Doe" [ref=e114]: Kevin Jiang
+              - generic [ref=e115]:
+                - generic [ref=e116]:
+                  - img [ref=e117]
+                  - text: Email Address
+                - textbox "john@example.com" [ref=e120]: k69jiang@uwaterloo.ca
+              - generic [ref=e121]:
+                - generic [ref=e122]:
+                  - img [ref=e123]
+                  - text: Phone Number
+                - textbox "+1 (555) 000-0000" [ref=e125]
+              - generic [ref=e126]:
+                - generic [ref=e127]:
+                  - img [ref=e128]
+                  - text: Location
+                - textbox "San Francisco, CA" [ref=e131]
+              - generic [ref=e132]:
+                - generic [ref=e133]:
+                  - img [ref=e134]
+                  - text: LinkedIn
+                - textbox "linkedin.com/in/johndoe" [ref=e137]
+              - generic [ref=e138]:
+                - generic [ref=e139]:
+                  - img [ref=e140]
+                  - text: GitHub
+                - textbox "github.com/johndoe" [ref=e143]
+          - generic [ref=e144]:
+            - button "Professional Summary Empty" [ref=e145] [cursor=pointer]:
+              - generic [ref=e146]:
+                - img [ref=e148]
+                - generic [ref=e151]:
+                  - heading "Professional Summary" [level=3] [ref=e152]
+                  - paragraph [ref=e153]: Empty
+              - img [ref=e155]
+            - generic [ref=e158]:
+              - textbox "Write a compelling summary of your professional background, key achievements, and career objectives..." [ref=e159]
+              - paragraph [ref=e160]: "Tip: A good summary is 2-4 sentences highlighting your key strengths and experience."
+          - generic [ref=e161]:
+            - button "Work Experience 0 positions Add Position" [ref=e162] [cursor=pointer]:
+              - generic [ref=e163]:
+                - img [ref=e165]
+                - generic [ref=e168]:
+                  - heading "Work Experience" [level=3] [ref=e169]
+                  - paragraph [ref=e170]: 0 positions
+              - generic [ref=e171]:
+                - button "Add Position" [ref=e172]:
+                  - img [ref=e173]
+                  - text: Add Position
+                - img [ref=e174]
+            - generic [ref=e177]:
+              - img [ref=e179]
+              - paragraph [ref=e182]: No work experience added yet
+              - button "Add Experience" [ref=e183] [cursor=pointer]:
+                - img [ref=e184]
+                - text: Add Experience
+          - generic [ref=e185]:
+            - button "Education 0 entries Add Education" [ref=e186] [cursor=pointer]:
+              - generic [ref=e187]:
+                - img [ref=e189]
+                - generic [ref=e192]:
+                  - heading "Education" [level=3] [ref=e193]
+                  - paragraph [ref=e194]: 0 entries
+              - generic [ref=e195]:
+                - button "Add Education" [ref=e196]:
+                  - img [ref=e197]
+                  - text: Add Education
+                - img [ref=e198]
+            - generic [ref=e201]:
+              - img [ref=e203]
+              - paragraph [ref=e206]: No education added yet
+              - button "Add Education" [ref=e207] [cursor=pointer]:
+                - img [ref=e208]
+                - text: Add Education
+          - generic [ref=e209]:
+            - button "Skills 0 skills Add Skill" [ref=e210] [cursor=pointer]:
+              - generic [ref=e211]:
+                - img [ref=e213]
+                - generic [ref=e215]:
+                  - heading "Skills" [level=3] [ref=e216]
+                  - paragraph [ref=e217]: 0 skills
+              - generic [ref=e218]:
+                - button "Add Skill" [ref=e219]:
+                  - img [ref=e220]
+                  - text: Add Skill
+                - img [ref=e221]
+            - generic [ref=e224]:
+              - img [ref=e226]
+              - paragraph [ref=e228]: No skills added yet
+              - button "Add Skill" [ref=e229] [cursor=pointer]:
+                - img [ref=e230]
+                - text: Add Skill
+  - alert [ref=e231]
+```

@@ -54,6 +54,7 @@ export function getProfile(): Profile | null {
   const education = db.prepare("SELECT * FROM education WHERE profile_id = 'default'").all() as any[];
   const skills = db.prepare("SELECT * FROM skills WHERE profile_id = 'default'").all() as any[];
   const projects = db.prepare("SELECT * FROM projects WHERE profile_id = 'default'").all() as any[];
+  const certifications = db.prepare("SELECT * FROM certifications WHERE profile_id = 'default'").all() as any[];
 
   return {
     id: profileRow.id,
@@ -96,7 +97,13 @@ export function getProfile(): Profile | null {
       technologies: p.technologies_json ? JSON.parse(p.technologies_json) : [],
       highlights: p.highlights_json ? JSON.parse(p.highlights_json) : [],
     })),
-    certifications: [],
+    certifications: certifications.map((c) => ({
+      id: c.id,
+      name: c.name,
+      issuer: c.issuer,
+      date: c.issue_date,
+      url: c.url,
+    })),
     createdAt: profileRow.created_at,
     updatedAt: profileRow.updated_at,
   };
@@ -199,6 +206,24 @@ export function updateProfile(profile: Partial<Profile>): void {
         );
       }
     }
+
+    // Update certifications
+    if (profile.certifications) {
+      db.prepare("DELETE FROM certifications WHERE profile_id = 'default'").run();
+      const insertCert = db.prepare(`
+        INSERT INTO certifications (id, profile_id, name, issuer, issue_date, url)
+        VALUES (?, 'default', ?, ?, ?, ?)
+      `);
+      for (const cert of profile.certifications) {
+        insertCert.run(
+          cert.id || generateId(),
+          cert.name,
+          cert.issuer,
+          cert.date,
+          cert.url
+        );
+      }
+    }
   });
 
   updateProfile();
@@ -211,6 +236,7 @@ export function clearProfile(): void {
     db.prepare("DELETE FROM education WHERE profile_id = 'default'").run();
     db.prepare("DELETE FROM skills WHERE profile_id = 'default'").run();
     db.prepare("DELETE FROM projects WHERE profile_id = 'default'").run();
+    db.prepare("DELETE FROM certifications WHERE profile_id = 'default'").run();
     db.prepare(`
       UPDATE profile
       SET contact_json = NULL, summary = NULL, raw_text = NULL, updated_at = CURRENT_TIMESTAMP

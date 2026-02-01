@@ -18,6 +18,10 @@ export function getJobs(): JobDescription[] {
     responsibilities: row.responsibilities_json ? JSON.parse(row.responsibilities_json) : [],
     keywords: row.keywords_json ? JSON.parse(row.keywords_json) : [],
     url: row.url,
+    status: row.status || "saved",
+    appliedAt: row.applied_at,
+    deadline: row.deadline,
+    notes: row.notes,
     createdAt: row.created_at,
   }));
 }
@@ -39,6 +43,10 @@ export function getJob(id: string): JobDescription | null {
     responsibilities: row.responsibilities_json ? JSON.parse(row.responsibilities_json) : [],
     keywords: row.keywords_json ? JSON.parse(row.keywords_json) : [],
     url: row.url,
+    status: row.status || "saved",
+    appliedAt: row.applied_at,
+    deadline: row.deadline,
+    notes: row.notes,
     createdAt: row.created_at,
   };
 }
@@ -84,7 +92,11 @@ export function updateJob(id: string, updates: Partial<JobDescription>): void {
       requirements_json = ?,
       responsibilities_json = ?,
       keywords_json = ?,
-      url = ?
+      url = ?,
+      status = ?,
+      applied_at = ?,
+      deadline = ?,
+      notes = ?
     WHERE id = ?
   `).run(
     merged.title,
@@ -98,8 +110,34 @@ export function updateJob(id: string, updates: Partial<JobDescription>): void {
     JSON.stringify(merged.responsibilities || []),
     JSON.stringify(merged.keywords || []),
     merged.url || null,
+    merged.status || "saved",
+    merged.appliedAt || null,
+    merged.deadline || null,
+    merged.notes || null,
     id
   );
+}
+
+// Update job status
+export function updateJobStatus(
+  id: string,
+  status: string,
+  appliedAt?: string
+): JobDescription | null {
+  const now = new Date().toISOString();
+
+  db.prepare(`
+    UPDATE jobs SET
+      status = ?,
+      applied_at = COALESCE(?, applied_at)
+    WHERE id = ?
+  `).run(
+    status,
+    status === "applied" && !appliedAt ? now : appliedAt || null,
+    id
+  );
+
+  return getJob(id);
 }
 
 // Delete job

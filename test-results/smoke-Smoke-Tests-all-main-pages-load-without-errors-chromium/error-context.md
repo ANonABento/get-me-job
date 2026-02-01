@@ -1,0 +1,241 @@
+# Page snapshot
+
+```yaml
+- generic:
+  - generic:
+    - complementary:
+      - generic:
+        - link:
+          - /url: /
+          - generic:
+            - img
+          - generic:
+            - generic: Columbus
+            - generic: Job Assistant
+      - navigation:
+        - link:
+          - /url: /
+          - img
+          - generic: Dashboard
+        - link:
+          - /url: /upload
+          - img
+          - generic: Upload
+        - link:
+          - /url: /profile
+          - img
+          - generic: My Profile
+        - link:
+          - /url: /documents
+          - img
+          - generic: Documents
+        - link:
+          - /url: /jobs
+          - img
+          - generic: Jobs
+        - link:
+          - /url: /interview
+          - img
+          - generic: Interview Prep
+        - link:
+          - /url: /analytics
+          - img
+          - generic: Analytics
+      - generic:
+        - link:
+          - /url: /settings
+          - img
+          - generic: Settings
+        - button:
+          - img
+          - generic: System (light)
+        - button:
+          - img
+          - generic: Collapse
+      - generic:
+        - generic:
+          - paragraph: Press ? for keyboard shortcuts
+    - main:
+      - generic:
+        - generic:
+          - generic:
+            - link:
+              - /url: /
+              - img
+              - text: Back to Dashboard
+            - generic:
+              - generic:
+                - img
+                - text: Configuration
+              - heading [level=1]: Settings
+              - paragraph: Configure your AI provider for resume parsing and interview preparation.
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - img
+                - generic:
+                  - heading [level=2]: AI Provider
+                  - paragraph: Choose how Columbus will process your documents
+              - generic:
+                - button:
+                  - generic:
+                    - img
+                  - generic:
+                    - paragraph: Ollama
+                    - paragraph: Free, local AI processing
+                  - img
+                - button:
+                  - generic:
+                    - img
+                  - generic:
+                    - paragraph: OpenAI
+                    - paragraph: GPT-4 & GPT-3.5 models
+                - button:
+                  - generic:
+                    - img
+                  - generic:
+                    - paragraph: Anthropic
+                    - paragraph: Claude models
+                - button:
+                  - generic:
+                    - img
+                  - generic:
+                    - paragraph: OpenRouter
+                    - paragraph: Access multiple providers
+            - generic:
+              - generic:
+                - generic:
+                  - img
+                - generic:
+                  - heading [level=2]: Ollama Configuration
+                  - paragraph: Configure your local Ollama instance
+              - generic:
+                - generic:
+                  - text: Ollama URL
+                  - textbox:
+                    - /placeholder: http://localhost:11434
+                    - text: http://localhost:11434
+                  - paragraph: Default is http://localhost:11434. Change if Ollama is running elsewhere.
+                - generic:
+                  - text: Model
+                  - generic:
+                    - combobox:
+                      - generic: llama3.2
+                      - img
+                    - button:
+                      - img
+                  - paragraph: Click refresh to load available models from Ollama
+                - generic:
+                  - button:
+                    - img
+                    - text: Test Connection
+                  - button [disabled]:
+                    - img
+                    - text: Save Settings
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                  - heading [level=3]: Using Ollama (Free)
+                - list:
+                  - listitem:
+                    - text: Install from
+                    - link:
+                      - /url: https://ollama.ai
+                      - text: ollama.ai
+                      - img
+                  - listitem:
+                    - text: Run
+                    - code: ollama pull llama3.2
+                  - listitem: Test the connection above
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                  - heading [level=3]: Using API Keys
+                - paragraph: Connect your own API keys from OpenAI, Anthropic, or OpenRouter for cloud-based processing. Your keys are stored locally and never leave your device.
+            - generic:
+              - generic:
+                - generic:
+                  - img
+                - generic:
+                  - heading [level=2]: Data Management
+                  - paragraph: Export your data or import from backups
+              - generic:
+                - generic:
+                  - heading [level=3]:
+                    - img
+                    - text: Export Data
+                  - generic:
+                    - button:
+                      - img
+                      - text: Export Profile (JSON)
+                    - button:
+                      - img
+                      - text: Export Jobs (JSON)
+                    - button:
+                      - img
+                      - text: Export Jobs (CSV)
+                    - button:
+                      - img
+                      - text: Full Backup
+                - generic:
+                  - heading [level=3]:
+                    - img
+                    - text: Import Data
+                  - generic:
+                    - generic:
+                      - button
+                      - button:
+                        - img
+                        - text: Import Jobs (JSON/CSV)
+                    - generic:
+                      - button
+                      - button:
+                        - img
+                        - text: Restore Backup
+            - generic:
+              - img
+              - generic:
+                - paragraph: Make sure Ollama is running
+                - paragraph: Ollama must be running in the background for Columbus to work. If you get connection errors, start Ollama from your Applications folder.
+  - alert
+  - dialog "Welcome to Columbus" [ref=e2]:
+    - button "Skip onboarding" [active] [ref=e3] [cursor=pointer]:
+      - img [ref=e4]
+    - generic [ref=e13]:
+      - img [ref=e15]
+      - generic [ref=e20]:
+        - heading "Welcome to Columbus" [level=2] [ref=e21]
+        - paragraph [ref=e22]: Your AI-powered job application command center. Let's get you set up for success.
+    - button "Let's Begin" [ref=e24] [cursor=pointer]:
+      - text: Let's Begin
+      - img [ref=e25]
+    - generic [ref=e27]:
+      - paragraph [ref=e28]: "What Columbus helps you with:"
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - img [ref=e31]
+          - text: AI resume parsing
+        - generic [ref=e34]:
+          - img [ref=e35]
+          - text: Job match scoring
+        - generic [ref=e38]:
+          - img [ref=e39]
+          - text: Tailored resumes
+        - generic [ref=e42]:
+          - img [ref=e43]
+          - text: Mock interviews
+        - generic [ref=e46]:
+          - img [ref=e47]
+          - text: Cover letters
+        - generic [ref=e50]:
+          - img [ref=e51]
+          - text: Progress tracking
+    - button "Close" [ref=e54] [cursor=pointer]:
+      - img [ref=e55]
+      - generic [ref=e58]: Close
+```

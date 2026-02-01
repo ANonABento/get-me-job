@@ -86,6 +86,8 @@ export interface Document {
 }
 
 // Job application types
+export type JobStatus = 'saved' | 'applied' | 'interviewing' | 'offered' | 'rejected' | 'withdrawn';
+
 export interface JobDescription {
   id: string;
   title: string;
@@ -99,6 +101,10 @@ export interface JobDescription {
   responsibilities: string[];
   keywords: string[];
   url?: string;
+  status?: JobStatus;
+  appliedAt?: string;
+  deadline?: string;
+  notes?: string;
   createdAt: string;
 }
 
@@ -124,4 +130,19 @@ export interface LLMConfig {
 export interface Settings {
   llm: LLMConfig;
   theme: 'light' | 'dark' | 'system';
+}
+
+// Email template types
+export type EmailTemplateType =
+  | 'follow_up'
+  | 'thank_you'
+  | 'networking'
+  | 'status_inquiry'
+  | 'negotiation';
+
+export interface EmailTemplate {
+  type: EmailTemplateType;
+  subject: string;
+  body: string;
+  placeholders: string[];
 }

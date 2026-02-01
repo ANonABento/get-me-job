@@ -1,0 +1,207 @@
+# Page snapshot
+
+```yaml
+- generic:
+  - generic:
+    - complementary:
+      - generic:
+        - link:
+          - /url: /
+          - generic:
+            - img
+          - generic:
+            - generic: Columbus
+            - generic: Job Assistant
+      - navigation:
+        - link:
+          - /url: /
+          - img
+          - generic: Dashboard
+        - link:
+          - /url: /upload
+          - img
+          - generic: Upload
+        - link:
+          - /url: /profile
+          - img
+          - generic: My Profile
+        - link:
+          - /url: /documents
+          - img
+          - generic: Documents
+        - link:
+          - /url: /jobs
+          - img
+          - generic: Jobs
+        - link:
+          - /url: /interview
+          - img
+          - generic: Interview Prep
+        - link:
+          - /url: /analytics
+          - img
+          - generic: Analytics
+      - generic:
+        - link:
+          - /url: /settings
+          - img
+          - generic: Settings
+        - button:
+          - img
+          - generic: System (light)
+        - button:
+          - img
+          - generic: Collapse
+      - generic:
+        - generic:
+          - paragraph: Press ? for keyboard shortcuts
+    - main:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - img
+                  - text: AI-Powered Job Assistant
+                - heading [level=1]: Land your dream job with confidence
+                - paragraph: Upload your resume, match with jobs, generate tailored applications, and ace your interviews with AI-powered coaching.
+                - generic:
+                  - link:
+                    - /url: /upload
+                    - img
+                    - text: Upload Resume
+                  - link:
+                    - /url: /jobs
+                    - img
+                    - text: Add Job
+              - generic:
+                - generic:
+                  - generic:
+                    - generic: Profile Completeness
+                    - generic: 25%
+                  - generic:
+                    - progressbar
+                - generic:
+                  - generic:
+                    - img
+                    - generic: Jobs Tracked
+                  - paragraph: "0"
+                - generic:
+                  - generic:
+                    - img
+                    - generic: Applied
+                  - paragraph: "0"
+                - generic:
+                  - generic:
+                    - img
+                    - generic: Interviews
+                  - paragraph: "0"
+                - generic:
+                  - generic:
+                    - img
+                    - generic: Progress
+                  - paragraph: 0/4
+        - generic:
+          - generic:
+            - heading [level=2]: Quick Actions
+            - generic: Get started in minutes
+          - generic:
+            - link:
+              - /url: /upload
+              - generic:
+                - img
+              - heading [level=3]: Upload Resume
+              - paragraph: Extract your professional info automatically
+              - img
+            - link:
+              - /url: /profile
+              - generic:
+                - img
+              - heading [level=3]: Edit Profile
+              - paragraph: Review and refine your career details
+              - img
+            - link:
+              - /url: /jobs
+              - generic:
+                - img
+              - heading [level=3]: Track Jobs
+              - paragraph: Get tailored resumes for each application
+              - img
+            - link:
+              - /url: /interview
+              - generic:
+                - img
+              - heading [level=3]: Interview Prep
+              - paragraph: Practice with AI mock interviews
+              - img
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - img
+              - generic:
+                - heading [level=2]: Your Journey to Success
+                - paragraph: Complete these steps to maximize your job search
+            - generic:
+              - link:
+                - /url: /upload
+                - generic: "1"
+                - generic:
+                  - heading [level=3]: Upload your resume
+                  - paragraph: We'll extract and organize your professional information automatically using AI.
+              - link:
+                - /url: /profile
+                - generic: "2"
+                - generic:
+                  - heading [level=3]: Review your profile
+                  - paragraph: Verify the extracted data and add any missing details to strengthen your profile.
+              - link:
+                - /url: /jobs
+                - generic: "3"
+                - generic:
+                  - heading [level=3]: Add target jobs
+                  - paragraph: Paste job descriptions to generate tailored resumes and see your match score.
+              - link:
+                - /url: /interview
+                - generic: "4"
+                - generic:
+                  - heading [level=3]: Ace the interview
+                  - paragraph: Practice with AI-powered mock interviews customized to your target roles.
+  - alert
+  - dialog "Welcome to Columbus" [ref=e2]:
+    - button "Skip onboarding" [active] [ref=e3] [cursor=pointer]:
+      - img [ref=e4]
+    - generic [ref=e13]:
+      - img [ref=e15]
+      - generic [ref=e20]:
+        - heading "Welcome to Columbus" [level=2] [ref=e21]
+        - paragraph [ref=e22]: Your AI-powered job application command center. Let's get you set up for success.
+    - button "Let's Begin" [ref=e24] [cursor=pointer]:
+      - text: Let's Begin
+      - img [ref=e25]
+    - generic [ref=e27]:
+      - paragraph [ref=e28]: "What Columbus helps you with:"
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - img [ref=e31]
+          - text: AI resume parsing
+        - generic [ref=e34]:
+          - img [ref=e35]
+          - text: Job match scoring
+        - generic [ref=e38]:
+          - img [ref=e39]
+          - text: Tailored resumes
+        - generic [ref=e42]:
+          - img [ref=e43]
+          - text: Mock interviews
+        - generic [ref=e46]:
+          - img [ref=e47]
+          - text: Cover letters
+        - generic [ref=e50]:
+          - img [ref=e51]
+          - text: Progress tracking
+    - button "Close" [ref=e54] [cursor=pointer]:
+      - img [ref=e55]
+      - generic [ref=e58]: Close
+```

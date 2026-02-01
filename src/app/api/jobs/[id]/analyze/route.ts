@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import { getProfile, getLLMConfig } from "@/lib/db";
-import { LLMClient } from "@/lib/llm/client";
+import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
 import type { JobMatch } from "@/types";
 
 export async function POST(
@@ -71,19 +71,13 @@ Return ONLY the JSON object, no explanation.`,
         maxTokens: 1000,
       });
 
-      // Parse response
-      let cleanResponse = response.trim();
-      if (cleanResponse.startsWith("```json")) {
-        cleanResponse = cleanResponse.slice(7);
-      }
-      if (cleanResponse.startsWith("```")) {
-        cleanResponse = cleanResponse.slice(3);
-      }
-      if (cleanResponse.endsWith("```")) {
-        cleanResponse = cleanResponse.slice(0, -3);
-      }
-
-      const parsed = JSON.parse(cleanResponse.trim());
+      // Parse response using utility function
+      const parsed = parseJSONFromLLM<{
+        overallScore?: number;
+        skillMatches?: { skill: string; matched: boolean; relevance: number }[];
+        gaps?: string[];
+        suggestions?: string[];
+      }>(response);
       analysis = {
         jobId: job.id,
         profileId: profile.id,
