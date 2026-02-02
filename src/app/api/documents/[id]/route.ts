@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { unlink } from "fs/promises";
+import { requireAuth, isAuthError } from "@/lib/auth";
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     // Get document path before deleting
     const doc = db.prepare("SELECT path FROM documents WHERE id = ?").get(params.id) as { path: string } | undefined;

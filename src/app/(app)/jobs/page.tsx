@@ -54,6 +54,8 @@ import {
 } from "lucide-react";
 import { CoverLetterDialog } from "@/components/cover-letter/cover-letter-dialog";
 import { ImportJobDialog } from "@/components/jobs/import-job-dialog";
+import { ATSScoreBreakdown, ATSScoreBadge } from "@/components/ats/score-breakdown";
+import type { ATSAnalysisResult } from "@/lib/ats/analyzer";
 
 interface Template {
   id: string;
@@ -73,8 +75,9 @@ export default function JobsPage() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<Record<string, string>>({});
   const [expandedDescription, setExpandedDescription] = useState<string | null>(null);
-  const [atsScores, setAtsScores] = useState<Record<string, number>>({});
+  const [atsResults, setAtsResults] = useState<Record<string, ATSAnalysisResult>>({});
   const [atsAnalyzing, setAtsAnalyzing] = useState<string | null>(null);
+  const [atsDialogJob, setAtsDialogJob] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -98,6 +101,11 @@ export default function JobsPage() {
         { id: "classic", name: "Classic", description: "Traditional professional format" },
         { id: "modern", name: "Modern", description: "Contemporary design" },
         { id: "minimal", name: "Minimal", description: "Clean and simple" },
+        { id: "executive", name: "Executive", description: "Bold headers, strong hierarchy" },
+        { id: "tech", name: "Tech", description: "Tech industry focused" },
+        { id: "creative", name: "Creative", description: "Bold colors for creative roles" },
+        { id: "compact", name: "Compact", description: "Dense layout for experienced pros" },
+        { id: "professional", name: "Professional", description: "Conservative for business" },
       ]);
     }
   };
@@ -199,10 +207,14 @@ export default function JobsPage() {
   const runAtsCheck = async (jobId: string) => {
     setAtsAnalyzing(jobId);
     try {
-      const res = await fetch(`/api/ats/analyze?jobId=${jobId}`);
-      const data = await res.json();
-      if (data.overallScore !== undefined) {
-        setAtsScores({ ...atsScores, [jobId]: data.overallScore });
+      const res = await fetch("/api/ats/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId }),
+      });
+      const data = await res.json() as ATSAnalysisResult;
+      if (data.score) {
+        setAtsResults({ ...atsResults, [jobId]: data });
       }
     } catch (error) {
       console.error("Failed to run ATS check:", error);
@@ -465,15 +477,25 @@ export default function JobsPage() {
                 onToggleExpand={() =>
                   setExpandedDescription(expandedDescription === job.id ? null : job.id)
                 }
-                atsScore={atsScores[job.id]}
+                atsResult={atsResults[job.id]}
                 atsAnalyzing={atsAnalyzing === job.id}
                 onAtsCheck={() => runAtsCheck(job.id)}
+                onAtsDialogOpen={() => setAtsDialogJob(job.id)}
                 onCoverLetter={() => setCoverLetterJob(job)}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* ATS Breakdown Dialog */}
+      {atsDialogJob && atsResults[atsDialogJob] && (
+        <ATSScoreBreakdown
+          result={atsResults[atsDialogJob]}
+          open={!!atsDialogJob}
+          onOpenChange={(open) => !open && setAtsDialogJob(null)}
+        />
+      )}
 
       {/* Cover Letter Dialog */}
       {coverLetterJob && (
@@ -635,9 +657,10 @@ function JobCard({
   onStatusChange,
   expanded,
   onToggleExpand,
-  atsScore,
+  atsResult,
   atsAnalyzing,
   onAtsCheck,
+  onAtsDialogOpen,
   onCoverLetter,
 }: {
   job: JobDescription;
@@ -653,9 +676,10 @@ function JobCard({
   onStatusChange: (status: string) => void;
   expanded: boolean;
   onToggleExpand: () => void;
-  atsScore?: number;
+  atsResult?: ATSAnalysisResult;
   atsAnalyzing: boolean;
   onAtsCheck: () => void;
+  onAtsDialogOpen: () => void;
   onCoverLetter: () => void;
 }) {
   const status = job.status || "saved";
@@ -685,17 +709,11 @@ function JobCard({
                     <SelectItem value="rejected">Rejected</SelectItem>
                   </SelectContent>
                 </Select>
-                {atsScore !== undefined && (
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
-                    atsScore >= 80
-                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                      : atsScore >= 60
-                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                      : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                  }`}>
-                    <ShieldCheck className="h-3 w-3" />
-                    ATS {atsScore}%
-                  </span>
+                {atsResult && (
+                  <ATSScoreBadge
+                    score={atsResult.score.overall}
+                    onClick={onAtsDialogOpen}
+                  />
                 )}
               </div>
               <div className="flex items-center gap-3 text-muted-foreground">
@@ -851,7 +869,7 @@ function JobCard({
             ) : (
               <ShieldCheck className="h-4 w-4 mr-1.5" />
             )}
-            {atsScore !== undefined ? "Re-check ATS" : "ATS Check"}
+            {atsResult ? "Re-check ATS" : "ATS Check"}
           </Button>
 
           <Select value={selectedTemplate} onValueChange={onSelectTemplate}>

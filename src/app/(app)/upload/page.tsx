@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Dropzone } from "@/components/upload/dropzone";
+import { Dropzone, UploadResult } from "@/components/upload/dropzone";
 import {
   ArrowRight,
   FileText,
@@ -24,8 +24,9 @@ type ParseStep = "upload" | "parsing" | "success";
 
 export default function UploadPage() {
   const router = useRouter();
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [uploadResults, setUploadResults] = useState<UploadResult[]>([]);
   const [step, setStep] = useState<ParseStep>("upload");
+  const [parseError, setParseError] = useState<string | null>(null);
   const [parseResult, setParseResult] = useState<{
     profile?: {
       contact?: { name?: string; email?: string };
@@ -35,28 +36,34 @@ export default function UploadPage() {
     };
   } | null>(null);
 
-  const handleUploadComplete = (files: File[]) => {
-    setUploadedFiles(files);
+  const handleUploadComplete = (results: UploadResult[]) => {
+    setUploadResults(results);
+    setParseError(null);
   };
 
   const handleParseResume = async () => {
-    if (uploadedFiles.length === 0) return;
+    if (uploadResults.length === 0) return;
 
     setStep("parsing");
+    setParseError(null);
     try {
       const response = await fetch("/api/parse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename: uploadedFiles[0].name }),
+        body: JSON.stringify({ documentId: uploadResults[0].documentId }),
       });
 
-      if (!response.ok) throw new Error("Parse failed");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Parse failed");
+      }
 
       const data = await response.json();
       setParseResult(data);
       setStep("success");
     } catch (error) {
       console.error("Parse error:", error);
+      setParseError(error instanceof Error ? error.message : "Failed to parse resume");
       setStep("upload");
     }
   };
@@ -119,8 +126,18 @@ export default function UploadPage() {
             {/* Dropzone */}
             <Dropzone onUploadComplete={handleUploadComplete} maxFiles={1} />
 
+            {/* Error Message */}
+            {parseError && (
+              <div className="rounded-xl border border-destructive/50 bg-destructive/5 p-4">
+                <p className="text-destructive font-medium">{parseError}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Please try uploading your resume again.
+                </p>
+              </div>
+            )}
+
             {/* Parse Button */}
-            {uploadedFiles.length > 0 && (
+            {uploadResults.length > 0 && (
               <div className="rounded-2xl border bg-card p-6 space-y-4">
                 <div className="flex items-start gap-4">
                   <div className="p-3 rounded-xl bg-primary/10 text-primary">
@@ -250,8 +267,9 @@ export default function UploadPage() {
               <button
                 onClick={() => {
                   setStep("upload");
-                  setUploadedFiles([]);
+                  setUploadResults([]);
                   setParseResult(null);
+                  setParseError(null);
                 }}
                 className="px-6 py-3 rounded-xl border bg-card font-medium hover:bg-muted transition-colors"
               >

@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLLMConfig, setLLMConfig } from "@/lib/db";
+import { requireAuth, isAuthError } from "@/lib/auth";
 import type { LLMConfig } from "@/types";
 
 export async function GET() {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const llmConfig = getLLMConfig();
     return NextResponse.json({ llm: llmConfig });
@@ -16,6 +20,9 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const data = await request.json();
 
@@ -35,6 +42,9 @@ export async function PUT(request: NextRequest) {
 
 // Test LLM connection
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const { llm } = await request.json() as { llm: LLMConfig };
 

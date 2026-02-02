@@ -2,10 +2,14 @@ import { NextRequest } from "next/server";
 import { getJobs } from "@/lib/db/jobs";
 import { getReminders } from "@/lib/db/reminders";
 import { generateICSCalendar, type CalendarEvent } from "@/lib/calendar/ics-generator";
+import { requireAuth, isAuthError } from "@/lib/auth";
 
 type EventType = "interviews" | "deadlines" | "reminders" | "all";
 
 export async function GET(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const type = (searchParams.get("type") || "all") as EventType;

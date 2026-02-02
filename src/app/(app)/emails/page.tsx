@@ -15,6 +15,13 @@ import {
   HelpCircle,
   DollarSign,
   Sparkles,
+  Save,
+  FileText,
+  Trash2,
+  Edit3,
+  Clock,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +35,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { EmailTemplateType, JobDescription } from "@/types";
+
+interface EmailDraft {
+  id: string;
+  type: EmailTemplateType;
+  jobId?: string;
+  subject: string;
+  body: string;
+  context?: Record<string, string>;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const TEMPLATE_CONFIG: Record<
   EmailTemplateType,
@@ -83,8 +101,15 @@ export default function EmailTemplatesPage() {
   const [connectionName, setConnectionName] = useState("");
   const [customNote, setCustomNote] = useState("");
 
+  // Drafts state
+  const [drafts, setDrafts] = useState<EmailDraft[]>([]);
+  const [showDrafts, setShowDrafts] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
+
   useEffect(() => {
     fetchJobs();
+    fetchDrafts();
   }, []);
 
   const fetchJobs = async () => {
@@ -94,6 +119,91 @@ export default function EmailTemplatesPage() {
       setJobs(data.jobs || []);
     } catch (error) {
       console.error("Failed to fetch jobs:", error);
+    }
+  };
+
+  const fetchDrafts = async () => {
+    try {
+      const res = await fetch("/api/email/drafts");
+      const data = await res.json();
+      setDrafts(data.drafts || []);
+    } catch (error) {
+      console.error("Failed to fetch drafts:", error);
+    }
+  };
+
+  const saveDraft = async () => {
+    if (!selectedType || !generatedEmail) return;
+
+    setSavingDraft(true);
+    try {
+      const context: Record<string, string> = {};
+      if (interviewerName) context.interviewerName = interviewerName;
+      if (interviewDate) context.interviewDate = interviewDate;
+      if (targetCompany) context.targetCompany = targetCompany;
+      if (connectionName) context.connectionName = connectionName;
+      if (customNote) context.customNote = customNote;
+
+      if (editingDraftId) {
+        // Update existing draft
+        await fetch(`/api/email/drafts/${editingDraftId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subject: generatedEmail.subject,
+            body: generatedEmail.body,
+            context: Object.keys(context).length > 0 ? context : undefined,
+          }),
+        });
+      } else {
+        // Create new draft
+        await fetch("/api/email/drafts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: selectedType,
+            jobId: selectedJobId || undefined,
+            subject: generatedEmail.subject,
+            body: generatedEmail.body,
+            context: Object.keys(context).length > 0 ? context : undefined,
+          }),
+        });
+      }
+      fetchDrafts();
+      setEditingDraftId(null);
+    } catch (error) {
+      console.error("Failed to save draft:", error);
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  const loadDraft = (draft: EmailDraft) => {
+    setSelectedType(draft.type);
+    setSelectedJobId(draft.jobId || "");
+    setGeneratedEmail({ subject: draft.subject, body: draft.body });
+    setEditingDraftId(draft.id);
+
+    // Restore context
+    if (draft.context) {
+      setInterviewerName(draft.context.interviewerName || "");
+      setInterviewDate(draft.context.interviewDate || "");
+      setTargetCompany(draft.context.targetCompany || "");
+      setConnectionName(draft.context.connectionName || "");
+      setCustomNote(draft.context.customNote || "");
+    }
+    setShowDrafts(false);
+  };
+
+  const deleteDraft = async (draftId: string) => {
+    try {
+      await fetch(`/api/email/drafts/${draftId}`, { method: "DELETE" });
+      fetchDrafts();
+      if (editingDraftId === draftId) {
+        setEditingDraftId(null);
+      }
+    } catch (error) {
+      console.error("Failed to delete draft:", error);
     }
   };
 
@@ -308,6 +418,82 @@ export default function EmailTemplatesPage() {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Drafts Section */}
+        {drafts.length > 0 && (
+          <div className="rounded-2xl border bg-card overflow-hidden mb-8">
+            <button
+              onClick={() => setShowDrafts(!showDrafts)}
+              className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+            >
+              <span className="flex items-center gap-2 font-medium">
+                <FileText className="h-5 w-5 text-primary" />
+                Saved Drafts ({drafts.length})
+              </span>
+              {showDrafts ? (
+                <ChevronUp className="h-5 w-5 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-muted-foreground" />
+              )}
+            </button>
+
+            {showDrafts && (
+              <div className="border-t divide-y">
+                {drafts.map((draft) => {
+                  const config = TEMPLATE_CONFIG[draft.type];
+                  const job = draft.jobId ? jobs.find((j) => j.id === draft.jobId) : null;
+
+                  return (
+                    <div
+                      key={draft.id}
+                      className="p-4 flex items-center justify-between gap-4"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`p-2 rounded-lg bg-muted ${config.color}`}>
+                          <config.icon className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{draft.subject}</p>
+                          <p className="text-sm text-muted-foreground flex items-center gap-2">
+                            <span>{config.title}</span>
+                            {job && (
+                              <>
+                                <span>•</span>
+                                <span>{job.company}</span>
+                              </>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {new Date(draft.updatedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => loadDraft(draft)}
+                        >
+                          <Edit3 className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteDraft(draft.id)}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Left Column - Template Selection & Context */}
           <div className="space-y-6">
@@ -432,6 +618,21 @@ export default function EmailTemplatesPage() {
                     Open in Mail
                   </Button>
                 </div>
+
+                {/* Save Draft */}
+                <Button
+                  variant="outline"
+                  onClick={saveDraft}
+                  disabled={savingDraft}
+                  className="w-full"
+                >
+                  {savingDraft ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  {editingDraftId ? "Update Draft" : "Save as Draft"}
+                </Button>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-16 text-center">

@@ -46,15 +46,15 @@ export function getDocuments(): Document[] {
 }
 
 // Profile
-export function getProfile(): Profile | null {
-  const profileRow = db.prepare("SELECT * FROM profile WHERE id = 'default'").get() as any;
+export function getProfile(userId: string = "default"): Profile | null {
+  const profileRow = db.prepare("SELECT * FROM profile WHERE id = ?").get(userId) as any;
   if (!profileRow) return null;
 
-  const experiences = db.prepare("SELECT * FROM experiences WHERE profile_id = 'default'").all() as any[];
-  const education = db.prepare("SELECT * FROM education WHERE profile_id = 'default'").all() as any[];
-  const skills = db.prepare("SELECT * FROM skills WHERE profile_id = 'default'").all() as any[];
-  const projects = db.prepare("SELECT * FROM projects WHERE profile_id = 'default'").all() as any[];
-  const certifications = db.prepare("SELECT * FROM certifications WHERE profile_id = 'default'").all() as any[];
+  const experiences = db.prepare("SELECT * FROM experiences WHERE profile_id = ?").all(userId) as any[];
+  const education = db.prepare("SELECT * FROM education WHERE profile_id = ?").all(userId) as any[];
+  const skills = db.prepare("SELECT * FROM skills WHERE profile_id = ?").all(userId) as any[];
+  const projects = db.prepare("SELECT * FROM projects WHERE profile_id = ?").all(userId) as any[];
+  const certifications = db.prepare("SELECT * FROM certifications WHERE profile_id = ?").all(userId) as any[];
 
   return {
     id: profileRow.id,
@@ -109,8 +109,14 @@ export function getProfile(): Profile | null {
   };
 }
 
-export function updateProfile(profile: Partial<Profile>): void {
-  const updateProfile = db.transaction(() => {
+export function updateProfile(profile: Partial<Profile>, userId: string = "default"): void {
+  const doUpdate = db.transaction(() => {
+    // Ensure profile exists for this user
+    const existingProfile = db.prepare("SELECT id FROM profile WHERE id = ?").get(userId);
+    if (!existingProfile) {
+      db.prepare("INSERT INTO profile (id) VALUES (?)").run(userId);
+    }
+
     // Update main profile
     if (profile.contact || profile.summary || profile.rawText) {
       db.prepare(`
@@ -119,24 +125,26 @@ export function updateProfile(profile: Partial<Profile>): void {
             summary = COALESCE(?, summary),
             raw_text = COALESCE(?, raw_text),
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = 'default'
+        WHERE id = ?
       `).run(
         profile.contact ? JSON.stringify(profile.contact) : null,
         profile.summary || null,
-        profile.rawText || null
+        profile.rawText || null,
+        userId
       );
     }
 
     // Update experiences
     if (profile.experiences) {
-      db.prepare("DELETE FROM experiences WHERE profile_id = 'default'").run();
+      db.prepare("DELETE FROM experiences WHERE profile_id = ?").run(userId);
       const insertExp = db.prepare(`
         INSERT INTO experiences (id, profile_id, company, title, location, start_date, end_date, current, description, highlights_json, skills_json)
-        VALUES (?, 'default', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       for (const exp of profile.experiences) {
         insertExp.run(
           exp.id || generateId(),
+          userId,
           exp.company,
           exp.title,
           exp.location,
@@ -152,14 +160,15 @@ export function updateProfile(profile: Partial<Profile>): void {
 
     // Update education
     if (profile.education) {
-      db.prepare("DELETE FROM education WHERE profile_id = 'default'").run();
+      db.prepare("DELETE FROM education WHERE profile_id = ?").run(userId);
       const insertEdu = db.prepare(`
         INSERT INTO education (id, profile_id, institution, degree, field, start_date, end_date, gpa, highlights_json)
-        VALUES (?, 'default', ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       for (const edu of profile.education) {
         insertEdu.run(
           edu.id || generateId(),
+          userId,
           edu.institution,
           edu.degree,
           edu.field,
@@ -173,14 +182,15 @@ export function updateProfile(profile: Partial<Profile>): void {
 
     // Update skills
     if (profile.skills) {
-      db.prepare("DELETE FROM skills WHERE profile_id = 'default'").run();
+      db.prepare("DELETE FROM skills WHERE profile_id = ?").run(userId);
       const insertSkill = db.prepare(`
         INSERT INTO skills (id, profile_id, name, category, proficiency)
-        VALUES (?, 'default', ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?)
       `);
       for (const skill of profile.skills) {
         insertSkill.run(
           skill.id || generateId(),
+          userId,
           skill.name,
           skill.category,
           skill.proficiency
@@ -190,14 +200,15 @@ export function updateProfile(profile: Partial<Profile>): void {
 
     // Update projects
     if (profile.projects) {
-      db.prepare("DELETE FROM projects WHERE profile_id = 'default'").run();
+      db.prepare("DELETE FROM projects WHERE profile_id = ?").run(userId);
       const insertProj = db.prepare(`
         INSERT INTO projects (id, profile_id, name, description, url, technologies_json, highlights_json)
-        VALUES (?, 'default', ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `);
       for (const proj of profile.projects) {
         insertProj.run(
           proj.id || generateId(),
+          userId,
           proj.name,
           proj.description,
           proj.url,
@@ -209,14 +220,15 @@ export function updateProfile(profile: Partial<Profile>): void {
 
     // Update certifications
     if (profile.certifications) {
-      db.prepare("DELETE FROM certifications WHERE profile_id = 'default'").run();
+      db.prepare("DELETE FROM certifications WHERE profile_id = ?").run(userId);
       const insertCert = db.prepare(`
         INSERT INTO certifications (id, profile_id, name, issuer, issue_date, url)
-        VALUES (?, 'default', ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
       `);
       for (const cert of profile.certifications) {
         insertCert.run(
           cert.id || generateId(),
+          userId,
           cert.name,
           cert.issuer,
           cert.date,
@@ -226,22 +238,22 @@ export function updateProfile(profile: Partial<Profile>): void {
     }
   });
 
-  updateProfile();
+  doUpdate();
 }
 
 // Clear all profile data
-export function clearProfile(): void {
+export function clearProfile(userId: string = "default"): void {
   const clear = db.transaction(() => {
-    db.prepare("DELETE FROM experiences WHERE profile_id = 'default'").run();
-    db.prepare("DELETE FROM education WHERE profile_id = 'default'").run();
-    db.prepare("DELETE FROM skills WHERE profile_id = 'default'").run();
-    db.prepare("DELETE FROM projects WHERE profile_id = 'default'").run();
-    db.prepare("DELETE FROM certifications WHERE profile_id = 'default'").run();
+    db.prepare("DELETE FROM experiences WHERE profile_id = ?").run(userId);
+    db.prepare("DELETE FROM education WHERE profile_id = ?").run(userId);
+    db.prepare("DELETE FROM skills WHERE profile_id = ?").run(userId);
+    db.prepare("DELETE FROM projects WHERE profile_id = ?").run(userId);
+    db.prepare("DELETE FROM certifications WHERE profile_id = ?").run(userId);
     db.prepare(`
       UPDATE profile
       SET contact_json = NULL, summary = NULL, raw_text = NULL, updated_at = CURRENT_TIMESTAMP
-      WHERE id = 'default'
-    `).run();
+      WHERE id = ?
+    `).run(userId);
   });
   clear();
 }

@@ -3,9 +3,13 @@ import {
   getInterviewSessions,
   createInterviewSession,
 } from "@/lib/db/interviews";
+import { requireAuth, isAuthError } from "@/lib/auth";
 
 // GET - List all interview sessions
 export async function GET(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const { searchParams } = new URL(request.url);
     const jobId = searchParams.get("jobId") || undefined;
@@ -24,6 +28,9 @@ export async function GET(request: NextRequest) {
 
 // POST - Create a new interview session
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const { jobId, questions, mode } = await request.json();
 

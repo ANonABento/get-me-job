@@ -31,6 +31,11 @@ import {
   ChevronUp,
   Info,
   GraduationCap,
+  History,
+  Trash2,
+  PlayCircle,
+  Zap,
+  SkipForward,
 } from "lucide-react";
 import {
   Select,
@@ -40,11 +45,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PrepGuideCard } from "@/components/interview/prep-guide-card";
+import { RecordingControls } from "@/components/interview/recording-controls";
 
 interface InterviewQuestion {
   question: string;
   category: "behavioral" | "technical" | "situational" | "general";
   suggestedAnswer?: string;
+}
+
+interface FollowUpExchange {
+  followUpQuestion: string;
+  answer: string;
+  feedback: string;
 }
 
 interface InterviewSession {
@@ -54,7 +66,24 @@ interface InterviewSession {
   currentIndex: number;
   answers: string[];
   feedback: string[];
+  followUps: FollowUpExchange[][]; // Follow-ups per question
   mode: "text" | "voice";
+}
+
+interface PastSession {
+  id: string;
+  jobId: string;
+  mode: "text" | "voice";
+  status: "in_progress" | "completed";
+  startedAt: string;
+  completedAt?: string;
+  questions: InterviewQuestion[];
+  answers?: Array<{
+    id: string;
+    questionIndex: number;
+    answer: string;
+    feedback?: string;
+  }>;
 }
 
 const categoryColors: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
@@ -93,9 +122,15 @@ export default function InterviewPage() {
   const [showHint, setShowHint] = useState(false);
   const [difficulty, setDifficulty] = useState<string>("mid");
   const [showPrepGuide, setShowPrepGuide] = useState<string | null>(null);
+  const [pastSessions, setPastSessions] = useState<PastSession[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [followUpMode, setFollowUpMode] = useState(false);
+  const [currentFollowUp, setCurrentFollowUp] = useState<{ question: string; reason: string; suggestedFocus: string[] } | null>(null);
+  const [loadingFollowUp, setLoadingFollowUp] = useState(false);
 
   useEffect(() => {
     fetchJobs();
+    fetchPastSessions();
   }, []);
 
   const fetchJobs = async () => {
@@ -108,6 +143,60 @@ export default function InterviewPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchPastSessions = async () => {
+    try {
+      const res = await fetch("/api/interview/sessions");
+      const data = await res.json();
+      setPastSessions(data.sessions || []);
+    } catch (error) {
+      console.error("Failed to fetch past sessions:", error);
+    }
+  };
+
+  const completeSession = async (sessionId: string) => {
+    try {
+      await fetch(`/api/interview/sessions/${sessionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "completed" }),
+      });
+      fetchPastSessions();
+    } catch (error) {
+      console.error("Failed to complete session:", error);
+    }
+  };
+
+  const deleteSession = async (sessionId: string) => {
+    try {
+      await fetch(`/api/interview/sessions/${sessionId}`, {
+        method: "DELETE",
+      });
+      fetchPastSessions();
+    } catch (error) {
+      console.error("Failed to delete session:", error);
+    }
+  };
+
+  const resumeSession = async (pastSession: PastSession) => {
+    const job = jobs.find((j) => j.id === pastSession.jobId);
+    if (!job) return;
+
+    // Calculate where we left off
+    const answeredCount = pastSession.answers?.length || 0;
+
+    setSelectedJob(pastSession.jobId);
+    setSession({
+      id: pastSession.id,
+      jobId: pastSession.jobId,
+      questions: pastSession.questions,
+      currentIndex: answeredCount,
+      answers: pastSession.answers?.map((a) => a.answer) || [],
+      feedback: pastSession.answers?.map((a) => a.feedback || "") || [],
+      followUps: [],
+      mode: pastSession.mode,
+    });
   };
 
   const startInterview = async (jobId: string, mode: "text" | "voice") => {
@@ -146,6 +235,7 @@ export default function InterviewPage() {
         currentIndex: 0,
         answers: [],
         feedback: [],
+        followUps: [],
         mode,
       });
     } catch (error) {
@@ -189,6 +279,10 @@ export default function InterviewPage() {
         });
         setCurrentAnswer("");
       } else {
+        // Interview complete - mark session as completed
+        if (session.id) {
+          await completeSession(session.id);
+        }
         setSession({
           ...session,
           answers: newAnswers,
@@ -257,6 +351,97 @@ export default function InterviewPage() {
     setSelectedJob(null);
     setCurrentAnswer("");
     setShowHint(false);
+    setFollowUpMode(false);
+    setCurrentFollowUp(null);
+  };
+
+  const requestFollowUp = async () => {
+    if (!session || session.answers.length === 0) return;
+
+    setLoadingFollowUp(true);
+    try {
+      const currentQuestionIndex = session.currentIndex - 1;
+      const question = session.questions[currentQuestionIndex];
+      const answer = session.answers[currentQuestionIndex];
+
+      const res = await fetch("/api/interview/followup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobId: session.jobId,
+          originalQuestion: question.question,
+          userAnswer: answer,
+          questionCategory: question.category,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.followUpQuestion) {
+        setCurrentFollowUp({
+          question: data.followUpQuestion,
+          reason: data.reason,
+          suggestedFocus: data.suggestedFocus || [],
+        });
+        setFollowUpMode(true);
+        setCurrentAnswer("");
+      }
+    } catch (error) {
+      console.error("Failed to get follow-up question:", error);
+    } finally {
+      setLoadingFollowUp(false);
+    }
+  };
+
+  const submitFollowUpAnswer = async () => {
+    if (!session || !currentFollowUp || !currentAnswer.trim()) return;
+
+    setSubmitting(true);
+    try {
+      // Get feedback for the follow-up answer
+      const res = await fetch("/api/interview/answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobId: session.jobId,
+          answer: currentAnswer,
+        }),
+      });
+
+      const data = await res.json();
+
+      // Store the follow-up exchange
+      const questionIndex = session.currentIndex - 1;
+      const newFollowUps = [...session.followUps];
+      if (!newFollowUps[questionIndex]) {
+        newFollowUps[questionIndex] = [];
+      }
+      newFollowUps[questionIndex].push({
+        followUpQuestion: currentFollowUp.question,
+        answer: currentAnswer,
+        feedback: data.feedback || "",
+      });
+
+      setSession({
+        ...session,
+        followUps: newFollowUps,
+      });
+
+      // Reset follow-up mode
+      setFollowUpMode(false);
+      setCurrentFollowUp(null);
+      setCurrentAnswer("");
+    } catch (error) {
+      console.error("Failed to submit follow-up answer:", error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const skipFollowUp = () => {
+    setFollowUpMode(false);
+    setCurrentFollowUp(null);
+    setCurrentAnswer("");
   };
 
   const currentQuestion = session?.questions[session.currentIndex];
@@ -315,6 +500,11 @@ export default function InterviewPage() {
             onDifficultyChange={setDifficulty}
             showPrepGuide={showPrepGuide}
             onTogglePrepGuide={(id) => setShowPrepGuide(showPrepGuide === id ? null : id)}
+            pastSessions={pastSessions}
+            showHistory={showHistory}
+            onToggleHistory={() => setShowHistory(!showHistory)}
+            onResumeSession={resumeSession}
+            onDeleteSession={deleteSession}
           />
         ) : isComplete ? (
           // Interview Complete
@@ -362,29 +552,55 @@ export default function InterviewPage() {
               </div>
             </div>
 
-            {/* Current Question */}
+            {/* Current Question or Follow-Up */}
             <div className="rounded-2xl border bg-card overflow-hidden">
               {/* Question Header */}
               <div className="p-6 border-b bg-muted/30">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-3">
-                    {currentQuestion && (
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${
-                          categoryColors[currentQuestion.category]?.bg
-                        } ${categoryColors[currentQuestion.category]?.text}`}
-                      >
-                        {categoryColors[currentQuestion.category]?.icon}
-                        {currentQuestion.category.charAt(0).toUpperCase() + currentQuestion.category.slice(1)}
-                      </span>
+                    {followUpMode && currentFollowUp ? (
+                      <>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300">
+                          <Zap className="h-4 w-4" />
+                          Follow-up Question
+                        </span>
+                        <h2 className="text-xl font-semibold leading-relaxed">
+                          {currentFollowUp.question}
+                        </h2>
+                        {currentFollowUp.suggestedFocus.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {currentFollowUp.suggestedFocus.map((focus, i) => (
+                              <span
+                                key={i}
+                                className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground"
+                              >
+                                {focus}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {currentQuestion && (
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${
+                              categoryColors[currentQuestion.category]?.bg
+                            } ${categoryColors[currentQuestion.category]?.text}`}
+                          >
+                            {categoryColors[currentQuestion.category]?.icon}
+                            {currentQuestion.category.charAt(0).toUpperCase() + currentQuestion.category.slice(1)}
+                          </span>
+                        )}
+                        <h2 className="text-xl font-semibold leading-relaxed">
+                          {currentQuestion?.question}
+                        </h2>
+                      </>
                     )}
-                    <h2 className="text-xl font-semibold leading-relaxed">
-                      {currentQuestion?.question}
-                    </h2>
                   </div>
 
                   {/* Voice Controls */}
-                  {session.mode === "voice" && (
+                  {session.mode === "voice" && !followUpMode && (
                     <Button
                       variant="outline"
                       size="icon"
@@ -409,7 +625,9 @@ export default function InterviewPage() {
                     value={currentAnswer}
                     onChange={(e) => setCurrentAnswer(e.target.value)}
                     placeholder={
-                      session.mode === "voice"
+                      followUpMode
+                        ? "Elaborate on your previous answer..."
+                        : session.mode === "voice"
                         ? "Click the microphone to speak, or type your answer..."
                         : "Type your answer here..."
                     }
@@ -439,12 +657,23 @@ export default function InterviewPage() {
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive"></span>
                     </span>
-                    Recording...
+                    Recording speech...
                   </div>
                 )}
 
-                {/* Hint Section */}
-                {currentQuestion?.suggestedAnswer && (
+                {/* Audio Recording Controls - Voice Mode */}
+                {session.mode === "voice" && (
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Mic className="h-4 w-4" />
+                      <span>Record your answer for playback</span>
+                    </div>
+                    <RecordingControls compact />
+                  </div>
+                )}
+
+                {/* Hint Section - Only for main questions */}
+                {!followUpMode && currentQuestion?.suggestedAnswer && (
                   <div className="rounded-xl border bg-muted/30 overflow-hidden">
                     <button
                       onClick={() => setShowHint(!showHint)}
@@ -470,25 +699,79 @@ export default function InterviewPage() {
                   </div>
                 )}
 
-                {/* Submit Button */}
-                <Button
-                  onClick={submitAnswer}
-                  disabled={submitting || !currentAnswer.trim()}
-                  size="lg"
-                  className="w-full gradient-bg text-white hover:opacity-90"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                      Getting Feedback...
-                    </>
-                  ) : (
-                    <>
-                      Submit Answer
-                      <ArrowRight className="h-5 w-5 ml-2" />
-                    </>
-                  )}
-                </Button>
+                {/* Submit/Follow-up Buttons */}
+                {followUpMode ? (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={skipFollowUp}
+                      className="flex-1"
+                    >
+                      <SkipForward className="h-4 w-4 mr-2" />
+                      Skip Follow-up
+                    </Button>
+                    <Button
+                      onClick={submitFollowUpAnswer}
+                      disabled={submitting || !currentAnswer.trim()}
+                      className="flex-1 gradient-bg text-white hover:opacity-90"
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          Submit Follow-up
+                          <ArrowRight className="h-5 w-5 ml-2" />
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Button
+                      onClick={submitAnswer}
+                      disabled={submitting || !currentAnswer.trim()}
+                      size="lg"
+                      className="w-full gradient-bg text-white hover:opacity-90"
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                          Getting Feedback...
+                        </>
+                      ) : (
+                        <>
+                          Submit Answer
+                          <ArrowRight className="h-5 w-5 ml-2" />
+                        </>
+                      )}
+                    </Button>
+
+                    {/* Follow-up button - show after answering previous question */}
+                    {session.answers.length > 0 && session.currentIndex > 0 && (
+                      <Button
+                        variant="outline"
+                        onClick={requestFollowUp}
+                        disabled={loadingFollowUp}
+                        className="w-full"
+                      >
+                        {loadingFollowUp ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Generating follow-up...
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="h-4 w-4 mr-2" />
+                            Get Follow-up on Previous Answer
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -507,6 +790,11 @@ function JobSelection({
   onDifficultyChange,
   showPrepGuide,
   onTogglePrepGuide,
+  pastSessions,
+  showHistory,
+  onToggleHistory,
+  onResumeSession,
+  onDeleteSession,
 }: {
   jobs: JobDescription[];
   selectedJob: string | null;
@@ -516,6 +804,11 @@ function JobSelection({
   onDifficultyChange: (value: string) => void;
   showPrepGuide: string | null;
   onTogglePrepGuide: (id: string) => void;
+  pastSessions: PastSession[];
+  showHistory: boolean;
+  onToggleHistory: () => void;
+  onResumeSession: (session: PastSession) => void;
+  onDeleteSession: (sessionId: string) => void;
 }) {
   if (jobs.length === 0) {
     return (
@@ -562,6 +855,81 @@ function JobSelection({
 
   return (
     <div className="space-y-6 animate-in">
+      {/* Past Sessions History */}
+      {pastSessions.length > 0 && (
+        <div className="rounded-2xl border bg-card overflow-hidden">
+          <button
+            onClick={onToggleHistory}
+            className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+          >
+            <span className="flex items-center gap-2 font-medium">
+              <History className="h-5 w-5 text-primary" />
+              Interview History ({pastSessions.length})
+            </span>
+            {showHistory ? (
+              <ChevronUp className="h-5 w-5 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-5 w-5 text-muted-foreground" />
+            )}
+          </button>
+
+          {showHistory && (
+            <div className="border-t divide-y">
+              {pastSessions.slice(0, 10).map((pastSession) => {
+                const job = jobs.find((j) => j.id === pastSession.jobId);
+                const answeredCount = pastSession.answers?.length || 0;
+                const totalQuestions = pastSession.questions.length;
+                const isComplete = pastSession.status === "completed";
+
+                return (
+                  <div key={pastSession.id} className="p-4 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`p-2 rounded-lg ${isComplete ? "bg-success/10 text-success" : "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"}`}>
+                        {isComplete ? <CheckCircle2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{job?.title || "Unknown Job"}</p>
+                        <p className="text-sm text-muted-foreground flex items-center gap-2">
+                          <span>{job?.company || "Unknown Company"}</span>
+                          <span>•</span>
+                          <span>{answeredCount}/{totalQuestions} questions</span>
+                          <span>•</span>
+                          <span>{pastSession.mode === "voice" ? "Voice" : "Text"}</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(pastSession.startedAt).toLocaleDateString()} at{" "}
+                          {new Date(pastSession.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {!isComplete && job && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onResumeSession(pastSession)}
+                        >
+                          <PlayCircle className="h-4 w-4 mr-1" />
+                          Resume
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDeleteSession(pastSession.id)}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Difficulty Selector */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Select a job to practice for:</h2>
@@ -748,6 +1116,31 @@ function InterviewSummary({
                   AI Feedback
                 </p>
                 <p className="text-sm">{session.feedback[i]}</p>
+              </div>
+            )}
+
+            {/* Follow-up Exchanges */}
+            {session.followUps[i] && session.followUps[i].length > 0 && (
+              <div className="mt-4 pt-4 border-t space-y-4">
+                <p className="text-sm font-medium text-orange-600 dark:text-orange-400 flex items-center gap-2">
+                  <Zap className="h-4 w-4" />
+                  Follow-up Questions ({session.followUps[i].length})
+                </p>
+                {session.followUps[i].map((followUp, j) => (
+                  <div key={j} className="pl-4 border-l-2 border-orange-200 dark:border-orange-800 space-y-2">
+                    <p className="text-sm font-medium">{followUp.followUpQuestion}</p>
+                    <div className="rounded-lg bg-muted/50 p-3">
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Your Response</p>
+                      <p className="text-sm">{followUp.answer}</p>
+                    </div>
+                    {followUp.feedback && (
+                      <div className="rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 p-3">
+                        <p className="text-xs font-medium text-orange-600 dark:text-orange-400 mb-1">Feedback</p>
+                        <p className="text-sm">{followUp.feedback}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>

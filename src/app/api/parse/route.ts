@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDocuments, getLLMConfig, updateProfile, getProfile } from "@/lib/db";
 import { parseResumeWithLLM, parseResumeBasic } from "@/lib/parser/resume";
+import { requireAuth, isAuthError } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const { filename, documentId } = await request.json();
 

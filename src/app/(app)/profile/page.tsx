@@ -673,11 +673,24 @@ function ExperienceCard({
           <div className="space-y-2">
             <Label className="text-sm">End Date</Label>
             <Input
-              value={experience.endDate || ""}
+              value={experience.current ? "" : experience.endDate || ""}
               onChange={(e) => onChange({ ...experience, endDate: e.target.value })}
-              placeholder="Present"
+              placeholder={experience.current ? "Present" : "Dec 2023"}
               disabled={experience.current}
             />
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={experience.current}
+                onChange={(e) => onChange({
+                  ...experience,
+                  current: e.target.checked,
+                  endDate: e.target.checked ? undefined : experience.endDate,
+                })}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <span className="text-muted-foreground">I currently work here</span>
+            </label>
           </div>
         </div>
         <Button variant="ghost" size="icon" onClick={onRemove} className="text-destructive hover:text-destructive">

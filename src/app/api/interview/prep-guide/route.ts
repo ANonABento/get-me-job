@@ -3,8 +3,12 @@ import { getJob } from "@/lib/db/jobs";
 import { getProfile, getLLMConfig } from "@/lib/db";
 import { getCompanyResearch } from "@/lib/db/company-research";
 import { generatePrepGuide, generateExportableDocument } from "@/lib/interview/prep-guide";
+import { requireAuth, isAuthError } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const { searchParams } = new URL(request.url);
     const jobId = searchParams.get("jobId");

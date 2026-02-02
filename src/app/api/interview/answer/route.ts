@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import { getProfile, getLLMConfig } from "@/lib/db";
 import { LLMClient } from "@/lib/llm/client";
+import { requireAuth, isAuthError } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const { jobId, questionIndex, answer } = await request.json();
 

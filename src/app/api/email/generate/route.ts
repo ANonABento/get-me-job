@@ -3,6 +3,7 @@ import { getJob } from "@/lib/db/jobs";
 import { getProfile, getLLMConfig } from "@/lib/db";
 import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
 import { generateEmail, EMAIL_TEMPLATE_INFO } from "@/lib/email/templates";
+import { requireAuth, isAuthError } from "@/lib/auth";
 import type { EmailTemplateType } from "@/types";
 
 interface GenerateEmailRequest {
@@ -18,6 +19,9 @@ interface GenerateEmailRequest {
 }
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const body = (await request.json()) as GenerateEmailRequest;
     const { type, jobId, useLLM = true, ...contextParams } = body;

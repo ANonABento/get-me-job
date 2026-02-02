@@ -21,10 +21,16 @@ interface UploadedFile {
   status: "pending" | "uploading" | "success" | "error";
   progress: number;
   error?: string;
+  documentId?: string;
+}
+
+export interface UploadResult {
+  file: File;
+  documentId: string;
 }
 
 interface DropzoneProps {
-  onUploadComplete?: (files: File[]) => void;
+  onUploadComplete?: (results: UploadResult[]) => void;
   maxFiles?: number;
   maxSize?: number;
   accept?: Record<string, string[]>;
@@ -114,10 +120,13 @@ export function Dropzone({
           throw new Error("Upload failed");
         }
 
+        const data = await response.json();
+        const documentId = data.document?.id;
+
         setFiles((prev) =>
           prev.map((f, idx) =>
             idx === fileIndex
-              ? { ...f, status: "success" as const, progress: 100 }
+              ? { ...f, status: "success" as const, progress: 100, documentId }
               : f
           )
         );
@@ -133,10 +142,11 @@ export function Dropzone({
     }
 
     setIsUploading(false);
-    const successFiles = files
-      .filter((f) => f.status === "success" || f.status === "pending")
-      .map((f) => f.file);
-    onUploadComplete?.(successFiles);
+    // Get successfully uploaded files with their document IDs
+    const successResults: UploadResult[] = files
+      .filter((f) => f.status === "success" && f.documentId)
+      .map((f) => ({ file: f.file, documentId: f.documentId! }));
+    onUploadComplete?.(successResults);
   };
 
   const pendingFiles = files.filter((f) => f.status === "pending");

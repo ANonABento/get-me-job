@@ -3,8 +3,8 @@ import { generateId } from "@/lib/utils";
 import type { JobDescription } from "@/types";
 
 // Get all jobs
-export function getJobs(): JobDescription[] {
-  const rows = db.prepare("SELECT * FROM jobs ORDER BY created_at DESC").all() as any[];
+export function getJobs(userId: string = "default"): JobDescription[] {
+  const rows = db.prepare("SELECT * FROM jobs WHERE user_id = ? ORDER BY created_at DESC").all(userId) as any[];
   return rows.map((row) => ({
     id: row.id,
     title: row.title,
@@ -52,11 +52,11 @@ export function getJob(id: string): JobDescription | null {
 }
 
 // Create job
-export function createJob(job: Omit<JobDescription, "id" | "createdAt">): JobDescription {
+export function createJob(job: Omit<JobDescription, "id" | "createdAt">, userId: string = "default"): JobDescription {
   const id = generateId();
   db.prepare(`
-    INSERT INTO jobs (id, title, company, location, type, remote, salary, description, requirements_json, responsibilities_json, keywords_json, url)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO jobs (id, title, company, location, type, remote, salary, description, requirements_json, responsibilities_json, keywords_json, url, user_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id,
     job.title,
@@ -69,7 +69,8 @@ export function createJob(job: Omit<JobDescription, "id" | "createdAt">): JobDes
     JSON.stringify(job.requirements || []),
     JSON.stringify(job.responsibilities || []),
     JSON.stringify(job.keywords || []),
-    job.url || null
+    job.url || null,
+    userId
   );
   return getJob(id)!;
 }

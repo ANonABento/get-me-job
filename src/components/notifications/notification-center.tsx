@@ -187,8 +187,11 @@ export function NotificationCenter({ collapsed = false }: NotificationCenterProp
           <div
             className={cn(
               "absolute z-50 w-80 max-h-[70vh] flex flex-col bg-card border rounded-xl shadow-xl",
-              collapsed ? "left-full ml-2 bottom-0" : "left-0 bottom-full mb-2"
+              collapsed
+                ? "left-full ml-3 bottom-0 mb-0"
+                : "left-0 bottom-full mb-2"
             )}
+            style={collapsed ? { transform: "translateY(50%)" } : undefined}
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">

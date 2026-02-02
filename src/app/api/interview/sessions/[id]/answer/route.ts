@@ -6,12 +6,16 @@ import {
 } from "@/lib/db/interviews";
 import { getLLMConfig } from "@/lib/db";
 import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
+import { requireAuth, isAuthError } from "@/lib/auth";
 
 // POST - Add an answer to the session
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const { questionIndex, answer } = await request.json();
 

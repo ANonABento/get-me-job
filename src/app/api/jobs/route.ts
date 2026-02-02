@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { getJobs, createJob } from "@/lib/db/jobs";
 import { getLLMConfig } from "@/lib/db";
 import { LLMClient } from "@/lib/llm/client";
 
 export async function GET() {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // TODO: Switch to Drizzle queries with userId once Neon is configured
     const jobs = getJobs();
     return NextResponse.json({ jobs });
   } catch (error) {
@@ -15,6 +22,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const data = await request.json();
 
     if (!data.title || !data.company || !data.description) {

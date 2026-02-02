@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import { getProfile, getLLMConfig } from "@/lib/db";
 import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
+import { requireAuth, isAuthError } from "@/lib/auth";
 
 interface InterviewQuestion {
   question: string;
@@ -20,6 +21,9 @@ const DIFFICULTY_DESCRIPTIONS: Record<DifficultyLevel, string> = {
 };
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const { jobId, difficulty = "mid" } = await request.json() as {
       jobId: string;

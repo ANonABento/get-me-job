@@ -4,9 +4,13 @@ import { getJobs, createJob } from "@/lib/db/jobs";
 import { getInterviewSessions } from "@/lib/db/interviews";
 import { getAllGeneratedResumes } from "@/lib/db/resumes";
 import { generateId } from "@/lib/utils";
+import { requireAuth, isAuthError } from "@/lib/auth";
 
 // GET - Export full backup
 export async function GET() {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const backup = {
       version: "1.0",
@@ -53,6 +57,9 @@ export async function GET() {
 
 // POST - Restore from backup
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const backup = await request.json();
 

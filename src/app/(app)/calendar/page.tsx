@@ -13,8 +13,16 @@ import {
   Bell,
   AlertCircle,
   ExternalLink,
+  Plus,
+  Loader2,
+  Link2,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -22,6 +30,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import type { JobDescription } from "@/types";
 
 interface Reminder {
@@ -62,6 +79,37 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [filterType, setFilterType] = useState<string>("all");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showSubscribeDialog, setShowSubscribeDialog] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+
+  // Generate feed URLs
+  const feedToken = "columbus-feed-2024"; // Same as in the API
+  const feedUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/api/calendar/feed?token=${feedToken}&type=all`
+    : "";
+  const webcalUrl = feedUrl.replace(/^https?:\/\//, "webcal://");
+
+  const copyFeedUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(feedUrl);
+      setCopiedUrl(true);
+      setTimeout(() => setCopiedUrl(false), 2000);
+    } catch {
+      console.error("Failed to copy URL");
+    }
+  };
+
+  // Create event dialog state
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    title: "",
+    description: "",
+    dueDate: "",
+    dueTime: "09:00",
+    jobId: "",
+    type: "custom" as "follow_up" | "interview" | "deadline" | "custom",
+  });
 
   useEffect(() => {
     Promise.all([
@@ -182,6 +230,53 @@ export default function CalendarPage() {
     window.location.href = `/api/calendar/export?type=${type}`;
   };
 
+  const resetNewEvent = () => {
+    setNewEvent({
+      title: "",
+      description: "",
+      dueDate: selectedDate ? selectedDate.toISOString().split("T")[0] : "",
+      dueTime: "09:00",
+      jobId: "",
+      type: "custom",
+    });
+  };
+
+  const openCreateDialog = () => {
+    resetNewEvent();
+    setShowCreateDialog(true);
+  };
+
+  const createEvent = async () => {
+    if (!newEvent.title || !newEvent.dueDate || !newEvent.jobId) return;
+
+    setCreating(true);
+    try {
+      const dueDateTime = `${newEvent.dueDate}T${newEvent.dueTime}:00`;
+      const res = await fetch("/api/reminders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobId: newEvent.jobId,
+          type: newEvent.type,
+          title: newEvent.title,
+          description: newEvent.description,
+          dueDate: dueDateTime,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to create event");
+
+      const data = await res.json();
+      setReminders([...reminders, data.reminder]);
+      setShowCreateDialog(false);
+      resetNewEvent();
+    } catch (error) {
+      console.error("Create event error:", error);
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const isToday = (date: Date) => {
     const today = new Date();
     return (
@@ -242,6 +337,14 @@ export default function CalendarPage() {
               </Select>
 
               <div className="flex gap-2">
+                <Button size="sm" onClick={openCreateDialog} className="gradient-bg text-white">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Event
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowSubscribeDialog(true)}>
+                  <Link2 className="h-4 w-4 mr-2" />
+                  Subscribe
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => exportCalendar("all")}>
                   <Download className="h-4 w-4 mr-2" />
                   Export .ics
@@ -442,6 +545,195 @@ export default function CalendarPage() {
           </div>
         </div>
       </div>
+
+      {/* Create Event Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Event</DialogTitle>
+            <DialogDescription>
+              Add a new reminder or event to your calendar.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="event-title">Title *</Label>
+              <Input
+                id="event-title"
+                placeholder="e.g., Follow up with recruiter"
+                value={newEvent.title}
+                onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="event-job">Job *</Label>
+              <select
+                id="event-job"
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                value={newEvent.jobId}
+                onChange={(e) => setNewEvent({ ...newEvent, jobId: e.target.value })}
+              >
+                <option value="">Select a job...</option>
+                {jobs.map((job) => (
+                  <option key={job.id} value={job.id}>
+                    {job.title} at {job.company}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="event-type">Event Type</Label>
+              <select
+                id="event-type"
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                value={newEvent.type}
+                onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as typeof newEvent.type })}
+              >
+                <option value="follow_up">Follow Up</option>
+                <option value="interview">Interview</option>
+                <option value="deadline">Deadline</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="event-date">Date *</Label>
+                <Input
+                  id="event-date"
+                  type="date"
+                  value={newEvent.dueDate}
+                  onChange={(e) => setNewEvent({ ...newEvent, dueDate: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="event-time">Time</Label>
+                <Input
+                  id="event-time"
+                  type="time"
+                  value={newEvent.dueTime}
+                  onChange={(e) => setNewEvent({ ...newEvent, dueTime: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="event-description">Description</Label>
+              <Textarea
+                id="event-description"
+                placeholder="Add notes or details..."
+                value={newEvent.description}
+                onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={createEvent}
+              disabled={creating || !newEvent.title || !newEvent.dueDate || !newEvent.jobId}
+              className="gradient-bg text-white"
+            >
+              {creating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Event
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Subscribe Dialog */}
+      <Dialog open={showSubscribeDialog} onOpenChange={setShowSubscribeDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5 text-primary" />
+              Subscribe to Calendar
+            </DialogTitle>
+            <DialogDescription>
+              Add your job search events to your favorite calendar app.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Webcal Link */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Calendar Subscription URL</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={feedUrl}
+                  readOnly
+                  className="text-sm font-mono"
+                />
+                <Button variant="outline" size="icon" onClick={copyFeedUrl}>
+                  {copiedUrl ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Copy this URL and add it to your calendar app for live updates.
+              </p>
+            </div>
+
+            {/* Quick Subscribe Buttons */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Quick Subscribe</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <a
+                  href={webcalUrl}
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border bg-background hover:bg-muted transition-colors text-sm font-medium"
+                >
+                  <CalendarIcon className="h-4 w-4" />
+                  Apple Calendar
+                </a>
+                <a
+                  href={`https://calendar.google.com/calendar/r?cid=${encodeURIComponent(feedUrl)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border bg-background hover:bg-muted transition-colors text-sm font-medium"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Google Calendar
+                </a>
+              </div>
+            </div>
+
+            {/* Instructions */}
+            <div className="rounded-lg bg-muted/50 p-4 space-y-2">
+              <h4 className="text-sm font-medium">How to Subscribe</h4>
+              <ul className="text-xs text-muted-foreground space-y-1">
+                <li><span className="font-medium">Apple Calendar:</span> Click the button above or add URL in File → New Calendar Subscription</li>
+                <li><span className="font-medium">Google Calendar:</span> Click the button or paste URL in Settings → Add Calendar → From URL</li>
+                <li><span className="font-medium">Outlook:</span> Add URL in Calendar → Add Calendar → Subscribe from web</li>
+              </ul>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSubscribeDialog(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

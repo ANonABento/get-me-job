@@ -4,10 +4,14 @@ import path from "path";
 import { generateId } from "@/lib/utils";
 import { saveDocument } from "@/lib/db";
 import { extractTextFromFile } from "@/lib/parser/pdf";
+import { requireAuth, isAuthError } from "@/lib/auth";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;

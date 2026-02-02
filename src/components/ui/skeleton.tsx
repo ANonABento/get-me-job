@@ -57,4 +57,126 @@ function SkeletonCard({
   );
 }
 
-export { Skeleton, SkeletonText, SkeletonCard };
+// Dashboard stat card skeleton
+function SkeletonStatCard({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border bg-card p-5 space-y-3",
+        className
+      )}
+      {...props}
+    >
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-10 w-10 rounded-xl" />
+      </div>
+      <Skeleton className="h-8 w-16" />
+      <Skeleton className="h-3 w-32" />
+    </div>
+  );
+}
+
+// Job card skeleton
+function SkeletonJobCard({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border bg-card p-4 space-y-3",
+        className
+      )}
+      {...props}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2 flex-1">
+          <Skeleton className="h-5 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+        </div>
+        <Skeleton className="h-6 w-20 rounded-full" />
+      </div>
+      <div className="flex gap-2">
+        <Skeleton className="h-5 w-16 rounded-full" />
+        <Skeleton className="h-5 w-20 rounded-full" />
+        <Skeleton className="h-5 w-14 rounded-full" />
+      </div>
+    </div>
+  );
+}
+
+// Dashboard insights skeleton
+function SkeletonInsights({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border bg-card p-6 space-y-4",
+        className
+      )}
+      {...props}
+    >
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-10 w-10 rounded-xl" />
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+      </div>
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-8 w-8 rounded-lg" />
+          <Skeleton className="h-4 w-full" />
+        </div>
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-8 w-8 rounded-lg" />
+          <Skeleton className="h-4 w-4/5" />
+        </div>
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-8 w-8 rounded-lg" />
+          <Skeleton className="h-4 w-3/4" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Table row skeleton
+function SkeletonTableRow({
+  columns = 4,
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement> & { columns?: number }) {
+  return (
+    <div
+      className={cn("flex items-center gap-4 p-4 border-b", className)}
+      {...props}
+    >
+      {Array.from({ length: columns }).map((_, i) => (
+        <Skeleton
+          key={i}
+          className={cn(
+            "h-4",
+            i === 0 ? "w-1/4" : i === columns - 1 ? "w-16" : "flex-1"
+          )}
+        />
+      ))}
+    </div>
+  );
+}
+
+export {
+  Skeleton,
+  SkeletonText,
+  SkeletonCard,
+  SkeletonStatCard,
+  SkeletonJobCard,
+  SkeletonInsights,
+  SkeletonTableRow
+};

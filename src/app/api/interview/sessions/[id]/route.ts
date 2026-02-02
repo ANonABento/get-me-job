@@ -4,12 +4,16 @@ import {
   deleteInterviewSession,
   completeInterviewSession,
 } from "@/lib/db/interviews";
+import { requireAuth, isAuthError } from "@/lib/auth";
 
 // GET - Get a specific interview session
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const session = getInterviewSession(params.id);
 
@@ -35,6 +39,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     const { status } = await request.json();
 
@@ -59,6 +66,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const authResult = await requireAuth();
+  if (isAuthError(authResult)) return authResult;
+
   try {
     deleteInterviewSession(params.id);
 

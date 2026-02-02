@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { getJobs } from "@/lib/db/jobs";
 import { getProfile, getDocuments } from "@/lib/db";
 import { getInterviewSessions } from "@/lib/db/interviews";
 import { getAllGeneratedResumes } from "@/lib/db/resumes";
+import { saveAnalyticsSnapshot } from "@/lib/db/analytics";
 
 export async function GET() {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // TODO: Switch to Drizzle queries with userId once Neon is configured
     const profile = getProfile();
     const jobs = getJobs();
     const documents = getDocuments();
@@ -88,6 +96,29 @@ export async function GET() {
         jobs: recentJobs,
       },
     };
+
+    // Save today's snapshot for historical tracking
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      saveAnalyticsSnapshot({
+        userId: "default", // TODO: Use actual userId when multi-user is ready
+        snapshotDate: today,
+        totalJobs: jobs.length,
+        jobsSaved: jobsByStatus["saved"] || 0,
+        jobsApplied: jobsByStatus["applied"] || 0,
+        jobsInterviewing: jobsByStatus["interviewing"] || 0,
+        jobsOffered: jobsByStatus["offered"] || 0,
+        jobsRejected: jobsByStatus["rejected"] || 0,
+        totalInterviews: interviews.length,
+        interviewsCompleted: completedInterviews,
+        totalDocuments: documents.length,
+        totalResumes: resumes.length,
+        profileCompleteness: Math.min(profileScore, 100),
+      });
+    } catch (snapshotError) {
+      console.error("Failed to save analytics snapshot:", snapshotError);
+      // Don't fail the request if snapshot fails
+    }
 
     return NextResponse.json(analytics);
   } catch (error) {
