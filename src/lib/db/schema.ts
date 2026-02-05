@@ -349,4 +349,55 @@ try {
   console.error("Notifications migration error:", error);
 }
 
+// Migration: Add extension tables
+try {
+  db.exec(`
+    -- Extension session tokens for API authentication
+    CREATE TABLE IF NOT EXISTS extension_sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT 'default',
+      token TEXT NOT NULL UNIQUE,
+      device_info TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      expires_at TEXT NOT NULL,
+      last_used_at TEXT
+    );
+
+    -- Learned answers from job applications
+    CREATE TABLE IF NOT EXISTS learned_answers (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT 'default',
+      question TEXT NOT NULL,
+      question_normalized TEXT NOT NULL,
+      answer TEXT NOT NULL,
+      source_url TEXT,
+      source_company TEXT,
+      times_used INTEGER DEFAULT 1,
+      last_used_at TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Custom field mappings for specific sites
+    CREATE TABLE IF NOT EXISTS field_mappings (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT 'default',
+      site_pattern TEXT NOT NULL,
+      field_selector TEXT NOT NULL,
+      field_type TEXT NOT NULL,
+      custom_value TEXT,
+      enabled INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Create indexes for extension tables
+    CREATE INDEX IF NOT EXISTS idx_extension_sessions_token ON extension_sessions(token);
+    CREATE INDEX IF NOT EXISTS idx_extension_sessions_user ON extension_sessions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_learned_answers_normalized ON learned_answers(question_normalized);
+    CREATE INDEX IF NOT EXISTS idx_learned_answers_user ON learned_answers(user_id);
+  `);
+} catch (error) {
+  console.error("Extension tables migration error:", error);
+}
+
 export default db;

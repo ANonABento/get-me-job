@@ -1,0 +1,227 @@
+/* Content script styles - injected into pages */
+
+/* Columbus extension overlay styles */
+.columbus-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.columbus-panel {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  max-width: 400px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: auto;
+}
+
+.columbus-panel-header {
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #14b8a6, #0ea5e9);
+  border-radius: 12px 12px 0 0;
+  color: white;
+}
+
+.columbus-panel-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.columbus-panel-body {
+  padding: 20px;
+}
+
+.columbus-panel-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+/* Field highlight styles */
+.columbus-field-highlight {
+  outline: 2px solid #14b8a6 !important;
+  outline-offset: 2px !important;
+  background-color: rgba(20, 184, 166, 0.05) !important;
+}
+
+.columbus-field-highlight-low {
+  outline-color: #f59e0b !important;
+  background-color: rgba(245, 158, 11, 0.05) !important;
+}
+
+.columbus-field-filled {
+  outline-color: #10b981 !important;
+  background-color: rgba(16, 185, 129, 0.05) !important;
+}
+
+/* Tooltip styles */
+.columbus-tooltip {
+  position: absolute;
+  background: #1a1a1a;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  z-index: 999999;
+  pointer-events: none;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.columbus-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #1a1a1a;
+}
+
+/* Button styles */
+.columbus-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.columbus-btn-primary {
+  background: linear-gradient(135deg, #14b8a6, #0ea5e9);
+  color: white;
+}
+
+.columbus-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.columbus-btn-secondary {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.columbus-btn-secondary:hover {
+  background: #e5e5e5;
+}
+
+/* Notification toast */
+.columbus-toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  background: #14b8a6;
+  color: white;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 999999;
+  animation: columbus-slide-up 0.3s ease;
+}
+
+.columbus-toast-error {
+  background: #ef4444;
+}
+
+@keyframes columbus-slide-up {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Badge on detected fields */
+.columbus-field-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  background: #14b8a6;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  z-index: 99999;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.columbus-field-badge:hover {
+  transform: scale(1.1);
+}
+
+/* Suggestion dropdown */
+.columbus-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  margin-top: 4px;
+  z-index: 999999;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.columbus-suggestion-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+}
+
+.columbus-suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.columbus-suggestion-item:hover {
+  background: #f5f5f5;
+}
+
+.columbus-suggestion-question {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.columbus-suggestion-answer {
+  font-size: 14px;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.columbus-suggestion-similarity {
+  font-size: 11px;
+  color: #14b8a6;
+  float: right;
+}

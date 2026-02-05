@@ -1,0 +1,40 @@
+{
+  "name": "columbus-extension",
+  "version": "1.0.0",
+  "description": "Columbus browser extension for auto-filling job applications and scraping job listings",
+  "scripts": {
+    "dev": "npm run generate-icons && webpack --mode development --watch",
+    "build": "npm run generate-icons && webpack --mode production",
+    "build:chrome": "npm run generate-icons && TARGET=chrome webpack --mode production",
+    "build:firefox": "npm run generate-icons && TARGET=firefox webpack --mode production",
+    "generate-icons": "node scripts/generate-icons.js",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "test": "vitest",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "dompurify": "^3.0.8"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.260",
+    "@types/dompurify": "^3.0.5",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "@types/webextension-polyfill": "^0.10.7",
+    "copy-webpack-plugin": "^12.0.2",
+    "css-loader": "^6.9.1",
+    "eslint": "^8.56.0",
+    "html-webpack-plugin": "^5.6.0",
+    "mini-css-extract-plugin": "^2.7.7",
+    "style-loader": "^3.3.4",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.2",
+    "webextension-polyfill": "^0.10.0",
+    "webpack": "^5.90.0",
+    "webpack-cli": "^5.1.4"
+  }
+}
