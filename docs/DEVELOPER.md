@@ -52,6 +52,62 @@ OLLAMA_BASE_URL=http://localhost:11434
 
 Configure your provider in the app at `/settings`.
 
+## Google Integration Setup
+
+Google integration uses Clerk for OAuth. No additional environment variables are needed - Clerk manages Google tokens.
+
+### Clerk Dashboard Setup
+
+1. Go to [Clerk Dashboard](https://dashboard.clerk.com)
+2. Select your application
+3. Navigate to **User & Authentication** → **Social Connections**
+4. Enable **Google**
+5. Configure OAuth scopes:
+
+```
+openid
+email
+profile
+https://www.googleapis.com/auth/calendar
+https://www.googleapis.com/auth/calendar.events
+https://www.googleapis.com/auth/drive.file
+https://www.googleapis.com/auth/drive.readonly
+https://www.googleapis.com/auth/gmail.readonly
+https://www.googleapis.com/auth/gmail.send
+https://www.googleapis.com/auth/documents
+https://www.googleapis.com/auth/spreadsheets
+https://www.googleapis.com/auth/contacts.readonly
+https://www.googleapis.com/auth/tasks
+```
+
+### Google Cloud Console Setup
+
+1. Create a project at [Google Cloud Console](https://console.cloud.google.com)
+2. Enable these APIs:
+   - Google Calendar API
+   - Google Drive API
+   - Gmail API
+   - Google Docs API
+   - Google Sheets API
+   - People API
+   - Tasks API
+3. Create OAuth 2.0 credentials (Web application type)
+4. Add redirect URIs from Clerk dashboard
+5. Copy Client ID and Secret to Clerk's Google provider settings
+
+### Testing Locally
+
+```bash
+# After setup, test in the app:
+# 1. Start dev server
+npm run dev
+
+# 2. Go to /settings
+# 3. Click "Connect Google Account"
+# 4. Grant permissions
+# 5. Test each feature
+```
+
 ## Database
 
 Columbus uses SQLite via `better-sqlite3`. The database file (`columbus.db`) is created automatically on first run in the project root.

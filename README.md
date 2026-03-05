@@ -54,6 +54,24 @@ Open [http://localhost:3000](http://localhost:3000)
 3. Enter your API key
 4. Test connection
 
+### Google Integration (Optional)
+
+Connect your Google account to enable:
+- **Calendar Sync**: Sync interview schedules with Google Calendar
+- **Drive Integration**: Import resumes from Drive, back up documents
+- **Gmail**: Import job emails, send emails directly
+- **Docs/Sheets**: Export interview notes to Docs, analytics to Sheets
+- **Contacts/Tasks**: Save recruiter contacts, sync reminders
+
+**Setup:**
+
+1. The app uses Clerk for authentication and OAuth
+2. Go to Settings → Google Integrations
+3. Click "Connect Google Account"
+4. Grant the requested permissions
+
+See [docs/google-integration/README.md](docs/google-integration/README.md) for detailed setup instructions.
+
 ## Usage
 
 1. **Upload Resume**: Go to Upload and drop your resume PDF

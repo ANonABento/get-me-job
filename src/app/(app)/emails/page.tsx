@@ -34,6 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SendViaGmailButton } from "@/components/google";
 import type { EmailTemplateType, JobDescription } from "@/types";
 
 interface EmailDraft {
@@ -106,6 +107,9 @@ export default function EmailTemplatesPage() {
   const [showDrafts, setShowDrafts] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
+
+  // Gmail state
+  const [recipientEmail, setRecipientEmail] = useState("");
 
   useEffect(() => {
     fetchJobs();
@@ -593,6 +597,18 @@ export default function EmailTemplatesPage() {
                   </div>
                 </div>
 
+                {/* Recipient for Gmail */}
+                <div>
+                  <Label className="text-xs text-muted-foreground">Recipient (for Gmail)</Label>
+                  <Input
+                    type="email"
+                    placeholder="recipient@example.com"
+                    value={recipientEmail}
+                    onChange={(e) => setRecipientEmail(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+
                 {/* Actions */}
                 <div className="flex gap-2 pt-2">
                   <Button
@@ -613,10 +629,16 @@ export default function EmailTemplatesPage() {
                       </>
                     )}
                   </Button>
-                  <Button onClick={openInMailClient} className="flex-1">
+                  <Button onClick={openInMailClient} variant="outline" className="flex-1">
                     <Send className="h-4 w-4 mr-2" />
-                    Open in Mail
+                    Mail App
                   </Button>
+                  <SendViaGmailButton
+                    to={recipientEmail}
+                    subject={generatedEmail.subject}
+                    body={generatedEmail.body}
+                    disabled={!recipientEmail}
+                  />
                 </div>
 
                 {/* Save Draft */}

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Dropzone, UploadResult } from "@/components/upload/dropzone";
+import { DriveFilePicker } from "@/components/google";
 import {
   ArrowRight,
   FileText,
@@ -18,6 +19,7 @@ import {
   Zap,
   Shield,
   Clock,
+  HardDrive,
 } from "lucide-react";
 
 type ParseStep = "upload" | "parsing" | "success";
@@ -35,10 +37,49 @@ export default function UploadPage() {
       education?: unknown[];
     };
   } | null>(null);
+  const [driveLoading, setDriveLoading] = useState(false);
 
   const handleUploadComplete = (results: UploadResult[]) => {
     setUploadResults(results);
     setParseError(null);
+  };
+
+  const handleDriveSelect = async (file: { id: string; name: string; mimeType: string }) => {
+    setDriveLoading(true);
+    setParseError(null);
+    try {
+      // Download file from Drive and upload to our system
+      const downloadRes = await fetch(`/api/google/drive/files/${file.id}/download`);
+      if (!downloadRes.ok) {
+        throw new Error("Failed to download file from Google Drive");
+      }
+      const blob = await downloadRes.blob();
+
+      // Upload to our system
+      const formData = new FormData();
+      formData.append("file", blob, file.name);
+
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error("Failed to upload file");
+      }
+
+      const uploadData = await uploadRes.json();
+      const uploadedFile = new File([blob], file.name, { type: file.mimeType });
+      setUploadResults([{
+        file: uploadedFile,
+        documentId: uploadData.documentId,
+      }]);
+    } catch (error) {
+      console.error("Drive import error:", error);
+      setParseError(error instanceof Error ? error.message : "Failed to import from Google Drive");
+    } finally {
+      setDriveLoading(false);
+    }
   };
 
   const handleParseResume = async () => {
@@ -125,6 +166,49 @@ export default function UploadPage() {
           <div className="space-y-8 animate-in">
             {/* Dropzone */}
             <Dropzone onUploadComplete={handleUploadComplete} maxFiles={1} />
+
+            {/* Google Drive Import */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or import from
+                </span>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border bg-card p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-xl bg-blue-500/10 text-blue-500">
+                  <HardDrive className="h-6 w-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold">Google Drive</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Import your resume directly from Google Drive
+                  </p>
+                </div>
+                <DriveFilePicker
+                  onSelect={handleDriveSelect}
+                  accept={["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain"]}
+                  trigger={
+                    <button
+                      disabled={driveLoading}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border bg-background hover:bg-muted transition-colors disabled:opacity-50"
+                    >
+                      {driveLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <HardDrive className="h-4 w-4" />
+                      )}
+                      {driveLoading ? "Importing..." : "Browse Drive"}
+                    </button>
+                  }
+                />
+              </div>
+            </div>
 
             {/* Error Message */}
             {parseError && (

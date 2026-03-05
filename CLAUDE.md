@@ -13,6 +13,7 @@
 - Cover letter generation
 - Analytics and progress tracking
 - Calendar and reminders
+- **Google Integration**: Calendar sync, Drive import/backup, Gmail import/send, Docs/Sheets export, Contacts, Tasks
 
 **Target users:** Early-career professionals seeking jobs
 

@@ -20,7 +20,9 @@ import {
   SortAsc,
   SortDesc,
   X,
+  HardDrive,
 } from "lucide-react";
+import { DriveFilePicker, SaveToDriveButton } from "@/components/google";
 
 type DocumentType = "all" | "resume" | "cover_letter" | "portfolio" | "certificate" | "other";
 type SortOption = "newest" | "oldest" | "name-asc" | "name-desc" | "size-asc" | "size-desc";
@@ -56,6 +58,7 @@ export default function DocumentsPage() {
   const [typeFilter, setTypeFilter] = useState<DocumentType>("all");
   const [sortOption, setSortOption] = useState<SortOption>("newest");
   const [showFilters, setShowFilters] = useState(false);
+  const [driveImporting, setDriveImporting] = useState(false);
 
   useEffect(() => {
     fetchDocuments();
@@ -158,6 +161,28 @@ export default function DocumentsPage() {
 
   const hasActiveFilters = searchQuery || typeFilter !== "all" || sortOption !== "newest";
 
+  const handleDriveImport = async (file: { id: string; name: string; mimeType: string }) => {
+    setDriveImporting(true);
+    setError(null);
+    try {
+      const downloadRes = await fetch(`/api/google/drive/files/${file.id}/download`);
+      if (!downloadRes.ok) throw new Error("Failed to download from Drive");
+      const blob = await downloadRes.blob();
+
+      const formData = new FormData();
+      formData.append("file", blob, file.name);
+
+      const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+      if (!uploadRes.ok) throw new Error("Failed to save document");
+
+      await fetchDocuments();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setDriveImporting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -188,10 +213,26 @@ export default function DocumentsPage() {
             View and manage your uploaded documents
           </p>
         </div>
-        <Button onClick={() => router.push("/upload")}>
-          <Upload className="h-4 w-4 mr-2" />
-          Upload New
-        </Button>
+        <div className="flex gap-2">
+          <DriveFilePicker
+            onSelect={handleDriveImport}
+            accept={["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain"]}
+            trigger={
+              <Button variant="outline" disabled={driveImporting}>
+                {driveImporting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <HardDrive className="h-4 w-4 mr-2" />
+                )}
+                {driveImporting ? "Importing..." : "From Drive"}
+              </Button>
+            }
+          />
+          <Button onClick={() => router.push("/upload")}>
+            <Upload className="h-4 w-4 mr-2" />
+            Upload New
+          </Button>
+        </div>
       </div>
 
       {/* Delete error */}
@@ -355,6 +396,12 @@ export default function DocumentsPage() {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
+                          <SaveToDriveButton
+                            file={new Blob([doc.extractedText || ""], { type: "text/plain" })}
+                            fileName={doc.filename}
+                            type={doc.type === "resume" ? "resume" : doc.type === "cover_letter" ? "cover_letter" : "resume"}
+                            compact
+                          />
                           <Button
                             variant="ghost"
                             size="icon"

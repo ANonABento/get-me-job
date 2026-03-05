@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/select";
 import { PrepGuideCard } from "@/components/interview/prep-guide-card";
 import { RecordingControls } from "@/components/interview/recording-controls";
+import { SaveToDocsButton } from "@/components/google";
 
 interface InterviewQuestion {
   question: string;
@@ -1027,6 +1028,42 @@ function JobSelection({
   );
 }
 
+function formatInterviewForDocs(session: InterviewSession, job?: JobDescription): string {
+  const lines: string[] = [];
+  lines.push(`Interview Preparation Notes`);
+  lines.push(`${"=".repeat(30)}`);
+  lines.push("");
+  if (job) {
+    lines.push(`Position: ${job.title}`);
+    lines.push(`Company: ${job.company}`);
+    lines.push("");
+  }
+  lines.push(`Date: ${new Date().toLocaleDateString()}`);
+  lines.push(`Mode: ${session.mode === "voice" ? "Voice" : "Text"}`);
+  lines.push(`Questions: ${session.questions.length}`);
+  lines.push("");
+  lines.push(`${"=".repeat(30)}`);
+  lines.push("");
+
+  session.questions.forEach((q, i) => {
+    lines.push(`Question ${i + 1} (${q.category})`);
+    lines.push(`${"-".repeat(20)}`);
+    lines.push(q.question);
+    lines.push("");
+    lines.push(`Your Answer:`);
+    lines.push(session.answers[i] || "(No answer provided)");
+    lines.push("");
+    if (session.feedback[i]) {
+      lines.push(`AI Feedback:`);
+      lines.push(session.feedback[i]);
+    }
+    lines.push("");
+    lines.push("");
+  });
+
+  return lines.join("\n");
+}
+
 function InterviewSummary({
   session,
   selectedJob,
@@ -1056,6 +1093,10 @@ function InterviewSummary({
             <RotateCcw className="h-4 w-4 mr-2" />
             Start New Interview
           </Button>
+          <SaveToDocsButton
+            title={`Interview Prep - ${selectedJob?.title || "Practice"} at ${selectedJob?.company || "Company"}`}
+            content={formatInterviewForDocs(session, selectedJob)}
+          />
           {selectedJob && (
             <Link href={`/jobs/research/${selectedJob.id}`}>
               <Button variant="outline">

@@ -51,10 +51,12 @@ import {
   Info,
   FileEdit,
   FileDown,
+  Mail,
 } from "lucide-react";
 import { CoverLetterDialog } from "@/components/cover-letter/cover-letter-dialog";
 import { ImportJobDialog } from "@/components/jobs/import-job-dialog";
 import { ATSScoreBreakdown, ATSScoreBadge } from "@/components/ats/score-breakdown";
+import { GmailImportModal } from "@/components/google";
 import type { ATSAnalysisResult } from "@/lib/ats/analyzer";
 
 interface Template {
@@ -329,6 +331,34 @@ export default function JobsPage() {
                   <FileDown className="h-5 w-5 mr-2" />
                   Import
                 </Button>
+                <GmailImportModal
+                  onImport={async (email) => {
+                    const jobData = {
+                      title: email.parsed?.role || email.subject.replace(/^(Re:|Fwd:)\s*/gi, "").trim(),
+                      company: email.parsed?.company || email.from.split("@")[1]?.split(".")[0] || "Unknown",
+                      description: email.snippet,
+                      url: "",
+                    };
+                    try {
+                      const res = await fetch("/api/jobs", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(jobData),
+                      });
+                      if (res.ok) {
+                        fetchJobs();
+                      }
+                    } catch (error) {
+                      console.error("Failed to create job from email:", error);
+                    }
+                  }}
+                  trigger={
+                    <Button size="lg" variant="outline">
+                      <Mail className="h-5 w-5 mr-2" />
+                      Gmail
+                    </Button>
+                  }
+                />
                 <Button
                   onClick={() => setShowAddDialog(true)}
                   size="lg"
@@ -514,6 +544,8 @@ export default function JobsPage() {
         onOpenChange={setShowImportDialog}
         onJobImported={fetchJobs}
       />
+
+      {/* Gmail Import Modal - rendered in button section below */}
 
       {/* Add Job Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>

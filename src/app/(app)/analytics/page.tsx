@@ -37,6 +37,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { TrendCharts } from "@/components/analytics/trend-charts";
 import { SuccessDashboard } from "@/components/analytics/success-dashboard";
 import { SkillLearningPaths } from "@/components/learning/skill-learning-paths";
+import { ExportToSheetsButton } from "@/components/google";
 
 interface Analytics {
   overview: {
@@ -114,6 +115,27 @@ export default function AnalyticsPage() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const formatAnalyticsForSheets = (): { headers: string[]; rows: string[][] } => {
+    if (!analytics) return { headers: [], rows: [] };
+
+    const headers = ["Metric", "Value"];
+    const rows: string[][] = [
+      ["Profile Completeness", `${analytics.overview.profileCompleteness}%`],
+      ["Total Jobs", analytics.overview.totalJobs.toString()],
+      ["Total Documents", analytics.overview.totalDocuments.toString()],
+      ["Total Interviews", analytics.overview.totalInterviews.toString()],
+      ["Resumes Generated", analytics.overview.totalResumesGenerated.toString()],
+      ["", ""],
+      ["--- Jobs by Status ---", ""],
+      ...Object.entries(analytics.jobs.byStatus).map(([status, count]) => [status, count.toString()]),
+      ["", ""],
+      ["--- Skills by Category ---", ""],
+      ...Object.entries(analytics.skills.byCategory).map(([category, count]) => [category, count.toString()]),
+    ];
+
+    return { headers, rows };
   };
 
   useEffect(() => {
@@ -231,6 +253,11 @@ export default function AnalyticsPage() {
                   <Download className="h-4 w-4 mr-2" />
                   JSON
                 </Button>
+                <ExportToSheetsButton
+                  title={`Job Search Analytics - ${new Date().toLocaleDateString()}`}
+                  data={formatAnalyticsForSheets()}
+                  size="sm"
+                />
                 <Button
                   variant="outline"
                   size="sm"
