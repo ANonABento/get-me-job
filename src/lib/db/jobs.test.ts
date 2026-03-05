@@ -59,7 +59,7 @@ describe("Job Database Functions", () => {
       const result = getJobs();
 
       expect(db.prepare).toHaveBeenCalledWith(
-        "SELECT * FROM jobs ORDER BY created_at DESC"
+        "SELECT * FROM jobs WHERE user_id = ? ORDER BY created_at DESC"
       );
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
@@ -196,7 +196,8 @@ describe("Job Database Functions", () => {
         "[]",
         "[]",
         "[]",
-        null
+        null,
+        "default"
       );
       expect(result.id).toBe("test-id-123");
     });
@@ -252,7 +253,8 @@ describe("Job Database Functions", () => {
         '["Skill"]',
         '["Task"]',
         '["key"]',
-        "https://job.com"
+        "https://job.com",
+        "default"
       );
       expect(result.remote).toBe(true);
     });

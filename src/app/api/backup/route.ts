@@ -89,28 +89,51 @@ export async function POST(request: NextRequest) {
     if (backup.data.profile) {
       const profile = backup.data.profile;
       updateProfile({
-        contact: profile.contact,
+        contact: profile.contact as { name: string; email?: string; phone?: string; location?: string; linkedin?: string; github?: string; website?: string } | undefined,
         summary: profile.summary,
         rawText: profile.rawText,
-        experiences: profile.experiences?.map((exp: Record<string, unknown>) => ({
-          ...exp,
-          id: exp.id || generateId(),
+        experiences: profile.experiences?.map((exp) => ({
+          id: (exp.id as string) || generateId(),
+          company: exp.company as string,
+          title: exp.title as string,
+          location: exp.location as string | undefined,
+          startDate: exp.startDate as string,
+          endDate: exp.endDate as string | undefined,
+          current: exp.current as boolean,
+          description: exp.description as string,
+          highlights: exp.highlights as string[],
+          skills: exp.skills as string[],
         })),
-        education: profile.education?.map((edu: Record<string, unknown>) => ({
-          ...edu,
-          id: edu.id || generateId(),
+        education: profile.education?.map((edu) => ({
+          id: (edu.id as string) || generateId(),
+          institution: edu.institution as string,
+          degree: edu.degree as string,
+          field: edu.field as string,
+          startDate: edu.startDate as string | undefined,
+          endDate: edu.endDate as string | undefined,
+          gpa: edu.gpa as string | undefined,
+          highlights: edu.highlights as string[],
         })),
-        skills: profile.skills?.map((skill: Record<string, unknown>) => ({
-          ...skill,
-          id: skill.id || generateId(),
+        skills: profile.skills?.map((skill) => ({
+          id: (skill.id as string) || generateId(),
+          name: skill.name as string,
+          category: skill.category as "technical" | "soft" | "language" | "tool" | "other",
+          proficiency: skill.proficiency as "beginner" | "intermediate" | "advanced" | "expert" | undefined,
         })),
-        projects: profile.projects?.map((proj: Record<string, unknown>) => ({
-          ...proj,
-          id: proj.id || generateId(),
+        projects: profile.projects?.map((proj) => ({
+          id: (proj.id as string) || generateId(),
+          name: proj.name as string,
+          description: proj.description as string,
+          url: proj.url as string | undefined,
+          technologies: proj.technologies as string[],
+          highlights: proj.highlights as string[],
         })),
-        certifications: profile.certifications?.map((cert: Record<string, unknown>) => ({
-          ...cert,
-          id: cert.id || generateId(),
+        certifications: profile.certifications?.map((cert) => ({
+          id: (cert.id as string) || generateId(),
+          name: cert.name as string,
+          issuer: cert.issuer as string,
+          date: cert.date as string | undefined,
+          url: cert.url as string | undefined,
         })),
       });
       results.profile = true;
@@ -130,11 +153,22 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
+        // Validate and cast job type and status
+        const validJobTypes = ["full-time", "part-time", "contract", "internship"] as const;
+        const validStatuses = ["saved", "applied", "interviewing", "offered", "rejected", "withdrawn"] as const;
+
+        const jobType = validJobTypes.includes(job.type as typeof validJobTypes[number])
+          ? (job.type as typeof validJobTypes[number])
+          : undefined;
+        const jobStatus = validStatuses.includes((job.status || "saved") as typeof validStatuses[number])
+          ? ((job.status || "saved") as typeof validStatuses[number])
+          : "saved";
+
         createJob({
           title: job.title,
           company: job.company,
           location: job.location,
-          type: job.type,
+          type: jobType,
           remote: job.remote,
           salary: job.salary,
           description: job.description,
@@ -142,7 +176,7 @@ export async function POST(request: NextRequest) {
           responsibilities: job.responsibilities || [],
           keywords: job.keywords || [],
           url: job.url,
-          status: job.status || "saved",
+          status: jobStatus,
           notes: job.notes,
         });
         existingKeys.add(key);
@@ -152,8 +186,18 @@ export async function POST(request: NextRequest) {
 
     // Restore LLM config
     if (backup.data.llmConfig) {
-      setLLMConfig(backup.data.llmConfig);
-      results.llmConfig = true;
+      const validProviders = ["openai", "anthropic", "ollama", "openrouter"] as const;
+      const config = backup.data.llmConfig;
+
+      if (validProviders.includes(config.provider as typeof validProviders[number])) {
+        setLLMConfig({
+          provider: config.provider as typeof validProviders[number],
+          apiKey: config.apiKey,
+          baseUrl: config.baseUrl,
+          model: config.model,
+        });
+        results.llmConfig = true;
+      }
     }
 
     return NextResponse.json({

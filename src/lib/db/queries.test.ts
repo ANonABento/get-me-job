@@ -382,7 +382,13 @@ describe("Profile Functions", () => {
   describe("updateProfile", () => {
     it("should update profile contact info", () => {
       const mockRun = vi.fn();
-      (db.prepare as Mock).mockReturnValue({ run: mockRun });
+      const mockGet = vi.fn().mockReturnValue({ id: "default" });
+      (db.prepare as Mock).mockImplementation((sql: string) => {
+        if (sql.includes("SELECT id FROM profile")) {
+          return { get: mockGet };
+        }
+        return { run: mockRun };
+      });
       (db.transaction as Mock).mockImplementation((fn) => fn);
 
       updateProfile({
@@ -394,7 +400,13 @@ describe("Profile Functions", () => {
 
     it("should update experiences", () => {
       const mockRun = vi.fn();
-      (db.prepare as Mock).mockReturnValue({ run: mockRun });
+      const mockGet = vi.fn().mockReturnValue({ id: "default" });
+      (db.prepare as Mock).mockImplementation((sql: string) => {
+        if (sql.includes("SELECT id FROM profile")) {
+          return { get: mockGet };
+        }
+        return { run: mockRun };
+      });
       (db.transaction as Mock).mockImplementation((fn) => fn);
 
       updateProfile({
@@ -419,7 +431,13 @@ describe("Profile Functions", () => {
 
     it("should handle empty update gracefully", () => {
       const mockRun = vi.fn();
-      (db.prepare as Mock).mockReturnValue({ run: mockRun });
+      const mockGet = vi.fn().mockReturnValue({ id: "default" });
+      (db.prepare as Mock).mockImplementation((sql: string) => {
+        if (sql.includes("SELECT id FROM profile")) {
+          return { get: mockGet };
+        }
+        return { run: mockRun };
+      });
       (db.transaction as Mock).mockImplementation((fn) => fn);
 
       // Empty update - transaction should still work

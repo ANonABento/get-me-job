@@ -1,12 +1,18 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { randomBytes } from "crypto";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Generate a cryptographically secure random ID.
+ * Uses crypto.randomBytes for security-sensitive operations like file names,
+ * database IDs, and tokens.
+ */
 export function generateId(): string {
-  return Math.random().toString(36).substring(2, 15);
+  return randomBytes(12).toString("hex");
 }
 
 export function formatDate(date: string | Date): string {
