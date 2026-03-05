@@ -109,9 +109,85 @@ Columbus is a **feature-complete single-user MVP** with enhanced features:
 
 ---
 
-## Phase 2: Integrations (Medium Priority)
+## Phase 2: Google Workspace Integration (High Priority)
 
-### 2.1 Email Service Integration
+> **Full documentation:** [docs/google-integration/](./docs/google-integration/)
+
+### 2.1 OAuth Foundation
+**Status:** Not Started
+**Effort:** Medium (3-5 days)
+**Dependencies:** 1.1 (Clerk Auth)
+**Ticket:** [01-oauth-foundation.md](./docs/google-integration/01-oauth-foundation.md)
+
+- [ ] Enable Google OAuth in Clerk Dashboard
+- [ ] Configure OAuth scopes (Calendar, Drive, Gmail)
+- [ ] Create token retrieval utility
+- [ ] Build "Connect Google" UI in Settings
+- [ ] Handle token refresh via Clerk
+
+### 2.2 Calendar Sync
+**Status:** Not Started
+**Effort:** Medium (4-6 days)
+**Dependencies:** 2.1
+**Ticket:** [02-calendar-sync.md](./docs/google-integration/02-calendar-sync.md)
+
+- [ ] Push interviews to Google Calendar
+- [ ] Push deadlines to Google Calendar
+- [ ] Push reminders to Google Calendar
+- [ ] Pull events to detect existing interviews
+- [ ] Smart reminders (1 day, 1 hour before)
+
+### 2.3 Drive Integration
+**Status:** Not Started
+**Effort:** Medium (4-5 days)
+**Dependencies:** 2.1
+**Ticket:** [03-drive-integration.md](./docs/google-integration/03-drive-integration.md)
+
+- [ ] Create "Get Me Job" folder structure
+- [ ] Upload resumes to Drive
+- [ ] Upload cover letters to Drive
+- [ ] Generate shareable links
+- [ ] Import resumes from Drive
+
+### 2.4 Gmail Integration
+**Status:** Not Started
+**Effort:** Large (6-8 days)
+**Dependencies:** 2.1
+**Ticket:** [04-gmail-integration.md](./docs/google-integration/04-gmail-integration.md)
+
+- [ ] Scan inbox for recruiter emails
+- [ ] Parse emails to extract job details
+- [ ] Auto-create job entries from emails
+- [ ] Detect interview invitations
+- [ ] Send follow-up emails from app
+
+### 2.5 Docs & Sheets
+**Status:** Not Started
+**Effort:** Small (2-3 days)
+**Dependencies:** 2.3
+**Ticket:** [05-docs-sheets.md](./docs/google-integration/05-docs-sheets.md)
+
+- [ ] Export resumes to Google Docs
+- [ ] Create interview prep notes in Docs
+- [ ] Export job tracker to Sheets
+- [ ] Create salary comparison spreadsheets
+
+### 2.6 Contacts & Tasks
+**Status:** Not Started
+**Effort:** Small (2-3 days)
+**Dependencies:** 2.1
+**Ticket:** [06-contacts-tasks.md](./docs/google-integration/06-contacts-tasks.md)
+
+- [ ] Import contacts for networking
+- [ ] Save recruiters to Google Contacts
+- [ ] Sync reminders to Google Tasks
+- [ ] Auto-create follow-up tasks
+
+---
+
+## Phase 3: Other Integrations (Medium Priority)
+
+### 3.1 Email Service Integration
 **Status:** Not Started
 **Effort:** Small
 **Dependencies:** 1.1
@@ -122,18 +198,7 @@ Columbus is a **feature-complete single-user MVP** with enhanced features:
 - [ ] Unsubscribe handling
 - [ ] Email verification for new accounts
 
-### 2.2 Calendar Sync
-**Status:** Not Started
-**Effort:** Medium
-**Dependencies:** 1.1
-
-- [ ] Google Calendar OAuth integration
-- [ ] Outlook/Microsoft Calendar integration
-- [ ] Two-way sync for interviews
-- [ ] Automatic event creation from job deadlines
-- [ ] Calendar conflict detection
-
-### 2.3 LinkedIn Integration
+### 3.2 LinkedIn Integration
 **Status:** Not Started
 **Effort:** Large
 **Dependencies:** 1.1
@@ -144,7 +209,7 @@ Columbus is a **feature-complete single-user MVP** with enhanced features:
 - [ ] Easy Apply integration (if API allows)
 - [ ] Profile sync for updates
 
-### 2.4 Job Board Integrations
+### 3.3 Job Board Integrations
 **Status:** Not Started
 **Effort:** Large
 **Dependencies:** 1.1
@@ -157,9 +222,9 @@ Columbus is a **feature-complete single-user MVP** with enhanced features:
 
 ---
 
-## Phase 3: Enhanced Features (Lower Priority)
+## Phase 4: Enhanced Features (Lower Priority)
 
-### 3.1 Real-Time Notifications
+### 4.1 Real-Time Notifications
 **Status:** Not Started
 **Effort:** Medium
 **Dependencies:** 1.1
@@ -170,7 +235,7 @@ Columbus is a **feature-complete single-user MVP** with enhanced features:
 - [ ] Mobile push (if mobile app added)
 - [ ] Email notification preferences
 
-### 3.2 Advanced Interview Recording
+### 4.2 Advanced Interview Recording
 **Status:** Partial (audio done, video pending)
 **Effort:** Medium
 **Dependencies:** None
@@ -182,7 +247,7 @@ Columbus is a **feature-complete single-user MVP** with enhanced features:
 - [ ] Body language feedback (stretch goal)
 - [ ] Cloud storage solution for recordings
 
-### 3.3 Networking Features
+### 4.3 Networking Features
 **Status:** Not Started
 **Effort:** Medium
 **Dependencies:** 1.1
@@ -193,7 +258,7 @@ Columbus is a **feature-complete single-user MVP** with enhanced features:
 - [ ] Referral tracking
 - [ ] LinkedIn connection notes
 
-### 3.4 External Salary Data
+### 4.4 External Salary Data
 **Status:** Not Started
 **Effort:** Medium
 **Dependencies:** None
@@ -205,9 +270,9 @@ Columbus is a **feature-complete single-user MVP** with enhanced features:
 
 ---
 
-## Phase 4: Scale & Polish
+## Phase 5: Scale & Polish
 
-### 4.1 Deployment & Infrastructure
+### 5.1 Deployment & Infrastructure
 **Status:** Not Started
 **Effort:** Medium
 **Dependencies:** 1.2
@@ -218,7 +283,7 @@ Columbus is a **feature-complete single-user MVP** with enhanced features:
 - [ ] Error monitoring (Sentry)
 - [ ] Analytics tracking (PostHog, Mixpanel)
 
-### 4.2 Mobile App
+### 5.2 Mobile App
 **Status:** Not Started
 **Effort:** Large
 **Dependencies:** 1.1, 1.2
@@ -229,7 +294,7 @@ Columbus is a **feature-complete single-user MVP** with enhanced features:
 - [ ] Offline support
 - [ ] App store deployment
 
-### 4.3 Performance & SEO
+### 5.3 Performance & SEO
 **Status:** Not Started
 **Effort:** Small
 **Dependencies:** None
@@ -247,11 +312,12 @@ Columbus is a **feature-complete single-user MVP** with enhanced features:
 | Phase | Duration | Key Milestone |
 |-------|----------|---------------|
 | Phase 1 | 2-3 weeks | Multi-user production-ready |
-| Phase 2 | 3-4 weeks | External integrations live |
-| Phase 3 | 2-3 weeks | Enhanced feature set |
-| Phase 4 | 2-4 weeks | Polished, scalable product |
+| Phase 2 | 3-4 weeks | Google Workspace integration |
+| Phase 3 | 2-3 weeks | Other integrations (LinkedIn, Email) |
+| Phase 4 | 2-3 weeks | Enhanced feature set |
+| Phase 5 | 2-4 weeks | Polished, scalable product |
 
-**Total: 9-14 weeks** for full production readiness
+**Total: 11-17 weeks** for full production readiness
 
 ---
 
@@ -272,6 +338,7 @@ These don't depend on other phases:
 |-------|------------|--------|
 | **Auth** | Clerk | ✅ Installed |
 | **Database** | Neon (PostgreSQL) + Drizzle | ✅ Schema ready |
+| **Google APIs** | googleapis npm | Planned |
 | **Email** | Resend | Planned |
 | **Hosting** | Vercel | Planned |
 | **Monitoring** | Sentry | Planned |
@@ -301,4 +368,4 @@ These don't depend on other phases:
 
 ---
 
-*Last updated: February 2026*
+*Last updated: March 2026*
