@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAuthError, requireAuth } from "@/lib/auth";
+import { generateEmailSchema } from "@/features/email/schemas";
+import { getLLMConfig, getProfile } from "@/lib/db";
 import { getJob } from "@/lib/db/jobs";
-import { getProfile, getLLMConfig } from "@/lib/db";
+import { EMAIL_TEMPLATE_INFO, generateEmail } from "@/lib/email/templates";
 import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
-import { generateEmail, EMAIL_TEMPLATE_INFO } from "@/lib/email/templates";
-import { generateEmailSchema } from "@/lib/constants";
-import { requireAuth, isAuthError } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();

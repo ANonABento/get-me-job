@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import { isAuthError, requireAuth } from "@/lib/auth";
 import { generateId } from "@/lib/utils";
+import {
+  ALLOWED_MIME_TYPES,
+  MAX_FILE_SIZE_BYTES,
+  validateFileMagicBytes,
+} from "@/features/documents/server/file-validation";
 import { saveDocument } from "@/lib/db";
 import { extractTextFromFile } from "@/lib/parser/pdf";
-import {
-  MAX_FILE_SIZE_BYTES,
-  ALLOWED_MIME_TYPES,
-  validateFileMagicBytes,
-  PATHS,
-} from "@/lib/constants";
-import { requireAuth, isAuthError } from "@/lib/auth";
+import { PATHS } from "@/shared/config/paths";
 
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();

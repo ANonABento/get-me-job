@@ -196,9 +196,7 @@ test.describe("Visual Audit - Forms", () => {
 
     // Check settings sections render
     const settingsContent = page.locator("main");
-    await expect(settingsContent).toHaveScreenshot("settings-page.png", {
-      fullPage: false,
-    });
+    await expect(settingsContent).toHaveScreenshot("settings-page.png");
   });
 });
 

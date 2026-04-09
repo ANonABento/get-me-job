@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDocuments, getLLMConfig, updateProfile, getProfile } from "@/lib/db";
-import { parseResumeWithLLM, parseResumeBasic } from "@/lib/parser/resume";
-import { parseDocumentSchema } from "@/lib/constants";
-import { requireAuth, isAuthError } from "@/lib/auth";
+import { isAuthError, requireAuth } from "@/lib/auth";
+import { parseDocumentSchema } from "@/features/documents/schemas";
+import { getDocuments, getLLMConfig, getProfile, updateProfile } from "@/lib/db";
+import { parseResumeBasic, parseResumeWithLLM } from "@/lib/parser/resume";
 
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();

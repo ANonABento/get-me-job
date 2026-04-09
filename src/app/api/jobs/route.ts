@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getJobs, createJob } from "@/lib/db/jobs";
+import { createJob, getJobs } from "@/lib/db/jobs";
 import { getLLMConfig } from "@/lib/db";
 import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
-import { createJobSchema, TECH_KEYWORDS } from "@/lib/constants";
+import { createJobSchema } from "@/features/jobs/schemas";
+import { extractKeywordsBasic } from "@/features/jobs/server/keywords";
 
 export async function GET() {
   try {
@@ -91,10 +92,4 @@ Return format: ["skill1", "skill2", "skill3", ...]`,
     console.error("Create job error:", error);
     return NextResponse.json({ error: "Failed to create job" }, { status: 500 });
   }
-}
-
-// Basic keyword extraction
-function extractKeywordsBasic(text: string): string[] {
-  const lowerText = text.toLowerCase();
-  return TECH_KEYWORDS.filter((kw) => lowerText.includes(kw));
 }

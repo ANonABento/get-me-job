@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createJob, getJobs } from "@/lib/db/jobs";
 import type { JobDescription } from "@/types";
-import { importJobSchema, type ImportJobInput } from "@/lib/constants";
+import { importJobSchema } from "@/features/jobs/schemas";
 
 export async function POST(request: NextRequest) {
   try {

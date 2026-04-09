@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
+    "check:quick": "npm run type-check && npm run lint",
+    "check": "npm run type-check && npm run lint && npm run test:run",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",

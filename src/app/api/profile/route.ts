@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getProfile, updateProfile, clearProfile } from "@/lib/db";
-import { updateProfileSchema } from "@/lib/constants";
+import { clearProfile, getProfile, updateProfile } from "@/lib/db";
+import { updateProfileSchema } from "@/features/profile/schemas";
 
 export async function GET() {
   try {

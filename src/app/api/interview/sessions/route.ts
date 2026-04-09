@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createInterviewSessionSchema } from "@/features/interview/schemas";
 import {
   getInterviewSessions,
   createInterviewSession,
 } from "@/lib/db/interviews";
-import { createInterviewSessionSchema } from "@/lib/constants";
 import { requireAuth, isAuthError } from "@/lib/auth";
 
 // GET - List all interview sessions

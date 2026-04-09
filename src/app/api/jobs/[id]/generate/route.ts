@@ -5,7 +5,7 @@ import { generateTailoredResume } from "@/lib/resume/generator";
 import { generateResumeHTML, TEMPLATES } from "@/lib/resume/pdf";
 import { writeFile, mkdir } from "fs/promises";
 import { generateId } from "@/lib/utils";
-import { PATHS } from "@/lib/constants";
+import { PATHS } from "@/shared/config/paths";
 
 export async function GET() {
   // Return available templates

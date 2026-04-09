@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { llmConfigSchema, updateSettingsSchema } from "@/features/settings/schemas";
 import { getLLMConfig, setLLMConfig } from "@/lib/db";
-import { updateSettingsSchema, llmConfigSchema } from "@/lib/constants";
 import { requireAuth, isAuthError } from "@/lib/auth";
 
 export async function GET() {

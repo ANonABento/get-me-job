@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  getReminders,
   createReminder,
-  getUpcomingReminders,
   getOverdueReminders,
   getReminderCounts,
+  getReminders,
+  getUpcomingReminders,
 } from "@/lib/db/reminders";
-import { createReminderSchema, type ReminderType } from "@/lib/constants";
+import { createReminderSchema, type ReminderType } from "@/features/reminders/schemas";
 
 export async function GET(request: NextRequest) {
   try {

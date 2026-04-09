@@ -41,7 +41,15 @@ test.describe("Responsive - Mobile (375px)", () => {
 
     const sidebar = page.locator("aside");
     // Sidebar should be off-screen or hidden
-    const isInViewport = await sidebar.isInViewport().catch(() => false);
+    const isInViewport = await sidebar.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return (
+        rect.bottom > 0 &&
+        rect.right > 0 &&
+        rect.left < window.innerWidth &&
+        rect.top < window.innerHeight
+      );
+    }).catch(() => false);
     expect(isInViewport).toBe(false);
   });
 
@@ -78,7 +86,7 @@ test.describe("Responsive - Mobile (375px)", () => {
       // Text should not overflow
       const overflowingText = await page.evaluate(() => {
         const elements = document.querySelectorAll("p, h1, h2, h3, span");
-        for (const el of elements) {
+        for (const el of Array.from(elements)) {
           if (el.scrollWidth > el.clientWidth + 10) {
             return el.textContent?.substring(0, 50);
           }

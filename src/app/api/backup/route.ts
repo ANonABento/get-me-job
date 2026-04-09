@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProfile, getDocuments, getLLMConfig, updateProfile, setLLMConfig } from "@/lib/db";
-import { getJobs, createJob } from "@/lib/db/jobs";
+import { isAuthError, requireAuth } from "@/lib/auth";
+import { backupDataSchema } from "@/features/backup/schemas";
+import { getDocuments, getLLMConfig, getProfile, setLLMConfig, updateProfile } from "@/lib/db";
 import { getInterviewSessions } from "@/lib/db/interviews";
+import { createJob, getJobs } from "@/lib/db/jobs";
 import { getAllGeneratedResumes } from "@/lib/db/resumes";
 import { generateId } from "@/lib/utils";
-import { backupDataSchema } from "@/lib/constants";
-import { requireAuth, isAuthError } from "@/lib/auth";
 
 // GET - Export full backup
 export async function GET() {

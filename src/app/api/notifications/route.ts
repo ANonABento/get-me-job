@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import {
+  deleteReadNotifications,
   getNotifications,
   getUnreadNotificationCount,
   markAllNotificationsRead,
-  deleteReadNotifications,
 } from "@/lib/db/notifications";
-import { notificationActionSchema } from "@/lib/constants";
+import { notificationActionSchema } from "@/features/notifications/schemas";
 
 export async function GET(request: NextRequest) {
   try {

@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
-import { PATHS } from "@/lib/constants";
+import { PATHS } from "@/shared/config/paths";
 
 // Ensure data directory exists
 const dataDir = path.dirname(PATHS.DATABASE);

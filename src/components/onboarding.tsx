@@ -21,7 +21,7 @@ import {
   CheckCircle,
   X,
 } from "lucide-react";
-import { STORAGE_KEYS } from "@/lib/constants";
+import { STORAGE_KEYS } from "@/shared/constants/storage";
 
 const steps = [
   {

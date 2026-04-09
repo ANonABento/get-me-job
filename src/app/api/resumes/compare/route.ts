@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGeneratedResume } from "@/lib/db/resumes";
 import { compareResumes } from "@/lib/resume/compare";
-import { compareResumesSchema } from "@/lib/constants";
+import { compareResumesSchema } from "@/features/resumes/schemas";
 import type { TailoredResume } from "@/lib/resume/generator";
 
 export async function POST(request: NextRequest) {

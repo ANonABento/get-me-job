@@ -1,5 +1,9 @@
 import type { LLMConfig } from "@/types";
-import { DEFAULT_LLM_TIMEOUT_MS, LLM_ENDPOINTS, DEFAULT_MODEL_BY_PROVIDER } from "@/lib/constants";
+import {
+  DEFAULT_LLM_TIMEOUT_MS,
+  DEFAULT_MODEL_BY_PROVIDER,
+  LLM_ENDPOINTS,
+} from "@/shared/llm/config";
 
 interface Message {
   role: "system" | "user" | "assistant";

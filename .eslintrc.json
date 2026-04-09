@@ -1,1 +1,76 @@
-{"extends": "next/core-web-vitals"}
+{
+  "extends": "next/core-web-vitals",
+  "rules": {
+    "no-duplicate-imports": "warn",
+    "sort-imports": [
+      "warn",
+      {
+        "ignoreCase": true,
+        "ignoreDeclarationSort": true
+      }
+    ],
+    "no-restricted-imports": [
+      "warn",
+      {
+        "patterns": [
+          {
+            "group": [
+              "@/lib/constants"
+            ],
+            "message": "Import from feature/shared modules when available instead of the legacy constants barrel."
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/app/**/*.ts",
+        "src/app/**/*.tsx"
+      ],
+      "rules": {
+        "max-lines": [
+          "warn",
+          {
+            "max": 300,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/components/**/*.ts",
+        "src/components/**/*.tsx"
+      ],
+      "rules": {
+        "max-lines": [
+          "warn",
+          {
+            "max": 250,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/lib/**/*.ts",
+        "src/lib/**/*.tsx"
+      ],
+      "rules": {
+        "max-lines": [
+          "warn",
+          {
+            "max": 250,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
+        ]
+      }
+    }
+  ]
+}

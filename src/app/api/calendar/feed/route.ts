@@ -3,7 +3,7 @@ import { getJobs } from "@/lib/db/jobs";
 import { getReminders } from "@/lib/db/reminders";
 import { getInterviewSessions } from "@/lib/db/interviews";
 import { generateICSCalendar, type CalendarEvent } from "@/lib/calendar/ics-generator";
-import { CALENDAR_FEED_TOKEN } from "@/lib/constants";
+import { CALENDAR_FEED_TOKEN } from "@/shared/constants/storage";
 
 type EventType = "interviews" | "deadlines" | "reminders" | "all";
 

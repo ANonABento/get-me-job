@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getJob, updateJob, deleteJob } from "@/lib/db/jobs";
-import { updateJobSchema } from "@/lib/constants";
 import { recordJobStatusChange } from "@/lib/db/analytics";
+import { deleteJob, getJob, updateJob } from "@/lib/db/jobs";
+import { updateJobSchema } from "@/features/jobs/schemas";
 
 export async function GET(
   request: NextRequest,
