@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getJobs, createJob } from "@/lib/db/jobs";
+import { getJobs, createJob } from "@/lib/db/drizzle/queries";
 import { getLLMConfig } from "@/lib/db";
 import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
 import { createJobSchema, TECH_KEYWORDS } from "@/lib/constants";
@@ -12,8 +12,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // TODO: Switch to Drizzle queries with userId once Neon is configured
-    const jobs = getJobs();
+    const jobs = await getJobs(userId);
     return NextResponse.json({ jobs });
   } catch (error) {
     console.error("Get jobs error:", error);
@@ -79,7 +78,7 @@ Return format: ["skill1", "skill2", "skill3", ...]`,
       keywords = extractKeywordsBasic(data.description);
     }
 
-    const job = createJob({
+    const job = await createJob(userId, {
       ...data,
       requirements: data.requirements ?? [],
       responsibilities: data.responsibilities ?? [],
