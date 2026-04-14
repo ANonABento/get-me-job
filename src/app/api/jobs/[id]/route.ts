@@ -4,6 +4,18 @@ import { getJob, updateJob, deleteJob } from "@/lib/db/drizzle/queries";
 import { updateJobSchema } from "@/lib/constants";
 import { recordJobStatusChange } from "@/lib/db/analytics";
 
+function tryRecordStatusChange(
+  jobId: string,
+  oldStatus: string | null,
+  newStatus: string
+) {
+  try {
+    recordJobStatusChange(jobId, oldStatus, newStatus);
+  } catch (err) {
+    console.error("Failed to record status change:", err);
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -60,14 +72,8 @@ export async function PUT(
     const data = parseResult.data;
     const job = await updateJob(userId, params.id, data);
 
-    // Record status change if status was updated
     if (data.status && data.status !== oldStatus) {
-      try {
-        recordJobStatusChange(params.id, oldStatus, data.status);
-      } catch (statusError) {
-        console.error("Failed to record status change:", statusError);
-        // Don't fail the request if recording fails
-      }
+      tryRecordStatusChange(params.id, oldStatus, data.status);
     }
 
     return NextResponse.json({ job });
@@ -90,19 +96,16 @@ export async function PATCH(
 
     // Get the job's current status before updating
     const existingJob = await getJob(userId, params.id);
-    const oldStatus = existingJob?.status || null;
+    if (!existingJob) {
+      return NextResponse.json({ error: "Job not found" }, { status: 404 });
+    }
+    const oldStatus = existingJob.status || null;
 
     const data = await request.json();
     const job = await updateJob(userId, params.id, data);
 
-    // Record status change if status was updated
     if (data.status && data.status !== oldStatus) {
-      try {
-        recordJobStatusChange(params.id, oldStatus, data.status);
-      } catch (statusError) {
-        console.error("Failed to record status change:", statusError);
-        // Don't fail the request if recording fails
-      }
+      tryRecordStatusChange(params.id, oldStatus, data.status);
     }
 
     return NextResponse.json({ job });
