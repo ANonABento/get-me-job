@@ -57,8 +57,9 @@ export async function extractTextFromImages(
       const {
         data: { text },
       } = await worker.recognize(imageBuffer);
-      if (text.trim()) {
-        results.push(text.trim());
+      const trimmed = text.trim();
+      if (trimmed) {
+        results.push(trimmed);
       }
     }
   } finally {
