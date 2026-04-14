@@ -1,6 +1,6 @@
 import { LLMClient } from "@/lib/llm/client";
 import type { Profile, LLMConfig } from "@/types";
-import { generateId } from "@/lib/utils";
+import { generateId, extractJSON } from "@/lib/utils";
 
 const RESUME_PARSE_PROMPT = `You are a resume parser. Extract structured information from the following resume text.
 
@@ -87,20 +87,8 @@ export async function parseResumeWithLLM(
     maxTokens: 4096,
   });
 
-  // Clean response - remove markdown code blocks if present
-  let cleanResponse = response.trim();
-  if (cleanResponse.startsWith("```json")) {
-    cleanResponse = cleanResponse.slice(7);
-  }
-  if (cleanResponse.startsWith("```")) {
-    cleanResponse = cleanResponse.slice(3);
-  }
-  if (cleanResponse.endsWith("```")) {
-    cleanResponse = cleanResponse.slice(0, -3);
-  }
-  cleanResponse = cleanResponse.trim();
-
-  const parsed = JSON.parse(cleanResponse);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const parsed = extractJSON(response) as any;
 
   // Add IDs to all items
   return {

@@ -1,6 +1,7 @@
 import type { Profile, JobDescription } from "@/types";
 import { LLMClient } from "@/lib/llm/client";
 import type { LLMConfig } from "@/types";
+import { extractJSON } from "@/lib/utils";
 
 export interface TailoredResume {
   contact: Profile["contact"];
@@ -109,19 +110,8 @@ Return ONLY a JSON object with this structure:
     maxTokens: 2000,
   });
 
-  // Parse response
-  let cleanResponse = response.trim();
-  if (cleanResponse.startsWith("```json")) {
-    cleanResponse = cleanResponse.slice(7);
-  }
-  if (cleanResponse.startsWith("```")) {
-    cleanResponse = cleanResponse.slice(3);
-  }
-  if (cleanResponse.endsWith("```")) {
-    cleanResponse = cleanResponse.slice(0, -3);
-  }
-
-  const parsed = JSON.parse(cleanResponse.trim());
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const parsed = extractJSON(response) as any;
 
   return {
     contact: profile.contact,

@@ -36,6 +36,57 @@ export function slugify(text: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
+/**
+ * Extract and parse a JSON object from an LLM response string.
+ * Tries multiple strategies: direct parse, brace extraction, markdown fence removal.
+ * Throws with a clear message if no valid JSON can be found.
+ */
+export function extractJSON(text: string): Record<string, unknown> {
+  const trimmed = text.trim();
+
+  // Strategy 1: Direct JSON.parse
+  try {
+    const result = JSON.parse(trimmed);
+    if (result !== null && typeof result === "object" && !Array.isArray(result)) {
+      return result;
+    }
+  } catch {
+    // Continue to next strategy
+  }
+
+  // Strategy 2: Remove markdown code fences then parse
+  const fenceRegex = /```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/;
+  const fenceMatch = trimmed.match(fenceRegex);
+  if (fenceMatch) {
+    try {
+      const result = JSON.parse(fenceMatch[1].trim());
+      if (result !== null && typeof result === "object" && !Array.isArray(result)) {
+        return result;
+      }
+    } catch {
+      // Continue to next strategy
+    }
+  }
+
+  // Strategy 3: Extract between first { and last }
+  const firstBrace = trimmed.indexOf("{");
+  const lastBrace = trimmed.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    try {
+      const result = JSON.parse(trimmed.slice(firstBrace, lastBrace + 1));
+      if (result !== null && typeof result === "object" && !Array.isArray(result)) {
+        return result;
+      }
+    } catch {
+      // Fall through to error
+    }
+  }
+
+  throw new Error(
+    "Failed to extract JSON from LLM response. The response did not contain valid JSON."
+  );
+}
+
 export function formatRelativeTime(date: string | Date): string {
   const now = new Date();
   const d = new Date(date);
