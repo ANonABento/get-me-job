@@ -87,7 +87,6 @@ export async function parseResumeWithLLM(
     maxTokens: 4096,
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const parsed = extractJSON(response) as any;
 
   // Add IDs to all items

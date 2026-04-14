@@ -109,7 +109,6 @@ Return ONLY a JSON object with this structure:
     maxTokens: 2000,
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const parsed = extractJSON(response) as any;
 
   return {
