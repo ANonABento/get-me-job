@@ -2,14 +2,13 @@ import { describe, it, expect } from "vitest";
 import {
   ALLOWED_MIME_TYPES,
   FILE_SIGNATURES,
+  MIME_TYPE_DOCX,
   validateFileMagicBytes,
 } from "./constants";
 
 describe("ALLOWED_MIME_TYPES", () => {
   it("should include DOCX MIME type", () => {
-    expect(ALLOWED_MIME_TYPES).toContain(
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    );
+    expect(ALLOWED_MIME_TYPES).toContain(MIME_TYPE_DOCX);
   });
 
   it("should include PDF and TXT", () => {
@@ -20,33 +19,25 @@ describe("ALLOWED_MIME_TYPES", () => {
 
 describe("FILE_SIGNATURES", () => {
   it("should have DOCX signature (PK zip header)", () => {
-    const docxMime =
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-    expect(FILE_SIGNATURES[docxMime]).toEqual([0x50, 0x4b, 0x03, 0x04]);
+    expect(FILE_SIGNATURES[MIME_TYPE_DOCX]).toEqual([0x50, 0x4b, 0x03, 0x04]);
   });
 });
 
 describe("validateFileMagicBytes", () => {
   it("should validate DOCX magic bytes correctly", () => {
-    const docxMime =
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
     // PK\x03\x04 header
     const validBuffer = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x00, 0x00]);
-    expect(validateFileMagicBytes(validBuffer, docxMime)).toBe(true);
+    expect(validateFileMagicBytes(validBuffer, MIME_TYPE_DOCX)).toBe(true);
   });
 
   it("should reject invalid DOCX magic bytes", () => {
-    const docxMime =
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
     const invalidBuffer = Buffer.from([0x00, 0x00, 0x00, 0x00]);
-    expect(validateFileMagicBytes(invalidBuffer, docxMime)).toBe(false);
+    expect(validateFileMagicBytes(invalidBuffer, MIME_TYPE_DOCX)).toBe(false);
   });
 
   it("should reject buffer shorter than signature", () => {
-    const docxMime =
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
     const shortBuffer = Buffer.from([0x50, 0x4b]);
-    expect(validateFileMagicBytes(shortBuffer, docxMime)).toBe(false);
+    expect(validateFileMagicBytes(shortBuffer, MIME_TYPE_DOCX)).toBe(false);
   });
 
   it("should still validate PDF magic bytes", () => {

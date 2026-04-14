@@ -3,22 +3,20 @@ import mammoth from "mammoth";
 import fs from "fs";
 import path from "path";
 
-export async function extractTextFromPDF(filePath: string): Promise<string> {
-  const absolutePath = path.isAbsolute(filePath)
+function toAbsolutePath(filePath: string): string {
+  return path.isAbsolute(filePath)
     ? filePath
     : path.join(process.cwd(), filePath);
+}
 
-  const dataBuffer = fs.readFileSync(absolutePath);
+export async function extractTextFromPDF(filePath: string): Promise<string> {
+  const dataBuffer = fs.readFileSync(toAbsolutePath(filePath));
   const data = await pdf(dataBuffer);
   return data.text;
 }
 
 export async function extractTextFromDocx(filePath: string): Promise<string> {
-  const absolutePath = path.isAbsolute(filePath)
-    ? filePath
-    : path.join(process.cwd(), filePath);
-
-  const dataBuffer = fs.readFileSync(absolutePath);
+  const dataBuffer = fs.readFileSync(toAbsolutePath(filePath));
   const result = await mammoth.extractRawText({ buffer: dataBuffer });
   return result.value;
 }
