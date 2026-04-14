@@ -1,7 +1,7 @@
 import type { Profile, JobDescription } from "@/types";
 import { LLMClient } from "@/lib/llm/client";
 import type { LLMConfig } from "@/types";
-import { extractJSON } from "@/lib/utils";
+import { completeAndParseJSON } from "@/lib/utils";
 
 export interface TailoredResume {
   contact: Profile["contact"];
@@ -104,36 +104,17 @@ Return ONLY a JSON object with this structure:
 }`,
   };
 
-  const response = await client.complete({
-    messages: [userMessage],
-    temperature: 0.4,
-    maxTokens: 2000,
-  });
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let parsed: any;
-  try {
-    parsed = extractJSON(response);
-  } catch {
-    // Retry: re-prompt the LLM with an explicit JSON-only instruction
-    const retryResponse = await client.complete({
-      messages: [
-        userMessage,
-        { role: "assistant", content: response },
-        { role: "user", content: "Please respond with valid JSON only, no markdown or explanation." },
-      ],
-      temperature: 0.4,
-      maxTokens: 2000,
-    });
-    parsed = extractJSON(retryResponse);
-  }
+  const parsed = await completeAndParseJSON(
+    (messages) => client.complete({ messages, temperature: 0.4, maxTokens: 2000 }),
+    [userMessage]
+  );
 
   return {
     contact: profile.contact,
-    summary: parsed.summary,
-    experiences: parsed.experiences,
-    skills: parsed.skills,
-    education: parsed.education,
+    summary: parsed.summary as string,
+    experiences: parsed.experiences as TailoredResume["experiences"],
+    skills: parsed.skills as string[],
+    education: parsed.education as TailoredResume["education"],
   };
 }
 

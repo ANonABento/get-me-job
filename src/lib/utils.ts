@@ -87,6 +87,29 @@ export function extractJSON(text: string): Record<string, unknown> {
   );
 }
 
+const JSON_RETRY_PROMPT = "Please respond with valid JSON only, no markdown or explanation.";
+
+/**
+ * Complete an LLM request and parse the JSON response, with one automatic retry
+ * if the initial response contains invalid JSON.
+ */
+export async function completeAndParseJSON(
+  complete: (messages: Array<{ role: "user" | "assistant" | "system"; content: string }>) => Promise<string>,
+  messages: Array<{ role: "user" | "assistant" | "system"; content: string }>
+): Promise<Record<string, unknown>> {
+  const response = await complete(messages);
+  try {
+    return extractJSON(response);
+  } catch {
+    const retryResponse = await complete([
+      ...messages,
+      { role: "assistant" as const, content: response },
+      { role: "user" as const, content: JSON_RETRY_PROMPT },
+    ]);
+    return extractJSON(retryResponse);
+  }
+}
+
 export function formatRelativeTime(date: string | Date): string {
   const now = new Date();
   const d = new Date(date);

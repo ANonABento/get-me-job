@@ -1,6 +1,6 @@
 import { LLMClient } from "@/lib/llm/client";
 import type { Profile, LLMConfig } from "@/types";
-import { generateId, extractJSON } from "@/lib/utils";
+import { generateId, completeAndParseJSON } from "@/lib/utils";
 
 const RESUME_PARSE_PROMPT = `You are a resume parser. Extract structured information from the following resume text.
 
@@ -78,55 +78,37 @@ export async function parseResumeWithLLM(
 
   const userMessage = { role: "user" as const, content: RESUME_PARSE_PROMPT + text };
 
-  const response = await client.complete({
-    messages: [userMessage],
-    temperature: 0.1,
-    maxTokens: 4096,
-  });
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let parsed: any;
-  try {
-    parsed = extractJSON(response);
-  } catch {
-    // Retry: re-prompt the LLM with an explicit JSON-only instruction
-    const retryResponse = await client.complete({
-      messages: [
-        userMessage,
-        { role: "assistant", content: response },
-        { role: "user", content: "Please respond with valid JSON only, no markdown or explanation." },
-      ],
-      temperature: 0.1,
-      maxTokens: 4096,
-    });
-    parsed = extractJSON(retryResponse);
-  }
+  const parsed = await completeAndParseJSON(
+    (messages) => client.complete({ messages, temperature: 0.1, maxTokens: 4096 }),
+    [userMessage]
+  );
 
   // Add IDs to all items
+  type RawItem = Record<string, unknown>;
   return {
-    contact: parsed.contact || { name: "" },
-    summary: parsed.summary,
-    experiences: (parsed.experiences || []).map((e: any) => ({
+    contact: ((parsed.contact as unknown) || { name: "" }) as Profile["contact"],
+    summary: parsed.summary as string | undefined,
+    experiences: ((parsed.experiences as RawItem[] | undefined) || []).map((e) => ({
       ...e,
       id: generateId(),
-      highlights: e.highlights || [],
-      skills: e.skills || [],
-    })),
-    education: (parsed.education || []).map((e: any) => ({
+      highlights: (e.highlights as string[]) || [],
+      skills: (e.skills as string[]) || [],
+    })) as Profile["experiences"],
+    education: ((parsed.education as RawItem[] | undefined) || []).map((e) => ({
       ...e,
       id: generateId(),
-      highlights: e.highlights || [],
-    })),
-    skills: (parsed.skills || []).map((s: any) => ({
+      highlights: (e.highlights as string[]) || [],
+    })) as Profile["education"],
+    skills: ((parsed.skills as RawItem[] | undefined) || []).map((s) => ({
       ...s,
       id: generateId(),
-    })),
-    projects: (parsed.projects || []).map((p: any) => ({
+    })) as Profile["skills"],
+    projects: ((parsed.projects as RawItem[] | undefined) || []).map((p) => ({
       ...p,
       id: generateId(),
-      technologies: p.technologies || [],
-      highlights: p.highlights || [],
-    })),
+      technologies: (p.technologies as string[]) || [],
+      highlights: (p.highlights as string[]) || [],
+    })) as Profile["projects"],
     rawText: text,
   };
 }
