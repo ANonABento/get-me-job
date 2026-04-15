@@ -26,6 +26,42 @@ export interface ATSScore {
   structure: number;
 }
 
+export type LetterGrade = "A" | "B" | "C" | "D" | "F";
+
+export interface SectionBreakdown {
+  section: string;
+  score: number;
+  weight: number;
+  weightedScore: number;
+  issueCount: number;
+}
+
+export interface KeywordHeatmap {
+  found: KeywordAnalysis[];
+  missing: KeywordAnalysis[];
+  matchRate: number;
+  bySection: Record<string, { found: string[]; missing: string[] }>;
+}
+
+export interface IndustryBenchmark {
+  percentile: number;
+  averageScore: number;
+  topPerformerScore: number;
+}
+
+export interface ATSScanReport {
+  score: ATSScore;
+  letterGrade: LetterGrade;
+  issues: ATSIssue[];
+  keywords: KeywordAnalysis[];
+  keywordHeatmap: KeywordHeatmap;
+  sectionBreakdown: SectionBreakdown[];
+  benchmark: IndustryBenchmark;
+  summary: string;
+  recommendations: string[];
+  scannedAt: string;
+}
+
 export interface ATSAnalysisResult {
   score: ATSScore;
   issues: ATSIssue[];
@@ -34,7 +70,7 @@ export interface ATSAnalysisResult {
   recommendations: string[];
 }
 
-const PROBLEMATIC_CHARACTERS = [
+export const PROBLEMATIC_CHARACTERS = [
   { char: "\u2022", name: "bullet point", replacement: "-" },
   { char: "\u2013", name: "en dash", replacement: "-" },
   { char: "\u2014", name: "em dash", replacement: "-" },
@@ -542,6 +578,136 @@ export function analyzeATS(
     keywords: keywordsResult.keywords,
     summary,
     recommendations,
+  };
+}
+
+export function scoreToLetterGrade(score: number): LetterGrade {
+  if (score >= 90) return "A";
+  if (score >= 80) return "B";
+  if (score >= 70) return "C";
+  if (score >= 60) return "D";
+  return "F";
+}
+
+export function calculateBenchmark(score: number): IndustryBenchmark {
+  // Approximate percentile based on a normal distribution centered around 62
+  // with standard deviation of 15 (typical resume score distribution)
+  const mean = 62;
+  const stddev = 15;
+  const z = (score - mean) / stddev;
+  // Approximate CDF using logistic function
+  const percentile = Math.round(100 / (1 + Math.exp(-1.7 * z)));
+  return {
+    percentile: Math.max(1, Math.min(99, percentile)),
+    averageScore: mean,
+    topPerformerScore: 90,
+  };
+}
+
+export function buildKeywordHeatmap(
+  keywords: KeywordAnalysis[],
+  profile: Profile
+): KeywordHeatmap {
+  const found = keywords.filter((k) => k.found);
+  const missing = keywords.filter((k) => !k.found);
+  const matchRate = keywords.length > 0 ? found.length / keywords.length : 0;
+
+  const sections = ["summary", "skills", "experience", "education", "projects"];
+  const bySection: Record<string, { found: string[]; missing: string[] }> = {};
+
+  for (const section of sections) {
+    const sectionText = extractSectionText(profile, section);
+    const normalizedSection = normalizeText(sectionText);
+
+    const sectionFound: string[] = [];
+    const sectionMissing: string[] = [];
+
+    for (const kw of keywords) {
+      const normalizedKeyword = normalizeText(kw.keyword);
+      if (normalizedSection.includes(normalizedKeyword)) {
+        sectionFound.push(kw.keyword);
+      } else {
+        sectionMissing.push(kw.keyword);
+      }
+    }
+
+    bySection[section] = { found: sectionFound, missing: sectionMissing };
+  }
+
+  return { found, missing, matchRate, bySection };
+}
+
+function extractSectionText(profile: Profile, section: string): string {
+  switch (section) {
+    case "summary":
+      return profile.summary || "";
+    case "skills":
+      return profile.skills.map((s) => s.name).join(" ");
+    case "experience":
+      return profile.experiences
+        .map((e) => [e.title, e.company, e.description, ...e.highlights, ...e.skills].join(" "))
+        .join(" ");
+    case "education":
+      return profile.education
+        .map((e) => [e.institution, e.degree, e.field, ...e.highlights].join(" "))
+        .join(" ");
+    case "projects":
+      return profile.projects
+        .map((p) => [p.name, p.description, ...p.technologies, ...p.highlights].join(" "))
+        .join(" ");
+    default:
+      return "";
+  }
+}
+
+export function buildSectionBreakdown(
+  formattingScore: number,
+  structureScore: number,
+  contentScore: number,
+  keywordsScore: number,
+  issues: ATSIssue[]
+): SectionBreakdown[] {
+  const sections: { section: string; score: number; weight: number; category: ATSIssue["category"] }[] = [
+    { section: "Formatting", score: formattingScore, weight: 0.2, category: "formatting" },
+    { section: "Structure", score: structureScore, weight: 0.25, category: "structure" },
+    { section: "Content", score: contentScore, weight: 0.25, category: "content" },
+    { section: "Keywords", score: keywordsScore, weight: 0.3, category: "keywords" },
+  ];
+
+  return sections.map(({ section, score, weight, category }) => ({
+    section,
+    score,
+    weight,
+    weightedScore: Math.round(score * weight),
+    issueCount: issues.filter((i) => i.category === category).length,
+  }));
+}
+
+export function generateScanReport(
+  profile: Profile,
+  job?: JobDescription
+): ATSScanReport {
+  const analysis = analyzeATS(profile, job);
+  const { score, issues, keywords } = analysis;
+
+  const letterGrade = scoreToLetterGrade(score.overall);
+  const benchmark = calculateBenchmark(score.overall);
+  const keywordHeatmap = buildKeywordHeatmap(keywords, profile);
+  const sectionBreakdown = buildSectionBreakdown(
+    score.formatting,
+    score.structure,
+    score.content,
+    score.keywords,
+    issues
+  );
+
+  return {
+    ...analysis,
+    letterGrade,
+    keywordHeatmap,
+    sectionBreakdown,
+    benchmark,
+    scannedAt: new Date().toISOString(),
   };
 }
 
