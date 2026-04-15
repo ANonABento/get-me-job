@@ -8,9 +8,8 @@ import { useTheme } from "@/components/theme-provider";
 import { UserButton, SignedIn, SignedOut } from "@clerk/nextjs";
 import {
   Home,
-  Upload,
   User,
-  FileText,
+  Database,
   Briefcase,
   MessageSquare,
   Settings,
@@ -61,8 +60,7 @@ const navigationGroups: NavGroup[] = [
     label: "Resume & Profile",
     items: [
       { name: "My Profile", href: "/profile", icon: User },
-      { name: "Upload Resume", href: "/upload", icon: Upload },
-      { name: "Documents", href: "/documents", icon: FileText },
+      { name: "Knowledge Bank", href: "/bank", icon: Database },
     ],
   },
   ...(FEATURES.jobTracker ? [{
