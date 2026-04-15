@@ -294,6 +294,18 @@ db.exec(`
     FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE SET NULL
   );
 
+  -- Profile versions table for version history with rollback
+  CREATE TABLE IF NOT EXISTS profile_versions (
+    id TEXT PRIMARY KEY,
+    profile_id TEXT NOT NULL DEFAULT 'default',
+    version INTEGER NOT NULL,
+    snapshot_json TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (profile_id) REFERENCES profile(id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_profile_versions_profile ON profile_versions(profile_id, version DESC);
+
   -- Create default profile if not exists
   INSERT OR IGNORE INTO profile (id) VALUES ('default');
 `);

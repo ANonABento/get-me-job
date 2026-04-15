@@ -15,6 +15,11 @@ vi.mock("@/lib/utils", () => ({
   generateId: () => "test-id",
 }));
 
+// Mock profile-versions to prevent snapshot side effects in updateProfile tests
+vi.mock("./profile-versions", () => ({
+  createProfileSnapshot: vi.fn(),
+}));
+
 import db from "./schema";
 import {
   getSetting,
@@ -387,16 +392,25 @@ describe("Profile Functions", () => {
   });
 
   describe("updateProfile", () => {
-    it("should update profile contact info", () => {
+    // Helper to set up mocks that handle both getProfile queries (for snapshotting) and update queries
+    function setupUpdateMocks() {
       const mockRun = vi.fn();
-      const mockGet = vi.fn().mockReturnValue({ id: "default" });
       (db.prepare as Mock).mockImplementation((sql: string) => {
         if (sql.includes("SELECT id FROM profile")) {
-          return { get: mockGet };
+          return { get: vi.fn().mockReturnValue({ id: "default" }) };
         }
-        return { run: mockRun };
+        // getProfile queries called during snapshotting
+        if (sql.includes("FROM profile")) {
+          return { get: vi.fn().mockReturnValue(null) };
+        }
+        return { run: mockRun, get: vi.fn(), all: vi.fn().mockReturnValue([]) };
       });
       (db.transaction as Mock).mockImplementation((fn) => fn);
+      return mockRun;
+    }
+
+    it("should update profile contact info", () => {
+      const mockRun = setupUpdateMocks();
 
       updateProfile({
         contact: { name: "Jane Doe", email: "jane@example.com" },
@@ -406,15 +420,7 @@ describe("Profile Functions", () => {
     });
 
     it("should update experiences", () => {
-      const mockRun = vi.fn();
-      const mockGet = vi.fn().mockReturnValue({ id: "default" });
-      (db.prepare as Mock).mockImplementation((sql: string) => {
-        if (sql.includes("SELECT id FROM profile")) {
-          return { get: mockGet };
-        }
-        return { run: mockRun };
-      });
-      (db.transaction as Mock).mockImplementation((fn) => fn);
+      const mockRun = setupUpdateMocks();
 
       updateProfile({
         experiences: [
@@ -437,15 +443,7 @@ describe("Profile Functions", () => {
     });
 
     it("should handle empty update gracefully", () => {
-      const mockRun = vi.fn();
-      const mockGet = vi.fn().mockReturnValue({ id: "default" });
-      (db.prepare as Mock).mockImplementation((sql: string) => {
-        if (sql.includes("SELECT id FROM profile")) {
-          return { get: mockGet };
-        }
-        return { run: mockRun };
-      });
-      (db.transaction as Mock).mockImplementation((fn) => fn);
+      setupUpdateMocks();
 
       // Empty update - transaction should still work
       updateProfile({});

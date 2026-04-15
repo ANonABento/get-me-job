@@ -198,11 +198,13 @@ export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 export const ALLOWED_MIME_TYPES = [
   "application/pdf",
   "text/plain",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ] as const;
 
 // Magic bytes for file type validation
 export const FILE_SIGNATURES: Record<string, number[]> = {
   "application/pdf": [0x25, 0x50, 0x44, 0x46], // %PDF
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [0x50, 0x4b, 0x03, 0x04], // PK zip header
   // text/plain has no magic bytes - validated by content
 };
 

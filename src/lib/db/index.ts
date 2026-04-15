@@ -5,3 +5,4 @@ export * from "./interviews";
 export * from "./resumes";
 export * from "./reminders";
 export * from "./notifications";
+export * from "./profile-versions";

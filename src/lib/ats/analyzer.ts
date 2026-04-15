@@ -1,4 +1,5 @@
 import type { Profile, JobDescription } from "@/types";
+import { getSynonyms, SYNONYM_MATCH_WEIGHT } from "./synonyms";
 
 export interface ATSIssue {
   type: "error" | "warning" | "info";
@@ -13,6 +14,8 @@ export interface KeywordAnalysis {
   found: boolean;
   frequency: number;
   locations: string[];
+  matchType?: "exact" | "synonym";
+  matchedTerm?: string;
 }
 
 export interface ATSScore {
@@ -57,6 +60,22 @@ const SECTION_KEYWORDS = [
   "certifications",
   "achievements",
 ];
+
+function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function wordBoundaryRegex(term: string, flags = ""): RegExp {
+  return new RegExp(`\\b${escapeRegExp(term)}\\b`, flags);
+}
+
+function containsWord(text: string, word: string): boolean {
+  return wordBoundaryRegex(word).test(text);
+}
+
+function countWordOccurrences(text: string, word: string): number {
+  return (text.match(wordBoundaryRegex(word, "g")) || []).length;
+}
 
 function normalizeText(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
@@ -337,29 +356,58 @@ function analyzeKeywords(
     return { score: 80, keywords: [], issues: [] };
   }
 
-  let matchedCount = 0;
+  let weightedMatchCount = 0;
 
   importantKeywords.forEach((keyword) => {
     const normalizedKeyword = normalizeText(keyword);
-    const found = normalizedText.includes(normalizedKeyword);
-    const frequency = (normalizedText.match(new RegExp(normalizedKeyword, "g")) || []).length;
+
+    // Check exact match first (word-boundary aware)
+    let found = containsWord(normalizedText, normalizedKeyword);
+    let matchType: "exact" | "synonym" | undefined;
+    let matchedTerm: string | undefined;
+    let frequency = 0;
+
+    if (found) {
+      matchType = "exact";
+      frequency = countWordOccurrences(normalizedText, normalizedKeyword);
+    } else {
+      // Check synonym matches
+      const synonyms = getSynonyms(normalizedKeyword);
+      for (const synonym of synonyms) {
+        if (synonym === normalizedKeyword) continue;
+        const normalizedSynonym = normalizeText(synonym);
+        if (containsWord(normalizedText, normalizedSynonym)) {
+          found = true;
+          matchType = "synonym";
+          matchedTerm = synonym;
+          frequency = countWordOccurrences(normalizedText, normalizedSynonym);
+          break;
+        }
+      }
+    }
 
     const locations: string[] = [];
     if (found) {
-      matchedCount++;
-      if (normalizeText(profile.summary || "").includes(normalizedKeyword)) {
+      const matchWeight = matchType === "synonym" ? SYNONYM_MATCH_WEIGHT : 1;
+      weightedMatchCount += matchWeight;
+
+      const searchTerm = matchType === "synonym" && matchedTerm
+        ? normalizeText(matchedTerm)
+        : normalizedKeyword;
+
+      if (containsWord(normalizeText(profile.summary || ""), searchTerm)) {
         locations.push("summary");
       }
       profile.skills.forEach((s) => {
-        if (normalizeText(s.name).includes(normalizedKeyword)) {
+        if (containsWord(normalizeText(s.name), searchTerm)) {
           locations.push("skills");
         }
       });
       profile.experiences.forEach((e) => {
         if (
-          normalizeText(e.title).includes(normalizedKeyword) ||
-          normalizeText(e.description).includes(normalizedKeyword) ||
-          e.highlights.some((h) => normalizeText(h).includes(normalizedKeyword))
+          containsWord(normalizeText(e.title), searchTerm) ||
+          containsWord(normalizeText(e.description), searchTerm) ||
+          e.highlights.some((h) => containsWord(normalizeText(h), searchTerm))
         ) {
           locations.push("experience");
         }
@@ -371,10 +419,12 @@ function analyzeKeywords(
       found,
       frequency,
       locations: Array.from(new Set(locations)),
+      matchType,
+      matchedTerm,
     });
   });
 
-  const matchRate = matchedCount / importantKeywords.length;
+  const matchRate = weightedMatchCount / importantKeywords.length;
   score = Math.round(matchRate * 100);
 
   if (job && matchRate < 0.5) {

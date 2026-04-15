@@ -1,6 +1,6 @@
-import type { Profile, JobDescription } from "@/types";
+import type { Profile, JobDescription, LLMConfig } from "@/types";
 import { LLMClient } from "@/lib/llm/client";
-import type { LLMConfig } from "@/types";
+import { extractJSON } from "@/lib/utils";
 
 export interface TailoredResume {
   contact: Profile["contact"];
@@ -109,26 +109,14 @@ Return ONLY a JSON object with this structure:
     maxTokens: 2000,
   });
 
-  // Parse response
-  let cleanResponse = response.trim();
-  if (cleanResponse.startsWith("```json")) {
-    cleanResponse = cleanResponse.slice(7);
-  }
-  if (cleanResponse.startsWith("```")) {
-    cleanResponse = cleanResponse.slice(3);
-  }
-  if (cleanResponse.endsWith("```")) {
-    cleanResponse = cleanResponse.slice(0, -3);
-  }
-
-  const parsed = JSON.parse(cleanResponse.trim());
+  const parsed = extractJSON(response);
 
   return {
     contact: profile.contact,
-    summary: parsed.summary,
-    experiences: parsed.experiences,
-    skills: parsed.skills,
-    education: parsed.education,
+    summary: parsed.summary as string,
+    experiences: parsed.experiences as TailoredResume["experiences"],
+    skills: parsed.skills as string[],
+    education: parsed.education as TailoredResume["education"],
   };
 }
 

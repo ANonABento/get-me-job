@@ -1,14 +1,15 @@
 import pdf from "pdf-parse";
+import mammoth from "mammoth";
 import fs from "fs";
 import path from "path";
 import { needsOCRFallback, extractTextWithOCR } from "./ocr";
 
-export async function extractTextFromPDF(filePath: string): Promise<string> {
-  const absolutePath = path.isAbsolute(filePath)
-    ? filePath
-    : path.join(process.cwd(), filePath);
+function toAbsolutePath(filePath: string): string {
+  return path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath);
+}
 
-  const dataBuffer = fs.readFileSync(absolutePath);
+export async function extractTextFromPDF(filePath: string): Promise<string> {
+  const dataBuffer = fs.readFileSync(toAbsolutePath(filePath));
   const data = await pdf(dataBuffer);
 
   if (needsOCRFallback(data.text)) {
@@ -18,6 +19,11 @@ export async function extractTextFromPDF(filePath: string): Promise<string> {
   return data.text;
 }
 
+export async function extractTextFromDocx(buffer: Buffer): Promise<string> {
+  const result = await mammoth.extractRawText({ buffer });
+  return result.value;
+}
+
 export async function extractTextFromFile(filePath: string): Promise<string> {
   const ext = path.extname(filePath).toLowerCase();
 
@@ -25,12 +31,11 @@ export async function extractTextFromFile(filePath: string): Promise<string> {
     case ".pdf":
       return extractTextFromPDF(filePath);
     case ".txt":
-      return fs.readFileSync(filePath, "utf-8");
-    case ".docx":
-      // For now, we'll handle DOCX as unsupported and suggest PDF
-      throw new Error(
-        "DOCX parsing not yet implemented. Please convert to PDF."
-      );
+      return fs.readFileSync(toAbsolutePath(filePath), "utf-8");
+    case ".docx": {
+      const buffer = fs.readFileSync(toAbsolutePath(filePath));
+      return extractTextFromDocx(buffer);
+    }
     default:
       throw new Error(`Unsupported file type: ${ext}`);
   }
