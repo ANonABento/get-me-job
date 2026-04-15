@@ -204,13 +204,10 @@ export function calculateSectionConfidence(sections: DetectedSection[]): number 
   if (sections.length === 0) return 0;
 
   const knownSections = sections.filter((s) => s.type !== "unknown");
-  const totalSections = sections.length;
-
-  if (totalSections === 0) return 0;
 
   // Weighted: known sections with high confidence count more
   const weightedSum = sections.reduce((sum, s) => sum + s.confidence, 0);
-  const avgConfidence = weightedSum / totalSections;
+  const avgConfidence = weightedSum / sections.length;
 
   // Bonus for having key sections (experience, education, skills)
   const hasExperience = knownSections.some((s) => s.type === "experience");

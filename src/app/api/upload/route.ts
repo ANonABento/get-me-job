@@ -15,7 +15,6 @@ import {
   PATHS,
 } from "@/lib/constants";
 import { requireAuth, isAuthError } from "@/lib/auth";
-import { ingestDocument } from "@/lib/knowledge/ingest";
 
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();

@@ -177,6 +177,9 @@ function parseTitleCompany(line: string): { title: string; company: string } {
 
 // ─── Education extraction ───────────────────────────────────────────
 
+const DEGREE_RE = /\b(bachelor|master|ph\.?d|associate|diploma|b\.?s\.?|m\.?s\.?|b\.?a\.?|m\.?a\.?|m\.?b\.?a)\b/i;
+const DEGREE_CAPTURE_RE = /\b(bachelor|master|ph\.?d|associate|diploma|b\.?s\.?|m\.?s\.?|b\.?a\.?|m\.?a\.?|m\.?b\.?a)[^,\n]*/i;
+
 export function extractEducation(section: DetectedSection): {
   education: Education[];
   confidence: number;
@@ -192,12 +195,8 @@ export function extractEducation(section: DetectedSection): {
     // New entry when we see a degree keyword or institution after content
     if (
       current.length > 0 &&
-      /\b(bachelor|master|ph\.?d|associate|diploma|b\.?s\.?|m\.?s\.?|b\.?a\.?|m\.?a\.?|m\.?b\.?a)\b/i.test(
-        trimmed
-      ) &&
-      !current.some((l) =>
-        /\b(bachelor|master|ph\.?d|associate|diploma|b\.?s\.?|m\.?s\.?|b\.?a\.?|m\.?a\.?|m\.?b\.?a)\b/i.test(l)
-      )
+      DEGREE_RE.test(trimmed) &&
+      !current.some((l) => DEGREE_RE.test(l))
     ) {
       entries.push([...current]);
       current = [trimmed];
@@ -213,9 +212,7 @@ export function extractEducation(section: DetectedSection): {
     const fullText = entry.join("\n");
     const dateMatch = fullText.match(DATE_RANGE_RE) || fullText.match(DATE_RE);
 
-    const degreeMatch = fullText.match(
-      /\b(Bachelor|Master|Ph\.?D|Associate|Diploma|B\.?S\.?|M\.?S\.?|B\.?A\.?|M\.?A\.?|M\.?B\.?A)[^,\n]*/i
-    );
+    const degreeMatch = fullText.match(DEGREE_CAPTURE_RE);
     const degree = degreeMatch?.[0]?.trim() || entry[0];
 
     // Try to find "in Field" or "of Field"
