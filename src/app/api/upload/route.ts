@@ -6,6 +6,7 @@ import { saveDocument, getLLMConfig } from "@/lib/db";
 import { extractTextFromFile } from "@/lib/parser/pdf";
 import { classifyDocument } from "@/lib/parser/document-classifier";
 import { parseDocumentByType } from "@/lib/parser/resume";
+import { smartParseResume, type SmartParseResult } from "@/lib/parser/smart-parser";
 import type { ParsedDocumentData } from "@/types";
 import {
   MAX_FILE_SIZE_BYTES,
@@ -84,28 +85,32 @@ export async function POST(request: NextRequest) {
     const llmConfig = getLLMConfig();
     const docType = await classifyDocument(extractedText, file.name, llmConfig);
 
-    // Parse document content — uses LLM if available, falls back to basic regex
+    // Parse document content — smart parser (deterministic first, LLM fallback)
     let parsedData: ParsedDocumentData | undefined;
+    let smartResult: SmartParseResult | undefined;
     if (extractedText && docType !== "portfolio" && docType !== "other") {
       try {
-        if (llmConfig) {
+        if (docType === "resume") {
+          // Use smart parser pipeline for resumes
+          smartResult = await smartParseResume(extractedText, llmConfig);
+          parsedData = { docType: "resume", data: smartResult.profile };
+          console.log(
+            `[upload] Smart parse: confidence=${smartResult.confidence.toFixed(2)}, ` +
+            `sections=${smartResult.sectionsDetected.join(",")}, ` +
+            `llmUsed=${smartResult.llmUsed}, llmSections=${smartResult.llmSectionsCount}`
+          );
+          if (smartResult.warnings.length > 0) {
+            console.log(`[upload] Parse warnings: ${smartResult.warnings.join("; ")}`);
+          }
+        } else if (llmConfig) {
+          // Non-resume doc types still use LLM-based parsing
           const parseResult = await parseDocumentByType(extractedText, docType, llmConfig);
-          if (parseResult.parsedProfile) {
-            parsedData = { docType: "resume", data: parseResult.parsedProfile };
-          } else if (parseResult.coverLetter) {
+          if (parseResult.coverLetter) {
             parsedData = { docType: "cover_letter", data: parseResult.coverLetter };
           } else if (parseResult.referenceLetter) {
             parsedData = { docType: "reference_letter", data: parseResult.referenceLetter };
           } else if (parseResult.certificate) {
             parsedData = { docType: "certificate", data: parseResult.certificate };
-          }
-        } else {
-          // No LLM — use basic regex parsing for resumes
-          console.log("[upload] No LLM configured — using basic parsing");
-          const { parseResumeBasic } = await import("@/lib/parser/resume");
-          const basicProfile = parseResumeBasic(extractedText);
-          if (basicProfile) {
-            parsedData = { docType: "resume", data: basicProfile };
           }
         }
       } catch (err) {
@@ -189,6 +194,15 @@ export async function POST(request: NextRequest) {
         size: file.size,
         extractedText: extractedText ? extractedText.slice(0, 500) + "..." : null,
       },
+      ...(smartResult && {
+        parsing: {
+          confidence: smartResult.confidence,
+          sectionsDetected: smartResult.sectionsDetected,
+          llmUsed: smartResult.llmUsed,
+          llmSectionsCount: smartResult.llmSectionsCount,
+          warnings: smartResult.warnings,
+        },
+      }),
     });
   } catch (error) {
     console.error("[upload] Upload error:", error instanceof Error ? error.stack : error);
