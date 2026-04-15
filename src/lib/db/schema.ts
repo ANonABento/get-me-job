@@ -294,6 +294,20 @@ db.exec(`
     FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE SET NULL
   );
 
+  -- Profile bank table for aggregated resume data
+  CREATE TABLE IF NOT EXISTS profile_bank (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL DEFAULT 'default',
+    category TEXT NOT NULL,
+    content TEXT NOT NULL,
+    source_document_id TEXT,
+    confidence_score REAL DEFAULT 0.8,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (source_document_id) REFERENCES documents(id) ON DELETE SET NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_profile_bank_user ON profile_bank(user_id);
+  CREATE INDEX IF NOT EXISTS idx_profile_bank_category ON profile_bank(user_id, category);
   -- Profile versions table for version history with rollback
   CREATE TABLE IF NOT EXISTS profile_versions (
     id TEXT PRIMARY KEY,

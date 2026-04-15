@@ -132,6 +132,37 @@ export interface Settings {
   theme: 'light' | 'dark' | 'system';
 }
 
+// Profile bank types
+export const BANK_CATEGORIES = [
+  'experience',
+  'skill',
+  'project',
+  'education',
+  'achievement',
+  'certification',
+] as const;
+
+export type BankCategory = (typeof BANK_CATEGORIES)[number];
+
+export interface BankEntry {
+  id: string;
+  userId: string;
+  category: BankCategory;
+  content: Record<string, unknown>;
+  sourceDocumentId?: string;
+  confidenceScore: number;
+  createdAt: string;
+}
+
+export interface GroupedBankEntries {
+  experience: BankEntry[];
+  skill: BankEntry[];
+  project: BankEntry[];
+  education: BankEntry[];
+  achievement: BankEntry[];
+  certification: BankEntry[];
+}
+
 // Email template types
 export type EmailTemplateType =
   | 'follow_up'

@@ -3,6 +3,7 @@ import { getDocuments, getLLMConfig, updateProfile, getProfile } from "@/lib/db"
 import { parseResumeWithLLM, parseResumeBasic } from "@/lib/parser/resume";
 import { parseDocumentSchema } from "@/lib/constants";
 import { requireAuth, isAuthError } from "@/lib/auth";
+import { populateBankFromProfile } from "@/lib/resume/info-bank";
 
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();
@@ -65,6 +66,13 @@ export async function POST(request: NextRequest) {
 
     // Save to profile
     updateProfile(parsedProfile, authResult.userId);
+
+    // Populate information bank from parsed profile (non-fatal)
+    try {
+      populateBankFromProfile(parsedProfile, doc.id, authResult.userId);
+    } catch (bankError) {
+      console.error("Bank population failed:", bankError);
+    }
 
     // Get updated profile
     const profile = getProfile(authResult.userId);
