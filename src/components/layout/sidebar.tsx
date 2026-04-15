@@ -62,7 +62,7 @@ const navigationGroups: NavGroup[] = [
   {
     label: "Resume",
     items: [
-      { name: "Knowledge Bank", href: "/bank", icon: Database },
+      { name: "Documents", href: "/bank", icon: Database },
       { name: "Tailor Resume", href: "/tailor", icon: Sparkles },
     ],
   },
