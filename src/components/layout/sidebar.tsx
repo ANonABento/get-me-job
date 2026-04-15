@@ -27,6 +27,7 @@ import {
   Calendar,
   DollarSign,
   LogIn,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { NotificationCenter } from "@/components/notifications/notification-center";
@@ -63,6 +64,7 @@ const navigationGroups: NavGroup[] = [
       { name: "My Profile", href: "/profile", icon: User },
       { name: "Upload Resume", href: "/upload", icon: Upload },
       { name: "Documents", href: "/documents", icon: FileText },
+      { name: "Tailor Resume", href: "/tailor", icon: Sparkles },
     ],
   },
   ...(FEATURES.jobTracker ? [{
