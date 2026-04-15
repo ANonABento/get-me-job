@@ -57,7 +57,7 @@ export async function POST(
     const tailoredResume = await generateTailoredResume(profile, job, llmConfig);
 
     // Generate HTML with selected template
-    const html = generateResumeHTML(tailoredResume, templateId);
+    const html = generateResumeHTML(tailoredResume, templateId, authResult.userId);
 
     // Ensure output directory exists
     await mkdir(PATHS.RESUMES_OUTPUT, { recursive: true });
