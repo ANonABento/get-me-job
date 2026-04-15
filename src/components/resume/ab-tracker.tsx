@@ -148,26 +148,28 @@ function OutcomePipeline({ stats }: { stats: VersionStats[] }) {
   return (
     <div className="space-y-3">
       <h4 className="text-sm font-medium text-muted-foreground">Application Pipeline</h4>
-      <div className="flex items-end gap-2">
+      <div className="flex items-end gap-1">
         {aggregated.map((stage, i) => (
-          <div key={stage.outcome} className="flex-1 flex flex-col items-center gap-1">
-            <span className="text-sm font-bold">{stage.count}</span>
-            <div
-              className={cn(
-                "w-full rounded-t transition-all duration-500",
-                i === 0 && "bg-blue-400",
-                i === 1 && "bg-purple-400",
-                i === 2 && "bg-amber-400",
-                i === 3 && "bg-green-400"
-              )}
-              style={{ height: `${Math.max((stage.count / maxCount) * 80, 8)}px` }}
-            />
+          <div key={stage.outcome} className="flex items-end gap-1 flex-1">
+            <div className="flex-1 flex flex-col items-center gap-1">
+              <span className="text-sm font-bold">{stage.count}</span>
+              <div
+                className={cn(
+                  "w-full rounded-t transition-all duration-500",
+                  i === 0 && "bg-blue-400",
+                  i === 1 && "bg-purple-400",
+                  i === 2 && "bg-amber-400",
+                  i === 3 && "bg-green-400"
+                )}
+                style={{ height: `${Math.max((stage.count / maxCount) * 80, 8)}px` }}
+              />
+              <span className="text-xs text-muted-foreground text-center">
+                {OUTCOME_LABELS[stage.outcome]}
+              </span>
+            </div>
             {i < aggregated.length - 1 && (
-              <ArrowRight className="h-3 w-3 text-muted-foreground absolute" />
+              <ArrowRight className="h-3 w-3 text-muted-foreground mb-5 shrink-0" />
             )}
-            <span className="text-xs text-muted-foreground text-center">
-              {OUTCOME_LABELS[stage.outcome]}
-            </span>
           </div>
         ))}
       </div>
