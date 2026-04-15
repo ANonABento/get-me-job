@@ -124,11 +124,20 @@
 
   html {
     scroll-behavior: smooth;
+    overscroll-behavior: none;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    overscroll-behavior: none;
+  }
+
+  /* Prevent overscroll bounce in scrollable containers */
+  .overflow-auto,
+  .overflow-y-auto,
+  .overflow-x-auto {
+    overscroll-behavior: contain;
   }
 
   /* Custom scrollbar */
