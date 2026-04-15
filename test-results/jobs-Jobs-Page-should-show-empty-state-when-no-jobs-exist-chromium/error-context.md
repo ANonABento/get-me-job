@@ -1,0 +1,133 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e3]:
+    - complementary "Main navigation" [ref=e4]:
+      - link "Get Me Job Job Assistant" [ref=e6] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e8]
+        - generic [ref=e13]:
+          - generic [ref=e14]: Get Me Job
+          - generic [ref=e15]: Job Assistant
+      - navigation [ref=e16]:
+        - generic [ref=e17]:
+          - generic [ref=e18]: Overview
+          - link "Dashboard" [ref=e20] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e21]
+            - generic [ref=e24]: Dashboard
+        - generic [ref=e25]:
+          - generic [ref=e26]: Resume & Profile
+          - generic [ref=e27]:
+            - link "My Profile" [ref=e28] [cursor=pointer]:
+              - /url: /profile
+              - img [ref=e29]
+              - generic [ref=e32]: My Profile
+            - link "Upload Resume" [ref=e33] [cursor=pointer]:
+              - /url: /upload
+              - img [ref=e34]
+              - generic [ref=e37]: Upload Resume
+            - link "Documents" [ref=e38] [cursor=pointer]:
+              - /url: /documents
+              - img [ref=e39]
+              - generic [ref=e42]: Documents
+        - generic [ref=e43]:
+          - generic [ref=e44]: Job Tracker
+          - generic [ref=e45]:
+            - link "Jobs" [ref=e46] [cursor=pointer]:
+              - /url: /jobs
+              - img [ref=e47]
+              - generic [ref=e50]: Jobs
+            - link "Calendar" [ref=e52] [cursor=pointer]:
+              - /url: /calendar
+              - img [ref=e53]
+              - generic [ref=e55]: Calendar
+            - link "Email Templates" [ref=e56] [cursor=pointer]:
+              - /url: /emails
+              - img [ref=e57]
+              - generic [ref=e60]: Email Templates
+        - generic [ref=e61]:
+          - generic [ref=e62]: Interview
+          - link "Interview Prep" [ref=e64] [cursor=pointer]:
+            - /url: /interview
+            - img [ref=e65]
+            - generic [ref=e67]: Interview Prep
+        - generic [ref=e68]:
+          - generic [ref=e69]: Negotiation
+          - link "Salary Tools" [ref=e71] [cursor=pointer]:
+            - /url: /salary
+            - img [ref=e72]
+            - generic [ref=e74]: Salary Tools
+        - generic [ref=e75]:
+          - generic [ref=e76]: Insights
+          - link "Analytics" [ref=e78] [cursor=pointer]:
+            - /url: /analytics
+            - img [ref=e79]
+            - generic [ref=e81]: Analytics
+      - generic [ref=e82]:
+        - button "Notifications" [ref=e84] [cursor=pointer]:
+          - img [ref=e86]
+          - generic [ref=e89]: Notifications
+        - link "Settings" [ref=e90] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e91]
+          - generic [ref=e94]: Settings
+        - button "System (light)" [ref=e95] [cursor=pointer]:
+          - img [ref=e96]
+          - generic [ref=e98]: System (light)
+        - button "Collapse" [ref=e99] [cursor=pointer]:
+          - img [ref=e100]
+          - generic [ref=e102]: Collapse
+    - main "Main content" [ref=e105]:
+      - generic [ref=e106]:
+        - generic [ref=e108]:
+          - link "Back to Dashboard" [ref=e109] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e110]
+            - text: Back to Dashboard
+          - generic [ref=e112]:
+            - generic [ref=e113]:
+              - generic [ref=e114]:
+                - img [ref=e115]
+                - text: Job Tracker
+              - heading "Job Applications" [level=1] [ref=e119]
+              - paragraph [ref=e120]: Track your target jobs, analyze match scores, and generate tailored resumes.
+            - generic [ref=e121]:
+              - generic [ref=e122]:
+                - paragraph [ref=e123]: "0"
+                - paragraph [ref=e124]: Jobs Tracked
+              - generic [ref=e125]:
+                - button "Import" [ref=e126] [cursor=pointer]:
+                  - img [ref=e127]
+                  - text: Import
+                - button "Gmail" [ref=e131] [cursor=pointer]:
+                  - img [ref=e132]
+                  - text: Gmail
+                - button "Add Job" [ref=e135] [cursor=pointer]:
+                  - img [ref=e136]
+                  - text: Add Job
+        - generic [ref=e138]:
+          - img [ref=e140]
+          - heading "No jobs tracked yet" [level=2] [ref=e143]
+          - paragraph [ref=e144]: Add a job description to analyze your match score and generate a tailored resume.
+          - button "Add Your First Job" [ref=e145] [cursor=pointer]:
+            - img [ref=e146]
+            - text: Add Your First Job
+          - generic [ref=e147]:
+            - generic [ref=e148]:
+              - img [ref=e150]
+              - heading "Paste Job Descriptions" [level=3] [ref=e153]
+              - paragraph [ref=e154]: Copy the full job posting to get accurate analysis.
+            - generic [ref=e155]:
+              - img [ref=e157]
+              - heading "Get Match Scores" [level=3] [ref=e161]
+              - paragraph [ref=e162]: See how well your profile matches each job.
+            - generic [ref=e163]:
+              - img [ref=e165]
+              - heading "Generate Tailored Resumes" [level=3] [ref=e168]
+              - paragraph [ref=e169]: Create customized resumes for each application.
+  - alert [ref=e170]
+```

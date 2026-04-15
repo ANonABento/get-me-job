@@ -1,15 +1,16 @@
 import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
 import type {
   Profile,
+  Experience,
+  Education,
+  Skill,
+  Project,
   LLMConfig,
   DocumentType,
   CoverLetterData,
   ReferenceLetterData,
   CertificateData,
 } from "@/types";
-import { generateId } from "@/lib/utils";
-import { LLMClient } from "@/lib/llm/client";
-import type { Profile, Experience, Education, Skill, Project, LLMConfig } from "@/types";
 import { generateId, extractJSON } from "@/lib/utils";
 
 const RESUME_PARSE_PROMPT = `You are a resume parser. Extract structured information from the following resume text.
@@ -99,7 +100,6 @@ export async function parseResumeWithLLM(
   text: string,
   llmConfig: LLMConfig
 ): Promise<Partial<Profile>> {
-  const parsed = await callLLMParser<any>(text, RESUME_PARSE_PROMPT, llmConfig, 4096);
   const client = new LLMClient(llmConfig);
 
   const response = await client.complete({

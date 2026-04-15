@@ -1,7 +1,6 @@
 import type { TailoredResume } from "./generator";
 import { getTemplateWithCustom, type ResumeTemplate, TEMPLATES } from "./templates";
 import type { ContactInfo } from "@/types";
-import { getTemplate, type ResumeTemplate, TEMPLATES } from "./templates";
 
 export { TEMPLATES };
 

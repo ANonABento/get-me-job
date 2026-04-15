@@ -1,0 +1,264 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e5]:
+        - link "Get Me Job" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - img [ref=e8]
+          - generic [ref=e14]: Get Me Job
+        - button "Toggle menu" [ref=e15] [cursor=pointer]:
+          - img [ref=e16]
+    - main [ref=e17]:
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - generic [ref=e24]:
+            - img [ref=e25]
+            - text: AI-Powered Job Application Assistant
+          - heading "Land Your Dream Job with AI-Powered Confidence" [level=1] [ref=e27]
+          - paragraph [ref=e28]: Upload your resume, match with jobs, generate tailored applications, and ace interviews with intelligent AI coaching. Your complete job search command center.
+          - generic [ref=e29]:
+            - link "Get Started Free" [ref=e30] [cursor=pointer]:
+              - /url: /dashboard
+              - text: Get Started Free
+              - img [ref=e31]
+            - link "See How It Works" [ref=e33] [cursor=pointer]:
+              - /url: "#how-it-works"
+              - img [ref=e34]
+              - text: See How It Works
+          - generic [ref=e36]:
+            - generic [ref=e37]:
+              - generic [ref=e38]:
+                - generic [ref=e39]: B
+                - generic [ref=e40]: C
+                - generic [ref=e41]: D
+                - generic [ref=e42]: E
+              - generic [ref=e43]: Join 10,000+ job seekers
+            - generic [ref=e44]:
+              - img [ref=e45]
+              - img [ref=e47]
+              - img [ref=e49]
+              - img [ref=e51]
+              - img [ref=e53]
+              - generic [ref=e55]: 4.9/5 rating
+        - generic [ref=e58]:
+          - generic [ref=e64]: Get Me Job Dashboard
+          - generic [ref=e65]:
+            - generic [ref=e66]:
+              - generic [ref=e67]:
+                - generic [ref=e68]: "12"
+                - generic [ref=e69]: Jobs Tracked
+              - generic [ref=e70]:
+                - generic [ref=e71]: "8"
+                - generic [ref=e72]: Applied
+              - generic [ref=e73]:
+                - generic [ref=e74]: "3"
+                - generic [ref=e75]: Interviews
+            - generic [ref=e77]: Your personalized job dashboard
+      - generic [ref=e79]:
+        - generic [ref=e80]:
+          - generic [ref=e81]: Features
+          - heading "Everything you need to land your dream job" [level=2] [ref=e82]
+          - paragraph [ref=e83]: Get Me Job combines AI-powered tools with smart tracking to streamline your entire job search process.
+        - generic [ref=e84]:
+          - generic [ref=e85]:
+            - img [ref=e87]
+            - heading "AI Resume Parsing" [level=3] [ref=e90]
+            - paragraph [ref=e91]: Upload your resume and let AI extract your professional details instantly. No more manual data entry.
+          - generic [ref=e92]:
+            - img [ref=e94]
+            - heading "Job Match Scoring" [level=3] [ref=e98]
+            - paragraph [ref=e99]: See how well you match with any job posting. Get instant compatibility scores and improvement suggestions.
+          - generic [ref=e100]:
+            - img [ref=e102]
+            - heading "Tailored Resumes" [level=3] [ref=e105]
+            - paragraph [ref=e106]: Generate customized resumes for each application. Highlight the skills that matter most for each role.
+          - generic [ref=e107]:
+            - img [ref=e109]
+            - heading "AI Interview Coach" [level=3] [ref=e111]
+            - paragraph [ref=e112]: Practice with realistic mock interviews. Get feedback on your answers and improve your confidence.
+          - generic [ref=e113]:
+            - img [ref=e115]
+            - heading "ATS Optimization" [level=3] [ref=e118]
+            - paragraph [ref=e119]: Ensure your resume passes applicant tracking systems. Get tips to improve ATS compatibility.
+          - generic [ref=e120]:
+            - img [ref=e122]
+            - heading "Progress Tracking" [level=3] [ref=e124]
+            - paragraph [ref=e125]: Track all your applications in one place. See your funnel, success rates, and insights.
+        - generic [ref=e126]:
+          - generic [ref=e127]:
+            - generic [ref=e128]: 10K+
+            - generic [ref=e129]: Active Users
+          - generic [ref=e130]:
+            - generic [ref=e131]: 50K+
+            - generic [ref=e132]: Resumes Optimized
+          - generic [ref=e133]:
+            - generic [ref=e134]: 85%
+            - generic [ref=e135]: Interview Success Rate
+          - generic [ref=e136]:
+            - generic [ref=e137]: 4.9/5
+            - generic [ref=e138]: User Rating
+      - generic [ref=e140]:
+        - generic [ref=e141]:
+          - generic [ref=e142]: How It Works
+          - heading "From resume to offer in four simple steps" [level=2] [ref=e143]
+          - paragraph [ref=e144]: Our streamlined process takes the guesswork out of job hunting. Follow these steps to maximize your success.
+        - generic [ref=e145]:
+          - generic [ref=e147]:
+            - generic [ref=e148]: "01"
+            - img [ref=e150]
+            - heading "Upload Your Resume" [level=3] [ref=e153]
+            - paragraph [ref=e154]: Start by uploading your existing resume. Our AI instantly parses and organizes your professional information.
+          - generic [ref=e156]:
+            - generic [ref=e157]: "02"
+            - img [ref=e159]
+            - heading "Build Your Profile" [level=3] [ref=e162]
+            - paragraph [ref=e163]: Review and enhance your profile. Add skills, experiences, and achievements to maximize your match potential.
+          - generic [ref=e165]:
+            - generic [ref=e166]: "03"
+            - img [ref=e168]
+            - heading "Match With Jobs" [level=3] [ref=e172]
+            - paragraph [ref=e173]: Add target jobs and get instant match scores. Generate tailored resumes optimized for each position.
+          - generic [ref=e175]:
+            - generic [ref=e176]: "04"
+            - img [ref=e178]
+            - heading "Land Interviews" [level=3] [ref=e184]
+            - paragraph [ref=e185]: Prepare with AI interview coaching. Practice answers, get feedback, and land your dream job with confidence.
+      - generic [ref=e187]:
+        - generic [ref=e188]:
+          - generic [ref=e189]: Testimonials
+          - heading "Loved by job seekers worldwide" [level=2] [ref=e190]
+          - paragraph [ref=e191]: See what our users have to say about their experience with Get Me Job.
+        - generic [ref=e192]:
+          - generic [ref=e193]:
+            - img [ref=e195]
+            - generic [ref=e198]:
+              - img [ref=e199]
+              - img [ref=e201]
+              - img [ref=e203]
+              - img [ref=e205]
+              - img [ref=e207]
+            - paragraph [ref=e209]: "\"Get Me Job completely transformed my job search. The AI resume optimization helped me get callbacks from companies that never responded before.\""
+            - generic [ref=e210]:
+              - generic [ref=e211]: S
+              - generic [ref=e212]:
+                - generic [ref=e213]: Sarah M.
+                - generic [ref=e214]: Software Engineer · Now at Google
+          - generic [ref=e215]:
+            - img [ref=e217]
+            - generic [ref=e220]:
+              - img [ref=e221]
+              - img [ref=e223]
+              - img [ref=e225]
+              - img [ref=e227]
+              - img [ref=e229]
+            - paragraph [ref=e231]: "\"The interview prep feature is incredible. I practiced with the AI coach and felt so confident walking into my interviews. Landed my dream job in 3 weeks!\""
+            - generic [ref=e232]:
+              - generic [ref=e233]: M
+              - generic [ref=e234]:
+                - generic [ref=e235]: Michael R.
+                - generic [ref=e236]: Product Manager · Now at Stripe
+          - generic [ref=e237]:
+            - img [ref=e239]
+            - generic [ref=e242]:
+              - img [ref=e243]
+              - img [ref=e245]
+              - img [ref=e247]
+              - img [ref=e249]
+              - img [ref=e251]
+            - paragraph [ref=e253]: "\"I was applying to 50+ jobs with no response. After using Get Me Job to tailor my resume, my response rate went from 2% to 40%. Game changer!\""
+            - generic [ref=e254]:
+              - generic [ref=e255]: J
+              - generic [ref=e256]:
+                - generic [ref=e257]: Jennifer L.
+                - generic [ref=e258]: Marketing Director · Now at HubSpot
+      - generic [ref=e265]:
+        - heading "Ready to land your dream job?" [level=2] [ref=e266]
+        - paragraph [ref=e267]: Join thousands of successful job seekers who have transformed their career journey with Get Me Job.
+        - generic [ref=e268]:
+          - generic [ref=e269]:
+            - img [ref=e270]
+            - text: Free to get started
+          - generic [ref=e272]:
+            - img [ref=e273]
+            - text: AI-powered resume optimization
+          - generic [ref=e275]:
+            - img [ref=e276]
+            - text: Unlimited job applications
+          - generic [ref=e278]:
+            - img [ref=e279]
+            - text: Mock interview practice
+        - link "Start Your Job Search" [ref=e281] [cursor=pointer]:
+          - /url: /dashboard
+          - text: Start Your Job Search
+          - img [ref=e282]
+        - paragraph [ref=e284]: No credit card required · Setup in 2 minutes
+    - contentinfo [ref=e285]:
+      - generic [ref=e286]:
+        - generic [ref=e287]:
+          - generic [ref=e288]:
+            - link "Get Me Job" [ref=e289] [cursor=pointer]:
+              - /url: /
+              - img [ref=e291]
+              - generic [ref=e296]: Get Me Job
+            - paragraph [ref=e297]: Your AI-powered job application assistant. Land your dream job with confidence.
+          - generic [ref=e298]:
+            - heading "Product" [level=3] [ref=e299]
+            - list [ref=e300]:
+              - listitem [ref=e301]:
+                - link "Features" [ref=e302] [cursor=pointer]:
+                  - /url: "#features"
+              - listitem [ref=e303]:
+                - link "How It Works" [ref=e304] [cursor=pointer]:
+                  - /url: "#how-it-works"
+              - listitem [ref=e305]:
+                - link "Testimonials" [ref=e306] [cursor=pointer]:
+                  - /url: "#testimonials"
+          - generic [ref=e307]:
+            - heading "Resources" [level=3] [ref=e308]
+            - list [ref=e309]:
+              - listitem [ref=e310]:
+                - link "Dashboard" [ref=e311] [cursor=pointer]:
+                  - /url: /dashboard
+              - listitem [ref=e312]:
+                - link "Interview Prep" [ref=e313] [cursor=pointer]:
+                  - /url: /interview
+              - listitem [ref=e314]:
+                - link "Analytics" [ref=e315] [cursor=pointer]:
+                  - /url: /analytics
+          - generic [ref=e316]:
+            - heading "Legal" [level=3] [ref=e317]
+            - list [ref=e318]:
+              - listitem [ref=e319]:
+                - link "Privacy Policy" [ref=e320] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e321]:
+                - link "Terms of Service" [ref=e322] [cursor=pointer]:
+                  - /url: "#"
+        - generic [ref=e323]:
+          - paragraph [ref=e324]: © 2026 Get Me Job. All rights reserved.
+          - paragraph [ref=e325]: Made with care for job seekers everywhere.
+  - alert [ref=e326]
+  - generic [ref=e329] [cursor=pointer]:
+    - img [ref=e330]
+    - generic [ref=e332]: 1 error
+    - button "Hide Errors" [ref=e333]:
+      - img [ref=e334]
+  - generic [ref=e337]:
+    - button "Keyless prompt" [expanded] [ref=e338] [cursor=pointer]:
+      - img [ref=e339]
+      - generic [ref=e343]: Configure your application
+      - img [ref=e344]
+    - generic [ref=e347]:
+      - generic [ref=e348]:
+        - paragraph [ref=e349]: Temporary API keys are enabled so you can get started immediately.
+        - list [ref=e350]:
+          - listitem [ref=e351]: Add SSO connections (eg. GitHub)
+          - listitem [ref=e352]: Set up B2B authentication
+          - listitem [ref=e353]: Enable MFA
+        - paragraph [ref=e354]: Access the dashboard to customize auth settings and explore Clerk features.
+      - link "Configure your application" [ref=e355] [cursor=pointer]:
+        - /url: https://dashboard.clerk.com/apps/claim?token=luarunumm97chglsl0r5izkis3wbfpc5m3nqrv7o&return_url=http%3A%2F%2Flocalhost%3A8888%2F
+```

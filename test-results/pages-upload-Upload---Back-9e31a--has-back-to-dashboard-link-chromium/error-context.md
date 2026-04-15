@@ -1,0 +1,159 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e3]:
+    - complementary "Main navigation" [ref=e4]:
+      - link "Get Me Job Job Assistant" [ref=e6] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e8]
+        - generic [ref=e13]:
+          - generic [ref=e14]: Get Me Job
+          - generic [ref=e15]: Job Assistant
+      - navigation [ref=e16]:
+        - generic [ref=e17]:
+          - generic [ref=e18]: Overview
+          - link "Dashboard" [ref=e20] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e21]
+            - generic [ref=e24]: Dashboard
+        - generic [ref=e25]:
+          - generic [ref=e26]: Resume & Profile
+          - generic [ref=e27]:
+            - link "My Profile" [ref=e28] [cursor=pointer]:
+              - /url: /profile
+              - img [ref=e29]
+              - generic [ref=e32]: My Profile
+            - link "Upload Resume" [ref=e33] [cursor=pointer]:
+              - /url: /upload
+              - img [ref=e34]
+              - generic [ref=e37]: Upload Resume
+            - link "Documents" [ref=e39] [cursor=pointer]:
+              - /url: /documents
+              - img [ref=e40]
+              - generic [ref=e43]: Documents
+        - generic [ref=e44]:
+          - generic [ref=e45]: Job Tracker
+          - generic [ref=e46]:
+            - link "Jobs" [ref=e47] [cursor=pointer]:
+              - /url: /jobs
+              - img [ref=e48]
+              - generic [ref=e51]: Jobs
+            - link "Calendar" [ref=e52] [cursor=pointer]:
+              - /url: /calendar
+              - img [ref=e53]
+              - generic [ref=e55]: Calendar
+            - link "Email Templates" [ref=e56] [cursor=pointer]:
+              - /url: /emails
+              - img [ref=e57]
+              - generic [ref=e60]: Email Templates
+        - generic [ref=e61]:
+          - generic [ref=e62]: Interview
+          - link "Interview Prep" [ref=e64] [cursor=pointer]:
+            - /url: /interview
+            - img [ref=e65]
+            - generic [ref=e67]: Interview Prep
+        - generic [ref=e68]:
+          - generic [ref=e69]: Negotiation
+          - link "Salary Tools" [ref=e71] [cursor=pointer]:
+            - /url: /salary
+            - img [ref=e72]
+            - generic [ref=e74]: Salary Tools
+        - generic [ref=e75]:
+          - generic [ref=e76]: Insights
+          - link "Analytics" [ref=e78] [cursor=pointer]:
+            - /url: /analytics
+            - img [ref=e79]
+            - generic [ref=e81]: Analytics
+      - generic [ref=e82]:
+        - button "Notifications" [ref=e84] [cursor=pointer]:
+          - img [ref=e86]
+          - generic [ref=e89]: Notifications
+        - link "Settings" [ref=e90] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e91]
+          - generic [ref=e94]: Settings
+        - button "System (light)" [ref=e95] [cursor=pointer]:
+          - img [ref=e96]
+          - generic [ref=e98]: System (light)
+        - button "Collapse" [ref=e99] [cursor=pointer]:
+          - img [ref=e100]
+          - generic [ref=e102]: Collapse
+      - link "Sign In" [ref=e104] [cursor=pointer]:
+        - /url: /sign-in
+        - img [ref=e105]
+        - generic [ref=e108]: Sign In
+    - main "Main content" [ref=e110]:
+      - generic [ref=e111]:
+        - generic [ref=e113]:
+          - link "Back to Dashboard" [ref=e114] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e115]
+            - text: Back to Dashboard
+          - generic [ref=e117]:
+            - generic [ref=e118]:
+              - img [ref=e119]
+              - text: AI-Powered Extraction
+            - heading "Upload Your Resume" [level=1] [ref=e121]
+            - paragraph [ref=e122]: Our AI will automatically extract your professional information, including experience, skills, and education, to build your profile.
+          - generic [ref=e123]:
+            - generic [ref=e124]:
+              - img [ref=e126]
+              - generic [ref=e128]: Instant extraction
+            - generic [ref=e129]:
+              - img [ref=e131]
+              - generic [ref=e133]: Private & secure
+            - generic [ref=e134]:
+              - img [ref=e136]
+              - generic [ref=e139]: Save hours of typing
+        - generic [ref=e141]:
+          - generic [ref=e143] [cursor=pointer]:
+            - button "Upload resume file" [ref=e144]
+            - generic [ref=e145]:
+              - img [ref=e147]
+              - heading "Drag & drop your resume" [level=3] [ref=e150]
+              - paragraph [ref=e151]: or click to browse from your computer
+              - generic [ref=e152]:
+                - generic [ref=e153]:
+                  - img [ref=e154]
+                  - text: PDF
+                - generic [ref=e157]:
+                  - img [ref=e158]
+                  - text: DOCX
+                - generic [ref=e161]:
+                  - img [ref=e162]
+                  - text: TXT
+              - paragraph [ref=e165]: "Maximum file size: 10 MB"
+          - generic [ref=e170]: Or import from
+          - generic [ref=e172]:
+            - img [ref=e174]
+            - generic [ref=e176]:
+              - heading "Google Drive" [level=3] [ref=e177]
+              - paragraph [ref=e178]: Import your resume directly from Google Drive
+            - button "Browse Drive" [ref=e179] [cursor=pointer]:
+              - img [ref=e180]
+              - text: Browse Drive
+  - alert [ref=e182]
+  - generic [ref=e183]:
+    - button "Keyless prompt" [expanded] [ref=e184] [cursor=pointer]:
+      - img [ref=e185]
+      - generic [ref=e189]: Configure your application
+      - img [ref=e190]
+    - generic [ref=e193]:
+      - generic [ref=e194]:
+        - paragraph [ref=e195]: Temporary API keys are enabled so you can get started immediately.
+        - list [ref=e196]:
+          - listitem [ref=e197]: Add SSO connections (eg. GitHub)
+          - listitem [ref=e198]: Set up B2B authentication
+          - listitem [ref=e199]: Enable MFA
+        - paragraph [ref=e200]: Access the dashboard to customize auth settings and explore Clerk features.
+      - link "Configure your application" [ref=e201] [cursor=pointer]:
+        - /url: https://dashboard.clerk.com/apps/claim?token=luarunumm97chglsl0r5izkis3wbfpc5m3nqrv7o&return_url=http%3A%2F%2Flocalhost%3A8888%2Fupload
+  - generic [ref=e204] [cursor=pointer]:
+    - img [ref=e205]
+    - generic [ref=e207]: 1 error
+    - button "Hide Errors" [ref=e208]:
+      - img [ref=e209]
+```

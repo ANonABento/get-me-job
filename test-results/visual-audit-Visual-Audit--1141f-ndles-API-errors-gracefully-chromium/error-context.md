@@ -1,0 +1,69 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e7]:
+        - heading "Sign in to My Application" [level=1] [ref=e8]
+        - paragraph [ref=e9]: Welcome back! Please sign in to continue
+      - generic [ref=e10]:
+        - button "Sign in with Google Continue with Google" [ref=e13] [cursor=pointer]:
+          - generic [ref=e14]:
+            - img "Sign in with Google" [ref=e16]
+            - generic [ref=e17]: Continue with Google
+        - paragraph [ref=e20]: or
+        - generic [ref=e22]:
+          - generic [ref=e23]:
+            - generic [ref=e26]:
+              - generic [ref=e28]: Email address
+              - textbox "Email address" [ref=e29]:
+                - /placeholder: Enter your email address
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic: Password
+                  - generic:
+                    - textbox "Password":
+                      - /placeholder: Enter your password
+                    - button "Show password":
+                      - img
+          - button "Continue" [ref=e32] [cursor=pointer]:
+            - generic [ref=e33]:
+              - text: Continue
+              - img [ref=e34]
+    - generic [ref=e36]:
+      - generic [ref=e37]:
+        - generic [ref=e38]: Don’t have an account?
+        - link "Sign up" [ref=e39] [cursor=pointer]:
+          - /url: https://discrete-bear-94.accounts.dev/sign-up?__clerk_db_jwt=dvb_3AYQzYEw4C3VmVziy7AXfJqIIrI#/?redirect_url=http%3A%2F%2Flocalhost%3A8888%2Fextension%2Fconnect
+      - generic [ref=e41]:
+        - generic [ref=e43]:
+          - paragraph [ref=e44]: Secured by
+          - link "Clerk logo" [ref=e45] [cursor=pointer]:
+            - /url: https://go.clerk.com/components
+            - img [ref=e46]
+        - paragraph [ref=e51]: Development mode
+  - alert [ref=e52]
+  - generic [ref=e55] [cursor=pointer]:
+    - img [ref=e56]
+    - generic [ref=e58]: 1 error
+    - button "Hide Errors" [ref=e59]:
+      - img [ref=e60]
+  - generic [ref=e63]:
+    - button "Keyless prompt" [expanded] [ref=e64] [cursor=pointer]:
+      - img [ref=e65]
+      - generic [ref=e69]: Configure your application
+      - img [ref=e70]
+    - generic [ref=e73]:
+      - generic [ref=e74]:
+        - paragraph [ref=e75]: Temporary API keys are enabled so you can get started immediately.
+        - list [ref=e76]:
+          - listitem [ref=e77]: Add SSO connections (eg. GitHub)
+          - listitem [ref=e78]: Set up B2B authentication
+          - listitem [ref=e79]: Enable MFA
+        - paragraph [ref=e80]: Access the dashboard to customize auth settings and explore Clerk features.
+      - link "Configure your application" [ref=e81] [cursor=pointer]:
+        - /url: https://dashboard.clerk.com/apps/claim?token=luarunumm97chglsl0r5izkis3wbfpc5m3nqrv7o&return_url=http%3A%2F%2Flocalhost%3A8888%2Fsign-in%3Fredirect_url%3D%252Fextension%252Fconnect
+```

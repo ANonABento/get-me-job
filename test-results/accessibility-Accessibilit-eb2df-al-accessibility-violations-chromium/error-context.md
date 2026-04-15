@@ -1,0 +1,266 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e3]:
+    - complementary "Main navigation" [ref=e4]:
+      - link "Get Me Job Job Assistant" [ref=e6] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e8]
+        - generic [ref=e13]:
+          - generic [ref=e14]: Get Me Job
+          - generic [ref=e15]: Job Assistant
+      - navigation [ref=e16]:
+        - generic [ref=e17]:
+          - generic [ref=e18]: Overview
+          - link "Dashboard" [ref=e20] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e21]
+            - generic [ref=e24]: Dashboard
+        - generic [ref=e25]:
+          - generic [ref=e26]: Resume & Profile
+          - generic [ref=e27]:
+            - link "My Profile" [ref=e28] [cursor=pointer]:
+              - /url: /profile
+              - img [ref=e29]
+              - generic [ref=e32]: My Profile
+            - link "Upload Resume" [ref=e33] [cursor=pointer]:
+              - /url: /upload
+              - img [ref=e34]
+              - generic [ref=e37]: Upload Resume
+            - link "Documents" [ref=e38] [cursor=pointer]:
+              - /url: /documents
+              - img [ref=e39]
+              - generic [ref=e42]: Documents
+        - generic [ref=e43]:
+          - generic [ref=e44]: Job Tracker
+          - generic [ref=e45]:
+            - link "Jobs" [ref=e46] [cursor=pointer]:
+              - /url: /jobs
+              - img [ref=e47]
+              - generic [ref=e50]: Jobs
+            - link "Calendar" [ref=e51] [cursor=pointer]:
+              - /url: /calendar
+              - img [ref=e52]
+              - generic [ref=e54]: Calendar
+            - link "Email Templates" [ref=e55] [cursor=pointer]:
+              - /url: /emails
+              - img [ref=e56]
+              - generic [ref=e59]: Email Templates
+        - generic [ref=e60]:
+          - generic [ref=e61]: Interview
+          - link "Interview Prep" [ref=e63] [cursor=pointer]:
+            - /url: /interview
+            - img [ref=e64]
+            - generic [ref=e66]: Interview Prep
+        - generic [ref=e67]:
+          - generic [ref=e68]: Negotiation
+          - link "Salary Tools" [ref=e70] [cursor=pointer]:
+            - /url: /salary
+            - img [ref=e71]
+            - generic [ref=e73]: Salary Tools
+        - generic [ref=e74]:
+          - generic [ref=e75]: Insights
+          - link "Analytics" [ref=e77] [cursor=pointer]:
+            - /url: /analytics
+            - img [ref=e78]
+            - generic [ref=e80]: Analytics
+      - generic [ref=e81]:
+        - button "Notifications" [ref=e83] [cursor=pointer]:
+          - img [ref=e85]
+          - generic [ref=e88]: Notifications
+        - link "Settings" [ref=e89] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e90]
+          - generic [ref=e93]: Settings
+        - button "System (light)" [ref=e94] [cursor=pointer]:
+          - img [ref=e95]
+          - generic [ref=e97]: System (light)
+        - button "Collapse" [ref=e98] [cursor=pointer]:
+          - img [ref=e99]
+          - generic [ref=e101]: Collapse
+      - link "Sign In" [ref=e103] [cursor=pointer]:
+        - /url: /sign-in
+        - img [ref=e104]
+        - generic [ref=e107]: Sign In
+    - main "Main content" [ref=e109]:
+      - generic [ref=e110]:
+        - generic [ref=e112]:
+          - link "Back to Dashboard" [ref=e113] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e114]
+            - text: Back to Dashboard
+          - generic [ref=e116]:
+            - generic [ref=e117]:
+              - img [ref=e118]
+              - text: Configuration
+            - heading "Settings" [level=1] [ref=e121]
+            - paragraph [ref=e122]: Configure your AI provider for resume parsing and interview preparation.
+        - generic [ref=e124]:
+          - generic [ref=e125]:
+            - generic [ref=e126]:
+              - img [ref=e128]
+              - generic [ref=e131]:
+                - heading "AI Provider" [level=2] [ref=e132]
+                - paragraph [ref=e133]: Choose how Get Me Job will process your documents
+            - generic [ref=e134]:
+              - button "Ollama Free, local AI processing" [ref=e135] [cursor=pointer]:
+                - img [ref=e137]
+                - generic [ref=e140]:
+                  - paragraph [ref=e141]: Ollama
+                  - paragraph [ref=e142]: Free, local AI processing
+                - img [ref=e143]
+              - button "OpenAI GPT-4 & GPT-3.5 models" [ref=e146] [cursor=pointer]:
+                - img [ref=e148]
+                - generic [ref=e150]:
+                  - paragraph [ref=e151]: OpenAI
+                  - paragraph [ref=e152]: GPT-4 & GPT-3.5 models
+              - button "Anthropic Claude models" [ref=e153] [cursor=pointer]:
+                - img [ref=e155]
+                - generic [ref=e157]:
+                  - paragraph [ref=e158]: Anthropic
+                  - paragraph [ref=e159]: Claude models
+              - button "OpenRouter Access multiple providers" [ref=e160] [cursor=pointer]:
+                - img [ref=e162]
+                - generic [ref=e164]:
+                  - paragraph [ref=e165]: OpenRouter
+                  - paragraph [ref=e166]: Access multiple providers
+          - generic [ref=e167]:
+            - generic [ref=e168]:
+              - img [ref=e170]
+              - generic [ref=e174]:
+                - heading "Ollama Configuration" [level=2] [ref=e175]
+                - paragraph [ref=e176]: Configure your local Ollama instance
+            - generic [ref=e177]:
+              - generic [ref=e178]:
+                - text: Ollama URL
+                - textbox "http://localhost:11434" [ref=e179]
+                - paragraph [ref=e180]: Default is http://localhost:11434. Change if Ollama is running elsewhere.
+              - generic [ref=e181]:
+                - text: Model
+                - generic [ref=e182]:
+                  - combobox [ref=e183] [cursor=pointer]:
+                    - generic: llama3.2
+                    - img [ref=e184]
+                  - button "Refresh available models" [ref=e186] [cursor=pointer]:
+                    - img [ref=e187]
+                - paragraph [ref=e192]: Click refresh to load available models from Ollama
+              - generic [ref=e193]:
+                - button "Test Connection" [ref=e194] [cursor=pointer]:
+                  - img [ref=e195]
+                  - text: Test Connection
+                - button "Save Settings" [disabled]:
+                  - img
+                  - text: Save Settings
+          - generic [ref=e197]:
+            - generic [ref=e198]:
+              - generic [ref=e199]:
+                - img [ref=e201]
+                - heading "Using Ollama (Free)" [level=3] [ref=e204]
+              - list [ref=e205]:
+                - listitem [ref=e206]:
+                  - text: Install from
+                  - link "ollama.ai" [ref=e207] [cursor=pointer]:
+                    - /url: https://ollama.ai
+                    - text: ollama.ai
+                    - img [ref=e208]
+                - listitem [ref=e212]:
+                  - text: Run
+                  - code [ref=e213]: ollama pull llama3.2
+                - listitem [ref=e214]: Test the connection above
+            - generic [ref=e215]:
+              - generic [ref=e216]:
+                - img [ref=e218]
+                - heading "Using API Keys" [level=3] [ref=e222]
+              - paragraph [ref=e223]: Connect your own API keys from OpenAI, Anthropic, or OpenRouter for cloud-based processing. Your keys are stored locally and never leave your device.
+          - generic [ref=e224]:
+            - generic [ref=e225]:
+              - img [ref=e227]
+              - generic [ref=e231]:
+                - heading "Data Management" [level=2] [ref=e232]
+                - paragraph [ref=e233]: Export your data or import from backups
+            - generic [ref=e234]:
+              - generic [ref=e235]:
+                - heading "Export Data" [level=3] [ref=e236]:
+                  - img [ref=e237]
+                  - text: Export Data
+                - generic [ref=e240]:
+                  - button "Export Profile (JSON)" [ref=e241] [cursor=pointer]:
+                    - img [ref=e242]
+                    - text: Export Profile (JSON)
+                  - button "Export Jobs (JSON)" [ref=e247] [cursor=pointer]:
+                    - img [ref=e248]
+                    - text: Export Jobs (JSON)
+                  - button "Export Jobs (CSV)" [ref=e253] [cursor=pointer]:
+                    - img [ref=e254]
+                    - text: Export Jobs (CSV)
+                  - button "Full Backup" [ref=e257] [cursor=pointer]:
+                    - img [ref=e258]
+                    - text: Full Backup
+              - generic [ref=e260]:
+                - heading "Import Data" [level=3] [ref=e261]:
+                  - img [ref=e262]
+                  - text: Import Data
+                - generic [ref=e265]:
+                  - generic [ref=e266]:
+                    - button "Choose File" [ref=e267] [cursor=pointer]
+                    - button "Import Jobs (JSON/CSV)":
+                      - img
+                      - text: Import Jobs (JSON/CSV)
+                  - generic [ref=e268]:
+                    - button "Choose File" [ref=e269] [cursor=pointer]
+                    - button "Restore Backup":
+                      - img
+                      - text: Restore Backup
+          - generic [ref=e270]:
+            - generic [ref=e271]:
+              - img [ref=e273]
+              - generic [ref=e275]:
+                - heading "Google Integration" [level=2] [ref=e276]
+                - paragraph [ref=e277]: Connect your Google account to sync calendars, store documents, and more
+            - generic [ref=e278]:
+              - button "Retry" [ref=e279] [cursor=pointer]:
+                - img [ref=e280]
+                - text: Retry
+              - generic [ref=e282]:
+                - heading "Connected features:" [level=3] [ref=e283]
+                - generic [ref=e284]:
+                  - generic [ref=e285]:
+                    - img [ref=e286]
+                    - generic [ref=e288]: Calendar Sync
+                  - generic [ref=e289]:
+                    - img [ref=e290]
+                    - generic [ref=e292]: Drive Backup
+                  - generic [ref=e293]:
+                    - img [ref=e294]
+                    - generic [ref=e297]: Gmail Import
+                - paragraph [ref=e298]: Connect your Google account to enable these features. Your data stays private and secure.
+          - generic [ref=e299]:
+            - img [ref=e300]
+            - generic [ref=e302]:
+              - paragraph [ref=e303]: Make sure Ollama is running
+              - paragraph [ref=e304]: Ollama must be running in the background for Get Me Job to work. If you get connection errors, start Ollama from your Applications folder.
+  - alert [ref=e305]
+  - generic [ref=e306]:
+    - button "Keyless prompt" [expanded] [ref=e307] [cursor=pointer]:
+      - img [ref=e308]
+      - generic [ref=e312]: Configure your application
+      - img [ref=e313]
+    - generic [ref=e316]:
+      - generic [ref=e317]:
+        - paragraph [ref=e318]: Temporary API keys are enabled so you can get started immediately.
+        - list [ref=e319]:
+          - listitem [ref=e320]: Add SSO connections (eg. GitHub)
+          - listitem [ref=e321]: Set up B2B authentication
+          - listitem [ref=e322]: Enable MFA
+        - paragraph [ref=e323]: Access the dashboard to customize auth settings and explore Clerk features.
+      - link "Configure your application" [ref=e324] [cursor=pointer]:
+        - /url: https://dashboard.clerk.com/apps/claim?token=luarunumm97chglsl0r5izkis3wbfpc5m3nqrv7o&return_url=http%3A%2F%2Flocalhost%3A8888%2Fsettings
+  - generic [ref=e327] [cursor=pointer]:
+    - img [ref=e328]
+    - generic [ref=e330]: 1 error
+    - button "Hide Errors" [ref=e331]:
+      - img [ref=e332]
+```

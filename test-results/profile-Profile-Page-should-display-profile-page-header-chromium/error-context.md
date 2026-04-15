@@ -1,0 +1,106 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e3]:
+    - complementary "Main navigation" [ref=e4]:
+      - link "Get Me Job Job Assistant" [ref=e6] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e8]
+        - generic [ref=e13]:
+          - generic [ref=e14]: Get Me Job
+          - generic [ref=e15]: Job Assistant
+      - navigation [ref=e16]:
+        - generic [ref=e17]:
+          - generic [ref=e18]: Overview
+          - link "Dashboard" [ref=e20] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e21]
+            - generic [ref=e24]: Dashboard
+        - generic [ref=e25]:
+          - generic [ref=e26]: Resume & Profile
+          - generic [ref=e27]:
+            - link "My Profile" [ref=e28] [cursor=pointer]:
+              - /url: /profile
+              - img [ref=e29]
+              - generic [ref=e32]: My Profile
+            - link "Upload Resume" [ref=e34] [cursor=pointer]:
+              - /url: /upload
+              - img [ref=e35]
+              - generic [ref=e38]: Upload Resume
+            - link "Documents" [ref=e39] [cursor=pointer]:
+              - /url: /documents
+              - img [ref=e40]
+              - generic [ref=e43]: Documents
+        - generic [ref=e44]:
+          - generic [ref=e45]: Job Tracker
+          - generic [ref=e46]:
+            - link "Jobs" [ref=e47] [cursor=pointer]:
+              - /url: /jobs
+              - img [ref=e48]
+              - generic [ref=e51]: Jobs
+            - link "Calendar" [ref=e52] [cursor=pointer]:
+              - /url: /calendar
+              - img [ref=e53]
+              - generic [ref=e55]: Calendar
+            - link "Email Templates" [ref=e56] [cursor=pointer]:
+              - /url: /emails
+              - img [ref=e57]
+              - generic [ref=e60]: Email Templates
+        - generic [ref=e61]:
+          - generic [ref=e62]: Interview
+          - link "Interview Prep" [ref=e64] [cursor=pointer]:
+            - /url: /interview
+            - img [ref=e65]
+            - generic [ref=e67]: Interview Prep
+        - generic [ref=e68]:
+          - generic [ref=e69]: Negotiation
+          - link "Salary Tools" [ref=e71] [cursor=pointer]:
+            - /url: /salary
+            - img [ref=e72]
+            - generic [ref=e74]: Salary Tools
+        - generic [ref=e75]:
+          - generic [ref=e76]: Insights
+          - link "Analytics" [ref=e78] [cursor=pointer]:
+            - /url: /analytics
+            - img [ref=e79]
+            - generic [ref=e81]: Analytics
+      - generic [ref=e82]:
+        - button "Notifications" [ref=e84] [cursor=pointer]:
+          - img [ref=e86]
+          - generic [ref=e89]: Notifications
+        - link "Settings" [ref=e90] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e91]
+          - generic [ref=e94]: Settings
+        - button "System (light)" [ref=e95] [cursor=pointer]:
+          - img [ref=e96]
+          - generic [ref=e98]: System (light)
+        - button "Collapse" [ref=e99] [cursor=pointer]:
+          - img [ref=e100]
+          - generic [ref=e102]: Collapse
+    - main "Main content" [ref=e105]:
+      - generic [ref=e106]:
+        - generic [ref=e108]:
+          - link "Back to Dashboard" [ref=e109] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e110]
+            - text: Back to Dashboard
+          - heading "My Profile" [level=1] [ref=e112]
+        - generic [ref=e114]:
+          - img [ref=e116]
+          - heading "No Profile Yet" [level=2] [ref=e119]
+          - paragraph [ref=e120]: Upload your resume to automatically extract your professional information, or start building your profile from scratch.
+          - link "Upload Resume" [ref=e122] [cursor=pointer]:
+            - /url: /upload
+            - img [ref=e123]
+            - text: Upload Resume
+  - alert [ref=e126]
+  - generic [ref=e129] [cursor=pointer]:
+    - img [ref=e130]
+    - generic [ref=e132]: 1 error
+    - button "Hide Errors" [ref=e133]:
+      - img [ref=e134]
+```

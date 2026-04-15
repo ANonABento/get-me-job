@@ -1,0 +1,217 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e3]:
+    - button "Open menu" [ref=e4] [cursor=pointer]:
+      - img [ref=e5]
+    - complementary "Main navigation" [ref=e6]:
+      - generic [ref=e7]:
+        - link "Get Me Job Job Assistant" [ref=e8] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e10]
+          - generic [ref=e15]:
+            - generic [ref=e16]: Get Me Job
+            - generic [ref=e17]: Job Assistant
+        - button "Close menu" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+      - navigation [ref=e22]:
+        - generic [ref=e23]:
+          - generic [ref=e24]: Overview
+          - link "Dashboard" [ref=e26] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e27]
+            - generic [ref=e30]: Dashboard
+        - generic [ref=e32]:
+          - generic [ref=e33]: Resume & Profile
+          - generic [ref=e34]:
+            - link "My Profile" [ref=e35] [cursor=pointer]:
+              - /url: /profile
+              - img [ref=e36]
+              - generic [ref=e39]: My Profile
+            - link "Upload Resume" [ref=e40] [cursor=pointer]:
+              - /url: /upload
+              - img [ref=e41]
+              - generic [ref=e44]: Upload Resume
+            - link "Documents" [ref=e45] [cursor=pointer]:
+              - /url: /documents
+              - img [ref=e46]
+              - generic [ref=e49]: Documents
+        - generic [ref=e50]:
+          - generic [ref=e51]: Job Tracker
+          - generic [ref=e52]:
+            - link "Jobs" [ref=e53] [cursor=pointer]:
+              - /url: /jobs
+              - img [ref=e54]
+              - generic [ref=e57]: Jobs
+            - link "Calendar" [ref=e58] [cursor=pointer]:
+              - /url: /calendar
+              - img [ref=e59]
+              - generic [ref=e61]: Calendar
+            - link "Email Templates" [ref=e62] [cursor=pointer]:
+              - /url: /emails
+              - img [ref=e63]
+              - generic [ref=e66]: Email Templates
+        - generic [ref=e67]:
+          - generic [ref=e68]: Interview
+          - link "Interview Prep" [ref=e70] [cursor=pointer]:
+            - /url: /interview
+            - img [ref=e71]
+            - generic [ref=e73]: Interview Prep
+        - generic [ref=e74]:
+          - generic [ref=e75]: Negotiation
+          - link "Salary Tools" [ref=e77] [cursor=pointer]:
+            - /url: /salary
+            - img [ref=e78]
+            - generic [ref=e80]: Salary Tools
+        - generic [ref=e81]:
+          - generic [ref=e82]: Insights
+          - link "Analytics" [ref=e84] [cursor=pointer]:
+            - /url: /analytics
+            - img [ref=e85]
+            - generic [ref=e87]: Analytics
+      - generic [ref=e88]:
+        - button "Notifications" [ref=e90] [cursor=pointer]:
+          - img [ref=e92]
+          - generic [ref=e95]: Notifications
+        - link "Settings" [ref=e96] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e97]
+          - generic [ref=e100]: Settings
+        - button "System (light)" [ref=e101] [cursor=pointer]:
+          - img [ref=e102]
+          - generic [ref=e104]: System (light)
+      - link "Sign In" [ref=e106] [cursor=pointer]:
+        - /url: /sign-in
+        - img [ref=e107]
+        - generic [ref=e110]: Sign In
+    - main "Main content" [ref=e111]:
+      - generic [ref=e113]:
+        - generic [ref=e116]:
+          - generic [ref=e117]:
+            - generic [ref=e118]:
+              - img [ref=e119]
+              - text: AI-Powered Job Assistant
+            - heading "Land your dream job with confidence" [level=1] [ref=e121]:
+              - text: Land your dream job
+              - text: with confidence
+            - paragraph [ref=e122]: Upload your resume, match with jobs, generate tailored applications, and ace your interviews with AI-powered coaching.
+            - generic [ref=e123]:
+              - link "Upload Resume" [ref=e124] [cursor=pointer]:
+                - /url: /upload
+                - img [ref=e125]
+                - text: Upload Resume
+              - link "Add Job" [ref=e128] [cursor=pointer]:
+                - /url: /jobs
+                - img [ref=e129]
+                - text: Add Job
+          - generic [ref=e132]:
+            - generic [ref=e133]:
+              - generic [ref=e134]:
+                - generic [ref=e135]: Profile Completeness
+                - generic [ref=e136]: 0%
+              - progressbar [ref=e138]
+            - generic [ref=e139]:
+              - generic [ref=e140]:
+                - img [ref=e141]
+                - generic [ref=e144]: Jobs Tracked
+              - paragraph [ref=e145]: "0"
+            - generic [ref=e146]:
+              - generic [ref=e147]:
+                - img [ref=e148]
+                - generic [ref=e150]: Applied
+              - paragraph [ref=e151]: "0"
+            - generic [ref=e152]:
+              - generic [ref=e153]:
+                - img [ref=e154]
+                - generic [ref=e156]: Interviews
+              - paragraph [ref=e157]: "0"
+            - generic [ref=e158]:
+              - generic [ref=e159]:
+                - img [ref=e160]
+                - generic [ref=e163]: Progress
+              - paragraph [ref=e164]: 0/4
+        - generic [ref=e165]:
+          - generic [ref=e166]:
+            - heading "Quick Actions" [level=2] [ref=e167]
+            - generic [ref=e168]: Get started in minutes
+          - generic [ref=e169]:
+            - link "Upload Resume Extract your professional info automatically" [ref=e170] [cursor=pointer]:
+              - /url: /upload
+              - img [ref=e172]
+              - heading "Upload Resume" [level=3] [ref=e175]
+              - paragraph [ref=e176]: Extract your professional info automatically
+              - img [ref=e177]
+            - link "Edit Profile Review and refine your career details" [ref=e180] [cursor=pointer]:
+              - /url: /profile
+              - img [ref=e182]
+              - heading "Edit Profile" [level=3] [ref=e185]
+              - paragraph [ref=e186]: Review and refine your career details
+              - img [ref=e187]
+            - link "Track Jobs Get tailored resumes for each application" [ref=e190] [cursor=pointer]:
+              - /url: /jobs
+              - img [ref=e192]
+              - heading "Track Jobs" [level=3] [ref=e195]
+              - paragraph [ref=e196]: Get tailored resumes for each application
+              - img [ref=e197]
+            - link "Interview Prep Practice with AI mock interviews" [ref=e200] [cursor=pointer]:
+              - /url: /interview
+              - img [ref=e202]
+              - heading "Interview Prep" [level=3] [ref=e204]
+              - paragraph [ref=e205]: Practice with AI mock interviews
+              - img [ref=e206]
+        - generic [ref=e210]:
+          - generic [ref=e211]:
+            - img [ref=e213]
+            - generic [ref=e218]:
+              - heading "Your Journey to Success" [level=2] [ref=e219]
+              - paragraph [ref=e220]: Complete these steps to maximize your job search
+          - generic [ref=e221]:
+            - link "1 Upload your resume We'll extract and organize your professional information automatically using AI." [ref=e222] [cursor=pointer]:
+              - /url: /upload
+              - generic [ref=e223]: "1"
+              - generic [ref=e224]:
+                - heading "Upload your resume" [level=3] [ref=e225]
+                - paragraph [ref=e226]: We'll extract and organize your professional information automatically using AI.
+            - link "2 Review your profile Verify the extracted data and add any missing details to strengthen your profile." [ref=e227] [cursor=pointer]:
+              - /url: /profile
+              - generic [ref=e228]: "2"
+              - generic [ref=e229]:
+                - heading "Review your profile" [level=3] [ref=e230]
+                - paragraph [ref=e231]: Verify the extracted data and add any missing details to strengthen your profile.
+            - link "3 Add target jobs Paste job descriptions to generate tailored resumes and see your match score." [ref=e232] [cursor=pointer]:
+              - /url: /jobs
+              - generic [ref=e233]: "3"
+              - generic [ref=e234]:
+                - heading "Add target jobs" [level=3] [ref=e235]
+                - paragraph [ref=e236]: Paste job descriptions to generate tailored resumes and see your match score.
+            - link "4 Ace the interview Practice with AI-powered mock interviews customized to your target roles." [ref=e237] [cursor=pointer]:
+              - /url: /interview
+              - generic [ref=e238]: "4"
+              - generic [ref=e239]:
+                - heading "Ace the interview" [level=3] [ref=e240]
+                - paragraph [ref=e241]: Practice with AI-powered mock interviews customized to your target roles.
+  - alert [ref=e242]
+  - generic [ref=e243]:
+    - button "Keyless prompt" [expanded] [ref=e244] [cursor=pointer]:
+      - img [ref=e245]
+      - generic [ref=e249]: Configure your application
+      - img [ref=e250]
+    - generic [ref=e253]:
+      - generic [ref=e254]:
+        - paragraph [ref=e255]: Temporary API keys are enabled so you can get started immediately.
+        - list [ref=e256]:
+          - listitem [ref=e257]: Add SSO connections (eg. GitHub)
+          - listitem [ref=e258]: Set up B2B authentication
+          - listitem [ref=e259]: Enable MFA
+        - paragraph [ref=e260]: Access the dashboard to customize auth settings and explore Clerk features.
+      - link "Configure your application" [ref=e261] [cursor=pointer]:
+        - /url: https://dashboard.clerk.com/apps/claim?token=luarunumm97chglsl0r5izkis3wbfpc5m3nqrv7o&return_url=http%3A%2F%2Flocalhost%3A8888%2Fdashboard
+  - generic [ref=e264] [cursor=pointer]:
+    - img [ref=e265]
+    - generic [ref=e267]: 1 error
+    - button "Hide Errors" [ref=e268]:
+      - img [ref=e269]
+```

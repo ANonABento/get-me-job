@@ -1,0 +1,206 @@
+# Page snapshot
+
+```yaml
+- generic:
+  - link:
+    - /url: "#main-content"
+    - text: Skip to main content
+  - generic:
+    - complementary:
+      - generic:
+        - link:
+          - /url: /dashboard
+          - generic:
+            - img
+          - generic:
+            - generic: Get Me Job
+            - generic: Job Assistant
+      - navigation:
+        - generic:
+          - generic: Overview
+          - generic:
+            - link:
+              - /url: /dashboard
+              - img
+              - generic: Dashboard
+        - generic:
+          - generic: Resume & Profile
+          - generic:
+            - link:
+              - /url: /profile
+              - img
+              - generic: My Profile
+            - link:
+              - /url: /upload
+              - img
+              - generic: Upload Resume
+            - link:
+              - /url: /documents
+              - img
+              - generic: Documents
+        - generic:
+          - generic: Job Tracker
+          - generic:
+            - link:
+              - /url: /jobs
+              - img
+              - generic: Jobs
+            - link:
+              - /url: /calendar
+              - img
+              - generic: Calendar
+            - link:
+              - /url: /emails
+              - img
+              - generic: Email Templates
+        - generic:
+          - generic: Interview
+          - generic:
+            - link:
+              - /url: /interview
+              - img
+              - generic: Interview Prep
+        - generic:
+          - generic: Negotiation
+          - generic:
+            - link:
+              - /url: /salary
+              - img
+              - generic: Salary Tools
+        - generic:
+          - generic: Insights
+          - generic:
+            - link:
+              - /url: /analytics
+              - img
+              - generic: Analytics
+      - generic:
+        - generic:
+          - button:
+            - generic:
+              - img
+            - generic: Notifications
+        - link:
+          - /url: /settings
+          - img
+          - generic: Settings
+        - button:
+          - img
+          - generic: System (light)
+        - button:
+          - img
+          - generic: Collapse
+      - generic:
+        - link:
+          - /url: /sign-in
+          - img
+          - generic: Sign In
+    - main:
+      - generic:
+        - generic:
+          - generic:
+            - link:
+              - /url: /dashboard
+              - img
+              - text: Back to Dashboard
+            - generic:
+              - generic:
+                - generic:
+                  - img
+                  - text: Job Tracker
+                - heading [level=1]: Job Applications
+                - paragraph: Track your target jobs, analyze match scores, and generate tailored resumes.
+              - generic:
+                - generic:
+                  - paragraph: "0"
+                  - paragraph: Jobs Tracked
+                - generic:
+                  - button:
+                    - img
+                    - text: Import
+                  - button:
+                    - img
+                    - text: Gmail
+                  - button:
+                    - img
+                    - text: Add Job
+        - generic:
+          - generic:
+            - generic:
+              - img
+            - heading [level=2]: No jobs tracked yet
+            - paragraph: Add a job description to analyze your match score and generate a tailored resume.
+            - button:
+              - img
+              - text: Add Your First Job
+            - generic:
+              - generic:
+                - generic:
+                  - img
+                - heading [level=3]: Paste Job Descriptions
+                - paragraph: Copy the full job posting to get accurate analysis.
+              - generic:
+                - generic:
+                  - img
+                - heading [level=3]: Get Match Scores
+                - paragraph: See how well your profile matches each job.
+              - generic:
+                - generic:
+                  - img
+                - heading [level=3]: Generate Tailored Resumes
+                - paragraph: Create customized resumes for each application.
+  - alert
+  - generic:
+    - button [expanded]:
+      - img
+      - generic: Configure your application
+      - img
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - paragraph: Temporary API keys are enabled so you can get started immediately.
+            - list:
+              - listitem: Add SSO connections (eg. GitHub)
+              - listitem: Set up B2B authentication
+              - listitem: Enable MFA
+            - paragraph: Access the dashboard to customize auth settings and explore Clerk features.
+          - link:
+            - /url: https://dashboard.clerk.com/apps/claim?token=luarunumm97chglsl0r5izkis3wbfpc5m3nqrv7o&return_url=http%3A%2F%2Flocalhost%3A8888%2Fjobs
+            - text: Configure your application
+  - dialog "Welcome to Get Me Job" [ref=e2]:
+    - button "Skip onboarding" [active] [ref=e3] [cursor=pointer]:
+      - img [ref=e4]
+    - generic [ref=e13]:
+      - img [ref=e15]
+      - generic [ref=e20]:
+        - heading "Welcome to Get Me Job" [level=2] [ref=e21]
+        - paragraph [ref=e22]: Your AI-powered job application command center. Let's get you set up for success.
+    - button "Let's Begin" [ref=e24] [cursor=pointer]:
+      - text: Let's Begin
+      - img [ref=e25]
+    - generic [ref=e27]:
+      - paragraph [ref=e28]: "What Get Me Job helps you with:"
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - img [ref=e31]
+          - text: AI resume parsing
+        - generic [ref=e34]:
+          - img [ref=e35]
+          - text: Job match scoring
+        - generic [ref=e38]:
+          - img [ref=e39]
+          - text: Tailored resumes
+        - generic [ref=e42]:
+          - img [ref=e43]
+          - text: Mock interviews
+        - generic [ref=e46]:
+          - img [ref=e47]
+          - text: Cover letters
+        - generic [ref=e50]:
+          - img [ref=e51]
+          - text: Progress tracking
+    - button "Close" [ref=e54] [cursor=pointer]:
+      - img [ref=e55]
+      - generic [ref=e58]: Close
+```

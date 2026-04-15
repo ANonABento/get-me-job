@@ -1,0 +1,140 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e3]:
+    - complementary "Main navigation" [ref=e4]:
+      - link "Get Me Job Job Assistant" [ref=e6] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e8]
+        - generic [ref=e13]:
+          - generic [ref=e14]: Get Me Job
+          - generic [ref=e15]: Job Assistant
+      - navigation [ref=e16]:
+        - generic [ref=e17]:
+          - generic [ref=e18]: Overview
+          - link "Dashboard" [ref=e20] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e21]
+            - generic [ref=e24]: Dashboard
+        - generic [ref=e25]:
+          - generic [ref=e26]: Resume & Profile
+          - generic [ref=e27]:
+            - link "My Profile" [ref=e28] [cursor=pointer]:
+              - /url: /profile
+              - img [ref=e29]
+              - generic [ref=e32]: My Profile
+            - link "Upload Resume" [ref=e33] [cursor=pointer]:
+              - /url: /upload
+              - img [ref=e34]
+              - generic [ref=e37]: Upload Resume
+            - link "Documents" [ref=e39] [cursor=pointer]:
+              - /url: /documents
+              - img [ref=e40]
+              - generic [ref=e43]: Documents
+        - generic [ref=e44]:
+          - generic [ref=e45]: Job Tracker
+          - generic [ref=e46]:
+            - link "Jobs" [ref=e47] [cursor=pointer]:
+              - /url: /jobs
+              - img [ref=e48]
+              - generic [ref=e51]: Jobs
+            - link "Calendar" [ref=e52] [cursor=pointer]:
+              - /url: /calendar
+              - img [ref=e53]
+              - generic [ref=e55]: Calendar
+            - link "Email Templates" [ref=e56] [cursor=pointer]:
+              - /url: /emails
+              - img [ref=e57]
+              - generic [ref=e60]: Email Templates
+        - generic [ref=e61]:
+          - generic [ref=e62]: Interview
+          - link "Interview Prep" [ref=e64] [cursor=pointer]:
+            - /url: /interview
+            - img [ref=e65]
+            - generic [ref=e67]: Interview Prep
+        - generic [ref=e68]:
+          - generic [ref=e69]: Negotiation
+          - link "Salary Tools" [ref=e71] [cursor=pointer]:
+            - /url: /salary
+            - img [ref=e72]
+            - generic [ref=e74]: Salary Tools
+        - generic [ref=e75]:
+          - generic [ref=e76]: Insights
+          - link "Analytics" [ref=e78] [cursor=pointer]:
+            - /url: /analytics
+            - img [ref=e79]
+            - generic [ref=e81]: Analytics
+      - generic [ref=e82]:
+        - button "Notifications" [ref=e84] [cursor=pointer]:
+          - img [ref=e86]
+          - generic [ref=e89]: Notifications
+        - link "Settings" [ref=e90] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e91]
+          - generic [ref=e94]: Settings
+        - button "System (light)" [ref=e95] [cursor=pointer]:
+          - img [ref=e96]
+          - generic [ref=e98]: System (light)
+        - button "Collapse" [ref=e99] [cursor=pointer]:
+          - img [ref=e100]
+          - generic [ref=e102]: Collapse
+    - main "Main content" [ref=e105]:
+      - generic [ref=e106]:
+        - generic [ref=e108]:
+          - link "Back to Dashboard" [ref=e109] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e110]
+            - text: Back to Dashboard
+          - generic [ref=e112]:
+            - generic [ref=e113]:
+              - img [ref=e114]
+              - text: AI-Powered Extraction
+            - heading "Upload Your Resume" [level=1] [ref=e116]
+            - paragraph [ref=e117]: Our AI will automatically extract your professional information, including experience, skills, and education, to build your profile.
+          - generic [ref=e118]:
+            - generic [ref=e119]:
+              - img [ref=e121]
+              - generic [ref=e123]: Instant extraction
+            - generic [ref=e124]:
+              - img [ref=e126]
+              - generic [ref=e128]: Private & secure
+            - generic [ref=e129]:
+              - img [ref=e131]
+              - generic [ref=e134]: Save hours of typing
+        - generic [ref=e136]:
+          - generic [ref=e138] [cursor=pointer]:
+            - button "Upload resume file" [ref=e139]
+            - generic [ref=e140]:
+              - img [ref=e142]
+              - heading "Drag & drop your resume" [level=3] [ref=e145]
+              - paragraph [ref=e146]: or click to browse from your computer
+              - generic [ref=e147]:
+                - generic [ref=e148]:
+                  - img [ref=e149]
+                  - text: PDF
+                - generic [ref=e152]:
+                  - img [ref=e153]
+                  - text: DOCX
+                - generic [ref=e156]:
+                  - img [ref=e157]
+                  - text: TXT
+              - paragraph [ref=e160]: "Maximum file size: 10 MB"
+          - generic [ref=e165]: Or import from
+          - generic [ref=e167]:
+            - img [ref=e169]
+            - generic [ref=e171]:
+              - heading "Google Drive" [level=3] [ref=e172]
+              - paragraph [ref=e173]: Import your resume directly from Google Drive
+            - button "Browse Drive" [ref=e174] [cursor=pointer]:
+              - img [ref=e175]
+              - text: Browse Drive
+  - alert [ref=e177]
+  - generic [ref=e180] [cursor=pointer]:
+    - img [ref=e181]
+    - generic [ref=e183]: 1 error
+    - button "Hide Errors" [ref=e184]:
+      - img [ref=e185]
+```

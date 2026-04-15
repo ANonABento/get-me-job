@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { getGeneratedResume } from "@/lib/db";
+import { generateResumeHTML } from "@/lib/resume/pdf";
+import { generatePDF } from "@/lib/resume/pdf-export";
 import { generateResumeLatex, LATEX_TEMPLATES, type LatexOptions } from "@/lib/resume/latex-generator";
 import type { TailoredResume } from "@/lib/resume/generator";
 import { exec } from "child_process";
@@ -10,9 +13,9 @@ import { join } from "path";
 import { promisify } from "util";
 
 const execAsync = promisify(exec);
-
 const LATEX_CLEANUP_EXTENSIONS = ["resume.tex", "resume.pdf", "resume.aux", "resume.log", "resume.out"];
 
+// GET — list available templates
 export async function GET() {
   return NextResponse.json({
     templates: LATEX_TEMPLATES.map((t) => ({
@@ -23,117 +26,112 @@ export async function GET() {
     })),
   });
 }
-import { z } from "zod";
-import { requireAuth, isAuthError } from "@/lib/auth";
-import { getGeneratedResume } from "@/lib/db/resumes";
-import { generateResumeHTML } from "@/lib/resume/pdf";
-import { generatePDF } from "@/lib/resume/pdf-export";
 
-const exportByIdSchema = z.object({
-  resumeId: z.string().min(1),
+const exportSchema = z.object({
+  resumeId: z.string().min(1).optional(),
+  html: z.string().min(1).optional(),
   templateId: z.string().min(1).default("classic"),
+  format: z.enum(["pdf", "latex", "html"]).default("pdf"),
+  latexOptions: z.record(z.string(), z.unknown()).optional(),
+  compilePdf: z.boolean().default(false),
 });
 
-const exportByHtmlSchema = z.object({
-  html: z.string().min(1),
-});
-
-const requestSchema = z.union([exportByIdSchema, exportByHtmlSchema]);
-
+// POST — export resume in requested format
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
 
   try {
     const body = await request.json();
-    const { resumeId, templateId = "modern", options = {} as LatexOptions, compilePdf = false } = body;
-
-    if (!resumeId) {
-      return NextResponse.json(
-        { error: "resumeId is required" },
-    const parsed = requestSchema.safeParse(body);
+    const parsed = exportSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Provide either { resumeId, templateId } or { html }" },
+        { error: "Provide { resumeId, format } or { html, format }" },
         { status: 400 }
       );
     }
 
-    const savedResume = getGeneratedResume(resumeId, authResult.userId);
-    if (!savedResume) {
-      return NextResponse.json(
-        { error: "Resume not found" },
-        { status: 404 }
-      );
-    }
+    const { resumeId, html: rawHtml, templateId, format, latexOptions, compilePdf } = parsed.data;
 
-    const resume: TailoredResume = JSON.parse(savedResume.contentJson);
-    const latex = generateResumeLatex(resume, templateId, options);
-
-    if (compilePdf) {
-      try {
-        const tmpDir = await mkdtemp(join(tmpdir(), "resume-"));
-        const texPath = join(tmpDir, "resume.tex");
-        const pdfPath = join(tmpDir, "resume.pdf");
-
-        await writeFile(texPath, latex);
-        await execAsync(`pdflatex -interaction=nonstopmode -output-directory="${tmpDir}" "${texPath}"`, {
-          timeout: 30000,
-        });
-
-        const pdfBuffer = await readFile(pdfPath);
-
-        await Promise.allSettled(
-          LATEX_CLEANUP_EXTENSIONS.map((f) => unlink(join(tmpDir, f)))
-        );
-
-        return new NextResponse(pdfBuffer, {
-          headers: {
-            "Content-Type": "application/pdf",
-            "Content-Disposition": `attachment; filename="resume.pdf"`,
-          },
-        });
-      } catch {
-        // pdflatex not available or compilation failed, fall back to .tex
-        return new NextResponse(latex, {
-          headers: {
-            "Content-Type": "application/x-tex",
-            "Content-Disposition": `attachment; filename="resume.tex"`,
-            "X-Fallback": "pdflatex-unavailable",
-          },
-        });
+    // Get resume content
+    let resume: TailoredResume | null = null;
+    if (resumeId) {
+      const saved = getGeneratedResume(resumeId, authResult.userId);
+      if (!saved) {
+        return NextResponse.json({ error: "Resume not found" }, { status: 404 });
       }
+      resume = JSON.parse(saved.contentJson);
     }
 
-    return new NextResponse(latex, {
-      headers: {
-        "Content-Type": "application/x-tex",
-        "Content-Disposition": `attachment; filename="resume.tex"`,
-      },
-    });
-  } catch (error) {
-    console.error("LaTeX export error:", error);
-    return NextResponse.json(
-      { error: "Failed to export resume" },
-    let html: string;
-
-    if ("html" in parsed.data) {
-      html = parsed.data.html;
-    } else {
-      const resume = getGeneratedResume(parsed.data.resumeId, authResult.userId);
+    // Route by format
+    if (format === "latex") {
       if (!resume) {
-        return NextResponse.json(
-          { error: "Resume not found" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "resumeId required for LaTeX export" }, { status: 400 });
       }
-      const resumeContent = JSON.parse(resume.contentJson);
-      html = generateResumeHTML(resumeContent, parsed.data.templateId);
+      const latex = generateResumeLatex(resume, templateId, (latexOptions || {}) as LatexOptions);
+
+      if (compilePdf) {
+        try {
+          const tmpDir = await mkdtemp(join(tmpdir(), "resume-"));
+          const texPath = join(tmpDir, "resume.tex");
+          const pdfPath = join(tmpDir, "resume.pdf");
+
+          await writeFile(texPath, latex);
+          await execAsync(`pdflatex -interaction=nonstopmode -output-directory="${tmpDir}" "${texPath}"`, {
+            timeout: 30000,
+          });
+
+          const pdfBuffer = await readFile(pdfPath);
+          await Promise.allSettled(LATEX_CLEANUP_EXTENSIONS.map((f) => unlink(join(tmpDir, f))));
+
+          return new NextResponse(pdfBuffer, {
+            headers: {
+              "Content-Type": "application/pdf",
+              "Content-Disposition": `attachment; filename="resume.pdf"`,
+            },
+          });
+        } catch {
+          // pdflatex unavailable, fall back to .tex
+          return new NextResponse(latex, {
+            headers: {
+              "Content-Type": "application/x-tex",
+              "Content-Disposition": `attachment; filename="resume.tex"`,
+              "X-Fallback": "pdflatex-unavailable",
+            },
+          });
+        }
+      }
+
+      return new NextResponse(latex, {
+        headers: {
+          "Content-Type": "application/x-tex",
+          "Content-Disposition": `attachment; filename="resume.tex"`,
+        },
+      });
+    }
+
+    if (format === "html") {
+      if (!resume) {
+        return NextResponse.json({ error: "resumeId required for HTML export" }, { status: 400 });
+      }
+      const html = generateResumeHTML(resume, templateId);
+      return new NextResponse(html, {
+        headers: { "Content-Type": "text/html", "Content-Disposition": `attachment; filename="resume.html"` },
+      });
+    }
+
+    // Default: PDF
+    let html: string;
+    if (rawHtml) {
+      html = rawHtml;
+    } else if (resume) {
+      html = generateResumeHTML(resume, templateId);
+    } else {
+      return NextResponse.json({ error: "Provide resumeId or html" }, { status: 400 });
     }
 
     const pdfBuffer = await generatePDF(html);
-
     return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,
       headers: {
@@ -143,10 +141,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("PDF export error:", error);
-    return NextResponse.json(
-      { error: "Failed to generate PDF" },
-      { status: 500 }
-    );
+    console.error("Export error:", error);
+    return NextResponse.json({ error: "Failed to export resume" }, { status: 500 });
   }
 }

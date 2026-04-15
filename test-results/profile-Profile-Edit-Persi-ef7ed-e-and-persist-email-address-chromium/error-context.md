@@ -1,0 +1,177 @@
+# Page snapshot
+
+```yaml
+- generic:
+  - link:
+    - /url: "#main-content"
+    - text: Skip to main content
+  - generic:
+    - complementary:
+      - generic:
+        - link:
+          - /url: /dashboard
+          - generic:
+            - img
+          - generic:
+            - generic: Get Me Job
+            - generic: Job Assistant
+      - navigation:
+        - generic:
+          - generic: Overview
+          - generic:
+            - link:
+              - /url: /dashboard
+              - img
+              - generic: Dashboard
+        - generic:
+          - generic: Resume & Profile
+          - generic:
+            - link:
+              - /url: /profile
+              - img
+              - generic: My Profile
+            - link:
+              - /url: /upload
+              - img
+              - generic: Upload Resume
+            - link:
+              - /url: /documents
+              - img
+              - generic: Documents
+        - generic:
+          - generic: Job Tracker
+          - generic:
+            - link:
+              - /url: /jobs
+              - img
+              - generic: Jobs
+            - link:
+              - /url: /calendar
+              - img
+              - generic: Calendar
+            - link:
+              - /url: /emails
+              - img
+              - generic: Email Templates
+        - generic:
+          - generic: Interview
+          - generic:
+            - link:
+              - /url: /interview
+              - img
+              - generic: Interview Prep
+        - generic:
+          - generic: Negotiation
+          - generic:
+            - link:
+              - /url: /salary
+              - img
+              - generic: Salary Tools
+        - generic:
+          - generic: Insights
+          - generic:
+            - link:
+              - /url: /analytics
+              - img
+              - generic: Analytics
+      - generic:
+        - generic:
+          - button:
+            - generic:
+              - img
+            - generic: Notifications
+        - link:
+          - /url: /settings
+          - img
+          - generic: Settings
+        - button:
+          - img
+          - generic: System (light)
+        - button:
+          - img
+          - generic: Collapse
+      - generic:
+        - link:
+          - /url: /sign-in
+          - img
+          - generic: Sign In
+    - main:
+      - generic:
+        - generic:
+          - generic:
+            - link:
+              - /url: /dashboard
+              - img
+              - text: Back to Dashboard
+            - heading [level=1]: My Profile
+        - generic:
+          - generic:
+            - generic:
+              - img
+            - heading [level=2]: No Profile Yet
+            - paragraph: Upload your resume to automatically extract your professional information, or start building your profile from scratch.
+            - generic:
+              - link:
+                - /url: /upload
+                - img
+                - text: Upload Resume
+  - alert
+  - generic:
+    - button [expanded]:
+      - img
+      - generic: Configure your application
+      - img
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - paragraph: Temporary API keys are enabled so you can get started immediately.
+            - list:
+              - listitem: Add SSO connections (eg. GitHub)
+              - listitem: Set up B2B authentication
+              - listitem: Enable MFA
+            - paragraph: Access the dashboard to customize auth settings and explore Clerk features.
+          - link:
+            - /url: https://dashboard.clerk.com/apps/claim?token=luarunumm97chglsl0r5izkis3wbfpc5m3nqrv7o&return_url=http%3A%2F%2Flocalhost%3A8888%2Fprofile
+            - text: Configure your application
+  - generic [ref=e3] [cursor=pointer]:
+    - img [ref=e4]
+    - generic [ref=e6]: 1 error
+    - button [ref=e7]:
+      - img [ref=e8]
+  - dialog "Welcome to Get Me Job" [ref=e12]:
+    - button "Skip onboarding" [active] [ref=e13] [cursor=pointer]:
+      - img [ref=e14]
+    - generic [ref=e23]:
+      - img [ref=e25]
+      - generic [ref=e30]:
+        - heading "Welcome to Get Me Job" [level=2] [ref=e31]
+        - paragraph [ref=e32]: Your AI-powered job application command center. Let's get you set up for success.
+    - button "Let's Begin" [ref=e34] [cursor=pointer]:
+      - text: Let's Begin
+      - img [ref=e35]
+    - generic [ref=e37]:
+      - paragraph [ref=e38]: "What Get Me Job helps you with:"
+      - generic [ref=e39]:
+        - generic [ref=e40]:
+          - img [ref=e41]
+          - text: AI resume parsing
+        - generic [ref=e44]:
+          - img [ref=e45]
+          - text: Job match scoring
+        - generic [ref=e48]:
+          - img [ref=e49]
+          - text: Tailored resumes
+        - generic [ref=e52]:
+          - img [ref=e53]
+          - text: Mock interviews
+        - generic [ref=e56]:
+          - img [ref=e57]
+          - text: Cover letters
+        - generic [ref=e60]:
+          - img [ref=e61]
+          - text: Progress tracking
+    - button "Close" [ref=e64] [cursor=pointer]:
+      - img [ref=e65]
+      - generic [ref=e68]: Close
+```

@@ -1,0 +1,114 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e3]:
+    - complementary "Main navigation" [ref=e4]:
+      - link "Get Me Job Job Assistant" [ref=e6] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e8]
+        - generic [ref=e13]:
+          - generic [ref=e14]: Get Me Job
+          - generic [ref=e15]: Job Assistant
+      - navigation [ref=e16]:
+        - generic [ref=e17]:
+          - generic [ref=e18]: Overview
+          - link "Dashboard" [ref=e20] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e21]
+            - generic [ref=e24]: Dashboard
+        - generic [ref=e25]:
+          - generic [ref=e26]: Resume & Profile
+          - generic [ref=e27]:
+            - link "My Profile" [ref=e28] [cursor=pointer]:
+              - /url: /profile
+              - img [ref=e29]
+              - generic [ref=e32]: My Profile
+            - link "Upload Resume" [ref=e33] [cursor=pointer]:
+              - /url: /upload
+              - img [ref=e34]
+              - generic [ref=e37]: Upload Resume
+            - link "Documents" [ref=e38] [cursor=pointer]:
+              - /url: /documents
+              - img [ref=e39]
+              - generic [ref=e42]: Documents
+        - generic [ref=e43]:
+          - generic [ref=e44]: Job Tracker
+          - generic [ref=e45]:
+            - link "Jobs" [ref=e46] [cursor=pointer]:
+              - /url: /jobs
+              - img [ref=e47]
+              - generic [ref=e50]: Jobs
+            - link "Calendar" [ref=e51] [cursor=pointer]:
+              - /url: /calendar
+              - img [ref=e52]
+              - generic [ref=e54]: Calendar
+            - link "Email Templates" [ref=e55] [cursor=pointer]:
+              - /url: /emails
+              - img [ref=e56]
+              - generic [ref=e59]: Email Templates
+        - generic [ref=e60]:
+          - generic [ref=e61]: Interview
+          - link "Interview Prep" [ref=e63] [cursor=pointer]:
+            - /url: /interview
+            - img [ref=e64]
+            - generic [ref=e66]: Interview Prep
+        - generic [ref=e67]:
+          - generic [ref=e68]: Negotiation
+          - link "Salary Tools" [ref=e70] [cursor=pointer]:
+            - /url: /salary
+            - img [ref=e71]
+            - generic [ref=e73]: Salary Tools
+        - generic [ref=e74]:
+          - generic [ref=e75]: Insights
+          - link "Analytics" [ref=e77] [cursor=pointer]:
+            - /url: /analytics
+            - img [ref=e78]
+            - generic [ref=e80]: Analytics
+      - generic [ref=e82]:
+        - button "Notifications" [ref=e84] [cursor=pointer]:
+          - img [ref=e86]
+          - generic [ref=e89]: Notifications
+        - link "Settings" [ref=e90] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e91]
+          - generic [ref=e94]: Settings
+        - button "System (light)" [ref=e95] [cursor=pointer]:
+          - img [ref=e96]
+          - generic [ref=e98]: System (light)
+        - button "Collapse" [ref=e99] [cursor=pointer]:
+          - img [ref=e100]
+          - generic [ref=e102]: Collapse
+      - link "Sign In" [ref=e104] [cursor=pointer]:
+        - /url: /sign-in
+        - img [ref=e105]
+        - generic [ref=e108]: Sign In
+    - main "Main content" [ref=e110]:
+      - generic [ref=e112]:
+        - img [ref=e113]
+        - paragraph [ref=e115]: Failed to fetch analytics
+        - button "Retry" [ref=e116] [cursor=pointer]
+  - alert [ref=e117]
+  - generic [ref=e120] [cursor=pointer]:
+    - img [ref=e121]
+    - generic [ref=e123]: 1 error
+    - button "Hide Errors" [ref=e124]:
+      - img [ref=e125]
+  - generic [ref=e128]:
+    - button "Keyless prompt" [expanded] [ref=e129] [cursor=pointer]:
+      - img [ref=e130]
+      - generic [ref=e134]: Configure your application
+      - img [ref=e135]
+    - generic [ref=e138]:
+      - generic [ref=e139]:
+        - paragraph [ref=e140]: Temporary API keys are enabled so you can get started immediately.
+        - list [ref=e141]:
+          - listitem [ref=e142]: Add SSO connections (eg. GitHub)
+          - listitem [ref=e143]: Set up B2B authentication
+          - listitem [ref=e144]: Enable MFA
+        - paragraph [ref=e145]: Access the dashboard to customize auth settings and explore Clerk features.
+      - link "Configure your application" [ref=e146] [cursor=pointer]:
+        - /url: https://dashboard.clerk.com/apps/claim?token=luarunumm97chglsl0r5izkis3wbfpc5m3nqrv7o&return_url=http%3A%2F%2Flocalhost%3A8888%2Fanalytics
+```
