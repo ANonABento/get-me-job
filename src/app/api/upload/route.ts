@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       extractedText = await extractTextFromFile(filePath);
       console.log(`[upload] Text extracted: ${extractedText.length} chars`);
     } catch (err) {
-      console.error("[upload] Text extraction failed:", err);
+      console.error("[upload] Text extraction failed:", err instanceof Error ? err.stack : err);
     }
 
     // Classify document type using LLM with filename fallback
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
           parsedData = { docType: "certificate", data: parseResult.certificate };
         }
       } catch (err) {
-        console.error("[upload] Document parsing failed:", err);
+        console.error("[upload] Document parsing failed:", err instanceof Error ? err.stack : err);
       }
     }
 
