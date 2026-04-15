@@ -266,6 +266,49 @@ describe("Dialog", () => {
     expect(screen.getByText("Close Me")).toBeInTheDocument();
   });
 
+  it("should not have slide animation classes that cause position jump", async () => {
+    render(
+      <Dialog open>
+        <AccessibleDialogContent>
+          <DialogTitle>Title</DialogTitle>
+        </AccessibleDialogContent>
+      </Dialog>
+    );
+
+    const content = screen.getByRole("dialog");
+    const className = content.className;
+
+    // Should NOT have slide-in/slide-out classes that cause corner spawning
+    expect(className).not.toContain("slide-in-from-left");
+    expect(className).not.toContain("slide-in-from-top");
+    expect(className).not.toContain("slide-out-to-left");
+    expect(className).not.toContain("slide-out-to-top");
+
+    // Should still have zoom and fade animations for smooth center appearance
+    expect(className).toContain("zoom-in-95");
+    expect(className).toContain("zoom-out-95");
+    expect(className).toContain("fade-in-0");
+    expect(className).toContain("fade-out-0");
+  });
+
+  it("should be centered with translate-x and translate-y", async () => {
+    render(
+      <Dialog open>
+        <AccessibleDialogContent>
+          <DialogTitle>Title</DialogTitle>
+        </AccessibleDialogContent>
+      </Dialog>
+    );
+
+    const content = screen.getByRole("dialog");
+    const className = content.className;
+
+    expect(className).toContain("left-[50%]");
+    expect(className).toContain("top-[50%]");
+    expect(className).toContain("translate-x-[-50%]");
+    expect(className).toContain("translate-y-[-50%]");
+  });
+
   it("should render dialog with full structure", async () => {
     render(
       <Dialog open>

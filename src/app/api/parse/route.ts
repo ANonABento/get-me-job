@@ -4,6 +4,33 @@ import { parseResumeWithLLM, parseResumeBasic } from "@/lib/parser/resume";
 import { parseDocumentSchema } from "@/lib/constants";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { populateBankFromProfile } from "@/lib/resume/info-bank";
+import type { LLMConfig, Profile } from "@/types";
+
+export interface ParseResumeResult {
+  parsedProfile: Partial<Profile>;
+  parsingMethod: "ai" | "basic";
+  llmFallback: boolean;
+}
+
+export async function parseResumeText(
+  text: string,
+  llmConfig: LLMConfig | null
+): Promise<ParseResumeResult> {
+  if (llmConfig) {
+    try {
+      const parsedProfile = await parseResumeWithLLM(text, llmConfig);
+      return { parsedProfile, parsingMethod: "ai", llmFallback: false };
+    } catch (llmError) {
+      console.error("LLM parsing failed, falling back to basic:", llmError);
+      const parsedProfile = parseResumeBasic(text);
+      return { parsedProfile, parsingMethod: "basic", llmFallback: true };
+    }
+  }
+
+  console.log("No LLM configured — using basic regex parsing");
+  const parsedProfile = parseResumeBasic(text);
+  return { parsedProfile, parsingMethod: "basic", llmFallback: false };
+}
 
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();
@@ -49,7 +76,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get LLM config
+    // Get LLM config and parse resume
     const llmConfig = getLLMConfig();
     console.log(`[parse] LLM config: ${llmConfig ? llmConfig.provider : "none"}`);
 
@@ -68,6 +95,10 @@ export async function POST(request: NextRequest) {
       console.log("[parse] Falling back to regex parser");
       parsedProfile = parseResumeBasic(doc.extractedText);
     }
+    const { parsedProfile, parsingMethod, llmFallback } = await parseResumeText(
+      doc.extractedText,
+      llmConfig
+    );
 
     const sections = Object.keys(parsedProfile).filter(k => parsedProfile[k as keyof typeof parsedProfile] != null);
     console.log(`[parse] Parse complete: ${sections.join(", ")}`);
@@ -88,7 +119,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       profile,
-      usedLLM: !!llmConfig,
+      parsingMethod,
+      llmFallback,
+      llmConfigured: !!llmConfig,
     });
   } catch (error) {
     console.error("[parse] Parse error:", error instanceof Error ? error.stack : error);

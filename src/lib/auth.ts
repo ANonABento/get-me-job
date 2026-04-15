@@ -10,7 +10,7 @@ export interface AuthError {
   status: number;
 }
 
-const LOCAL_DEV_USER = 'local-dev-user';
+const LOCAL_DEV_USER = 'default';
 const isClerkConfigured = !!(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY);
 
 /**
