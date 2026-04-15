@@ -22,16 +22,14 @@ export async function extractTextWithOCR(
   const { pdf: pdfToImages } = await import("pdf-to-img");
 
   const pages: string[] = [];
-  let pageCount = 0;
 
   for await (const image of await pdfToImages(pdfBuffer, { scale: 2 })) {
-    if (pageCount >= maxPages) break;
+    if (pages.length >= maxPages) break;
 
     const {
       data: { text },
     } = await Tesseract.recognize(image, "eng");
     pages.push(text);
-    pageCount++;
   }
 
   return pages.join("\n\n");
