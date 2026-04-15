@@ -1,6 +1,7 @@
 import pdf from "pdf-parse";
 import fs from "fs";
 import path from "path";
+import { needsOCRFallback, extractTextWithOCR } from "./ocr";
 
 export async function extractTextFromPDF(filePath: string): Promise<string> {
   const absolutePath = path.isAbsolute(filePath)
@@ -9,6 +10,11 @@ export async function extractTextFromPDF(filePath: string): Promise<string> {
 
   const dataBuffer = fs.readFileSync(absolutePath);
   const data = await pdf(dataBuffer);
+
+  if (needsOCRFallback(data.text)) {
+    return extractTextWithOCR(dataBuffer);
+  }
+
   return data.text;
 }
 
