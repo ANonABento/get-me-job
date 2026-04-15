@@ -159,6 +159,23 @@ export const TEMPLATES: ResumeTemplate[] = [
       sectionDivider: "line",
     },
   },
+  {
+    id: "two-column",
+    name: "Two Column",
+    description: "Space-efficient two-column layout for experienced candidates",
+    styles: {
+      fontFamily: "'Inter', 'Segoe UI', sans-serif",
+      fontSize: "10pt",
+      headerSize: "22pt",
+      sectionHeaderSize: "11pt",
+      lineHeight: "1.4",
+      accentColor: "#2563eb",
+      layout: "two-column",
+      headerStyle: "left",
+      bulletStyle: "disc",
+      sectionDivider: "space",
+    },
+  },
 ];
 
 // Get template by ID
