@@ -9,12 +9,7 @@ import {
   Lightbulb,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface GapItem {
-  requirement: string;
-  category: string;
-  suggestion: string;
-}
+import type { GapItem } from "@/lib/tailor/analyze";
 
 interface GapAnalysisProps {
   gaps: GapItem[];

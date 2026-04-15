@@ -6,6 +6,7 @@ import { ResumePreview } from "@/components/tailor/resume-preview";
 import { GapAnalysis } from "@/components/tailor/gap-analysis";
 import { FileText, Sparkles } from "lucide-react";
 import type { TailoredResume } from "@/lib/resume/generator";
+import type { GapItem } from "@/lib/tailor/analyze";
 
 interface TemplateOption {
   id: string;
@@ -17,7 +18,7 @@ interface AnalysisResult {
   matchScore: number;
   keywordsFound: string[];
   keywordsMissing: string[];
-  gaps: { requirement: string; category: string; suggestion: string }[];
+  gaps: GapItem[];
   matchedEntriesCount: number;
 }
 

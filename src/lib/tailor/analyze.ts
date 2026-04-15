@@ -29,24 +29,40 @@ export interface TailorAnalysis {
  * Extract keywords from a job description string.
  * Splits on common delimiters and filters noise words.
  */
+const STOP_WORDS = new Set([
+  "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for",
+  "of", "with", "by", "from", "as", "is", "was", "are", "were", "be",
+  "been", "being", "have", "has", "had", "do", "does", "did", "will",
+  "would", "could", "should", "may", "might", "must", "shall", "can",
+  "need", "not", "no", "nor", "so", "if", "then", "than", "too", "very",
+  "just", "about", "above", "after", "again", "all", "also", "am", "any",
+  "because", "before", "below", "between", "both", "each", "few", "more",
+  "most", "other", "our", "out", "over", "own", "same", "some", "such",
+  "that", "their", "them", "these", "they", "this", "those", "through",
+  "under", "until", "up", "we", "what", "when", "where", "which", "while",
+  "who", "whom", "why", "you", "your", "its", "it", "he", "she", "his",
+  "her", "my", "me", "us", "how", "into", "during", "only", "able",
+  "work", "working", "role", "team", "company", "position", "job",
+  "experience", "years", "year", "strong", "excellent", "good", "great",
+  "required", "preferred", "plus", "including", "etc", "well", "new",
+]);
+
+const SKILL_INDICATORS = [
+  "python", "java", "javascript", "typescript", "react", "node", "sql",
+  "aws", "docker", "kubernetes", "git", "linux", "api", "rest", "graphql",
+  "css", "html", "angular", "vue", "swift", "kotlin", "rust", "go",
+  "c++", "c#", ".net", "ruby", "php", "scala", "terraform", "ci/cd",
+  "agile", "scrum", "jira", "figma", "sketch", "photoshop",
+  "machine learning", "deep learning", "data science", "analytics",
+  "tableau", "power bi", "excel", "salesforce", "sap",
+];
+
+const CERT_INDICATORS = [
+  "certified", "certification", "certificate", "pmp", "aws certified",
+  "cpa", "cfa", "cissp", "comptia",
+];
+
 export function extractKeywords(text: string): string[] {
-  const STOP_WORDS = new Set([
-    "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for",
-    "of", "with", "by", "from", "as", "is", "was", "are", "were", "be",
-    "been", "being", "have", "has", "had", "do", "does", "did", "will",
-    "would", "could", "should", "may", "might", "must", "shall", "can",
-    "need", "not", "no", "nor", "so", "if", "then", "than", "too", "very",
-    "just", "about", "above", "after", "again", "all", "also", "am", "any",
-    "because", "before", "below", "between", "both", "each", "few", "more",
-    "most", "other", "our", "out", "over", "own", "same", "some", "such",
-    "that", "their", "them", "these", "they", "this", "those", "through",
-    "under", "until", "up", "we", "what", "when", "where", "which", "while",
-    "who", "whom", "why", "you", "your", "its", "it", "he", "she", "his",
-    "her", "my", "me", "us", "how", "into", "during", "only", "able",
-    "work", "working", "role", "team", "company", "position", "job",
-    "experience", "years", "year", "strong", "excellent", "good", "great",
-    "required", "preferred", "plus", "including", "etc", "well", "new",
-  ]);
 
   const words = text
     .toLowerCase()
@@ -156,21 +172,6 @@ export function analyzeJobFit(
  * Categorize missing keywords into actionable gap items.
  */
 function buildGapAnalysis(missingKeywords: string[]): GapItem[] {
-  const SKILL_INDICATORS = [
-    "python", "java", "javascript", "typescript", "react", "node", "sql",
-    "aws", "docker", "kubernetes", "git", "linux", "api", "rest", "graphql",
-    "css", "html", "angular", "vue", "swift", "kotlin", "rust", "go",
-    "c++", "c#", ".net", "ruby", "php", "scala", "terraform", "ci/cd",
-    "agile", "scrum", "jira", "figma", "sketch", "photoshop",
-    "machine learning", "deep learning", "data science", "analytics",
-    "tableau", "power bi", "excel", "salesforce", "sap",
-  ];
-
-  const CERT_INDICATORS = [
-    "certified", "certification", "certificate", "pmp", "aws certified",
-    "cpa", "cfa", "cissp", "comptia",
-  ];
-
   return missingKeywords
     .filter((kw) => kw.length > 2)
     .slice(0, 15)

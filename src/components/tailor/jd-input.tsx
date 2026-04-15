@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ClipboardPaste, Briefcase, Building2 } from "lucide-react";
@@ -45,12 +46,10 @@ export function JDInput({ onSubmit, isLoading }: JDInputProps) {
             <Briefcase className="h-4 w-4 text-muted-foreground" />
             Job Title
           </label>
-          <input
-            type="text"
+          <Input
             value={jobTitle}
             onChange={(e) => setJobTitle(e.target.value)}
             placeholder="e.g. Senior Frontend Engineer"
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
         </div>
         <div className="space-y-1.5">
@@ -58,12 +57,10 @@ export function JDInput({ onSubmit, isLoading }: JDInputProps) {
             <Building2 className="h-4 w-4 text-muted-foreground" />
             Company
           </label>
-          <input
-            type="text"
+          <Input
             value={company}
             onChange={(e) => setCompany(e.target.value)}
             placeholder="e.g. Acme Corp"
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
         </div>
       </div>
