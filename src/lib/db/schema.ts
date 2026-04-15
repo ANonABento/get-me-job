@@ -321,6 +321,10 @@ db.exec(`
     name TEXT NOT NULL,
     source_document_id TEXT,
     analyzed_styles TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (source_document_id) REFERENCES documents(id) ON DELETE SET NULL
+  );
+
   -- Profile bank table for aggregated resume data
   CREATE TABLE IF NOT EXISTS profile_bank (
     id TEXT PRIMARY KEY,

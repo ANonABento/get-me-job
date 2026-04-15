@@ -11,6 +11,11 @@ vi.mock("pdf-parse", () => ({
   default: vi.fn().mockResolvedValue({ text: "Extracted PDF text content" }),
 }));
 
+vi.mock("./ocr", () => ({
+  needsOCRFallback: vi.fn().mockReturnValue(false),
+  extractTextWithOCR: vi.fn().mockResolvedValue(""),
+}));
+
 vi.mock("fs", () => ({
   default: {
     readFileSync: vi.fn().mockImplementation((_path: string, encoding?: string) => {
