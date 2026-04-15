@@ -14,7 +14,7 @@ export async function POST(
     const { id } = await params;
     const version = getProfileVersion(id);
 
-    if (!version) {
+    if (!version || version.profileId !== authResult.userId) {
       return NextResponse.json(
         { error: "Version not found" },
         { status: 404 }
