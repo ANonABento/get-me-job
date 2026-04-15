@@ -1,27 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock playwright — vi.mock is hoisted, so use vi.fn() inline
-vi.mock("playwright", () => {
-  const mockPdf = vi.fn().mockResolvedValue(Buffer.from("%PDF-1.4 mock"));
-  const mockSetContent = vi.fn().mockResolvedValue(undefined);
-  const mockPage = {
-    setContent: mockSetContent,
-    pdf: mockPdf,
-  };
-  const mockClose = vi.fn().mockResolvedValue(undefined);
-  const mockBrowser = {
-    newPage: vi.fn().mockResolvedValue(mockPage),
-    close: mockClose,
-  };
+// vi.hoisted runs before vi.mock factory, making these available at hoist time
+const { mockPdf, mockSetContent, mockPage, mockClose, mockBrowser } =
+  vi.hoisted(() => {
+    const mockPdf = vi.fn().mockResolvedValue(Buffer.from("%PDF-1.4 mock"));
+    const mockSetContent = vi.fn().mockResolvedValue(undefined);
+    const mockPage = { setContent: mockSetContent, pdf: mockPdf };
+    const mockClose = vi.fn().mockResolvedValue(undefined);
+    const mockBrowser = {
+      newPage: vi.fn().mockResolvedValue(mockPage),
+      close: mockClose,
+    };
+    return { mockPdf, mockSetContent, mockPage, mockClose, mockBrowser };
+  });
 
-  return {
-    chromium: {
-      launch: vi.fn().mockResolvedValue(mockBrowser),
-    },
-    __mockPage: mockPage,
-    __mockBrowser: mockBrowser,
-  };
-});
+vi.mock("playwright", () => ({
+  chromium: {
+    launch: vi.fn().mockResolvedValue(mockBrowser),
+  },
+}));
 
 import { chromium } from "playwright";
 import {
@@ -30,19 +27,14 @@ import {
   PRINT_STYLES,
 } from "./pdf-export";
 
-// Access mock internals for assertions
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const { __mockPage, __mockBrowser } = await import("playwright") as any;
-
 describe("generatePDF", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Re-setup default resolved values after clearAllMocks
-    __mockPage.pdf.mockResolvedValue(Buffer.from("%PDF-1.4 mock"));
-    __mockPage.setContent.mockResolvedValue(undefined);
-    __mockBrowser.newPage.mockResolvedValue(__mockPage);
-    __mockBrowser.close.mockResolvedValue(undefined);
-    (chromium.launch as ReturnType<typeof vi.fn>).mockResolvedValue(__mockBrowser);
+    mockPdf.mockResolvedValue(Buffer.from("%PDF-1.4 mock"));
+    mockSetContent.mockResolvedValue(undefined);
+    mockBrowser.newPage.mockResolvedValue(mockPage);
+    mockClose.mockResolvedValue(undefined);
+    (chromium.launch as ReturnType<typeof vi.fn>).mockResolvedValue(mockBrowser);
   });
 
   it("returns a Buffer containing PDF data", async () => {
@@ -56,7 +48,7 @@ describe("generatePDF", () => {
     const html = "<html><body>Test</body></html>";
     await generatePDF(html);
 
-    expect(__mockPage.setContent).toHaveBeenCalledWith(html, {
+    expect(mockSetContent).toHaveBeenCalledWith(html, {
       waitUntil: "networkidle",
     });
   });
@@ -64,7 +56,7 @@ describe("generatePDF", () => {
   it("uses Letter format and 0.5in margins by default", async () => {
     await generatePDF("<html><body>Test</body></html>");
 
-    expect(__mockPage.pdf).toHaveBeenCalledWith({
+    expect(mockPdf).toHaveBeenCalledWith({
       format: "Letter",
       margin: {
         top: "0.5in",
@@ -82,7 +74,7 @@ describe("generatePDF", () => {
       margin: { top: "1in", bottom: "1in" },
     });
 
-    expect(__mockPage.pdf).toHaveBeenCalledWith({
+    expect(mockPdf).toHaveBeenCalledWith({
       format: "A4",
       margin: {
         top: "1in",
@@ -95,19 +87,19 @@ describe("generatePDF", () => {
   });
 
   it("closes the browser even if pdf generation fails", async () => {
-    __mockPage.pdf.mockRejectedValueOnce(new Error("PDF generation failed"));
+    mockPdf.mockRejectedValueOnce(new Error("PDF generation failed"));
 
     await expect(
       generatePDF("<html><body>Test</body></html>")
     ).rejects.toThrow("PDF generation failed");
 
-    expect(__mockBrowser.close).toHaveBeenCalled();
+    expect(mockClose).toHaveBeenCalled();
   });
 
   it("closes the browser after successful generation", async () => {
     await generatePDF("<html><body>Test</body></html>");
 
-    expect(__mockBrowser.close).toHaveBeenCalled();
+    expect(mockClose).toHaveBeenCalled();
   });
 });
 
