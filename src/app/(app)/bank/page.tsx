@@ -131,6 +131,7 @@ export default function BankPage() {
 
   async function handleFileUpload(file: File) {
     setUploading(true);
+    setError(null);
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -138,20 +139,20 @@ export default function BankPage() {
         method: "POST",
         body: formData,
       });
-      if (!uploadRes.ok) throw new Error("Upload failed");
       const uploadData = await uploadRes.json();
-      const documentId = uploadData.document?.id;
-      if (!documentId) throw new Error("No document ID");
+      if (!uploadRes.ok) {
+        throw new Error(uploadData.error || `Upload failed (${uploadRes.status})`);
+      }
+      if (!uploadData.success) {
+        throw new Error(uploadData.error || "Upload returned unsuccessful");
+      }
+      console.log("[bank] Upload complete:", uploadData.document?.id);
 
-      await fetch("/api/parse", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentId }),
-      });
-
+      // Upload route handles parse + ingest — just refresh the entries
       await fetchEntries();
       refreshAllEntries();
     } catch (err) {
+      console.error("[bank] Upload error:", err);
       setError(getErrorMessage(err));
     } finally {
       setUploading(false);

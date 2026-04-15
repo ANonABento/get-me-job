@@ -84,19 +84,29 @@ export async function POST(request: NextRequest) {
     const llmConfig = getLLMConfig();
     const docType = await classifyDocument(extractedText, file.name, llmConfig);
 
-    // Parse document content with type-specific prompt
+    // Parse document content — uses LLM if available, falls back to basic regex
     let parsedData: ParsedDocumentData | undefined;
-    if (extractedText && llmConfig && docType !== "portfolio" && docType !== "other") {
+    if (extractedText && docType !== "portfolio" && docType !== "other") {
       try {
-        const parseResult = await parseDocumentByType(extractedText, docType, llmConfig);
-        if (parseResult.parsedProfile) {
-          parsedData = { docType: "resume", data: parseResult.parsedProfile };
-        } else if (parseResult.coverLetter) {
-          parsedData = { docType: "cover_letter", data: parseResult.coverLetter };
-        } else if (parseResult.referenceLetter) {
-          parsedData = { docType: "reference_letter", data: parseResult.referenceLetter };
-        } else if (parseResult.certificate) {
-          parsedData = { docType: "certificate", data: parseResult.certificate };
+        if (llmConfig) {
+          const parseResult = await parseDocumentByType(extractedText, docType, llmConfig);
+          if (parseResult.parsedProfile) {
+            parsedData = { docType: "resume", data: parseResult.parsedProfile };
+          } else if (parseResult.coverLetter) {
+            parsedData = { docType: "cover_letter", data: parseResult.coverLetter };
+          } else if (parseResult.referenceLetter) {
+            parsedData = { docType: "reference_letter", data: parseResult.referenceLetter };
+          } else if (parseResult.certificate) {
+            parsedData = { docType: "certificate", data: parseResult.certificate };
+          }
+        } else {
+          // No LLM — use basic regex parsing for resumes
+          console.log("[upload] No LLM configured — using basic parsing");
+          const { parseResumeBasic } = await import("@/lib/parser/resume");
+          const basicProfile = parseResumeBasic(extractedText);
+          if (basicProfile) {
+            parsedData = { docType: "resume", data: basicProfile };
+          }
         }
       } catch (err) {
         console.error("[upload] Document parsing failed:", err instanceof Error ? err.stack : err);
@@ -116,13 +126,44 @@ export async function POST(request: NextRequest) {
     }, authResult.userId);
     console.log(`[upload] Document saved: ${id}`);
 
-    // Ingest into knowledge bank if we have parsed resume data
-    if (parsedData?.docType === "resume" && parsedData.data) {
+    // Ingest into knowledge bank — writes to profile_bank table (what the UI reads)
+    if (parsedData?.data) {
       try {
-        const ingestResult = await ingestDocument(authResult.userId, id, parsedData.data);
-        console.log(`[upload] Ingested: ${ingestResult.newChunks} new chunks, ${ingestResult.skippedExact} exact dupes, ${ingestResult.skippedSemantic} semantic dupes`);
+        const { insertBankEntries } = await import("@/lib/db/profile-bank");
+        const profile = parsedData.data;
+        const entries: Array<{ category: string; content: Record<string, unknown>; sourceDocumentId: string }> = [];
+
+        // Chunk profile into bank entries
+        if (profile.experiences) {
+          for (const exp of profile.experiences) {
+            entries.push({ category: "experience", content: exp as Record<string, unknown>, sourceDocumentId: id });
+          }
+        }
+        if (profile.education) {
+          for (const edu of profile.education) {
+            entries.push({ category: "education", content: edu as Record<string, unknown>, sourceDocumentId: id });
+          }
+        }
+        if (profile.skills) {
+          for (const skill of profile.skills) {
+            entries.push({ category: "skill", content: skill as Record<string, unknown>, sourceDocumentId: id });
+          }
+        }
+        if (profile.projects) {
+          for (const proj of profile.projects) {
+            entries.push({ category: "project", content: proj as Record<string, unknown>, sourceDocumentId: id });
+          }
+        }
+        if (profile.summary) {
+          entries.push({ category: "summary", content: { text: profile.summary }, sourceDocumentId: id });
+        }
+
+        if (entries.length > 0) {
+          insertBankEntries(entries, authResult.userId);
+          console.log(`[upload] Ingested ${entries.length} entries into bank`);
+        }
       } catch (err) {
-        console.error("[upload] Ingest failed:", err instanceof Error ? err.stack : err);
+        console.error("[upload] Bank ingest failed:", err instanceof Error ? err.stack : err);
       }
     }
 
