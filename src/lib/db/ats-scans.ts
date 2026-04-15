@@ -3,6 +3,22 @@ import { generateId } from "@/lib/utils";
 import type { ATSScanReport } from "@/lib/ats/analyzer";
 import type { FixSuggestion } from "@/lib/ats/fix-suggestions";
 
+interface RawScanRow {
+  id: string;
+  user_id: string;
+  job_id: string | null;
+  overall_score: number;
+  letter_grade: string;
+  formatting_score: number;
+  structure_score: number;
+  content_score: number;
+  keywords_score: number;
+  issue_count: number;
+  fix_count: number;
+  report_json: string;
+  scanned_at: string;
+}
+
 export interface StoredScanRecord {
   id: string;
   userId: string;
@@ -59,7 +75,7 @@ export function getScanHistory(
     .prepare(
       "SELECT * FROM ats_scan_history WHERE user_id = ? ORDER BY scanned_at DESC LIMIT ?"
     )
-    .all(userId, limit) as any[];
+    .all(userId, limit) as RawScanRow[];
 
   return rows.map(mapRow);
 }
@@ -70,13 +86,13 @@ export function getScanById(
 ): StoredScanRecord | null {
   const row = db
     .prepare("SELECT * FROM ats_scan_history WHERE id = ? AND user_id = ?")
-    .get(id, userId) as any;
+    .get(id, userId) as RawScanRow | undefined;
 
   if (!row) return null;
   return mapRow(row);
 }
 
-function mapRow(row: any): StoredScanRecord {
+function mapRow(row: RawScanRow): StoredScanRecord {
   return {
     id: row.id,
     userId: row.user_id,

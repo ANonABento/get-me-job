@@ -153,8 +153,8 @@ describe("generateFixSuggestions", () => {
     expect(bulletFixes).toHaveLength(0);
   });
 
-  it("includes at least 5 fix suggestion types", () => {
-    // All 5 types: add_keyword, rewrite_bullet, replace_character, add_section, add_metrics
+  it("includes at least 4 fix suggestion types", () => {
+    // All 4 types: add_keyword, rewrite_bullet, replace_character, add_section
     const allTypes = new Set<string>();
 
     // Test with profile that triggers all fix types

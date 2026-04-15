@@ -67,7 +67,7 @@ export interface ATSAnalysisResult {
   recommendations: string[];
 }
 
-const PROBLEMATIC_CHARACTERS = [
+export const PROBLEMATIC_CHARACTERS = [
   { char: "\u2022", name: "bullet point", replacement: "-" },
   { char: "\u2013", name: "en dash", replacement: "-" },
   { char: "\u2014", name: "em dash", replacement: "-" },
@@ -79,19 +79,6 @@ const PROBLEMATIC_CHARACTERS = [
   { char: "\u00a9", name: "copyright", replacement: "(c)" },
   { char: "\u00ae", name: "registered", replacement: "(R)" },
   { char: "\u2122", name: "trademark", replacement: "(TM)" },
-];
-
-const SECTION_KEYWORDS = [
-  "experience",
-  "work history",
-  "employment",
-  "education",
-  "skills",
-  "summary",
-  "objective",
-  "projects",
-  "certifications",
-  "achievements",
 ];
 
 function normalizeText(text: string): string {
@@ -637,64 +624,26 @@ export function generateScanReport(
   profile: Profile,
   job?: JobDescription
 ): ATSScanReport {
-  const formattingResult = analyzeFormatting(profile);
-  const structureResult = analyzeStructure(profile);
-  const contentResult = analyzeContent(profile);
-  const keywordsResult = analyzeKeywords(profile, job);
+  const analysis = analyzeATS(profile, job);
+  const { score, issues, keywords } = analysis;
 
-  const allIssues = [
-    ...formattingResult.issues,
-    ...structureResult.issues,
-    ...contentResult.issues,
-    ...keywordsResult.issues,
-  ];
-
-  const score: ATSScore = {
-    formatting: formattingResult.score,
-    structure: structureResult.score,
-    content: contentResult.score,
-    keywords: keywordsResult.score,
-    overall: Math.round(
-      formattingResult.score * 0.2 +
-        structureResult.score * 0.25 +
-        contentResult.score * 0.25 +
-        keywordsResult.score * 0.3
-    ),
-  };
-
-  const recommendations = generateRecommendations(allIssues, score);
   const letterGrade = scoreToLetterGrade(score.overall);
   const benchmark = calculateBenchmark(score.overall);
-  const keywordHeatmap = buildKeywordHeatmap(keywordsResult.keywords, profile);
+  const keywordHeatmap = buildKeywordHeatmap(keywords, profile);
   const sectionBreakdown = buildSectionBreakdown(
-    formattingResult.score,
-    structureResult.score,
-    contentResult.score,
-    keywordsResult.score,
-    allIssues
+    score.formatting,
+    score.structure,
+    score.content,
+    score.keywords,
+    issues
   );
 
-  let summary: string;
-  if (score.overall >= 80) {
-    summary = "Your resume is well-optimized for ATS systems. Minor improvements can help you stand out even more.";
-  } else if (score.overall >= 60) {
-    summary = "Your resume has good ATS compatibility but needs some improvements for better visibility.";
-  } else if (score.overall >= 40) {
-    summary = "Your resume may have trouble passing ATS systems. Focus on the critical issues below.";
-  } else {
-    summary = "Your resume needs significant improvements to pass ATS screening. Address the errors first.";
-  }
-
   return {
-    score,
+    ...analysis,
     letterGrade,
-    issues: allIssues,
-    keywords: keywordsResult.keywords,
     keywordHeatmap,
     sectionBreakdown,
     benchmark,
-    summary,
-    recommendations,
     scannedAt: new Date().toISOString(),
   };
 }

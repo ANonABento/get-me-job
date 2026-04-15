@@ -1,5 +1,6 @@
 import type { Profile } from "@/types";
 import type { ATSIssue, KeywordAnalysis } from "./analyzer";
+import { PROBLEMATIC_CHARACTERS } from "./analyzer";
 
 export type FixType =
   | "add_keyword"
@@ -21,20 +22,6 @@ export interface FixSuggestion {
   replacementText: string;
   estimatedImpact: number;
 }
-
-const PROBLEMATIC_CHARACTERS: Record<string, string> = {
-  "\u2022": "-",
-  "\u2013": "-",
-  "\u2014": "-",
-  "\u201c": '"',
-  "\u201d": '"',
-  "\u2018": "'",
-  "\u2019": "'",
-  "\u2026": "...",
-  "\u00a9": "(c)",
-  "\u00ae": "(R)",
-  "\u2122": "(TM)",
-};
 
 export function calculateFixPriority(estimatedImpact: number): FixPriority {
   if (estimatedImpact > 5) return "high";
@@ -91,16 +78,15 @@ export function generateFixSuggestions(
 
   // Type 3: Replace special characters
   const fullText = extractFullText(profile);
-  for (const [char, replacement] of Object.entries(PROBLEMATIC_CHARACTERS)) {
+  for (const { char, name, replacement } of PROBLEMATIC_CHARACTERS) {
     if (fullText.includes(char)) {
-      const charName = getCharName(char);
       const impact = 3;
       suggestions.push({
         id: nextId(),
         type: "replace_character",
         priority: calculateFixPriority(impact),
-        title: `Replace special character "${charName}"`,
-        description: `The character "${charName}" (${char}) may not be parsed correctly by ATS systems.`,
+        title: `Replace special character "${name}"`,
+        description: `The character "${name}" (${char}) may not be parsed correctly by ATS systems.`,
         section: "formatting",
         originalText: char,
         replacementText: replacement,
@@ -128,7 +114,7 @@ export function generateFixSuggestions(
     });
   }
 
-  // Type 5: Add action verbs to weak bullets
+  // Type 5: Rewrite bullets with weak action verbs
   const weakActionVerbIssue = issues.find(
     (i) => i.category === "content" && i.title.toLowerCase().includes("action verb")
   );
@@ -141,7 +127,7 @@ export function generateFixSuggestions(
           const strongVerb = suggestStrongVerb(highlight);
           suggestions.push({
             id: nextId(),
-            type: "add_metrics",
+            type: "rewrite_bullet",
             priority: calculateFixPriority(impact),
             title: "Strengthen bullet with action verb",
             description: `Replace weak opening in: "${truncate(highlight, 60)}"`,
@@ -174,23 +160,6 @@ function extractFullText(profile: Profile): string {
     parts.push(...exp.highlights);
   }
   return parts.join(" ");
-}
-
-function getCharName(char: string): string {
-  const names: Record<string, string> = {
-    "\u2022": "bullet",
-    "\u2013": "en dash",
-    "\u2014": "em dash",
-    "\u201c": "left curly quote",
-    "\u201d": "right curly quote",
-    "\u2018": "left curly apostrophe",
-    "\u2019": "right curly apostrophe",
-    "\u2026": "ellipsis",
-    "\u00a9": "copyright",
-    "\u00ae": "registered",
-    "\u2122": "trademark",
-  };
-  return names[char] || "special character";
 }
 
 function inferSectionFromIssue(issue: ATSIssue): string {
