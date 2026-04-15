@@ -42,6 +42,14 @@ interface NavGroup {
   items: NavItem[];
 }
 
+// Feature flags — set to true to enable sections
+const FEATURES = {
+  jobTracker: false,    // Jobs, Calendar, Email Templates
+  interview: false,     // Interview Prep
+  salary: false,        // Salary Tools
+  analytics: false,     // Analytics dashboard
+};
+
 const navigationGroups: NavGroup[] = [
   {
     label: "Overview",
@@ -57,32 +65,32 @@ const navigationGroups: NavGroup[] = [
       { name: "Documents", href: "/documents", icon: FileText },
     ],
   },
-  {
+  ...(FEATURES.jobTracker ? [{
     label: "Job Tracker",
     items: [
       { name: "Jobs", href: "/jobs", icon: Briefcase },
       { name: "Calendar", href: "/calendar", icon: Calendar },
       { name: "Email Templates", href: "/emails", icon: Mail },
     ],
-  },
-  {
+  }] : []),
+  ...(FEATURES.interview ? [{
     label: "Interview",
     items: [
       { name: "Interview Prep", href: "/interview", icon: MessageSquare },
     ],
-  },
-  {
+  }] : []),
+  ...(FEATURES.salary ? [{
     label: "Negotiation",
     items: [
       { name: "Salary Tools", href: "/salary", icon: DollarSign },
     ],
-  },
-  {
+  }] : []),
+  ...(FEATURES.analytics ? [{
     label: "Insights",
     items: [
       { name: "Analytics", href: "/analytics", icon: BarChart3 },
     ],
-  },
+  }] : []),
 ];
 
 const bottomNavigation = [

@@ -10,11 +10,16 @@ export interface AuthError {
   status: number;
 }
 
+const LOCAL_DEV_USER = 'local-dev-user';
+const isClerkConfigured = !!(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY);
+
 /**
  * Get the current user ID from Clerk auth
  * Returns the userId if authenticated, null if not
+ * Falls back to local dev user when Clerk is not configured
  */
 export async function getCurrentUserId(): Promise<string | null> {
+  if (!isClerkConfigured) return LOCAL_DEV_USER;
   const { userId } = await auth();
   return userId;
 }
@@ -22,8 +27,11 @@ export async function getCurrentUserId(): Promise<string | null> {
 /**
  * Require authentication for an API route
  * Returns the userId if authenticated, or an error response if not
+ * Falls back to local dev user when Clerk is not configured
  */
 export async function requireAuth(): Promise<AuthResult | NextResponse> {
+  if (!isClerkConfigured) return { userId: LOCAL_DEV_USER };
+
   const { userId } = await auth();
 
   if (!userId) {
