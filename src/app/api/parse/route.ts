@@ -80,21 +80,6 @@ export async function POST(request: NextRequest) {
     const llmConfig = getLLMConfig();
     console.log(`[parse] LLM config: ${llmConfig ? llmConfig.provider : "none"}`);
 
-    let parsedProfile;
-    if (llmConfig) {
-      // Use LLM for parsing
-      console.log("[parse] Using LLM parser");
-      try {
-        parsedProfile = await parseResumeWithLLM(doc.extractedText, llmConfig);
-      } catch (llmError) {
-        console.error("[parse] LLM parsing failed, falling back to regex parser:", llmError instanceof Error ? llmError.stack : llmError);
-        parsedProfile = parseResumeBasic(doc.extractedText);
-      }
-    } else {
-      // Use basic regex parsing
-      console.log("[parse] Falling back to regex parser");
-      parsedProfile = parseResumeBasic(doc.extractedText);
-    }
     const { parsedProfile, parsingMethod, llmFallback } = await parseResumeText(
       doc.extractedText,
       llmConfig
