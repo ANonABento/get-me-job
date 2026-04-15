@@ -21,11 +21,7 @@ vi.mock("playwright", () => ({
 }));
 
 import { chromium } from "playwright";
-import {
-  generatePDF,
-  injectPrintButton,
-  PRINT_STYLES,
-} from "./pdf-export";
+import { generatePDF } from "./pdf-export";
 
 describe("generatePDF", () => {
   beforeEach(() => {
@@ -100,38 +96,5 @@ describe("generatePDF", () => {
     await generatePDF("<html><body>Test</body></html>");
 
     expect(mockClose).toHaveBeenCalled();
-  });
-});
-
-describe("injectPrintButton", () => {
-  it("inserts a print button after <body> tag", () => {
-    const html = "<html><body><p>Content</p></body></html>";
-    const result = injectPrintButton(html);
-
-    expect(result).toContain('onclick="window.print()"');
-    expect(result).toContain("Download PDF");
-    expect(result).toContain("<p>Content</p>");
-  });
-
-  it("preserves original content", () => {
-    const html = "<html><body><h1>My Resume</h1></body></html>";
-    const result = injectPrintButton(html);
-
-    expect(result).toContain("<h1>My Resume</h1>");
-  });
-});
-
-describe("PRINT_STYLES", () => {
-  it("includes letter size page setting", () => {
-    expect(PRINT_STYLES).toContain("size: letter");
-  });
-
-  it("includes 0.5in margin", () => {
-    expect(PRINT_STYLES).toContain("margin: 0.5in");
-  });
-
-  it("hides no-print elements", () => {
-    expect(PRINT_STYLES).toContain(".no-print");
-    expect(PRINT_STYLES).toContain("display: none");
   });
 });
