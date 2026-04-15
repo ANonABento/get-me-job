@@ -294,6 +294,27 @@ db.exec(`
     FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE SET NULL
   );
 
+  -- ATS scan history table
+  CREATE TABLE IF NOT EXISTS ats_scan_history (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL DEFAULT 'default',
+    job_id TEXT,
+    overall_score INTEGER NOT NULL,
+    letter_grade TEXT NOT NULL,
+    formatting_score INTEGER NOT NULL,
+    structure_score INTEGER NOT NULL,
+    content_score INTEGER NOT NULL,
+    keywords_score INTEGER NOT NULL,
+    issue_count INTEGER NOT NULL DEFAULT 0,
+    fix_count INTEGER NOT NULL DEFAULT 0,
+    report_json TEXT NOT NULL,
+    scanned_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE SET NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_ats_scan_history_user ON ats_scan_history(user_id);
+  CREATE INDEX IF NOT EXISTS idx_ats_scan_history_date ON ats_scan_history(scanned_at);
+
   -- Create default profile if not exists
   INSERT OR IGNORE INTO profile (id) VALUES ('default');
 `);

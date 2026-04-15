@@ -23,6 +23,42 @@ export interface ATSScore {
   structure: number;
 }
 
+export type LetterGrade = "A" | "B" | "C" | "D" | "F";
+
+export interface SectionBreakdown {
+  section: string;
+  score: number;
+  weight: number;
+  weightedScore: number;
+  issueCount: number;
+}
+
+export interface KeywordHeatmap {
+  found: KeywordAnalysis[];
+  missing: KeywordAnalysis[];
+  matchRate: number;
+  bySection: Record<string, { found: string[]; missing: string[] }>;
+}
+
+export interface IndustryBenchmark {
+  percentile: number;
+  averageScore: number;
+  topPerformerScore: number;
+}
+
+export interface ATSScanReport {
+  score: ATSScore;
+  letterGrade: LetterGrade;
+  issues: ATSIssue[];
+  keywords: KeywordAnalysis[];
+  keywordHeatmap: KeywordHeatmap;
+  sectionBreakdown: SectionBreakdown[];
+  benchmark: IndustryBenchmark;
+  summary: string;
+  recommendations: string[];
+  scannedAt: string;
+}
+
 export interface ATSAnalysisResult {
   score: ATSScore;
   issues: ATSIssue[];
@@ -492,6 +528,174 @@ export function analyzeATS(
     keywords: keywordsResult.keywords,
     summary,
     recommendations,
+  };
+}
+
+export function scoreToLetterGrade(score: number): LetterGrade {
+  if (score >= 90) return "A";
+  if (score >= 80) return "B";
+  if (score >= 70) return "C";
+  if (score >= 60) return "D";
+  return "F";
+}
+
+export function calculateBenchmark(score: number): IndustryBenchmark {
+  // Approximate percentile based on a normal distribution centered around 62
+  // with standard deviation of 15 (typical resume score distribution)
+  const mean = 62;
+  const stddev = 15;
+  const z = (score - mean) / stddev;
+  // Approximate CDF using logistic function
+  const percentile = Math.round(100 / (1 + Math.exp(-1.7 * z)));
+  return {
+    percentile: Math.max(1, Math.min(99, percentile)),
+    averageScore: mean,
+    topPerformerScore: 90,
+  };
+}
+
+export function buildKeywordHeatmap(
+  keywords: KeywordAnalysis[],
+  profile: Profile
+): KeywordHeatmap {
+  const found = keywords.filter((k) => k.found);
+  const missing = keywords.filter((k) => !k.found);
+  const matchRate = keywords.length > 0 ? found.length / keywords.length : 0;
+
+  const sections = ["summary", "skills", "experience", "education", "projects"];
+  const bySection: Record<string, { found: string[]; missing: string[] }> = {};
+
+  for (const section of sections) {
+    const sectionText = extractSectionText(profile, section);
+    const normalizedSection = normalizeText(sectionText);
+
+    const sectionFound: string[] = [];
+    const sectionMissing: string[] = [];
+
+    for (const kw of keywords) {
+      const normalizedKeyword = normalizeText(kw.keyword);
+      if (normalizedSection.includes(normalizedKeyword)) {
+        sectionFound.push(kw.keyword);
+      } else {
+        sectionMissing.push(kw.keyword);
+      }
+    }
+
+    bySection[section] = { found: sectionFound, missing: sectionMissing };
+  }
+
+  return { found, missing, matchRate, bySection };
+}
+
+function extractSectionText(profile: Profile, section: string): string {
+  switch (section) {
+    case "summary":
+      return profile.summary || "";
+    case "skills":
+      return profile.skills.map((s) => s.name).join(" ");
+    case "experience":
+      return profile.experiences
+        .map((e) => [e.title, e.company, e.description, ...e.highlights, ...e.skills].join(" "))
+        .join(" ");
+    case "education":
+      return profile.education
+        .map((e) => [e.institution, e.degree, e.field, ...e.highlights].join(" "))
+        .join(" ");
+    case "projects":
+      return profile.projects
+        .map((p) => [p.name, p.description, ...p.technologies, ...p.highlights].join(" "))
+        .join(" ");
+    default:
+      return "";
+  }
+}
+
+export function buildSectionBreakdown(
+  formattingScore: number,
+  structureScore: number,
+  contentScore: number,
+  keywordsScore: number,
+  issues: ATSIssue[]
+): SectionBreakdown[] {
+  const sections: { section: string; score: number; weight: number; category: ATSIssue["category"] }[] = [
+    { section: "Formatting", score: formattingScore, weight: 0.2, category: "formatting" },
+    { section: "Structure", score: structureScore, weight: 0.25, category: "structure" },
+    { section: "Content", score: contentScore, weight: 0.25, category: "content" },
+    { section: "Keywords", score: keywordsScore, weight: 0.3, category: "keywords" },
+  ];
+
+  return sections.map(({ section, score, weight, category }) => ({
+    section,
+    score,
+    weight,
+    weightedScore: Math.round(score * weight),
+    issueCount: issues.filter((i) => i.category === category).length,
+  }));
+}
+
+export function generateScanReport(
+  profile: Profile,
+  job?: JobDescription
+): ATSScanReport {
+  const formattingResult = analyzeFormatting(profile);
+  const structureResult = analyzeStructure(profile);
+  const contentResult = analyzeContent(profile);
+  const keywordsResult = analyzeKeywords(profile, job);
+
+  const allIssues = [
+    ...formattingResult.issues,
+    ...structureResult.issues,
+    ...contentResult.issues,
+    ...keywordsResult.issues,
+  ];
+
+  const score: ATSScore = {
+    formatting: formattingResult.score,
+    structure: structureResult.score,
+    content: contentResult.score,
+    keywords: keywordsResult.score,
+    overall: Math.round(
+      formattingResult.score * 0.2 +
+        structureResult.score * 0.25 +
+        contentResult.score * 0.25 +
+        keywordsResult.score * 0.3
+    ),
+  };
+
+  const recommendations = generateRecommendations(allIssues, score);
+  const letterGrade = scoreToLetterGrade(score.overall);
+  const benchmark = calculateBenchmark(score.overall);
+  const keywordHeatmap = buildKeywordHeatmap(keywordsResult.keywords, profile);
+  const sectionBreakdown = buildSectionBreakdown(
+    formattingResult.score,
+    structureResult.score,
+    contentResult.score,
+    keywordsResult.score,
+    allIssues
+  );
+
+  let summary: string;
+  if (score.overall >= 80) {
+    summary = "Your resume is well-optimized for ATS systems. Minor improvements can help you stand out even more.";
+  } else if (score.overall >= 60) {
+    summary = "Your resume has good ATS compatibility but needs some improvements for better visibility.";
+  } else if (score.overall >= 40) {
+    summary = "Your resume may have trouble passing ATS systems. Focus on the critical issues below.";
+  } else {
+    summary = "Your resume needs significant improvements to pass ATS screening. Address the errors first.";
+  }
+
+  return {
+    score,
+    letterGrade,
+    issues: allIssues,
+    keywords: keywordsResult.keywords,
+    keywordHeatmap,
+    sectionBreakdown,
+    benchmark,
+    summary,
+    recommendations,
+    scannedAt: new Date().toISOString(),
   };
 }
 
