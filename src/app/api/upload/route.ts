@@ -5,6 +5,8 @@ import { generateId } from "@/lib/utils";
 import { saveDocument, getLLMConfig } from "@/lib/db";
 import { extractTextFromFile } from "@/lib/parser/pdf";
 import { classifyDocument } from "@/lib/parser/document-classifier";
+import { parseDocumentByType } from "@/lib/parser/resume";
+import type { ParsedDocumentData } from "@/types";
 import {
   MAX_FILE_SIZE_BYTES,
   ALLOWED_MIME_TYPES,
@@ -76,6 +78,25 @@ export async function POST(request: NextRequest) {
     const llmConfig = getLLMConfig();
     const docType = await classifyDocument(extractedText, file.name, llmConfig);
 
+    // Parse document content with type-specific prompt
+    let parsedData: ParsedDocumentData | undefined;
+    if (extractedText && llmConfig && docType !== "portfolio" && docType !== "other") {
+      try {
+        const parseResult = await parseDocumentByType(extractedText, docType, llmConfig);
+        if (parseResult.parsedProfile) {
+          parsedData = { docType: "resume", data: parseResult.parsedProfile };
+        } else if (parseResult.coverLetter) {
+          parsedData = { docType: "cover_letter", data: parseResult.coverLetter };
+        } else if (parseResult.referenceLetter) {
+          parsedData = { docType: "reference_letter", data: parseResult.referenceLetter };
+        } else if (parseResult.certificate) {
+          parsedData = { docType: "certificate", data: parseResult.certificate };
+        }
+      } catch (err) {
+        console.error("Document parsing failed:", err);
+      }
+    }
+
     // Save to database
     saveDocument({
       id,
@@ -85,6 +106,7 @@ export async function POST(request: NextRequest) {
       size: file.size,
       path: filePath,
       extractedText,
+      parsedData,
     }, authResult.userId);
 
     return NextResponse.json({

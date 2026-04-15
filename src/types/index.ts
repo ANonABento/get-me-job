@@ -95,6 +95,12 @@ export interface CertificateData {
   credentialId?: string;
 }
 
+export type ParsedDocumentData =
+  | { docType: "resume"; data: Partial<Profile> }
+  | { docType: "cover_letter"; data: CoverLetterData }
+  | { docType: "reference_letter"; data: ReferenceLetterData }
+  | { docType: "certificate"; data: CertificateData };
+
 export interface Document {
   id: string;
   filename: string;
@@ -103,7 +109,7 @@ export interface Document {
   size: number;
   path: string;
   extractedText?: string;
-  parsedData?: Partial<Profile>;
+  parsedData?: ParsedDocumentData;
   uploadedAt: string;
 }
 

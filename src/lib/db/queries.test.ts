@@ -136,6 +136,7 @@ describe("Document Functions", () => {
         1024,
         "/uploads/resume.pdf",
         "John Doe, Software Engineer",
+        null,
         "default"
       );
     });
