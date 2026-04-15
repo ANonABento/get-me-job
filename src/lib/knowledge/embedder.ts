@@ -34,15 +34,6 @@ export function removeStopWords(tokens: string[]): string[] {
   return tokens.filter((t) => !STOP_WORDS.has(t));
 }
 
-/** Build a term frequency map from tokens */
-export function termFrequency(tokens: string[]): Map<string, number> {
-  const tf = new Map<string, number>();
-  for (const token of tokens) {
-    tf.set(token, (tf.get(token) || 0) + 1);
-  }
-  return tf;
-}
-
 /**
  * Compute similarity score between a query and a document.
  *

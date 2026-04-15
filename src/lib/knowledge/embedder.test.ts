@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   tokenize,
   removeStopWords,
-  termFrequency,
   similarityScore,
   rankBySimilarity,
 } from "./embedder";
@@ -54,21 +53,6 @@ describe("removeStopWords", () => {
     const tokens = ["python", "machine", "learning", "aws"];
     const filtered = removeStopWords(tokens);
     expect(filtered).toEqual(["python", "machine", "learning", "aws"]);
-  });
-});
-
-describe("termFrequency", () => {
-  it("should count term occurrences", () => {
-    const tokens = ["react", "typescript", "react", "node", "react"];
-    const tf = termFrequency(tokens);
-    expect(tf.get("react")).toBe(3);
-    expect(tf.get("typescript")).toBe(1);
-    expect(tf.get("node")).toBe(1);
-  });
-
-  it("should handle empty array", () => {
-    const tf = termFrequency([]);
-    expect(tf.size).toBe(0);
   });
 });
 

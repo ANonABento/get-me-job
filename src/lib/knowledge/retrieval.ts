@@ -215,14 +215,7 @@ function formatGroupedChunks(grouped: GroupedChunks): string {
   for (const [category, chunks] of Object.entries(grouped)) {
     const header = `## ${category.charAt(0).toUpperCase() + category.slice(1)}`;
     const items = chunks.map((chunk, i) => {
-      const text = bankEntryToText({
-        id: chunk.id,
-        userId: "",
-        category: chunk.category,
-        content: chunk.content,
-        confidenceScore: chunk.score,
-        createdAt: "",
-      });
+      const text = bankEntryToText(chunk);
       return `${i + 1}. ${text}`;
     });
     sections.push(`${header}\n${items.join("\n")}`);

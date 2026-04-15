@@ -18,8 +18,8 @@ export interface RankedChunk {
   sourceDocumentId?: string;
 }
 
-/** Convert a BankEntry's content to a searchable text string */
-export function bankEntryToText(entry: BankEntry): string {
+/** Convert a bank entry's content to a searchable text string */
+export function bankEntryToText(entry: Pick<BankEntry, "category" | "content">): string {
   const parts: string[] = [];
   const c = entry.content;
 
