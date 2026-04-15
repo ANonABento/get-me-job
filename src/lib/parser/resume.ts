@@ -1,6 +1,6 @@
 import { LLMClient } from "@/lib/llm/client";
-import type { Profile, LLMConfig } from "@/types";
-import { generateId } from "@/lib/utils";
+import type { Profile, Experience, Education, Skill, Project, LLMConfig } from "@/types";
+import { generateId, extractJSON } from "@/lib/utils";
 
 const RESUME_PARSE_PROMPT = `You are a resume parser. Extract structured information from the following resume text.
 
@@ -87,45 +87,52 @@ export async function parseResumeWithLLM(
     maxTokens: 4096,
   });
 
-  // Clean response - remove markdown code blocks if present
-  let cleanResponse = response.trim();
-  if (cleanResponse.startsWith("```json")) {
-    cleanResponse = cleanResponse.slice(7);
-  }
-  if (cleanResponse.startsWith("```")) {
-    cleanResponse = cleanResponse.slice(3);
-  }
-  if (cleanResponse.endsWith("```")) {
-    cleanResponse = cleanResponse.slice(0, -3);
-  }
-  cleanResponse = cleanResponse.trim();
+  const parsed = extractJSON(response);
 
-  const parsed = JSON.parse(cleanResponse);
+  // Add IDs to all items — LLM output is trusted to match the prompted schema
+  const rawExperiences = (parsed.experiences ?? []) as Record<string, unknown>[];
+  const rawEducation = (parsed.education ?? []) as Record<string, unknown>[];
+  const rawSkills = (parsed.skills ?? []) as Record<string, unknown>[];
+  const rawProjects = (parsed.projects ?? []) as Record<string, unknown>[];
 
-  // Add IDs to all items
   return {
-    contact: parsed.contact || { name: "" },
-    summary: parsed.summary,
-    experiences: (parsed.experiences || []).map((e: any) => ({
-      ...e,
+    contact: (parsed.contact as Profile["contact"]) || { name: "" },
+    summary: parsed.summary as string | undefined,
+    experiences: rawExperiences.map((e): Experience => ({
       id: generateId(),
-      highlights: e.highlights || [],
-      skills: e.skills || [],
+      company: (e.company as string) || "",
+      title: (e.title as string) || "",
+      location: e.location as string | undefined,
+      startDate: (e.startDate as string) || "",
+      endDate: e.endDate as string | undefined,
+      current: (e.current as boolean) || false,
+      description: (e.description as string) || "",
+      highlights: (e.highlights as string[]) || [],
+      skills: (e.skills as string[]) || [],
     })),
-    education: (parsed.education || []).map((e: any) => ({
-      ...e,
+    education: rawEducation.map((e): Education => ({
       id: generateId(),
-      highlights: e.highlights || [],
+      institution: (e.institution as string) || "",
+      degree: (e.degree as string) || "",
+      field: (e.field as string) || "",
+      startDate: e.startDate as string | undefined,
+      endDate: e.endDate as string | undefined,
+      gpa: e.gpa as string | undefined,
+      highlights: (e.highlights as string[]) || [],
     })),
-    skills: (parsed.skills || []).map((s: any) => ({
-      ...s,
+    skills: rawSkills.map((s): Skill => ({
       id: generateId(),
+      name: (s.name as string) || "",
+      category: (s.category as Skill["category"]) || "other",
+      proficiency: s.proficiency as Skill["proficiency"],
     })),
-    projects: (parsed.projects || []).map((p: any) => ({
-      ...p,
+    projects: rawProjects.map((p): Project => ({
       id: generateId(),
-      technologies: p.technologies || [],
-      highlights: p.highlights || [],
+      name: (p.name as string) || "",
+      description: (p.description as string) || "",
+      url: p.url as string | undefined,
+      technologies: (p.technologies as string[]) || [],
+      highlights: (p.highlights as string[]) || [],
     })),
     rawText: text,
   };

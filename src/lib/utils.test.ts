@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cn, generateId, formatDate, formatFileSize, slugify } from "./utils";
+import { cn, generateId, formatDate, formatFileSize, slugify, extractJSON } from "./utils";
 
 describe("cn", () => {
   it("should merge class names", () => {
@@ -114,5 +114,84 @@ describe("slugify", () => {
 
   it("should handle underscores", () => {
     expect(slugify("hello_world")).toBe("hello-world");
+  });
+});
+
+describe("extractJSON", () => {
+  it("should parse pure JSON", () => {
+    const input = '{"name": "John", "age": 30}';
+    expect(extractJSON(input)).toEqual({ name: "John", age: 30 });
+  });
+
+  it("should parse JSON with surrounding whitespace", () => {
+    const input = '  \n  {"name": "John"}  \n  ';
+    expect(extractJSON(input)).toEqual({ name: "John" });
+  });
+
+  it("should parse JSON wrapped in ```json code fence", () => {
+    const input = '```json\n{"name": "John"}\n```';
+    expect(extractJSON(input)).toEqual({ name: "John" });
+  });
+
+  it("should parse JSON wrapped in ``` code fence without language", () => {
+    const input = '```\n{"name": "John"}\n```';
+    expect(extractJSON(input)).toEqual({ name: "John" });
+  });
+
+  it("should parse JSON with surrounding prose", () => {
+    const input = 'Here is the result:\n{"name": "John", "age": 30}\nHope that helps!';
+    expect(extractJSON(input)).toEqual({ name: "John", age: 30 });
+  });
+
+  it("should parse nested JSON objects", () => {
+    const input = '{"contact": {"name": "John"}, "skills": ["Python"]}';
+    expect(extractJSON(input)).toEqual({ contact: { name: "John" }, skills: ["Python"] });
+  });
+
+  it("should handle JSON with prose before and after braces", () => {
+    const input = 'Sure! Here is your data: {"key": "value"} Let me know if you need more.';
+    expect(extractJSON(input)).toEqual({ key: "value" });
+  });
+
+  it("should throw on completely invalid input", () => {
+    expect(() => extractJSON("not json at all")).toThrow("Failed to extract JSON");
+  });
+
+  it("should throw on empty string", () => {
+    expect(() => extractJSON("")).toThrow("Failed to extract JSON");
+  });
+
+  it("should throw on array input (not an object)", () => {
+    expect(() => extractJSON('[1, 2, 3]')).toThrow("Failed to extract JSON");
+  });
+
+  it("should throw on primitive JSON values", () => {
+    expect(() => extractJSON('"just a string"')).toThrow("Failed to extract JSON");
+    expect(() => extractJSON("42")).toThrow("Failed to extract JSON");
+  });
+
+  it("should handle markdown fence with extra whitespace", () => {
+    const input = '```json  \n  {"name": "John"}  \n  ```';
+    expect(extractJSON(input)).toEqual({ name: "John" });
+  });
+
+  it("should parse complex resume-like JSON", () => {
+    const input = `Here's the parsed resume:
+\`\`\`json
+{
+  "contact": {"name": "Jane Doe", "email": "jane@example.com"},
+  "experiences": [{"company": "Acme", "title": "Engineer"}],
+  "skills": [{"name": "TypeScript", "category": "technical"}]
+}
+\`\`\``;
+    const result = extractJSON(input);
+    expect(result.contact).toEqual({ name: "Jane Doe", email: "jane@example.com" });
+    expect(result.experiences).toHaveLength(1);
+    expect(result.skills).toHaveLength(1);
+  });
+
+  it("should handle JSON with escaped characters", () => {
+    const input = '{"message": "Hello \\"world\\"", "path": "C:\\\\Users"}';
+    expect(extractJSON(input)).toEqual({ message: 'Hello "world"', path: "C:\\Users" });
   });
 });

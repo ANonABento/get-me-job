@@ -36,6 +36,61 @@ export function slugify(text: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
+/**
+ * Extract and parse a JSON object from a string that may contain
+ * surrounding prose, markdown code fences, or other non-JSON content.
+ *
+ * Strategies (in order):
+ * 1. Direct JSON.parse
+ * 2. Strip markdown code fences then parse
+ * 3. Extract substring between first `{` and last `}`
+ */
+export function extractJSON(text: string): Record<string, unknown> {
+  const trimmed = text.trim();
+
+  // Strategy 1: Direct parse
+  try {
+    const result = JSON.parse(trimmed);
+    if (typeof result === "object" && result !== null && !Array.isArray(result)) {
+      return result as Record<string, unknown>;
+    }
+  } catch {
+    // continue to next strategy
+  }
+
+  // Strategy 2: Strip markdown code fences
+  const fencePattern = /^```(?:json)?\s*\n?([\s\S]*?)\n?\s*```$/;
+  const fenceMatch = trimmed.match(fencePattern);
+  if (fenceMatch) {
+    try {
+      const result = JSON.parse(fenceMatch[1].trim());
+      if (typeof result === "object" && result !== null && !Array.isArray(result)) {
+        return result as Record<string, unknown>;
+      }
+    } catch {
+      // continue to next strategy
+    }
+  }
+
+  // Strategy 3: Extract between first `{` and last `}`
+  const firstBrace = trimmed.indexOf("{");
+  const lastBrace = trimmed.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    try {
+      const result = JSON.parse(trimmed.slice(firstBrace, lastBrace + 1));
+      if (typeof result === "object" && result !== null && !Array.isArray(result)) {
+        return result as Record<string, unknown>;
+      }
+    } catch {
+      // all strategies failed
+    }
+  }
+
+  throw new Error(
+    `Failed to extract JSON from LLM response. Input starts with: "${trimmed.slice(0, 100)}"`
+  );
+}
+
 export function formatRelativeTime(date: string | Date): string {
   const now = new Date();
   const d = new Date(date);
