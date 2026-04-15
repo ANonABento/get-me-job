@@ -24,19 +24,25 @@ import {
 
 type ParseStep = "upload" | "parsing" | "success";
 
+interface ParseApiResponse {
+  success: boolean;
+  profile?: {
+    contact?: { name?: string; email?: string };
+    experiences?: unknown[];
+    skills?: unknown[];
+    education?: unknown[];
+  };
+  parsingMethod?: "ai" | "basic";
+  llmFallback?: boolean;
+  llmConfigured?: boolean;
+}
+
 export default function UploadPage() {
   const router = useRouter();
   const [uploadResults, setUploadResults] = useState<UploadResult[]>([]);
   const [step, setStep] = useState<ParseStep>("upload");
   const [parseError, setParseError] = useState<string | null>(null);
-  const [parseResult, setParseResult] = useState<{
-    profile?: {
-      contact?: { name?: string; email?: string };
-      experiences?: unknown[];
-      skills?: unknown[];
-      education?: unknown[];
-    };
-  } | null>(null);
+  const [parseResult, setParseResult] = useState<ParseApiResponse | null>(null);
   const [driveLoading, setDriveLoading] = useState(false);
 
   const handleUploadComplete = (results: UploadResult[]) => {
@@ -100,10 +106,13 @@ export default function UploadPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          throw new Error("Authentication required. Please sign in and try again.");
+        }
         throw new Error(errorData.error || "Parse failed");
       }
 
-      const data = await response.json();
+      const data: ParseApiResponse = await response.json();
       setParseResult(data);
       setStep("success");
     } catch (error) {
@@ -219,7 +228,8 @@ export default function UploadPage() {
               <div className="rounded-xl border border-destructive/50 bg-destructive/5 p-4">
                 <p className="text-destructive font-medium">{parseError}</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Please try uploading your resume again.
+                  Please try uploading your resume again. If the problem persists, check your{" "}
+                  <Link href="/settings" className="text-primary underline">LLM settings</Link>.
                 </p>
               </div>
             )}
@@ -286,6 +296,22 @@ export default function UploadPage() {
                 We&apos;ve extracted your professional information and saved it to your profile.
               </p>
             </div>
+
+            {/* Basic parsing warning */}
+            {parseResult.parsingMethod === "basic" && (
+              <div className="rounded-xl border border-warning/50 bg-warning/5 p-4">
+                <p className="font-medium text-warning-foreground">
+                  {parseResult.llmFallback
+                    ? "AI extraction failed — results were extracted using basic parsing."
+                    : "No AI provider configured — results were extracted using basic parsing."}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  For better results, configure an AI provider in{" "}
+                  <Link href="/settings" className="text-primary underline">Settings</Link>{" "}
+                  and try again.
+                </p>
+              </div>
+            )}
 
             {/* Extracted Summary */}
             <div className="rounded-2xl border bg-card p-6">
