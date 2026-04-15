@@ -202,9 +202,9 @@ export default function BankPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Knowledge Bank</h1>
+          <h1 className="text-3xl font-bold">Documents</h1>
           <p className="text-muted-foreground">
-            All your career information in one place. Drag files anywhere to upload.
+            Upload resumes and career documents. Drag files anywhere or click upload.
           </p>
         </div>
         <div className="flex gap-2">
@@ -254,7 +254,7 @@ export default function BankPage() {
         </div>
       ) : error ? (
         <ErrorState
-          title="Failed to load knowledge bank"
+          title="Failed to load documents"
           message={error}
           onRetry={fetchEntries}
           variant="card"
@@ -265,7 +265,7 @@ export default function BankPage() {
           <h3 className="text-xl font-semibold mb-2">
             {query || activeCategory !== "all"
               ? "No matching entries"
-              : "Your knowledge bank is empty"}
+              : "No documents yet"}
           </h3>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             {query || activeCategory !== "all"

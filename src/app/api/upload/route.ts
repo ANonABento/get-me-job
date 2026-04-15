@@ -130,32 +130,45 @@ export async function POST(request: NextRequest) {
     if (parsedData?.data) {
       try {
         const { insertBankEntries } = await import("@/lib/db/profile-bank");
-        const profile = parsedData.data;
-        const entries: Array<{ category: string; content: Record<string, unknown>; sourceDocumentId: string }> = [];
+        const profile = parsedData.data as Record<string, unknown>;
+        const entries: Array<{ category: "experience" | "education" | "skill" | "project" | "certification" | "achievement"; content: Record<string, unknown>; sourceDocumentId: string }> = [];
 
-        // Chunk profile into bank entries
-        if (profile.experiences) {
-          for (const exp of profile.experiences) {
-            entries.push({ category: "experience", content: exp as Record<string, unknown>, sourceDocumentId: id });
+        // Chunk profile into bank entries (only valid BankCategory types)
+        const experiences = profile.experiences as Record<string, unknown>[] | undefined;
+        if (experiences?.length) {
+          for (const exp of experiences) {
+            entries.push({ category: "experience", content: exp, sourceDocumentId: id });
           }
         }
-        if (profile.education) {
-          for (const edu of profile.education) {
-            entries.push({ category: "education", content: edu as Record<string, unknown>, sourceDocumentId: id });
+        const education = profile.education as Record<string, unknown>[] | undefined;
+        if (education?.length) {
+          for (const edu of education) {
+            entries.push({ category: "education", content: edu, sourceDocumentId: id });
           }
         }
-        if (profile.skills) {
-          for (const skill of profile.skills) {
-            entries.push({ category: "skill", content: skill as Record<string, unknown>, sourceDocumentId: id });
+        const skills = profile.skills as Record<string, unknown>[] | undefined;
+        if (skills?.length) {
+          for (const skill of skills) {
+            entries.push({ category: "skill", content: skill, sourceDocumentId: id });
           }
         }
-        if (profile.projects) {
-          for (const proj of profile.projects) {
-            entries.push({ category: "project", content: proj as Record<string, unknown>, sourceDocumentId: id });
+        const projects = profile.projects as Record<string, unknown>[] | undefined;
+        if (projects?.length) {
+          for (const proj of projects) {
+            entries.push({ category: "project", content: proj, sourceDocumentId: id });
           }
         }
-        if (profile.summary) {
-          entries.push({ category: "summary", content: { text: profile.summary }, sourceDocumentId: id });
+
+        // If no structured entries (basic parser), store the raw text as a single entry
+        if (entries.length === 0 && extractedText) {
+          const contact = profile.contact as Record<string, unknown> | undefined;
+          const name = (contact?.name as string) || file.name;
+          entries.push({
+            category: "experience",
+            content: { title: "Uploaded Resume", company: name, description: extractedText.slice(0, 2000) },
+            sourceDocumentId: id,
+          });
+          console.log("[upload] No structured sections found — stored as raw entry");
         }
 
         if (entries.length > 0) {
