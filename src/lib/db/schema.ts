@@ -399,4 +399,28 @@ try {
   console.error("Extension tables migration error:", error);
 }
 
+// Migration: Resume A/B tracking table
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS resume_ab_tracking (
+      id TEXT PRIMARY KEY,
+      resume_id TEXT NOT NULL,
+      job_id TEXT NOT NULL,
+      user_id TEXT NOT NULL DEFAULT 'default',
+      outcome TEXT NOT NULL DEFAULT 'applied',
+      sent_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      notes TEXT,
+      FOREIGN KEY (resume_id) REFERENCES generated_resumes(id) ON DELETE CASCADE,
+      FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_resume_ab_tracking_resume ON resume_ab_tracking(resume_id);
+    CREATE INDEX IF NOT EXISTS idx_resume_ab_tracking_job ON resume_ab_tracking(job_id);
+    CREATE INDEX IF NOT EXISTS idx_resume_ab_tracking_user ON resume_ab_tracking(user_id);
+  `);
+} catch (error) {
+  console.error("Resume A/B tracking migration error:", error);
+}
+
 export default db;

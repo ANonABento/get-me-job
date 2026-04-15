@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGeneratedResume } from "@/lib/db/resumes";
-import { compareResumes } from "@/lib/resume/compare";
+import { compareResumes, calculateSectionScores, calculateResumeMetrics } from "@/lib/resume/compare";
 import { compareResumesSchema } from "@/lib/constants";
 import type { TailoredResume } from "@/lib/resume/generator";
 import { requireAuth, isAuthError } from "@/lib/auth";
@@ -73,19 +73,26 @@ export async function POST(request: NextRequest) {
       afterResume.matchScore
     );
 
+    const sectionScores = calculateSectionScores(beforeContent, afterContent);
+    const beforeMetrics = calculateResumeMetrics(beforeContent);
+    const afterMetrics = calculateResumeMetrics(afterContent);
+
     return NextResponse.json({
       comparison,
+      sectionScores,
       before: {
         id: beforeResume.id,
         createdAt: beforeResume.createdAt,
         matchScore: beforeResume.matchScore,
         content: beforeContent,
+        metrics: beforeMetrics,
       },
       after: {
         id: afterResume.id,
         createdAt: afterResume.createdAt,
         matchScore: afterResume.matchScore,
         content: afterContent,
+        metrics: afterMetrics,
       },
     });
   } catch (error) {

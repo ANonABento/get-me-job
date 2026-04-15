@@ -225,3 +225,261 @@ export function createVersionTimeline(
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .map((version, index) => ({ version, index }));
 }
+
+// =============================================================================
+// Section-level ATS scoring
+// =============================================================================
+
+export interface SectionScore {
+  section: string;
+  beforeScore: number;
+  afterScore: number;
+  change: number;
+}
+
+const ATS_SECTION_WEIGHTS: Record<string, number> = {
+  summary: 15,
+  skills: 30,
+  experiences: 40,
+  education: 15,
+};
+
+function scoreSummarySection(summary: string | undefined): number {
+  if (!summary) return 0;
+  const length = summary.trim().length;
+  // Optimal summary: 150-300 chars
+  if (length >= 150 && length <= 300) return 100;
+  if (length >= 100 && length < 150) return 75;
+  if (length > 300 && length <= 500) return 70;
+  if (length > 0 && length < 100) return 40;
+  return 20;
+}
+
+function scoreSkillsSection(skills: string[] | undefined): number {
+  if (!skills || skills.length === 0) return 0;
+  // Optimal: 8-15 skills
+  if (skills.length >= 8 && skills.length <= 15) return 100;
+  if (skills.length >= 5 && skills.length < 8) return 75;
+  if (skills.length > 15 && skills.length <= 25) return 70;
+  if (skills.length >= 1 && skills.length < 5) return 40;
+  return 20;
+}
+
+function scoreExperiencesSection(experiences: TailoredResume["experiences"]): number {
+  if (!experiences || experiences.length === 0) return 0;
+  let score = 0;
+  const count = experiences.length;
+
+  // Count: 2-4 experiences is ideal
+  if (count >= 2 && count <= 4) score += 40;
+  else if (count === 1) score += 20;
+  else score += 30;
+
+  // Highlights quality: 3-5 per role is ideal
+  const avgHighlights = experiences.reduce((sum, e) => sum + e.highlights.length, 0) / count;
+  if (avgHighlights >= 3 && avgHighlights <= 5) score += 60;
+  else if (avgHighlights >= 2) score += 40;
+  else if (avgHighlights >= 1) score += 20;
+
+  return Math.min(score, 100);
+}
+
+function scoreEducationSection(education: TailoredResume["education"]): number {
+  if (!education || education.length === 0) return 0;
+  // At least one complete education entry
+  const complete = education.filter(
+    (e) => e.degree && e.field && e.institution && e.date
+  );
+  if (complete.length === education.length) return 100;
+  if (complete.length > 0) return 70;
+  return 30;
+}
+
+export function calculateSectionScores(
+  before: TailoredResume,
+  after: TailoredResume
+): SectionScore[] {
+  const scorers: Record<string, (r: TailoredResume) => number> = {
+    summary: (r) => scoreSummarySection(r.summary),
+    skills: (r) => scoreSkillsSection(r.skills),
+    experiences: (r) => scoreExperiencesSection(r.experiences),
+    education: (r) => scoreEducationSection(r.education),
+  };
+
+  return Object.entries(scorers).map(([section, scorer]) => {
+    const beforeScore = scorer(before);
+    const afterScore = scorer(after);
+    return {
+      section,
+      beforeScore,
+      afterScore,
+      change: afterScore - beforeScore,
+    };
+  });
+}
+
+// =============================================================================
+// Resume metrics (character count, page estimate)
+// =============================================================================
+
+export interface ResumeMetrics {
+  characterCount: number;
+  wordCount: number;
+  estimatedPages: number;
+}
+
+function resumeToPlainText(resume: TailoredResume): string {
+  const parts: string[] = [];
+
+  if (resume.contact) {
+    const { name, email, phone } = resume.contact;
+    if (name) parts.push(name);
+    if (email) parts.push(email);
+    if (phone) parts.push(phone);
+  }
+
+  if (resume.summary) parts.push(resume.summary);
+
+  if (resume.skills?.length) parts.push(resume.skills.join(", "));
+
+  for (const exp of resume.experiences) {
+    parts.push(`${exp.title} at ${exp.company}`);
+    parts.push(exp.dates);
+    parts.push(...exp.highlights);
+  }
+
+  for (const edu of resume.education) {
+    parts.push(`${edu.degree} in ${edu.field} from ${edu.institution} (${edu.date})`);
+  }
+
+  return parts.join("\n");
+}
+
+const CHARS_PER_PAGE = 3000;
+
+export function calculateResumeMetrics(resume: TailoredResume): ResumeMetrics {
+  const text = resumeToPlainText(resume);
+  const characterCount = text.length;
+  const wordCount = text.split(/\s+/).filter(Boolean).length;
+  const estimatedPages = Math.max(1, Math.ceil(characterCount / CHARS_PER_PAGE));
+
+  return { characterCount, wordCount, estimatedPages };
+}
+
+// =============================================================================
+// A/B Tracking types and conversion calculation
+// =============================================================================
+
+export const AB_OUTCOMES = [
+  "applied",
+  "screening",
+  "interviewing",
+  "offered",
+  "rejected",
+  "withdrawn",
+] as const;
+
+export type ABOutcome = (typeof AB_OUTCOMES)[number];
+
+export interface ABTrackingEntry {
+  id: string;
+  resumeId: string;
+  jobId: string;
+  outcome: ABOutcome;
+  sentAt: string;
+  updatedAt: string;
+  notes?: string;
+}
+
+export interface VersionStats {
+  resumeId: string;
+  totalSent: number;
+  outcomes: Record<ABOutcome, number>;
+  interviewRate: number;
+  offerRate: number;
+}
+
+export function calculateVersionStats(
+  resumeId: string,
+  entries: ABTrackingEntry[]
+): VersionStats {
+  const relevant = entries.filter((e) => e.resumeId === resumeId);
+  const total = relevant.length;
+
+  const outcomes = {} as Record<ABOutcome, number>;
+  for (const o of AB_OUTCOMES) {
+    outcomes[o] = 0;
+  }
+  for (const entry of relevant) {
+    outcomes[entry.outcome] = (outcomes[entry.outcome] || 0) + 1;
+  }
+
+  const interviewRate =
+    total > 0
+      ? ((outcomes.interviewing + outcomes.offered) / total) * 100
+      : 0;
+  const offerRate = total > 0 ? (outcomes.offered / total) * 100 : 0;
+
+  return {
+    resumeId,
+    totalSent: total,
+    outcomes,
+    interviewRate: Math.round(interviewRate * 10) / 10,
+    offerRate: Math.round(offerRate * 10) / 10,
+  };
+}
+
+// =============================================================================
+// Recommendation engine
+// =============================================================================
+
+export interface ABRecommendation {
+  recommendedResumeId: string;
+  reason: string;
+  confidence: "low" | "medium" | "high";
+  stats: VersionStats[];
+}
+
+const MIN_ENTRIES_FOR_RECOMMENDATION = 3;
+
+export function generateRecommendation(
+  allEntries: ABTrackingEntry[],
+  resumeIds: string[]
+): ABRecommendation | null {
+  if (resumeIds.length < 2) return null;
+
+  const stats = resumeIds.map((id) => calculateVersionStats(id, allEntries));
+  const withData = stats.filter((s) => s.totalSent > 0);
+
+  if (withData.length < 2) return null;
+
+  // Sort by interview rate descending, then offer rate
+  const sorted = [...withData].sort((a, b) => {
+    if (b.interviewRate !== a.interviewRate) return b.interviewRate - a.interviewRate;
+    return b.offerRate - a.offerRate;
+  });
+
+  const best = sorted[0];
+  const second = sorted[1];
+
+  const totalEntries = withData.reduce((sum, s) => sum + s.totalSent, 0);
+  const confidence =
+    totalEntries >= MIN_ENTRIES_FOR_RECOMMENDATION * 3
+      ? "high"
+      : totalEntries >= MIN_ENTRIES_FOR_RECOMMENDATION
+        ? "medium"
+        : "low";
+
+  const diff = Math.round(best.interviewRate - second.interviewRate);
+  const reason =
+    diff > 0
+      ? `This version gets ${diff}% more callbacks — consider making it your default`
+      : `This version has the highest offer rate at ${best.offerRate}%`;
+
+  return {
+    recommendedResumeId: best.resumeId,
+    reason,
+    confidence,
+    stats,
+  };
+}
