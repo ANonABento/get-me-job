@@ -4,6 +4,33 @@ import { parseResumeWithLLM, parseResumeBasic } from "@/lib/parser/resume";
 import { parseDocumentSchema } from "@/lib/constants";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { populateBankFromProfile } from "@/lib/resume/info-bank";
+import type { LLMConfig, Profile } from "@/types";
+
+export interface ParseResumeResult {
+  parsedProfile: Partial<Profile>;
+  parsingMethod: "ai" | "basic";
+  llmFallback: boolean;
+}
+
+export async function parseResumeText(
+  text: string,
+  llmConfig: LLMConfig | null
+): Promise<ParseResumeResult> {
+  if (llmConfig) {
+    try {
+      const parsedProfile = await parseResumeWithLLM(text, llmConfig);
+      return { parsedProfile, parsingMethod: "ai", llmFallback: false };
+    } catch (llmError) {
+      console.error("LLM parsing failed, falling back to basic:", llmError);
+      const parsedProfile = parseResumeBasic(text);
+      return { parsedProfile, parsingMethod: "basic", llmFallback: true };
+    }
+  }
+
+  console.log("No LLM configured — using basic regex parsing");
+  const parsedProfile = parseResumeBasic(text);
+  return { parsedProfile, parsingMethod: "basic", llmFallback: false };
+}
 
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();
@@ -47,22 +74,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get LLM config
+    // Get LLM config and parse resume
     const llmConfig = getLLMConfig();
-
-    let parsedProfile;
-    if (llmConfig) {
-      // Use LLM for parsing
-      try {
-        parsedProfile = await parseResumeWithLLM(doc.extractedText, llmConfig);
-      } catch (llmError) {
-        console.error("LLM parsing failed, falling back to basic:", llmError);
-        parsedProfile = parseResumeBasic(doc.extractedText);
-      }
-    } else {
-      // Use basic regex parsing
-      parsedProfile = parseResumeBasic(doc.extractedText);
-    }
+    const { parsedProfile, parsingMethod, llmFallback } = await parseResumeText(
+      doc.extractedText,
+      llmConfig
+    );
 
     // Save to profile
     updateProfile(parsedProfile, authResult.userId);
@@ -81,6 +98,9 @@ export async function POST(request: NextRequest) {
       success: true,
       profile,
       usedLLM: !!llmConfig,
+      parsingMethod,
+      llmFallback,
+      llmConfigured: !!llmConfig,
     });
   } catch (error) {
     console.error("Parse error:", error);
