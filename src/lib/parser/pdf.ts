@@ -1,4 +1,5 @@
 import pdf from "pdf-parse";
+import mammoth from "mammoth";
 import fs from "fs";
 import path from "path";
 
@@ -12,6 +13,11 @@ export async function extractTextFromPDF(filePath: string): Promise<string> {
   return data.text;
 }
 
+export async function extractTextFromDocx(buffer: Buffer): Promise<string> {
+  const result = await mammoth.extractRawText({ buffer });
+  return result.value;
+}
+
 export async function extractTextFromFile(filePath: string): Promise<string> {
   const ext = path.extname(filePath).toLowerCase();
 
@@ -20,11 +26,13 @@ export async function extractTextFromFile(filePath: string): Promise<string> {
       return extractTextFromPDF(filePath);
     case ".txt":
       return fs.readFileSync(filePath, "utf-8");
-    case ".docx":
-      // For now, we'll handle DOCX as unsupported and suggest PDF
-      throw new Error(
-        "DOCX parsing not yet implemented. Please convert to PDF."
-      );
+    case ".docx": {
+      const absolutePath = path.isAbsolute(filePath)
+        ? filePath
+        : path.join(process.cwd(), filePath);
+      const buffer = fs.readFileSync(absolutePath);
+      return extractTextFromDocx(buffer);
+    }
     default:
       throw new Error(`Unsupported file type: ${ext}`);
   }
