@@ -4,6 +4,9 @@ import {
   removeStopWords,
   similarityScore,
   rankBySimilarity,
+  cosineSimilarity,
+  embeddingToBuffer,
+  bufferToEmbedding,
 } from "./embedder";
 
 describe("tokenize", () => {
@@ -158,7 +161,8 @@ describe("rankBySimilarity", () => {
     );
 
     expect(ranked).toEqual([]);
-import { cosineSimilarity, embeddingToBuffer, bufferToEmbedding } from "./embedder";
+  });
+});
 
 describe("cosineSimilarity", () => {
   it("should return 1 for identical vectors", () => {

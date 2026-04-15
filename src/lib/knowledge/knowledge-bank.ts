@@ -135,6 +135,10 @@ export function multiQuerySearch(
   const merged = Array.from(chunkMap.values());
   merged.sort((a, b) => b.score - a.score);
   return merged;
+}
+
+// --- Below: knowledge chunk storage (from ingest pipeline) ---
+
 import db from "@/lib/db/schema";
 import { generateId } from "@/lib/utils";
 

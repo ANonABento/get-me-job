@@ -26,6 +26,8 @@ import {
   Calendar,
   DollarSign,
   LogIn,
+  Upload,
+  FileText,
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
