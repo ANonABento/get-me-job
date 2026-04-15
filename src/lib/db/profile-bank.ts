@@ -187,3 +187,16 @@ export function updateBankEntry(
     "UPDATE profile_bank SET content = ?, confidence_score = ? WHERE id = ?"
   ).run(JSON.stringify(content), confidenceScore, id);
 }
+
+/**
+ * Delete a single bank entry. Returns true if the entry existed and was deleted.
+ */
+export function deleteBankEntry(
+  id: string,
+  userId: string = "default"
+): boolean {
+  const result = db
+    .prepare("DELETE FROM profile_bank WHERE id = ? AND user_id = ?")
+    .run(id, userId);
+  return result.changes > 0;
+}
