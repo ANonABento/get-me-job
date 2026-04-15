@@ -103,7 +103,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Save to database
-    console.log(`[upload] Document saved: ${id}`);
     saveDocument({
       id,
       filename: file.name,
@@ -114,6 +113,7 @@ export async function POST(request: NextRequest) {
       extractedText,
       parsedData,
     }, authResult.userId);
+    console.log(`[upload] Document saved: ${id}`);
 
     return NextResponse.json({
       success: true,
