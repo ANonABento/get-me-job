@@ -1,9 +1,50 @@
-// PDF export utilities using browser print functionality
-// This approach works universally without heavy dependencies like puppeteer
+// PDF export utilities — browser print (client) and Playwright (server)
+
+import { chromium } from "playwright";
 
 export interface PDFExportOptions {
   paperSize?: "letter" | "a4";
   orientation?: "portrait" | "landscape";
+}
+
+export interface ServerPDFOptions {
+  format?: "Letter" | "A4";
+  margin?: {
+    top?: string;
+    right?: string;
+    bottom?: string;
+    left?: string;
+  };
+}
+
+const DEFAULT_MARGIN = {
+  top: "0.5in",
+  right: "0.5in",
+  bottom: "0.5in",
+  left: "0.5in",
+};
+
+/**
+ * Generate a PDF buffer from HTML using Playwright's headless Chromium.
+ * Intended for server-side use only.
+ */
+export async function generatePDF(
+  html: string,
+  options: ServerPDFOptions = {}
+): Promise<Buffer> {
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "networkidle" });
+    const pdfBuffer = await page.pdf({
+      format: options.format ?? "Letter",
+      margin: { ...DEFAULT_MARGIN, ...options.margin },
+      printBackground: true,
+    });
+    return Buffer.from(pdfBuffer);
+  } finally {
+    await browser.close();
+  }
 }
 
 /**
