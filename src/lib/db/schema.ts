@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
+import * as sqliteVec from "sqlite-vec";
 import { PATHS } from "@/lib/constants";
 
 // Ensure data directory exists
@@ -13,6 +14,9 @@ const db = new Database(PATHS.DATABASE);
 
 // Enable WAL mode for better performance
 db.pragma("journal_mode = WAL");
+
+// Load sqlite-vec extension for vector search
+sqliteVec.load(db);
 
 // Create tables
 db.exec(`
@@ -351,8 +355,31 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_profile_versions_profile ON profile_versions(profile_id, version DESC);
 
+  -- Knowledge bank chunks table
+  CREATE TABLE IF NOT EXISTS chunks (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL DEFAULT 'default',
+    content TEXT NOT NULL,
+    section_type TEXT NOT NULL,
+    source_file TEXT,
+    metadata TEXT,
+    confidence_score REAL DEFAULT 0.8,
+    superseded_by TEXT,
+    hash TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_chunks_user ON chunks(user_id);
+  CREATE INDEX IF NOT EXISTS idx_chunks_user_section ON chunks(user_id, section_type);
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_chunks_user_hash ON chunks(user_id, hash);
+
   -- Create default profile if not exists
   INSERT OR IGNORE INTO profile (id) VALUES ('default');
+`);
+
+// Create vec0 virtual table for vector search
+db.exec(`
+  CREATE VIRTUAL TABLE IF NOT EXISTS chunks_vec USING vec0(embedding float[1536]);
 `);
 
 // Migration: Add new columns to jobs table if they don't exist

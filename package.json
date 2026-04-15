@@ -45,6 +45,7 @@
     "react": "^18",
     "react-dom": "^18",
     "react-dropzone": "^14.2.9",
+    "sqlite-vec": "^0.1.9",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "tesseract.js": "^7.0.0",
