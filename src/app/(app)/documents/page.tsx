@@ -24,13 +24,14 @@ import {
 } from "lucide-react";
 import { DriveFilePicker, SaveToDriveButton } from "@/components/google";
 
-type DocumentType = "all" | "resume" | "cover_letter" | "portfolio" | "certificate" | "other";
+type DocumentFilterType = "all" | "resume" | "cover_letter" | "reference_letter" | "portfolio" | "certificate" | "other";
 type SortOption = "newest" | "oldest" | "name-asc" | "name-desc" | "size-asc" | "size-desc";
 
-const TYPE_OPTIONS: { value: DocumentType; label: string }[] = [
+const TYPE_OPTIONS: { value: DocumentFilterType; label: string }[] = [
   { value: "all", label: "All Types" },
   { value: "resume", label: "Resume" },
   { value: "cover_letter", label: "Cover Letter" },
+  { value: "reference_letter", label: "Reference Letter" },
   { value: "portfolio", label: "Portfolio" },
   { value: "certificate", label: "Certificate" },
   { value: "other", label: "Other" },
@@ -55,7 +56,7 @@ export default function DocumentsPage() {
 
   // Filter and sort state
   const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<DocumentType>("all");
+  const [typeFilter, setTypeFilter] = useState<DocumentFilterType>("all");
   const [sortOption, setSortOption] = useState<SortOption>("newest");
   const [showFilters, setShowFilters] = useState(false);
   const [driveImporting, setDriveImporting] = useState(false);
@@ -300,7 +301,7 @@ export default function DocumentsPage() {
                   <label className="text-sm font-medium">Type</label>
                   <select
                     value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value as DocumentType)}
+                    onChange={(e) => setTypeFilter(e.target.value as DocumentFilterType)}
                     className="block w-40 rounded-md border bg-background px-3 py-2 text-sm"
                   >
                     {TYPE_OPTIONS.map((opt) => (

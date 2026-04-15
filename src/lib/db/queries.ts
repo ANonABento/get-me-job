@@ -27,9 +27,19 @@ export function setLLMConfig(config: LLMConfig): void {
 // Documents
 export function saveDocument(doc: Omit<Document, "uploadedAt">, userId: string = "default"): void {
   db.prepare(`
-    INSERT INTO documents (id, filename, type, mime_type, size, path, extracted_text, user_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(doc.id, doc.filename, doc.type, doc.mimeType, doc.size, doc.path, doc.extractedText, userId);
+    INSERT INTO documents (id, filename, type, mime_type, size, path, extracted_text, parsed_data, user_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    doc.id,
+    doc.filename,
+    doc.type,
+    doc.mimeType,
+    doc.size,
+    doc.path,
+    doc.extractedText,
+    doc.parsedData ? JSON.stringify(doc.parsedData) : null,
+    userId
+  );
 }
 
 export function getDocuments(userId: string = "default"): Document[] {
@@ -44,6 +54,7 @@ export function getDocuments(userId: string = "default"): Document[] {
     size: row.size,
     path: row.path,
     extractedText: row.extracted_text,
+    parsedData: row.parsed_data ? JSON.parse(row.parsed_data) : undefined,
     uploadedAt: row.uploaded_at,
   }));
 }

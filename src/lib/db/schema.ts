@@ -401,6 +401,18 @@ try {
   console.error("Notifications migration error:", error);
 }
 
+// Migration: Add parsed_data column to documents table
+try {
+  const docTableInfo2 = db.prepare("PRAGMA table_info(documents)").all() as Array<{ name: string }>;
+  const docColumnNames2 = docTableInfo2.map((col) => col.name);
+
+  if (!docColumnNames2.includes("parsed_data")) {
+    db.exec("ALTER TABLE documents ADD COLUMN parsed_data TEXT");
+  }
+} catch (error) {
+  console.error("Documents parsed_data migration error:", error);
+}
+
 // Migration: Add extension tables
 try {
   db.exec(`
