@@ -11,7 +11,7 @@ interface PageSeo {
   path: string;
 }
 
-const pages: Record<string, PageSeo> = {
+const pages = {
   dashboard: {
     title: "Dashboard",
     description:
