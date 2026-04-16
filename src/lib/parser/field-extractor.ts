@@ -176,12 +176,10 @@ export function extractExperiences(text: string): Experience[] {
 // Degree patterns for education parsing
 const DEGREE_PATTERNS = /(?:Bachelor(?:'s)?|Master(?:'s)?|PhD|Ph\.D\.?|Doctorate|Associate(?:'s)?|B\.S\.?|B\.A\.?|M\.S\.?|M\.A\.?|MBA|M\.Eng\.?|B\.Eng\.?|J\.D\.?|M\.D\.?|Doctor\s+of)/i;
 
-// Pattern for "B.S. in Computer Science" or "Master of Business Administration"
-const DEGREE_FIELD_REGEX = /(?:Bachelor(?:'s)?|Master(?:'s)?|Associate(?:'s)?|Doctor(?:ate)?)\s+(?:of(?:\s+\w+)*?\s+)?(?:in\s+)?(.+?)(?:\s*[,|]|\s*$)/i;
+// Pattern for "B.S. in Computer Science"
 const SHORT_DEGREE_FIELD_REGEX = /(?:B\.S\.?|B\.A\.?|M\.S\.?|M\.A\.?|MBA|M\.Eng\.?|B\.Eng\.?|J\.D\.?|M\.D\.?|Ph\.D\.?)\s+(?:in\s+)?(.+?)(?:\s*[,|]|\s*$)/i;
 
 // GPA patterns
-const GPA_NUMERIC_REGEX = /(?:GPA[:\s]*)?(\d\.\d+)\s*(?:\/\s*4\.0)?/i;
 const GPA_LABEL_REGEX = /GPA[:\s]*(\d\.\d+)/i;
 
 // Latin honors to approximate GPA
