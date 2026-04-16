@@ -219,6 +219,8 @@ interface LLMEnhanceResult {
 
 /**
  * Send only low-confidence sections to LLM in a single batched call.
+ * Much cheaper than sending the entire resume.
+ * Falls back to sending the full text when no sections were detected.
  * Falls back to full text when no sections were detected.
  * Much cheaper than sending the entire resume (except for the fallback case).
  */
@@ -227,6 +229,12 @@ async function enhanceWithLLM(
   extracted: ExtractedFields,
   llmConfig: LLMConfig,
   fullText?: string
+): Promise<LLMEnhanceResult> {
+  const lowConfSections = sections.filter(
+    (s) => s.confidence <= CONFIDENCE_THRESHOLD && s.type !== "contact"
+  );
+
+  // If no sections at all, fall back to full-text LLM parse
   rawText?: string
   fullText?: string
   fullText: string
@@ -252,6 +260,11 @@ async function enhanceWithLLM(
     if (!fullText) {
       return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
     }
+    // Use full text as the single "section" to parse
+    const sectionPrompts = [
+      `--- Full resume text ---\n${fullText}`,
+    ];
+    return runLLMBatch(sectionPrompts, 1, extracted, llmConfig);
     // Use full text as a single unidentified section
     lowConfSections.push({
       type: "summary" as DetectedSection["type"],
@@ -367,6 +380,15 @@ async function enhanceWithLLM(
     return `--- Section ${i + 1} (detected as: ${typeHint}) ---\n${s.text}`;
   });
 
+  return runLLMBatch(sectionPrompts, lowConfSections.length, extracted, llmConfig);
+}
+
+async function runLLMBatch(
+  sectionPrompts: string[],
+  sectionCount: number,
+  extracted: ExtractedFields,
+  llmConfig: LLMConfig
+): Promise<LLMEnhanceResult> {
   const batchPrompt = `You are a resume parser. Parse the following resume sections and return structured JSON.
 
 For each section, extract the relevant data. Return a JSON object with these keys (include only sections present):
@@ -457,6 +479,7 @@ async function enhanceWithLLM(
 
     return {
       enhanced,
+      llmSectionCount: sectionCount,
       llmSectionCount: useFullTextFallback ? 1 : lowConfSections.length,
       llmSectionCount: lowConfSections.length > 0 ? lowConfSections.length : 1,
       llmSectionCount: hasFullTextFallback ? 1 : lowConfSections.length,
