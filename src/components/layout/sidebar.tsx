@@ -26,6 +26,7 @@ import {
   DollarSign,
   LogIn,
   Sparkles,
+  PenLine,
   type LucideIcon,
 } from "lucide-react";
 import { NotificationCenter } from "@/components/notifications/notification-center";
@@ -60,7 +61,9 @@ const navigationGroups: NavGroup[] = [
     label: "Resume",
     items: [
       { name: "Documents", href: "/bank", icon: Database },
+      { name: "Resume Builder", href: "/builder", icon: FileText },
       { name: "Tailor Resume", href: "/tailor", icon: Sparkles },
+      { name: "Cover Letter", href: "/cover-letter", icon: PenLine },
     ],
   },
   ...(FEATURES.jobTracker ? [{
@@ -221,8 +224,8 @@ export function Sidebar() {
             </div>
             {!collapsed && (
               <div className="flex flex-col">
-                <span className="text-lg font-bold gradient-text">Get Me Job</span>
-                <span className="text-2xs text-muted-foreground">Job Assistant</span>
+                <span className="text-lg font-bold gradient-text">Taida</span>
+                <span className="text-2xs text-muted-foreground">怠惰</span>
               </div>
             )}
           </Link>

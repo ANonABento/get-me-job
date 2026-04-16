@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     if (contentType.includes("application/json")) {
       const data = await request.json();
 
-      // Handle Get Me Job export format or direct array
+      // Handle Taida export format or direct array
       if (data.jobs && Array.isArray(data.jobs)) {
         rawJobs = data.jobs;
       } else if (Array.isArray(data)) {

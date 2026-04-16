@@ -10,8 +10,8 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Get Me Job - AI-Powered Job Application Assistant",
-  description: "Land your dream job with AI-powered resume optimization, interview coaching, and application tracking.",
+  title: "Taida — AI Resume Builder",
+  description: "Build tailored resumes from your career knowledge bank.",
 };
 
 export default function RootLayout({

@@ -25,14 +25,14 @@ import { STORAGE_KEYS } from "@/lib/constants";
 
 const steps = [
   {
-    title: "Welcome to Get Me Job",
+    title: "Welcome to Taida",
     description: "Your AI-powered job application command center. Let's get you set up for success.",
     icon: Rocket,
     gradient: "from-primary to-accent",
   },
   {
     title: "Upload Your Resume",
-    description: "Start by uploading your resume. Get Me Job will automatically extract and organize your professional information.",
+    description: "Start by uploading your resume. Taida will automatically extract and organize your professional information.",
     icon: Upload,
     gradient: "from-violet-500 to-purple-400",
     action: "/bank",
@@ -178,7 +178,7 @@ export function OnboardingDialog() {
         {currentStep === 0 && (
           <div className="mt-6 pt-6 border-t">
             <p className="text-sm font-medium text-muted-foreground mb-3 text-center">
-              What Get Me Job helps you with:
+              What Taida helps you with:
             </p>
             <div className="grid grid-cols-2 gap-2 text-xs">
               {[
