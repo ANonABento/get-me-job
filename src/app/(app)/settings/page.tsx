@@ -191,7 +191,12 @@ export default function SettingsPage() {
     }
   };
 
-  const exportData = async (type: "profile" | "jobs-json" | "jobs-csv" | "backup") => {
+  const [showImportPreview, setShowImportPreview] = useState<{
+    stats: Record<string, number>;
+    data: unknown;
+  } | null>(null);
+
+  const exportData = async (type: "profile" | "jobs-json" | "jobs-csv" | "backup" | "full-export") => {
     setExporting(type);
     try {
       let url = "";
@@ -214,6 +219,10 @@ export default function SettingsPage() {
           url = "/api/backup";
           filename = `taida-backup-${new Date().toISOString().split("T")[0]}.json`;
           break;
+        case "full-export":
+          url = "/api/export";
+          filename = `get-me-job-export-${new Date().toISOString().split("T")[0]}.json`;
+          break;
       }
 
       const response = await fetch(url);
@@ -235,6 +244,76 @@ export default function SettingsPage() {
       setImportResult({ success: false, message: "Export failed" });
     } finally {
       setExporting(null);
+    }
+  };
+
+  const handleFullImportPreview = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      if (!data.version || !data.data) {
+        setImportResult({ success: false, message: "Invalid export file format" });
+        return;
+      }
+
+      const stats: Record<string, number> = {};
+      if (data.data.profile) stats["Profile"] = 1;
+      if (data.data.jobs?.length) stats["Jobs"] = data.data.jobs.length;
+      if (data.data.coverLetters?.length) stats["Cover Letters"] = data.data.coverLetters.length;
+      if (data.data.bankEntries?.length) stats["Bank Entries"] = data.data.bankEntries.length;
+      if (data.data.generatedResumes?.length) stats["Generated Resumes"] = data.data.generatedResumes.length;
+      if (data.data.interviewSessions?.length) stats["Interview Sessions"] = data.data.interviewSessions.length;
+      if (data.data.llmConfig) stats["LLM Config"] = 1;
+
+      setShowImportPreview({ stats, data });
+    } catch {
+      setImportResult({ success: false, message: "Failed to parse import file" });
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const confirmFullImport = async () => {
+    if (!showImportPreview) return;
+
+    setImporting(true);
+    setImportResult(null);
+    setShowImportPreview(null);
+
+    try {
+      const response = await fetch("/api/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(showImportPreview.data),
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        const parts: string[] = [];
+        if (result.results.profile) parts.push("Profile");
+        if (result.results.jobs.imported > 0) parts.push(`${result.results.jobs.imported} jobs`);
+        if (result.results.coverLetters?.imported > 0) parts.push(`${result.results.coverLetters.imported} cover letters`);
+        if (result.results.bankEntries?.imported > 0) parts.push(`${result.results.bankEntries.imported} bank entries`);
+        if (result.results.llmConfig) parts.push("LLM config");
+
+        setImportResult({
+          success: true,
+          message: parts.length > 0 ? `Imported: ${parts.join(", ")}` : "No new data to import (all duplicates skipped)",
+        });
+      } else {
+        throw new Error(result.error || "Import failed");
+      }
+    } catch (error) {
+      setImportResult({
+        success: false,
+        message: error instanceof Error ? error.message : "Import failed",
+      });
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -700,6 +779,19 @@ export default function SettingsPage() {
                     )}
                     Full Backup
                   </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => exportData("full-export")}
+                    disabled={!!exporting}
+                    className="justify-start sm:col-span-2"
+                  >
+                    {exporting === "full-export" ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Database className="h-4 w-4 mr-2 text-primary" />
+                    )}
+                    Export All Data (JSON)
+                  </Button>
                 </div>
               </div>
 
@@ -752,8 +844,72 @@ export default function SettingsPage() {
                       Restore Backup
                     </Button>
                   </div>
+                  <div className="relative sm:col-span-2">
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleFullImportPreview}
+                      disabled={importing}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                    />
+                    <Button
+                      variant="outline"
+                      disabled={importing}
+                      className="w-full justify-start pointer-events-none"
+                    >
+                      {importing ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Database className="h-4 w-4 mr-2 text-primary" />
+                      )}
+                      Import All Data (JSON)
+                    </Button>
+                  </div>
                 </div>
               </div>
+
+              {/* Import Preview/Confirmation */}
+              {showImportPreview && (
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+                  <h4 className="font-medium text-sm">Confirm Import</h4>
+                  <p className="text-sm text-muted-foreground">
+                    The following data will be imported (duplicates will be skipped):
+                  </p>
+                  <ul className="text-sm space-y-1">
+                    {Object.entries(showImportPreview.stats).map(([key, count]) => (
+                      <li key={key} className="flex items-center gap-2">
+                        <CheckCircle className="h-3.5 w-3.5 text-success" />
+                        <span>{key}: {count}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      onClick={confirmFullImport}
+                      disabled={importing}
+                      className="gradient-bg text-white hover:opacity-90"
+                    >
+                      {importing ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                          Importing...
+                        </>
+                      ) : (
+                        "Confirm Import"
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowImportPreview(null)}
+                      disabled={importing}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* Import Result */}
               {importResult && (

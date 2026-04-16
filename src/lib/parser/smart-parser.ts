@@ -273,6 +273,19 @@ async function enhanceWithLLM(
     (s) => s.confidence <= CONFIDENCE_THRESHOLD && s.type !== "contact"
   );
 
+  // When no sections were detected at all, fall back to parsing the full text
+  const useFullText = lowConfSections.length === 0 && sections.length === 0;
+
+  if (lowConfSections.length === 0 && !useFullText) {
+    return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
+  }
+
+  // Build a batched prompt with all ambiguous sections (or full text as fallback)
+  const sectionPrompts = useFullText
+    ? [`--- Full Resume Text ---\n${rawText}`]
+    : lowConfSections.map((s, i) => {
+        return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
+      });
   // If no individually low-confidence sections, but we're here because overall
   // confidence was low, fall back to sending the full text as one unstructured section.
   const sectionsToSend: Array<{ type: string; text: string }> =
@@ -569,6 +582,7 @@ async function enhanceWithLLM(
 
     return {
       enhanced,
+      llmSectionCount: useFullText ? 1 : lowConfSections.length,
       llmSectionCount: sectionsToSend.length,
       llmSectionCount: useFullText ? 1 : sectionsToSend.length,
       llmSectionCount: sectionsToSend.length,

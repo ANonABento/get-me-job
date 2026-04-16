@@ -644,6 +644,50 @@ export const backupDataSchema = z.object({
 
 export type BackupDataInput = z.infer<typeof backupDataSchema>;
 
+// Full export data schema (comprehensive export including cover letters and bank entries)
+const exportCoverLetterSchema = z.object({
+  id: z.string(),
+  jobId: z.string(),
+  content: z.string(),
+  highlights: z.array(z.string()),
+  version: z.number(),
+  createdAt: z.string().optional(),
+}).passthrough();
+
+const exportBankEntrySchema = z.object({
+  id: z.string(),
+  category: z.string(),
+  content: z.record(z.string(), z.unknown()),
+  sourceDocumentId: z.string().optional(),
+  confidenceScore: z.number(),
+  createdAt: z.string().optional(),
+}).passthrough();
+
+export const fullExportDataSchema = z.object({
+  version: z.string().min(1, "Version is required"),
+  exportedAt: z.string().optional(),
+  data: z.object({
+    profile: backupProfileSchema.optional(),
+    jobs: z.array(backupJobSchema).optional(),
+    documents: z.array(backupDocumentSchema).optional(),
+    interviewSessions: z.array(backupInterviewSessionSchema).optional(),
+    generatedResumes: z.array(backupGeneratedResumeSchema).optional(),
+    coverLetters: z.array(exportCoverLetterSchema).optional(),
+    bankEntries: z.array(exportBankEntrySchema).optional(),
+    llmConfig: backupLLMConfigSchema.optional(),
+  }),
+  stats: z.object({
+    totalJobs: z.number().optional(),
+    totalDocuments: z.number().optional(),
+    totalInterviews: z.number().optional(),
+    totalResumes: z.number().optional(),
+    totalCoverLetters: z.number().optional(),
+    totalBankEntries: z.number().optional(),
+  }).optional(),
+});
+
+export type FullExportDataInput = z.infer<typeof fullExportDataSchema>;
+
 /**
  * Check if buffer starts with expected magic bytes for the given MIME type
  */
