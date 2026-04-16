@@ -1,3 +1,10 @@
+/**
+ * @route POST /api/interview/sessions/[id]/answer
+ * @description Add an answer to a question in the given interview session
+ * @auth Required
+ * @request { questionIndex: number, answer: string }
+ * @response InterviewSessionAnswerResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import {
   getInterviewSession,

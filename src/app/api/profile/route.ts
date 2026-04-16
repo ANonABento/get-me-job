@@ -1,3 +1,12 @@
+/**
+ * @route GET /api/profile
+ * @route PUT /api/profile
+ * @route DELETE /api/profile
+ * @description GET: Fetch profile. PUT: Update profile. DELETE: Clear profile data.
+ * @auth Required
+ * @request { name?: string; email?: string; ... } (PUT only)
+ * @response ProfileResponse / ProfileUpdateResponse / ProfileDeleteResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getProfile, updateProfile, clearProfile } from "@/lib/db";
 import { updateProfileSchema } from "@/lib/constants";

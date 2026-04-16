@@ -49,6 +49,7 @@ export function ErrorState({
             size="icon"
             onClick={onDismiss}
             className="shrink-0 h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+            aria-label="Dismiss error"
           >
             <XCircle className="h-4 w-4" />
           </Button>

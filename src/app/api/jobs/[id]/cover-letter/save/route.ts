@@ -1,3 +1,10 @@
+/**
+ * @route POST /api/jobs/[id]/cover-letter/save
+ * @description Save a cover letter version for a job
+ * @auth Required
+ * @request { content: string, tone?: string, version?: number }
+ * @response CoverLetterSaveResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { saveCoverLetter } from "@/lib/db/cover-letters";
 import { getJob } from "@/lib/db/jobs";

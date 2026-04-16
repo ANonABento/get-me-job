@@ -1,6 +1,5 @@
 // Server-side PDF generation using Playwright headless Chromium
-
-import { chromium } from "playwright";
+// Playwright is lazily imported to avoid loading ~200MB+ chromium binary at module level
 
 export interface ServerPDFOptions {
   format?: "Letter" | "A4";
@@ -27,6 +26,7 @@ export async function generatePDF(
   html: string,
   options: ServerPDFOptions = {}
 ): Promise<Buffer> {
+  const { chromium } = await import("playwright");
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage();

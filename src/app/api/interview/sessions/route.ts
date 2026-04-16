@@ -1,3 +1,15 @@
+/**
+ * @route GET /api/interview/sessions
+ * @description List all interview sessions
+ * @auth Required
+ * @response InterviewSessionsResponse from @/types/api
+ *
+ * @route POST /api/interview/sessions
+ * @description Create a new interview session
+ * @auth Required
+ * @request { jobId: string, type: string, difficulty: string, questions: object[] }
+ * @response InterviewSessionResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import {
   getInterviewSessions,

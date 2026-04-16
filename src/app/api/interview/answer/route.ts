@@ -1,3 +1,10 @@
+/**
+ * @route POST /api/interview/answer
+ * @description Submit an answer to an interview question and receive AI feedback
+ * @auth Required
+ * @request { jobId: string, question: string, answer: string, difficulty: string }
+ * @response InterviewAnswerResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import { getProfile, getLLMConfig } from "@/lib/db";

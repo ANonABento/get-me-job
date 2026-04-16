@@ -3,6 +3,7 @@ import {
   ALLOWED_MIME_TYPES,
   FILE_SIGNATURES,
   validateFileMagicBytes,
+  fullExportDataSchema,
 } from "./constants";
 
 describe("ALLOWED_MIME_TYPES", () => {
@@ -73,5 +74,63 @@ describe("validateFileMagicBytes", () => {
   it("should reject buffer shorter than signature", () => {
     const shortBuffer = Buffer.from([0x25, 0x50]);
     expect(validateFileMagicBytes(shortBuffer, "application/pdf")).toBe(false);
+  });
+});
+
+describe("fullExportDataSchema", () => {
+  it("should validate a complete export payload", () => {
+    const validExport = {
+      version: "2.0",
+      exportedAt: "2024-01-01T00:00:00.000Z",
+      data: {
+        profile: { contact: { name: "John" } },
+        jobs: [{ id: "j1", title: "Dev", company: "Acme", description: "Build stuff" }],
+        coverLetters: [
+          { id: "cl1", jobId: "j1", content: "Dear...", highlights: ["skill"], version: 1 },
+        ],
+        bankEntries: [
+          { id: "b1", category: "experience", content: { company: "Acme" }, confidenceScore: 0.9 },
+        ],
+        llmConfig: { provider: "openai", model: "gpt-4o" },
+      },
+      stats: { totalJobs: 1, totalCoverLetters: 1, totalBankEntries: 1 },
+    };
+
+    const result = fullExportDataSchema.safeParse(validExport);
+    expect(result.success).toBe(true);
+  });
+
+  it("should reject export without version", () => {
+    const invalid = { data: { jobs: [] } };
+    const result = fullExportDataSchema.safeParse(invalid);
+    expect(result.success).toBe(false);
+  });
+
+  it("should accept minimal export with only version and data", () => {
+    const minimal = { version: "2.0", data: {} };
+    const result = fullExportDataSchema.safeParse(minimal);
+    expect(result.success).toBe(true);
+  });
+
+  it("should validate cover letter schema within export", () => {
+    const withInvalidCoverLetter = {
+      version: "2.0",
+      data: {
+        coverLetters: [{ id: "cl1" }], // missing required fields
+      },
+    };
+    const result = fullExportDataSchema.safeParse(withInvalidCoverLetter);
+    expect(result.success).toBe(false);
+  });
+
+  it("should validate bank entry schema within export", () => {
+    const withInvalidBankEntry = {
+      version: "2.0",
+      data: {
+        bankEntries: [{ id: "b1" }], // missing required fields
+      },
+    };
+    const result = fullExportDataSchema.safeParse(withInvalidBankEntry);
+    expect(result.success).toBe(false);
   });
 });

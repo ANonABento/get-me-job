@@ -1,5 +1,3 @@
-import pdf from "pdf-parse";
-import mammoth from "mammoth";
 import fs from "fs";
 import path from "path";
 import { needsOCRFallback, extractTextWithOCR } from "./ocr";
@@ -9,6 +7,7 @@ function toAbsolutePath(filePath: string): string {
 }
 
 export async function extractTextFromPDF(filePath: string): Promise<string> {
+  const pdf = (await import("pdf-parse")).default;
   const dataBuffer = fs.readFileSync(toAbsolutePath(filePath));
   const data = await pdf(dataBuffer);
 
@@ -20,6 +19,7 @@ export async function extractTextFromPDF(filePath: string): Promise<string> {
 }
 
 export async function extractTextFromDocx(buffer: Buffer): Promise<string> {
+  const mammoth = (await import("mammoth")).default;
   const result = await mammoth.extractRawText({ buffer });
   return result.value;
 }

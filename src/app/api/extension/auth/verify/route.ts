@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/extension/auth/verify
+ * @description Verify an extension authentication token
+ * @auth Token header
+ * @response ExtensionAuthVerifyResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import db from "@/lib/db/schema";
 

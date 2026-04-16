@@ -1,3 +1,10 @@
+/**
+ * @route POST /api/parse
+ * @description Parse resume from uploaded document and extract profile data
+ * @auth Required
+ * @request { documentId: string; strategy?: string }
+ * @response ParseResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getDocuments, getLLMConfig, updateProfile, getProfile } from "@/lib/db";
 import { parseResumeWithLLM, parseResumeBasic } from "@/lib/parser/resume";

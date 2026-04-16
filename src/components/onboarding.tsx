@@ -76,6 +76,42 @@ export function ProgressDots({
     </div>
   );
 }
+const steps = [
+  {
+    title: "Welcome to Taida",
+    description: "Your AI-powered job application command center. Let's get you set up for success.",
+    icon: Rocket,
+    gradient: "from-primary to-accent",
+  },
+  {
+    title: "Upload Your Resume",
+    description: "Start by uploading your resume. Taida will automatically extract and organize your professional information.",
+    icon: Upload,
+    gradient: "from-violet-500 to-purple-400",
+    action: "/bank",
+  },
+  {
+    title: "Build Your Profile",
+    description: "Review and enhance your extracted profile. Add missing details to strengthen your applications.",
+    icon: FileText,
+    gradient: "from-rose-400 to-orange-400",
+    action: "/bank",
+  },
+  {
+    title: "Track Target Jobs",
+    description: "Paste job descriptions to get match scores and generate tailored resumes for each application.",
+    icon: Briefcase,
+    gradient: "from-blue-500 to-indigo-400",
+    action: "/jobs",
+  },
+  {
+    title: "Ace Your Interviews",
+    description: "Practice with AI-powered mock interviews customized to your target roles. Get instant feedback.",
+    icon: MessageSquare,
+    gradient: "from-amber-400 to-orange-400",
+    action: "/interview",
+  },
+];
 
 export function OnboardingDialog() {
   const [open, setOpen] = useState(false);
@@ -151,6 +187,30 @@ export function OnboardingDialog() {
             </Button>
           )}
         </div>
+
+        {/* Features preview for first step */}
+        {currentStep === 0 && (
+          <div className="mt-6 pt-6 border-t">
+            <p className="text-sm font-medium text-muted-foreground mb-3 text-center">
+              What Taida helps you with:
+            </p>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              {[
+                "AI resume parsing",
+                "Job match scoring",
+                "Tailored resumes",
+                "Mock interviews",
+                "Cover letters",
+                "Progress tracking",
+              ].map((feature) => (
+                <div key={feature} className="flex items-center gap-2 text-muted-foreground">
+                  <CheckCircle className="h-3 w-3 text-success" />
+                  {feature}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

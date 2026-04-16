@@ -1,3 +1,10 @@
+/**
+ * @route POST /api/salary/calculate
+ * @description Calculate salary range, total compensation, compare offers, or generate counter-offer
+ * @auth Required
+ * @request { action: "range" | "total-comp" | "compare" | "counter", ...params }
+ * @response SalaryRange from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import {
   calculateSalaryRange,

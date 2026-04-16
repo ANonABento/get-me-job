@@ -1,7 +1,9 @@
 /**
- * Google Sheets Export API
- *
- * POST /api/google/sheets/export - Export data to Google Sheets
+ * @route POST /api/google/sheets/export
+ * @description Export data to Google Sheets
+ * @auth Required
+ * @request { type: string, data?: object }
+ * @response GoogleSheetsExportResponse from @/types/api
  */
 
 import { NextRequest, NextResponse } from "next/server";

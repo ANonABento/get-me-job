@@ -51,7 +51,7 @@ export async function createSpreadsheet(
     const spreadsheetId = response.data.spreadsheetId!;
     const spreadsheetUrl = response.data.spreadsheetUrl!;
 
-    // Move to Get Me Job folder
+    // Move to Taida folder
     const folderId = await getOrCreateRootFolder();
     await drive.files.update({
       fileId: spreadsheetId,

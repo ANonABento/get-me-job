@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/learning/paths
+ * @description Generate personalized learning paths based on profile and job targets
+ * @auth Required
+ * @response LearningPathsResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getProfile, getLLMConfig } from "@/lib/db";
 import { getJobs } from "@/lib/db/jobs";

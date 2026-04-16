@@ -1,3 +1,10 @@
+/**
+ * @route POST /api/extension/auth
+ * @route DELETE /api/extension/auth
+ * @description Create a new extension session token (POST) or revoke an existing token (DELETE)
+ * @auth Clerk
+ * @response ExtensionAuthResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import db from "@/lib/db/schema";

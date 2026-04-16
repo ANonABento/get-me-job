@@ -111,6 +111,7 @@ export function SourceDocuments({
                 e.stopPropagation();
                 setDeleteTarget(doc);
               }}
+              aria-label={`Delete ${doc.filename}`}
             >
               <Trash2 className="h-4 w-4" />
             </Button>

@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/insights
+ * @description Generate AI-powered insights on skill gaps, market trends, and application strategy
+ * @auth Required
+ * @response InsightsResponse from @/types/api
+ */
 import { NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { getProfile } from "@/lib/db";

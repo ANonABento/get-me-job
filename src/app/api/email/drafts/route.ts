@@ -1,3 +1,11 @@
+/**
+ * @route GET /api/email/drafts
+ * @route POST /api/email/drafts
+ * @description List email drafts (GET) or create a new draft (POST)
+ * @auth Required
+ * @request { subject: string, body: string, to?: string, jobId?: string } (POST)
+ * @response EmailDraftsResponse | EmailDraftResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import {
   getEmailDrafts,

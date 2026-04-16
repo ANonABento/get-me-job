@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/profile/bank/search
+ * @description Search bank entries by query string
+ * @auth Required
+ * @response BankEntriesResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { searchBankEntries } from "@/lib/db/profile-bank";
 import { requireAuth, isAuthError } from "@/lib/auth";

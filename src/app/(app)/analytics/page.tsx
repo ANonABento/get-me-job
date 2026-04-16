@@ -103,7 +103,7 @@ export default function AnalyticsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `get-me-job-analytics-${exportRange}.${format}`;
+      a.download = `taida-analytics-${exportRange}.${format}`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {

@@ -53,11 +53,22 @@ import {
   FileDown,
   Mail,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { CoverLetterDialog } from "@/components/cover-letter/cover-letter-dialog";
 import { ImportJobDialog } from "@/components/jobs/import-job-dialog";
-import { ATSScoreBreakdown, ATSScoreBadge } from "@/components/ats/score-breakdown";
 import { GmailImportModal } from "@/components/google";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { SkeletonJobCard } from "@/components/ui/skeleton";
 import type { ATSAnalysisResult } from "@/lib/ats/analyzer";
+
+const ATSScoreBreakdown = dynamic(
+  () => import("@/components/ats/score-breakdown").then((m) => m.ATSScoreBreakdown),
+  { loading: () => <div className="h-32 animate-pulse rounded-lg bg-muted" /> }
+);
+const ATSScoreBadge = dynamic(
+  () => import("@/components/ats/score-breakdown").then((m) => m.ATSScoreBadge),
+  { loading: () => <div className="h-6 w-16 animate-pulse rounded bg-muted" /> }
+);
 
 interface Template {
   id: string;
@@ -279,18 +290,8 @@ export default function JobsPage() {
     setRemoteFilter("all");
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary" />
-          <p className="mt-4 text-muted-foreground">Loading jobs...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
+    <ErrorBoundary>
     <div className="min-h-screen">
       {/* Hero Section */}
       <div className="hero-gradient border-b">
@@ -472,7 +473,13 @@ export default function JobsPage() {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {jobs.length === 0 ? (
+        {loading ? (
+          <div className="grid gap-6 lg:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <SkeletonJobCard key={i} className="rounded-2xl p-5" />
+            ))}
+          </div>
+        ) : jobs.length === 0 ? (
           <EmptyState onAdd={() => setShowAddDialog(true)} />
         ) : filteredJobs.length === 0 ? (
           <div className="rounded-2xl border bg-card p-12 text-center">
@@ -615,6 +622,7 @@ export default function JobsPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </ErrorBoundary>
   );
 }
 

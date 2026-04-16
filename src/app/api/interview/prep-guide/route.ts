@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/interview/prep-guide
+ * @description Generate an interview prep guide for a specific job, returned as JSON or Markdown
+ * @auth Required
+ * @response JSON guide or Markdown document
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import { getProfile, getLLMConfig } from "@/lib/db";

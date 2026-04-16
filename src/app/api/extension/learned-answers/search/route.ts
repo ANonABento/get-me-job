@@ -1,3 +1,10 @@
+/**
+ * @route POST /api/extension/learned-answers/search
+ * @description Search for similar questions in learned answers
+ * @auth Extension token
+ * @request { question: string, threshold?: number }
+ * @response LearnedAnswerSearchResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { requireExtensionAuth, normalizeQuestion, calculateSimilarity } from "@/lib/extension-auth";
 import db from "@/lib/db/schema";

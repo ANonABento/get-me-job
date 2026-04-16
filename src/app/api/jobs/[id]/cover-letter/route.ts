@@ -1,3 +1,9 @@
+/**
+ * @route POST /api/jobs/[id]/cover-letter
+ * @description Generate a cover letter for a job using LLM
+ * @auth Required
+ * @response CoverLetterGenerateResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import { getProfile, getLLMConfig } from "@/lib/db";

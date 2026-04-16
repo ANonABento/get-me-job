@@ -1,7 +1,9 @@
 /**
- * Google Calendar Sync API
- *
- * POST /api/google/calendar/sync - Sync jobs/reminders to Google Calendar
+ * @route POST /api/google/calendar/sync
+ * @description Sync jobs and reminders to Google Calendar
+ * @auth Required
+ * @request { syncType?: "all" | "jobs" | "reminders" }
+ * @response GoogleCalendarSyncResponse from @/types/api
  */
 
 import { NextRequest, NextResponse } from "next/server";

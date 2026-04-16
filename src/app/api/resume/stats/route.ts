@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/resume/stats
+ * @description Calculate conversion rates and performance stats by resume version
+ * @auth Required
+ * @response ResumeStatsResponse from @/types/api
+ */
 import { NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { getTrackingEntries, getTrackedResumeIds } from "@/lib/db/resume-tracking";

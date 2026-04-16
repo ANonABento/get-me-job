@@ -1,3 +1,10 @@
+/**
+ * @route POST /api/salary/negotiate
+ * @description Generate a negotiation script based on offer details and strategy
+ * @auth Required
+ * @request { offerId: string, strategy: string, ...params }
+ * @response NegotiationScript from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getLLMConfig } from "@/lib/db";
 import { LLMClient } from "@/lib/llm/client";

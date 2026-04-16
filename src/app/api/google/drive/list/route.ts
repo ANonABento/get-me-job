@@ -1,7 +1,8 @@
 /**
- * Google Drive List API
- *
- * GET /api/google/drive/list - List files from Google Drive
+ * @route GET /api/google/drive/list
+ * @description List files from Google Drive
+ * @auth Required
+ * @response GoogleDriveListResponse from @/types/api
  */
 
 import { NextRequest, NextResponse } from "next/server";

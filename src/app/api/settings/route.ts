@@ -1,3 +1,12 @@
+/**
+ * @route GET /api/settings
+ * @route PUT /api/settings
+ * @route POST /api/settings
+ * @description Fetch LLM settings (GET), update settings (PUT), or test LLM connection (POST)
+ * @auth Required
+ * @request { provider: string, model: string, ...config } (PUT) | { provider: string, ...config } (POST)
+ * @response SettingsResponse | SettingsUpdateResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getLLMConfig, setLLMConfig } from "@/lib/db";
 import { updateSettingsSchema, llmConfigSchema } from "@/lib/constants";

@@ -1,7 +1,9 @@
 /**
- * Google Drive Import API
- *
- * POST /api/google/drive/import - Download file content from Google Drive
+ * @route POST /api/google/drive/import
+ * @description Download file content from Google Drive
+ * @auth Required
+ * @request { fileId: string }
+ * @response GoogleDriveImportResponse from @/types/api
  */
 
 import { NextRequest, NextResponse } from "next/server";

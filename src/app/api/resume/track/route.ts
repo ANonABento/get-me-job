@@ -1,3 +1,13 @@
+/**
+ * @route GET /api/resume/track
+ * @route POST /api/resume/track
+ * @route PATCH /api/resume/track
+ * @description GET: List tracking entries. POST: Log a resume sent to a company. PATCH: Update tracking outcome.
+ * @auth Required
+ * @request { resumeId: string, jobId: string, company: string } (POST)
+ * @request { trackingId: string, outcome: string } (PATCH)
+ * @response ResumeTrackResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import type { ZodError } from "zod";
 import { requireAuth, isAuthError } from "@/lib/auth";

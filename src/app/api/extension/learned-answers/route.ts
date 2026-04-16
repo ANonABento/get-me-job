@@ -1,3 +1,11 @@
+/**
+ * @route GET /api/extension/learned-answers
+ * @route POST /api/extension/learned-answers
+ * @description List learned answers (GET) or save a new learned answer (POST)
+ * @auth Extension token
+ * @request { question: string, answer: string, source?: string } (POST)
+ * @response LearnedAnswersResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { requireExtensionAuth, normalizeQuestion } from "@/lib/extension-auth";
 import db from "@/lib/db/schema";

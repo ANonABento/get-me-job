@@ -1,3 +1,11 @@
+/**
+ * @route GET /api/backup
+ * @route POST /api/backup
+ * @description GET: Export full backup. POST: Restore from backup.
+ * @auth Required
+ * @request { backup: object } (POST)
+ * @response BackupRestoreResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getProfile, getDocuments, getLLMConfig, updateProfile, setLLMConfig } from "@/lib/db";
 import { getJobs, createJob } from "@/lib/db/jobs";
@@ -44,7 +52,7 @@ export async function GET() {
     return new NextResponse(JSON.stringify(backup, null, 2), {
       headers: {
         "Content-Type": "application/json",
-        "Content-Disposition": `attachment; filename="get-me-job-backup-${new Date().toISOString().split("T")[0]}.json"`,
+        "Content-Disposition": `attachment; filename="taida-backup-${new Date().toISOString().split("T")[0]}.json"`,
       },
     });
   } catch (error) {

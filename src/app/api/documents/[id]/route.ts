@@ -1,3 +1,9 @@
+/**
+ * @route DELETE /api/documents/[id]
+ * @description Delete a document and its associated file from disk
+ * @auth Required
+ * @response DocumentDeleteResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { unlink } from "fs/promises";

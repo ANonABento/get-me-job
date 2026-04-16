@@ -1,3 +1,10 @@
+/**
+ * @route POST /api/templates/analyze
+ * @description Analyze a resume template's styling and structure using LLM
+ * @auth Required
+ * @request { templateContent: string }
+ * @response TemplateAnalyzeResponse from @/types/api
+ */
 import { NextRequest } from "next/server";
 import { getLLMConfig } from "@/lib/db";
 import { LLMClient } from "@/lib/llm/client";

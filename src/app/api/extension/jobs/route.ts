@@ -1,3 +1,10 @@
+/**
+ * @route POST /api/extension/jobs
+ * @description Import a job from the browser extension
+ * @auth Extension token
+ * @request { title: string, company: string, url?: string, description?: string }
+ * @response Job object
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { requireExtensionAuth } from "@/lib/extension-auth";
 import { createJob } from "@/lib/db/jobs";

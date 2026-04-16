@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/jobs/templates
+ * @description List all built-in and custom resume templates
+ * @auth Required
+ * @response ResumeTemplatesResponse from @/types/api
+ */
 import { TEMPLATES } from "@/lib/resume/pdf";
 import { getCustomTemplates } from "@/lib/db/custom-templates";
 import { requireAuth, isAuthError } from "@/lib/auth";

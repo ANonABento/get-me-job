@@ -1,3 +1,9 @@
+/**
+ * @route POST /api/profile/versions/[id]/restore
+ * @description Restore profile to a previous version
+ * @auth Required
+ * @response MessageResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { getProfileVersion } from "@/lib/db/profile-versions";

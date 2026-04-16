@@ -1,3 +1,10 @@
+/**
+ * @route POST /api/interview/followup
+ * @description Generate a follow-up interview question based on previous Q&A context
+ * @auth Required
+ * @request { jobId: string, previousQuestion: string, previousAnswer: string, feedback: string }
+ * @response InterviewFollowupResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import { getProfile, getLLMConfig } from "@/lib/db";

@@ -1,3 +1,11 @@
+/**
+ * @route GET /api/notifications
+ * @route POST /api/notifications
+ * @description GET: List notifications. POST: Mark all read or delete read notifications.
+ * @auth Required
+ * @request { action: "mark_all_read" | "delete_read" }
+ * @response NotificationsResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import {
   getNotifications,

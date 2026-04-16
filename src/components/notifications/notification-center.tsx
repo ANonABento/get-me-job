@@ -185,6 +185,8 @@ export function NotificationCenter({ collapsed = false }: NotificationCenterProp
 
           {/* Panel */}
           <div
+            role="dialog"
+            aria-label="Notifications"
             className={cn(
               "absolute z-50 w-80 max-h-[70vh] flex flex-col bg-card border rounded-xl shadow-xl",
               collapsed
@@ -202,6 +204,7 @@ export function NotificationCenter({ collapsed = false }: NotificationCenterProp
                     onClick={handleMarkAllRead}
                     className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
                     title="Mark all as read"
+                    aria-label="Mark all as read"
                   >
                     <CheckCheck className="h-4 w-4" />
                   </button>
@@ -211,6 +214,7 @@ export function NotificationCenter({ collapsed = false }: NotificationCenterProp
                     onClick={handleDeleteRead}
                     className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
                     title="Delete read notifications"
+                    aria-label="Delete read notifications"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -218,6 +222,7 @@ export function NotificationCenter({ collapsed = false }: NotificationCenterProp
                 <button
                   onClick={() => setIsOpen(false)}
                   className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
+                  aria-label="Close notifications"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -272,6 +277,7 @@ export function NotificationCenter({ collapsed = false }: NotificationCenterProp
                                     }}
                                     className="p-1 text-muted-foreground hover:text-foreground rounded hover:bg-muted transition-colors"
                                     title="Mark as read"
+                                    aria-label="Mark as read"
                                   >
                                     <Check className="h-3.5 w-3.5" />
                                   </button>
@@ -284,6 +290,7 @@ export function NotificationCenter({ collapsed = false }: NotificationCenterProp
                                   }}
                                   className="p-1 text-muted-foreground hover:text-red-500 rounded hover:bg-muted transition-colors"
                                   title="Delete"
+                                  aria-label="Delete notification"
                                 >
                                   <X className="h-3.5 w-3.5" />
                                 </button>

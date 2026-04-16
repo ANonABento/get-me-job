@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/export/jobs
+ * @description Export jobs as CSV or JSON format
+ * @auth Required
+ * @response CSV file (text/csv) or JSON array
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getJobs } from "@/lib/db/jobs";
 import { requireAuth, isAuthError } from "@/lib/auth";
@@ -55,7 +61,7 @@ export async function GET(request: NextRequest) {
       return new NextResponse(csv, {
         headers: {
           "Content-Type": "text/csv",
-          "Content-Disposition": `attachment; filename="get-me-job-jobs-${new Date().toISOString().split("T")[0]}.csv"`,
+          "Content-Disposition": `attachment; filename="taida-jobs-${new Date().toISOString().split("T")[0]}.csv"`,
         },
       });
     }
@@ -88,7 +94,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(JSON.stringify(exportData, null, 2), {
       headers: {
         "Content-Type": "application/json",
-        "Content-Disposition": `attachment; filename="get-me-job-jobs-${new Date().toISOString().split("T")[0]}.json"`,
+        "Content-Disposition": `attachment; filename="taida-jobs-${new Date().toISOString().split("T")[0]}.json"`,
       },
     });
   } catch (error) {

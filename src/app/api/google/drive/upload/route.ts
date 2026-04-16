@@ -1,7 +1,9 @@
 /**
- * Google Drive Upload API
- *
- * POST /api/google/drive/upload - Upload file to Google Drive
+ * @route POST /api/google/drive/upload
+ * @description Upload file to Google Drive (FormData: file, type, fileName, createShareableLink)
+ * @auth Required
+ * @request FormData { file: File, type: "resume" | "cover_letter" | "backup", fileName?: string, createShareableLink?: string, content?: string }
+ * @response GoogleDriveUploadResponse from @/types/api
  */
 
 import { NextRequest, NextResponse } from "next/server";

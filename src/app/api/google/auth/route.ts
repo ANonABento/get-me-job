@@ -1,7 +1,8 @@
 /**
- * Google Auth Status API
- *
- * GET /api/google/auth - Check if Google account is connected
+ * @route GET /api/google/auth
+ * @description Check Google connection status
+ * @auth Required
+ * @response GoogleAuthStatusResponse from @/types/api
  */
 
 import { NextResponse } from "next/server";

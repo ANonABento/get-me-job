@@ -158,8 +158,20 @@ export async function resetAppState(page: Page): Promise<void> {
  */
 export async function skipOnboardingSetup(page: Page): Promise<void> {
   await page.evaluate(() => {
-    localStorage.setItem("onboarding_completed", "true");
+    localStorage.setItem("get_me_job_onboarding_completed", "true");
   });
+}
+
+/**
+ * Navigates to the bank (documents) page and waits for it to load.
+ */
+export async function navigateToBank(page: Page): Promise<void> {
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.setItem("get_me_job_onboarding_completed", "true");
+  });
+  await page.goto("/bank");
+  await page.waitForLoadState("networkidle");
 }
 
 /**

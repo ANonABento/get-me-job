@@ -1,3 +1,11 @@
+/**
+ * @route GET /api/salary/offers
+ * @route POST /api/salary/offers
+ * @description List all salary offers with stats (GET) or create a new offer (POST)
+ * @auth Required
+ * @request { company: string, role: string, baseSalary: number, ...params } (POST)
+ * @response SalaryOffersResponse | SalaryOfferResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import {
   getSalaryOffers,

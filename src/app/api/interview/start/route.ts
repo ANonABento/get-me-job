@@ -1,3 +1,10 @@
+/**
+ * @route POST /api/interview/start
+ * @description Generate interview questions for a job (rate-limited)
+ * @auth Required
+ * @request { jobId: string, difficulty: InterviewDifficulty, questionCount?: number }
+ * @response InterviewStartResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import { getProfile, getLLMConfig } from "@/lib/db";

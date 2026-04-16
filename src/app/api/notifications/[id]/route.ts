@@ -1,3 +1,10 @@
+/**
+ * @route PATCH /api/notifications/[id]
+ * @route DELETE /api/notifications/[id]
+ * @description PATCH: Mark notification as read. DELETE: Remove notification.
+ * @auth Required
+ * @response DeleteResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import {
   markNotificationRead,

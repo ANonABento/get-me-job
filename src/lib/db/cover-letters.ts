@@ -122,3 +122,15 @@ export function getCoverLetterCount(
     .get(jobId, userId) as { count: number };
   return result.count;
 }
+
+export function getAllCoverLetters(
+  userId: string = "default"
+): CoverLetter[] {
+  const rows = db
+    .prepare(
+      "SELECT * FROM cover_letters WHERE profile_id = ? ORDER BY created_at DESC"
+    )
+    .all(userId) as CoverLetterRow[];
+
+  return rows.map(rowToCoverLetter);
+}

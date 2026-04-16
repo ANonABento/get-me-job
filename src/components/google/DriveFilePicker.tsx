@@ -157,7 +157,7 @@ export function DriveFilePicker({
               <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
               <p className="text-muted-foreground">No files found in this folder</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Upload files to your Get Me Job folder in Google Drive
+                Upload files to your Taida folder in Google Drive
               </p>
             </div>
           ) : (

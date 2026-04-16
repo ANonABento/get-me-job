@@ -1,3 +1,9 @@
+/**
+ * @route POST /api/jobs/[id]/cover-letter/stream
+ * @description Stream cover letter generation via Server-Sent Events (SSE)
+ * @auth Required
+ * @response Server-Sent Events stream
+ */
 import { NextRequest } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import { getProfile, getLLMConfig } from "@/lib/db";

@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/calendar/feed
+ * @description Generate a live ICS feed for external calendar subscriptions
+ * @auth Token-based (no requireAuth)
+ * @response ICS file (text/calendar)
+ */
 import { NextRequest } from "next/server";
 import { getJobs } from "@/lib/db/jobs";
 import { getReminders } from "@/lib/db/reminders";

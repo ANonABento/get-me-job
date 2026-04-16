@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/profile/versions
+ * @description List all saved profile versions
+ * @auth Required
+ * @response ProfileVersionsResponse from @/types/api
+ */
 import { NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { listProfileVersions } from "@/lib/db/profile-versions";

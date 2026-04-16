@@ -1,3 +1,10 @@
+/**
+ * @route POST /api/resume/generate
+ * @description Generate a tailored resume from the knowledge bank
+ * @auth Required
+ * @request { jobId: string, options?: { tone?: string, length?: string } }
+ * @response ResumeGenerateResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth, isAuthError } from "@/lib/auth";

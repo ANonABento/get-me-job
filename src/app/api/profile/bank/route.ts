@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/profile/bank
+ * @description Get grouped bank entries by category
+ * @auth Required
+ * @response BankEntriesResponse from @/types/api
+ */
 import { NextResponse } from "next/server";
 import { getGroupedBankEntries } from "@/lib/db/profile-bank";
 import { requireAuth, isAuthError } from "@/lib/auth";
