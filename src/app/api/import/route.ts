@@ -5,14 +5,9 @@ import { getAllGeneratedResumes } from "@/lib/db/resumes";
 import { getAllCoverLetters, saveCoverLetter } from "@/lib/db/cover-letters";
 import { getBankEntries, insertBankEntry, getDeduplicationKey, findDuplicateEntry } from "@/lib/db/profile-bank";
 import { generateId } from "@/lib/utils";
-import { fullExportDataSchema } from "@/lib/constants";
+import { fullExportDataSchema, JOB_TYPES, JOB_STATUSES, LLM_PROVIDERS } from "@/lib/constants";
 import { requireAuth, isAuthError } from "@/lib/auth";
-import type { BankCategory } from "@/types";
-
-const VALID_JOB_TYPES = ["full-time", "part-time", "contract", "internship"] as const;
-const VALID_STATUSES = ["saved", "applied", "interviewing", "offered", "rejected", "withdrawn"] as const;
-const VALID_PROVIDERS = ["openai", "anthropic", "ollama", "openrouter"] as const;
-const VALID_BANK_CATEGORIES: BankCategory[] = ["experience", "skill", "project", "education", "achievement", "certification"];
+import { BANK_CATEGORIES, type BankCategory } from "@/types";
 
 // POST - Import data from full export JSON
 export async function POST(request: NextRequest) {
@@ -112,11 +107,11 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        const jobType = VALID_JOB_TYPES.includes(job.type as typeof VALID_JOB_TYPES[number])
-          ? (job.type as typeof VALID_JOB_TYPES[number])
+        const jobType = JOB_TYPES.includes(job.type as typeof JOB_TYPES[number])
+          ? (job.type as typeof JOB_TYPES[number])
           : undefined;
-        const jobStatus = VALID_STATUSES.includes((job.status || "saved") as typeof VALID_STATUSES[number])
-          ? ((job.status || "saved") as typeof VALID_STATUSES[number])
+        const jobStatus = JOB_STATUSES.includes((job.status || "saved") as typeof JOB_STATUSES[number])
+          ? ((job.status || "saved") as typeof JOB_STATUSES[number])
           : "saved";
 
         createJob({
@@ -163,7 +158,7 @@ export async function POST(request: NextRequest) {
     if (exportData.data.bankEntries && Array.isArray(exportData.data.bankEntries)) {
       for (const entry of exportData.data.bankEntries) {
         const category = entry.category as BankCategory;
-        if (!VALID_BANK_CATEGORIES.includes(category)) {
+        if (!BANK_CATEGORIES.includes(category)) {
           results.bankEntries.skipped++;
           continue;
         }
@@ -190,9 +185,9 @@ export async function POST(request: NextRequest) {
     // Restore LLM config
     if (exportData.data.llmConfig) {
       const config = exportData.data.llmConfig;
-      if (VALID_PROVIDERS.includes(config.provider as typeof VALID_PROVIDERS[number])) {
+      if (LLM_PROVIDERS.includes(config.provider as typeof LLM_PROVIDERS[number])) {
         setLLMConfig({
-          provider: config.provider as typeof VALID_PROVIDERS[number],
+          provider: config.provider as typeof LLM_PROVIDERS[number],
           apiKey: config.apiKey,
           baseUrl: config.baseUrl,
           model: config.model,
