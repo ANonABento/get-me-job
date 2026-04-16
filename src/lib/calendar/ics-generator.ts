@@ -27,7 +27,7 @@ function escapeICSText(text: string): string {
 }
 
 function generateUID(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@get-me-job`;
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@taida`;
 }
 
 export function generateICSEvent(event: CalendarEvent): string {
@@ -40,7 +40,7 @@ export function generateICSEvent(event: CalendarEvent): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Get Me Job Assistant//EN",
+    "PRODID:-//Taida//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
@@ -89,10 +89,10 @@ export function generateICSCalendar(events: CalendarEvent[]): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Get Me Job Assistant//EN",
+    "PRODID:-//Taida//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    "X-WR-CALNAME:Get Me Job Search",
+    "X-WR-CALNAME:Taida Job Search",
   ];
 
   for (const event of events) {
