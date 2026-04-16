@@ -1,8 +1,17 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Privacy Policy | Get Me Job",
-  description: "How Get Me Job stores, uses, and protects your job search data.",
+  title: "Privacy Policy",
+  description: "How Taida stores, uses, and protects your job search data.",
+  openGraph: {
+    title: "Privacy Policy",
+    description: "How Taida stores, uses, and protects your job search data.",
+    url: "/privacy",
+  },
+  twitter: {
+    title: "Privacy Policy",
+    description: "How Taida stores, uses, and protects your job search data.",
+  },
 };
 
 export default function PrivacyPage() {
