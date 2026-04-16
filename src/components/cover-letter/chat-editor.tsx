@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -43,9 +43,6 @@ export function ChatEditor({ jobDescription, jobTitle, company, initialContent }
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-
   const currentVersion = currentVersionIndex >= 0 ? versions[currentVersionIndex] : null;
 
   const generate = useCallback(async () => {
@@ -77,7 +74,7 @@ export function ChatEditor({ jobDescription, jobTitle, company, initialContent }
       };
       setVersions([newVersion]);
       setCurrentVersionIndex(0);
-    } catch (err) {
+    } catch {
       setError("Network error. Please try again.");
     } finally {
       setIsGenerating(false);
@@ -119,7 +116,7 @@ export function ChatEditor({ jobDescription, jobTitle, company, initialContent }
       setVersions(newVersions);
       setCurrentVersionIndex(newVersions.length - 1);
       setInstruction("");
-    } catch (err) {
+    } catch {
       setError("Network error. Please try again.");
     } finally {
       setIsGenerating(false);
@@ -257,7 +254,6 @@ export function ChatEditor({ jobDescription, jobTitle, company, initialContent }
 
       {/* Cover letter content */}
       <div
-        ref={contentRef}
         className="flex-1 min-h-[300px] rounded-lg border bg-card p-6 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed"
       >
         {isGenerating && !currentVersion ? (
@@ -277,7 +273,6 @@ export function ChatEditor({ jobDescription, jobTitle, company, initialContent }
       {/* Chat input */}
       <div className="flex gap-2 items-end">
         <Textarea
-          ref={textareaRef}
           value={instruction}
           onChange={(e) => setInstruction(e.target.value)}
           onKeyDown={handleKeyDown}

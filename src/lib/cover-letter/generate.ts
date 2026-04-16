@@ -9,18 +9,6 @@ export interface CoverLetterInput {
   userName?: string;
 }
 
-export interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
-}
-
-export interface CoverLetterVersion {
-  id: string;
-  content: string;
-  instruction: string;
-  createdAt: string;
-}
-
 function formatBankContext(bankEntries: GroupedBankEntries): string {
   const sections: string[] = [];
 
