@@ -1,3 +1,9 @@
+/**
+ * @route POST /api/jobs/[id]/analyze
+ * @description Analyze candidate fit against a job using LLM-powered matching
+ * @auth Required
+ * @response JobAnalysisResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import { getProfile, getLLMConfig } from "@/lib/db";

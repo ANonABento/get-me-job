@@ -1,3 +1,13 @@
+/**
+ * @route GET /api/templates
+ * @route POST /api/templates
+ * @route DELETE /api/templates
+ * @route PATCH /api/templates
+ * @description List templates (GET), create a template (POST), delete a template (DELETE), or rename a template (PATCH)
+ * @auth Required
+ * @request { name: string, content: string } (POST) | { id: string } (DELETE) | { id: string, name: string } (PATCH)
+ * @response TemplatesResponse from @/types/api
+ */
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import {

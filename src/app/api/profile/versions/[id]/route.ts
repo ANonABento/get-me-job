@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/profile/versions/[id]
+ * @description Fetch a specific profile version by ID
+ * @auth Required
+ * @response ProfileVersionResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { getProfileVersion } from "@/lib/db/profile-versions";

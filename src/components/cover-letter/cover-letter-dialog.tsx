@@ -250,6 +250,8 @@ export function CoverLetterDialog({
           <div
             ref={contentRef}
             className="flex-1 min-h-[300px] max-h-[400px] overflow-y-auto rounded-lg border bg-muted/30 p-4"
+            aria-live="polite"
+            aria-label="Cover letter content"
           >
             {loading ? (
               <div className="space-y-2">

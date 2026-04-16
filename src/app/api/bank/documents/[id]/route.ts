@@ -1,3 +1,9 @@
+/**
+ * @route DELETE /api/bank/documents/[id]
+ * @description Delete source document and cascade delete bank chunks
+ * @auth Required
+ * @response BankDocumentDeleteResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { deleteSourceDocument } from "@/lib/db/profile-bank";

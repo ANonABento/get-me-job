@@ -26,11 +26,11 @@ export interface UploadResult {
   error?: string;
 }
 
-const ROOT_FOLDER_NAME = "Get Me Job";
+const ROOT_FOLDER_NAME = "Taida";
 const SUBFOLDERS = ["Resumes", "Cover Letters", "Company Research", "Backups"];
 
 /**
- * Get or create the root "Get Me Job" folder
+ * Get or create the root "Taida" folder
  */
 export async function getOrCreateRootFolder(): Promise<string> {
   const drive = await createDriveClient();

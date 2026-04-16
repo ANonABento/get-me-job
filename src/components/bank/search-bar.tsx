@@ -1,5 +1,6 @@
 "use client";
 
+import { forwardRef } from "react";
 import { Input } from "@/components/ui/input";
 import { BANK_CATEGORIES, type BankCategory } from "@/types";
 import { Search, X } from "lucide-react";
@@ -26,7 +27,7 @@ interface SearchBarProps {
   counts: Record<string, number>;
 }
 
-export function SearchBar({
+export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function SearchBar({
   query,
   onQueryChange,
   activeCategory,
@@ -34,7 +35,7 @@ export function SearchBar({
   sortBy,
   onSortChange,
   counts,
-}: SearchBarProps) {
+}, ref) {
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
 
   return (
@@ -44,15 +45,18 @@ export function SearchBar({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
+            ref={ref}
             placeholder="Search your knowledge bank..."
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             className="pl-10 pr-10"
+            title="Press / to focus"
           />
           {query && (
             <button
               onClick={() => onQueryChange("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Clear search"
             >
               <X className="h-4 w-4" />
             </button>
@@ -62,6 +66,7 @@ export function SearchBar({
           value={sortBy}
           onChange={(e) => onSortChange(e.target.value as SortOption)}
           className="rounded-lg border bg-background px-3 py-2 text-sm"
+          aria-label="Sort order"
         >
           <option value="date">Newest</option>
           <option value="confidence">Confidence</option>
@@ -99,7 +104,7 @@ export function SearchBar({
       </div>
     </div>
   );
-}
+});
 
 export { CATEGORY_LABELS };
 export type { SortOption };

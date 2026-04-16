@@ -1,3 +1,16 @@
+/**
+ * @route GET /api/jobs/[id]
+ * @description Fetch a single job by ID
+ * @route PUT /api/jobs/[id]
+ * @description Full update of a job
+ * @route PATCH /api/jobs/[id]
+ * @description Partial update of a job (e.g. status change)
+ * @route DELETE /api/jobs/[id]
+ * @description Delete a job by ID
+ * @auth Required
+ * @request { title?: string, company?: string, status?: string, ... } (PUT/PATCH)
+ * @response JobResponse | JobDeleteResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getJob, updateJob, deleteJob } from "@/lib/db/jobs";
 import { updateJobSchema } from "@/lib/constants";

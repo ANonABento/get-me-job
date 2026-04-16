@@ -1,7 +1,8 @@
 /**
- * Gmail Scan API
- *
- * GET /api/google/gmail/scan - Scan inbox for job-related emails
+ * @route GET /api/google/gmail/scan
+ * @description Scan inbox for job-related emails
+ * @auth Required
+ * @response GoogleGmailScanResponse from @/types/api
  */
 
 import { NextRequest, NextResponse } from "next/server";

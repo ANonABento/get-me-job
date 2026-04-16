@@ -1,3 +1,11 @@
+/**
+ * @route PATCH /api/extension/learned-answers/[id]
+ * @route DELETE /api/extension/learned-answers/[id]
+ * @description Update or delete a learned answer by ID
+ * @auth Extension token
+ * @request { answer?: string, question?: string } (PATCH)
+ * @response Updated or deleted learned answer
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { requireExtensionAuth } from "@/lib/extension-auth";
 import db from "@/lib/db/schema";

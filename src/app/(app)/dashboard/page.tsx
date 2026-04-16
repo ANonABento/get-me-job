@@ -22,6 +22,8 @@ import {
   LogIn,
 } from "lucide-react";
 import { InsightsPanel } from "@/components/dashboard/insights-panel";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { SkeletonStatCard, SkeletonInsights } from "@/components/ui/skeleton";
 
 interface Stats {
   documentsCount: number;
@@ -191,17 +193,18 @@ export default function Dashboard() {
   }
 
   return (
+    <ErrorBoundary>
     <div className="min-h-screen">
       {/* Hero Section */}
       <div className="hero-gradient border-b">
-        <div className="max-w-6xl mx-auto px-6 py-12 lg:py-16 grain">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12 lg:py-16 grain">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
             <div className="space-y-4 animate-in">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
                 <Sparkles className="h-4 w-4" />
                 AI-Powered Job Assistant
               </div>
-              <h1 className="text-4xl lg:text-5xl font-bold tracking-tight">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
                 Land your dream job<br />
                 <span className="gradient-text">with confidence</span>
               </h1>
@@ -228,48 +231,56 @@ export default function Dashboard() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-2 gap-4 lg:w-80">
-              <div className="rounded-xl border bg-card p-4 col-span-2">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-muted-foreground">Profile Completeness</span>
-                  <span className="text-sm font-semibold">{stats.profileCompleteness}%</span>
-                </div>
-                <Progress value={stats.profileCompleteness} className="h-2" />
-              </div>
-              <StatCard
-                icon={Briefcase}
-                label="Jobs Tracked"
-                value={stats.jobsCount.toString()}
-                color="text-primary"
-                loading={loading}
-              />
-              <StatCard
-                icon={Star}
-                label="Applied"
-                value={stats.appliedJobs.toString()}
-                color="text-warning"
-                loading={loading}
-              />
-              <StatCard
-                icon={MessageSquare}
-                label="Interviews"
-                value={stats.interviewsCount.toString()}
-                color="text-success"
-                loading={loading}
-              />
-              <StatCard
-                icon={TrendingUp}
-                label="Progress"
-                value={`${completedSteps}/4`}
-                color="text-accent"
-                loading={loading}
-              />
+              {loading ? (
+                <>
+                  <SkeletonStatCard className="col-span-2" />
+                  <SkeletonStatCard />
+                  <SkeletonStatCard />
+                  <SkeletonStatCard />
+                  <SkeletonStatCard />
+                </>
+              ) : (
+                <>
+                  <div className="rounded-xl border bg-card p-4 col-span-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-muted-foreground">Profile Completeness</span>
+                      <span className="text-sm font-semibold">{stats.profileCompleteness}%</span>
+                    </div>
+                    <Progress value={stats.profileCompleteness} className="h-2" />
+                  </div>
+                  <StatCard
+                    icon={Briefcase}
+                    label="Jobs Tracked"
+                    value={stats.jobsCount.toString()}
+                    color="text-primary"
+                  />
+                  <StatCard
+                    icon={Star}
+                    label="Applied"
+                    value={stats.appliedJobs.toString()}
+                    color="text-warning"
+                  />
+                  <StatCard
+                    icon={MessageSquare}
+                    label="Interviews"
+                    value={stats.interviewsCount.toString()}
+                    color="text-success"
+                  />
+                  <StatCard
+                    icon={TrendingUp}
+                    label="Progress"
+                    value={`${completedSteps}/4`}
+                    color="text-accent"
+                  />
+                </>
+              )}
             </div>
           </div>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold">Quick Actions</h2>
           <span className="text-sm text-muted-foreground">Get started in minutes</span>
@@ -308,13 +319,13 @@ export default function Dashboard() {
       </div>
 
       {/* AI Insights */}
-      <div className="max-w-6xl mx-auto px-6 pb-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-8">
         <InsightsPanel />
       </div>
 
       {/* Smart Insights Row */}
       {(recommendations.length > 0 || skillGaps.length > 0) && (
-        <div className="max-w-6xl mx-auto px-6 pb-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-8">
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Job Recommendations */}
             {recommendations.length > 0 && (
@@ -400,7 +411,7 @@ export default function Dashboard() {
 
       {/* Recent Activity */}
       {recentJobs.length > 0 && (
-        <div className="max-w-6xl mx-auto px-6 pb-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold">Recent Jobs</h2>
             <Link href="/jobs" className="text-sm text-primary hover:underline flex items-center gap-1">
@@ -436,7 +447,7 @@ export default function Dashboard() {
       )}
 
       {/* Getting Started Journey */}
-      <div className="max-w-6xl mx-auto px-6 pb-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-12">
         <div className="rounded-2xl border bg-card p-6 lg:p-8">
           <div className="flex items-center gap-3 mb-8">
             <div className="p-2 rounded-xl gradient-bg text-white">
@@ -481,6 +492,7 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+    </ErrorBoundary>
   );
 }
 
@@ -489,13 +501,11 @@ function StatCard({
   label,
   value,
   color,
-  loading,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   color: string;
-  loading: boolean;
 }) {
   return (
     <div className="rounded-xl border bg-card p-4 space-y-2">
@@ -503,11 +513,7 @@ function StatCard({
         <Icon className="h-4 w-4" />
         <span className="text-xs font-medium">{label}</span>
       </div>
-      {loading ? (
-        <div className="h-6 w-16 skeleton rounded" />
-      ) : (
-        <p className={`text-lg font-bold ${color}`}>{value}</p>
-      )}
+      <p className={`text-lg font-bold ${color}`}>{value}</p>
     </div>
   );
 }

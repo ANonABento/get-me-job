@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/extension/profile
+ * @description Fetch user profile with computed auto-fill values for the browser extension
+ * @auth Extension token
+ * @response ExtensionProfileResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { requireExtensionAuth } from "@/lib/extension-auth";
 import { getProfile } from "@/lib/db/queries";

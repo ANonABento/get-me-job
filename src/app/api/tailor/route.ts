@@ -1,3 +1,11 @@
+/**
+ * @route GET /api/tailor
+ * @route POST /api/tailor
+ * @description List tailored resume templates (GET) or analyze a JD / generate a tailored resume from bank (POST)
+ * @auth Required
+ * @request { action: "analyze" | "generate", jobDescription: string, ...params } (POST)
+ * @response TailorAnalysisResponse | TailorGenerateResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getProfile, getLLMConfig, saveGeneratedResume } from "@/lib/db";
 import { getGroupedBankEntries } from "@/lib/db/profile-bank";

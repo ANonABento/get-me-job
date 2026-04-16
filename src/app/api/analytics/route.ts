@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/analytics
+ * @description Fetch overview analytics
+ * @auth Required
+ * @response AnalyticsOverviewResponse from @/types/api
+ */
 import { NextResponse } from "next/server";
 import { getJobs } from "@/lib/db/jobs";
 import { getProfile, getDocuments } from "@/lib/db";

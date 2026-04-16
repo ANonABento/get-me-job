@@ -1,3 +1,10 @@
+/**
+ * @route POST /api/resumes/compare
+ * @description Compare two resume versions with section-level scoring and metrics
+ * @auth Required
+ * @request { resumeIdA: string, resumeIdB: string }
+ * @response ResumeCompareResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getGeneratedResume } from "@/lib/db/resumes";
 import { compareResumes, calculateSectionScores, calculateResumeMetrics } from "@/lib/resume/compare";

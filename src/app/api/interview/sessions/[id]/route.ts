@@ -1,3 +1,20 @@
+/**
+ * @route GET /api/interview/sessions/[id]
+ * @description Fetch a single interview session by ID
+ * @auth Required
+ * @response InterviewSessionResponse from @/types/api
+ *
+ * @route PATCH /api/interview/sessions/[id]
+ * @description Update an interview session (e.g., mark as complete)
+ * @auth Required
+ * @request { status?: string, score?: number }
+ * @response InterviewSessionResponse from @/types/api
+ *
+ * @route DELETE /api/interview/sessions/[id]
+ * @description Delete an interview session
+ * @auth Required
+ * @response InterviewSessionResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import {
   getInterviewSession,

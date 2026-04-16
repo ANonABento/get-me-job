@@ -1,3 +1,11 @@
+/**
+ * @route GET /api/reminders
+ * @route POST /api/reminders
+ * @description GET: List reminders with filters. POST: Create a new reminder.
+ * @auth Required
+ * @request { jobId: string, type: string, title: string, description?: string, dueDate: string } (POST)
+ * @response RemindersResponse | ReminderCreateResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import {
   getReminders,

@@ -1,3 +1,12 @@
+/**
+ * @route GET /api/salary/offers/[id]
+ * @route PUT /api/salary/offers/[id]
+ * @route DELETE /api/salary/offers/[id]
+ * @description Fetch (GET), update (PUT), or delete (DELETE) a single salary offer
+ * @auth Required
+ * @request { company: string, role: string, baseSalary: number, ...params } (PUT)
+ * @response SalaryOfferResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import {
   getSalaryOffer,

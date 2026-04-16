@@ -1,3 +1,12 @@
+/**
+ * @route GET /api/jobs/[id]/generate
+ * @description List available resume templates for generation
+ * @route POST /api/jobs/[id]/generate
+ * @description Generate a tailored resume for a job using LLM
+ * @auth Required
+ * @request { templateId?: string } (POST)
+ * @response ResumeTemplatesResponse | ResumeGenerateResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import { getProfile, getLLMConfig, saveGeneratedResume } from "@/lib/db";

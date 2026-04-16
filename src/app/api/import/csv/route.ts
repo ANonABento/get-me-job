@@ -1,3 +1,16 @@
+/**
+ * @route POST /api/import/csv
+ * @description Parse CSV file and return preview of parsed job rows
+ * @auth Required
+ * @request { csv: string }
+ * @response ImportCSVPreviewResponse from @/types/api
+ *
+ * @route PUT /api/import/csv
+ * @description Import validated jobs from CSV preview data
+ * @auth Required
+ * @request { jobs: CSVJobRow[] }
+ * @response ImportCSVResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { createJob } from "@/lib/db/jobs";
 import { requireAuth, isAuthError } from "@/lib/auth";

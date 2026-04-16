@@ -1,3 +1,10 @@
+/**
+ * @route POST /api/upload
+ * @description Upload a document (resume/cover letter) with automatic parsing and profile bank ingestion
+ * @auth Required
+ * @request FormData with file field
+ * @response UploadResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";

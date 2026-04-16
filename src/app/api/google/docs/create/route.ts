@@ -1,7 +1,9 @@
 /**
- * Google Docs Create API
- *
- * POST /api/google/docs/create - Create a new Google Doc
+ * @route POST /api/google/docs/create
+ * @description Create a new Google Doc (resume, cover letter, or notes)
+ * @auth Required
+ * @request { type: string, ...data: object }
+ * @response GoogleDocsCreateResponse from @/types/api
  */
 
 import { NextRequest, NextResponse } from "next/server";

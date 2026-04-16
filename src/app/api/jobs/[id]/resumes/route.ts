@@ -1,3 +1,11 @@
+/**
+ * @route GET /api/jobs/[id]/resumes
+ * @description List all generated resumes for a job
+ * @route DELETE /api/jobs/[id]/resumes
+ * @description Remove a generated resume by ID
+ * @auth Required
+ * @response ResumesListResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getGeneratedResumes, deleteGeneratedResume } from "@/lib/db";
 import { unlink } from "fs/promises";

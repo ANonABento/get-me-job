@@ -1,3 +1,12 @@
+/**
+ * @route GET /api/email/drafts/[id]
+ * @route PUT /api/email/drafts/[id]
+ * @route DELETE /api/email/drafts/[id]
+ * @description Email draft CRUD - fetch, update, or delete a single draft
+ * @auth Required
+ * @request { subject?: string, body?: string, to?: string, status?: string } (PUT)
+ * @response EmailDraftResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import {
   getEmailDraft,

@@ -1,3 +1,12 @@
+/**
+ * @route GET /api/jobs
+ * @description List all jobs for the current user
+ * @route POST /api/jobs
+ * @description Create a new job with LLM-powered keyword extraction
+ * @auth Required
+ * @request { title: string, company: string, url?: string, description: string, location?: string, salary?: string, jobType?: string }
+ * @response JobsResponse | JobResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getJobs, createJob } from "@/lib/db/jobs";
 import { getLLMConfig } from "@/lib/db";

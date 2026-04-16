@@ -1,3 +1,10 @@
+/**
+ * @route POST /api/email/generate
+ * @description Generate an email from a template or via LLM based on job and profile context
+ * @auth Required
+ * @request { jobId: string, templateType: string, customPrompt?: string }
+ * @response EmailGenerateResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import { getProfile, getLLMConfig } from "@/lib/db";

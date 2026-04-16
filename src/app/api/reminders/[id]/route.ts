@@ -1,3 +1,11 @@
+/**
+ * @route PATCH /api/reminders/[id]
+ * @route DELETE /api/reminders/[id]
+ * @description PATCH: Update, complete, or dismiss a reminder. DELETE: Remove a reminder.
+ * @auth Required
+ * @request { action?: "complete" | "dismiss", title?: string, dueDate?: string } (PATCH)
+ * @response DeleteResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import {
   updateReminder,

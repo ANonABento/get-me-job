@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/research/company
+ * @description Research a company with caching and optional LLM enrichment
+ * @auth Required
+ * @response CompanyResearchResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import { getLLMConfig } from "@/lib/db";

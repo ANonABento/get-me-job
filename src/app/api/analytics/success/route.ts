@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/analytics/success
+ * @description Calculate success metrics
+ * @auth Required
+ * @response AnalyticsSuccessResponse from @/types/api
+ */
 import { NextResponse } from "next/server";
 import { getJobs } from "@/lib/db/jobs";
 import { getAllGeneratedResumes } from "@/lib/db/resumes";

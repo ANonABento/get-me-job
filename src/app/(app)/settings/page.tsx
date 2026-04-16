@@ -39,6 +39,7 @@ import {
   Calendar,
   FolderOpen,
   Mail,
+  FileText,
 } from "lucide-react";
 import { GoogleConnectButton } from "@/components/google";
 
@@ -50,6 +51,27 @@ interface Provider {
   requiresKey: boolean;
   color: string;
 }
+
+const FEATURE_DESCRIPTIONS = [
+  {
+    title: "Resume Parsing",
+    description: "Extract skills, experience, and education from uploaded resumes automatically",
+    icon: <FileText className="h-4 w-4 text-blue-600" />,
+    color: "bg-blue-100 dark:bg-blue-900/30",
+  },
+  {
+    title: "Resume Tailoring",
+    description: "Generate job-specific resumes optimized for ATS and recruiter review",
+    icon: <Sparkles className="h-4 w-4 text-amber-600" />,
+    color: "bg-amber-100 dark:bg-amber-900/30",
+  },
+  {
+    title: "Cover Letters",
+    description: "Create personalized cover letters matching your profile to job requirements",
+    icon: <Mail className="h-4 w-4 text-rose-600" />,
+    color: "bg-rose-100 dark:bg-rose-900/30",
+  },
+];
 
 const PROVIDERS: Provider[] = [
   {
@@ -183,19 +205,19 @@ export default function SettingsPage() {
       switch (type) {
         case "profile":
           url = "/api/export/profile?format=json";
-          filename = `get-me-job-profile-${new Date().toISOString().split("T")[0]}.json`;
+          filename = `taida-profile-${new Date().toISOString().split("T")[0]}.json`;
           break;
         case "jobs-json":
           url = "/api/export/jobs?format=json";
-          filename = `get-me-job-jobs-${new Date().toISOString().split("T")[0]}.json`;
+          filename = `taida-jobs-${new Date().toISOString().split("T")[0]}.json`;
           break;
         case "jobs-csv":
           url = "/api/export/jobs?format=csv";
-          filename = `get-me-job-jobs-${new Date().toISOString().split("T")[0]}.csv`;
+          filename = `taida-jobs-${new Date().toISOString().split("T")[0]}.csv`;
           break;
         case "backup":
           url = "/api/backup";
-          filename = `get-me-job-backup-${new Date().toISOString().split("T")[0]}.json`;
+          filename = `taida-backup-${new Date().toISOString().split("T")[0]}.json`;
           break;
         case "full-export":
           url = "/api/export";
@@ -431,7 +453,7 @@ export default function SettingsPage() {
               <div>
                 <h2 className="font-semibold">AI Provider</h2>
                 <p className="text-sm text-muted-foreground">
-                  Choose how Get Me Job will process your documents
+                  Choose how Taida will process your documents
                 </p>
               </div>
             </div>
@@ -610,6 +632,35 @@ export default function SettingsPage() {
                   )}
                 </Button>
               </div>
+            </div>
+          </div>
+
+          {/* What AI Powers */}
+          <div className="rounded-2xl border bg-card p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold">What AI Powers</h2>
+                <p className="text-sm text-muted-foreground">
+                  Your configured provider enables these features
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              {FEATURE_DESCRIPTIONS.map((feature) => (
+                <div key={feature.title} className="flex items-start gap-3 p-3 rounded-xl bg-muted/50">
+                  <div className={`p-2 rounded-lg ${feature.color} shrink-0`}>
+                    {feature.icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{feature.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{feature.description}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -927,7 +978,7 @@ export default function SettingsPage() {
               <div className="text-sm">
                 <p className="font-medium text-amber-800 dark:text-amber-200">Make sure Ollama is running</p>
                 <p className="text-amber-700/80 dark:text-amber-300/80 mt-1">
-                  Ollama must be running in the background for Get Me Job to work. If you get connection errors, start Ollama from your Applications folder.
+                  Ollama must be running in the background for Taida to work. If you get connection errors, start Ollama from your Applications folder.
                 </p>
               </div>
             </div>

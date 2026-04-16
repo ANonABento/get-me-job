@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/jobs/[id]/cover-letter/history
+ * @description List all cover letter versions for a job
+ * @auth Required
+ * @response CoverLetterHistoryResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getCoverLettersByJob } from "@/lib/db/cover-letters";
 import { getJob } from "@/lib/db/jobs";

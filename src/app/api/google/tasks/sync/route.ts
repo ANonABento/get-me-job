@@ -1,8 +1,10 @@
 /**
- * Google Tasks Sync API
- *
- * GET /api/google/tasks/sync - List tasks from Google Tasks
- * POST /api/google/tasks/sync - Sync reminders to Google Tasks
+ * @route GET /api/google/tasks/sync
+ * @route POST /api/google/tasks/sync
+ * @description List tasks from Google Tasks or sync/create/complete tasks
+ * @auth Required
+ * @request { action?: "complete" | "sync", syncType?: string, taskId?: string }
+ * @response GoogleTasksListResponse | GoogleTasksSyncResponse from @/types/api
  */
 
 import { NextRequest, NextResponse } from "next/server";

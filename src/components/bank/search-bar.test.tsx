@@ -73,6 +73,18 @@ describe("SearchBar", () => {
     expect(onQueryChange).toHaveBeenCalledWith("");
   });
 
+  it("should have aria-label on clear search button", () => {
+    render(<SearchBar {...defaultProps} query="test" />);
+    const clearButton = screen.getByRole("button", { name: "Clear search" });
+    expect(clearButton).toBeInTheDocument();
+  });
+
+  it("should have aria-label on sort select", () => {
+    render(<SearchBar {...defaultProps} />);
+    const sortSelect = screen.getByRole("combobox", { name: "Sort order" });
+    expect(sortSelect).toBeInTheDocument();
+  });
+
   it("should export CATEGORY_LABELS", () => {
     expect(CATEGORY_LABELS.experience).toBe("Experience");
     expect(CATEGORY_LABELS.skill).toBe("Skills");

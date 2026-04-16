@@ -1,8 +1,10 @@
 /**
- * Google Contacts API
- *
- * GET /api/google/contacts - List/search contacts
- * POST /api/google/contacts - Create a new contact
+ * @route GET /api/google/contacts
+ * @route POST /api/google/contacts
+ * @description List/search Google contacts or create a new contact
+ * @auth Required
+ * @request { type?: string, name: string, email?: string, company?: string, title?: string, phone?: string, notes?: string, jobTitle?: string, department?: string }
+ * @response GoogleContactsResponse from @/types/api
  */
 
 import { NextRequest, NextResponse } from "next/server";

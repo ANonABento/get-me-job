@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/analytics/trends
+ * @description Time-series trends data
+ * @auth Required
+ * @response AnalyticsTrendsResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getJobs } from "@/lib/db/jobs";
 import {

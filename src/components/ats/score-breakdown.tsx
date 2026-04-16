@@ -137,8 +137,8 @@ export function ATSScoreBreakdown({ result, open, onOpenChange }: ATSScoreBreakd
 
         {/* Overall Score */}
         <div className="flex items-center justify-center py-4">
-          <div className="relative">
-            <svg className="w-32 h-32 transform -rotate-90">
+          <div className="relative" role="img" aria-label={`ATS score: ${score.overall} out of 100`}>
+            <svg className="w-32 h-32 transform -rotate-90" aria-hidden="true">
               <circle
                 cx="64"
                 cy="64"

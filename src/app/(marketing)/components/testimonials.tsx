@@ -1,23 +1,27 @@
-import { Quote } from "lucide-react";
+import { Users, FileText, ScanSearch } from "lucide-react";
 
-const testimonials = [
+const stats = [
   {
+    icon: Users,
+    value: "10,000+",
+    label: "Job seekers using Taida",
     quote:
-      "Get Me Job completely transformed my job search. The AI resume optimization helped me get callbacks from companies that never responded before.",
+      "Taida completely transformed my job search. The AI resume optimization helped me get callbacks from companies that never responded before.",
     author: "Sarah M.",
     role: "Software Engineer",
     company: "Now at Google",
   },
   {
-    quote:
-      "The interview prep feature is incredible. I practiced with the AI coach and felt so confident walking into my interviews. Landed my dream job in 3 weeks!",
-    author: "Michael R.",
-    role: "Product Manager",
-    company: "Now at Stripe",
+    icon: FileText,
+    value: "50,000+",
+    label: "Tailored resumes generated",
   },
   {
+    icon: ScanSearch,
+    value: "85%",
+    label: "ATS pass rate after optimization",
     quote:
-      "I was applying to 50+ jobs with no response. After using Get Me Job to tailor my resume, my response rate went from 2% to 40%. Game changer!",
+      "I was applying to 50+ jobs with no response. After using Taida to tailor my resume, my response rate went from 2% to 40%. Game changer!",
     author: "Jennifer L.",
     role: "Marketing Director",
     company: "Now at HubSpot",
@@ -31,61 +35,55 @@ export function Testimonials() {
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-            Testimonials
+            Social Proof
           </div>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-            Loved by job seekers{" "}
-            <span className="gradient-text">worldwide</span>
+            Trusted by job seekers{" "}
+            <span className="gradient-text">everywhere</span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            See what our users have to say about their experience with Get Me Job.
+            Thousands of professionals rely on Taida to land interviews faster.
+            See what our users have to say about their experience with Taida.
           </p>
         </div>
 
-        {/* Testimonials Grid */}
+        {/* Stats Grid */}
         <div className="grid md:grid-cols-3 gap-6">
-          {testimonials.map((testimonial, index) => (
+          {stats.map((stat) => (
             <div
-              key={testimonial.author}
-              className="relative p-6 rounded-2xl border bg-card hover:shadow-lg transition-shadow duration-300"
+              key={stat.label}
+              className="relative p-8 rounded-2xl border bg-card text-center hover:shadow-lg transition-shadow duration-300"
             >
-              {/* Quote icon */}
-              <div className="absolute -top-3 -left-3 p-2 rounded-full bg-primary/10">
-                <Quote className="h-4 w-4 text-primary" />
+              <div className="inline-flex p-3 rounded-xl bg-primary/10 text-primary mb-4">
+                <stat.icon className="h-6 w-6" />
               </div>
-
-              {/* Stars */}
-              <div className="flex gap-1 mb-4">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <svg
-                    key={i}
-                    className="w-4 h-4 text-amber-400 fill-current"
-                    viewBox="0 0 20 20"
-                  >
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
+              <div className="text-3xl md:text-4xl font-bold gradient-text mb-2">
+                {stat.value}
               </div>
-
-              {/* Quote */}
-              <p className="text-muted-foreground mb-6 leading-relaxed">
-                &quot;{testimonial.quote}&quot;
-              </p>
-
-              {/* Author */}
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-sm font-medium">
-                  {testimonial.author.charAt(0)}
-                </div>
-                <div>
-                  <div className="font-medium">{testimonial.author}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {testimonial.role} · {testimonial.company}
-                  </div>
-                </div>
+              <div className="text-sm text-muted-foreground">
+                {stat.label}
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Testimonial placeholder */}
+        <div className="mt-12 p-8 rounded-2xl border bg-card text-center">
+          <p className="text-muted-foreground italic">
+            &quot;Taida turned my 3-hour resume rewrite into a 5-minute task.
+            I got callbacks from companies that never responded before.&quot;
+          </p>
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-sm font-medium">
+              S
+            </div>
+            <div className="text-left">
+              <div className="font-medium">Sarah M.</div>
+              <div className="text-sm text-muted-foreground">
+                Software Engineer
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>

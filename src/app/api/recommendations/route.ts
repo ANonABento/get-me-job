@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/recommendations
+ * @description Generate job recommendations based on user profile and job history
+ * @auth Required
+ * @response RecommendationsResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getProfile } from "@/lib/db";
 import { getJobs } from "@/lib/db/jobs";

@@ -1,8 +1,10 @@
 /**
- * Google Calendar Events API
- *
- * GET /api/google/calendar/events - List upcoming events
- * POST /api/google/calendar/events - Create a new event
+ * @route GET /api/google/calendar/events
+ * @route POST /api/google/calendar/events
+ * @description List upcoming calendar events or create a new event
+ * @auth Required
+ * @request { title: string, description?: string, startDate: string, endDate: string, location?: string, reminders?: object }
+ * @response GoogleCalendarEventsResponse from @/types/api
  */
 
 import { NextRequest, NextResponse } from "next/server";

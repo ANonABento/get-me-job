@@ -1,7 +1,9 @@
 /**
- * Gmail Send API
- *
- * POST /api/google/gmail/send - Send an email
+ * @route POST /api/google/gmail/send
+ * @description Send an email via Gmail
+ * @auth Required
+ * @request { to: string, subject: string, body: string, replyTo?: string, threadId?: string, cc?: string, bcc?: string }
+ * @response GoogleGmailSendResponse from @/types/api
  */
 
 import { NextRequest, NextResponse } from "next/server";

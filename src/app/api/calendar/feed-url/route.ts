@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/calendar/feed-url
+ * @description Generate calendar feed URLs for external calendar subscriptions
+ * @auth Required
+ * @response CalendarFeedUrlResponse from @/types/api
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import {

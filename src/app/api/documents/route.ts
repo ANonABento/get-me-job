@@ -1,3 +1,9 @@
+/**
+ * @route GET /api/documents
+ * @description List all uploaded documents
+ * @auth Required
+ * @response DocumentsListResponse from @/types/api
+ */
 import { NextResponse } from "next/server";
 import { getDocuments } from "@/lib/db";
 import { requireAuth, isAuthError } from "@/lib/auth";
