@@ -26,6 +26,7 @@ interface GenerateResult {
   success: boolean;
   pdfUrl: string;
   resume: TailoredResume;
+  savedResume: { id: string };
   analysis: AnalysisResult;
   jobId: string;
 }
@@ -154,6 +155,7 @@ export default function TailorPage() {
             <ResumePreview
               resume={result.resume}
               pdfUrl={result.pdfUrl}
+              resumeId={result.savedResume.id}
               matchScore={result.analysis.matchScore}
               templateId={selectedTemplate}
               templates={templates}
