@@ -29,6 +29,7 @@ import {
   Upload,
   FileText,
   Sparkles,
+  PenLine,
   type LucideIcon,
 } from "lucide-react";
 import { NotificationCenter } from "@/components/notifications/notification-center";
@@ -65,6 +66,7 @@ const navigationGroups: NavGroup[] = [
       { name: "Documents", href: "/bank", icon: Database },
       { name: "Resume Builder", href: "/builder", icon: FileText },
       { name: "Tailor Resume", href: "/tailor", icon: Sparkles },
+      { name: "Cover Letter", href: "/cover-letter", icon: PenLine },
     ],
   },
   ...(FEATURES.jobTracker ? [{
