@@ -63,6 +63,7 @@ const navigationGroups: NavGroup[] = [
     label: "Resume",
     items: [
       { name: "Documents", href: "/bank", icon: Database },
+      { name: "Resume Builder", href: "/builder", icon: FileText },
       { name: "Tailor Resume", href: "/tailor", icon: Sparkles },
     ],
   },

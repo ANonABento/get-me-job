@@ -99,8 +99,23 @@ export async function smartParseResume(
 
   // Step 5: Low confidence + LLM available → targeted LLM for ambiguous sections
   if (llmConfig) {
+    // If no sections were detected, treat full text as one unstructured low-confidence section
+    const sectionsForEnhance: DetectedSection[] =
+      sections.length > 0
+        ? sections
+        : [
+            {
+              type: "experience",
+              startIndex: 0,
+              endIndex: text.length,
+              content: text,
+              text,
+              confidence: 0,
+            },
+          ];
+
     const { enhanced, llmSectionCount, warnings } = await enhanceWithLLM(
-      sections,
+      sectionsForEnhance,
       extracted,
       llmConfig,
       text
@@ -208,6 +223,7 @@ async function enhanceWithLLM(
   extracted: ExtractedFields,
   llmConfig: LLMConfig,
   fullText?: string
+  fullText: string
 ): Promise<LLMEnhanceResult> {
   const lowConfSections = sections.filter(
     (s) => s.confidence < CONFIDENCE_THRESHOLD && s.type !== "contact"
@@ -225,6 +241,26 @@ async function enhanceWithLLM(
     : lowConfSections.map((s, i) => {
         return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
       });
+  // If no sections were detected at all, fall back to sending the full text to LLM
+  const sectionsToProcess =
+    lowConfSections.length > 0
+      ? lowConfSections
+      : sections.length === 0
+        ? [{ type: "experience" as const, text: fullText, content: fullText, startIndex: 0, endIndex: fullText.length, confidence: 0 }]
+        : [];
+
+  if (sectionsToProcess.length === 0) {
+    return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
+  }
+
+  // Build a batched prompt with all ambiguous sections
+  const sectionPrompts = lowConfSections.map((s, i) =>
+    `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`
+  );
+  const sectionPrompts = sectionsToProcess.map((s, i) => {
+    const typeHint = s.type;
+    return `--- Section ${i + 1} (detected as: ${typeHint}) ---\n${s.text}`;
+  });
 
   const batchPrompt = `You are a resume parser. Parse the following resume sections and return structured JSON.
 
@@ -261,6 +297,7 @@ ${sectionPrompts.join("\n\n")}`;
     return {
       enhanced,
       llmSectionCount: hasFullTextFallback ? 1 : lowConfSections.length,
+      llmSectionCount: sectionsToProcess.length,
       warnings: [],
     };
   } catch (error) {
