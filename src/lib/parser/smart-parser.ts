@@ -14,6 +14,11 @@ import type {
 import { generateId } from "@/lib/utils";
 import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
 import { detectSections, type Section } from "./section-detector";
+import {
+  extractFieldsFromSections,
+  extractContact,
+  type ExtractedFields,
+} from "./field-extractor";
 
 type DetectedSection = Section & { text: string; confidence: number };
 
@@ -30,11 +35,6 @@ function calculateSectionConfidence(sections: Section[]): number {
   if (hasContact) score += 0.1;
   return Math.min(score, 1.0);
 }
-import {
-  extractFieldsFromSections,
-  extractContact,
-  type ExtractedFields,
-} from "./field-extractor";
 
 const CONFIDENCE_THRESHOLD = 0.7;
 
@@ -83,9 +83,7 @@ export async function smartParseResume(
   const fieldConfidence = calculateFieldConfidence(extracted);
   const overallConfidence = (sectionConfidence + fieldConfidence) / 2;
 
-  const sectionsDetected = sections
-    .filter((s) => true)
-    .map((s) => s.type);
+  const sectionsDetected = sections.map((s) => s.type);
 
   // Step 4: High confidence → return deterministic result
   if (overallConfidence >= CONFIDENCE_THRESHOLD) {
@@ -293,7 +291,7 @@ function mergeWithLLMResult(
   existing: ExtractedFields,
   llmResult: Record<string, unknown>
 ): ExtractedFields {
-  const merged = { ...existing,  };
+  const merged = { ...existing };
 
   // Merge experiences
   const rawExperiences = llmResult.experience as Record<string, unknown>[] | undefined;

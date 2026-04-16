@@ -104,10 +104,6 @@ export function OnboardingDialog() {
     }
   }, [currentStep, markComplete]);
 
-  const handleSkip = useCallback(() => {
-    markComplete();
-  }, [markComplete]);
-
   if (!mounted) return null;
 
   const isLastStep = currentStep === ONBOARDING_STEP_COUNT - 1;
@@ -125,7 +121,7 @@ export function OnboardingDialog() {
 
         {/* Skip button */}
         <button
-          onClick={handleSkip}
+          onClick={markComplete}
           className="absolute right-4 top-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           aria-label="Skip onboarding"
         >
@@ -150,7 +146,7 @@ export function OnboardingDialog() {
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
           {!isLastStep && (
-            <Button variant="ghost" onClick={handleSkip}>
+            <Button variant="ghost" onClick={markComplete}>
               Skip setup
             </Button>
           )}
