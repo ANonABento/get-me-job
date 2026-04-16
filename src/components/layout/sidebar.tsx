@@ -32,6 +32,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { NotificationCenter } from "@/components/notifications/notification-center";
+import { useLLMStatus } from "@/hooks/useLLMStatus";
 
 interface NavItem {
   name: string;
@@ -161,6 +162,7 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { theme, setTheme, resolvedTheme } = useTheme();
+  const llmStatus = useLLMStatus();
 
   const cycleTheme = () => {
     if (theme === "light") setTheme("dark");
@@ -313,7 +315,24 @@ export function Sidebar() {
                   collapsed && "justify-center px-2"
                 )}
               >
-                <item.icon className="h-5 w-5 shrink-0" />
+                <div className="relative shrink-0">
+                  <item.icon className="h-5 w-5" />
+                  {item.href === "/settings" && (
+                    <span
+                      className={cn(
+                        "absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card",
+                        llmStatus.configured
+                          ? "bg-emerald-500"
+                          : "bg-muted-foreground/40"
+                      )}
+                      title={
+                        llmStatus.configured
+                          ? `LLM configured (${llmStatus.provider})`
+                          : "LLM not configured"
+                      }
+                    />
+                  )}
+                </div>
                 {!collapsed && <span>{item.name}</span>}
 
                 {/* Tooltip for collapsed state */}
