@@ -273,6 +273,8 @@ async function enhanceWithLLM(
     (s) => s.confidence <= CONFIDENCE_THRESHOLD && s.type !== "contact"
   );
 
+  // If no low-confidence sections but overall confidence is low (e.g. no sections detected),
+  // fall back to parsing the full resume text with LLM
   // When no sections were detected at all, fall back to parsing the full text
   const useFullText = lowConfSections.length === 0 && sections.length === 0;
 
@@ -349,6 +351,9 @@ async function enhanceWithLLM(
     if (!fullText) {
       return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
     }
+    // Use full text as a single section
+    const fullTextSection: DetectedSection = {
+      type: "experience",
     // No structured sections found — send full text as a single ambiguous section
     lowConfSections = [
       { type: "unknown", content: fullText, text: fullText, confidence: 0, startIndex: 0, endIndex: fullText.length },
@@ -372,6 +377,13 @@ async function enhanceWithLLM(
       confidence: 0,
       startIndex: 0,
       endIndex: fullText.length,
+    };
+    return enhanceWithLLM([fullTextSection], extracted, llmConfig);
+  }
+
+  // Build a batched prompt with all ambiguous sections
+  const sectionPrompts = lowConfSections.map((s, i) => {
+    return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
     } as DetectedSection);
     // Treat the entire resume as one unparsed block
     lowConfSections.push({

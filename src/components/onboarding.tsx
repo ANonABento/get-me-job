@@ -1,28 +1,81 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Rocket,
-  Upload,
-  FileText,
-  Briefcase,
-  MessageSquare,
-  ArrowRight,
-  Sparkles,
-  CheckCircle,
-  X,
-} from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
 import { STORAGE_KEYS } from "@/lib/constants";
+import {
+  WelcomeStep,
+  UploadStep,
+  ReviewStep,
+  ConfigureStep,
+  DoneStep,
+} from "@/components/onboarding/steps";
 
+export const ONBOARDING_STEP_COUNT = 5;
+
+const STEP_TITLES = [
+  "Welcome to Taida",
+  "Upload Your Resume",
+  "Review Your Profile",
+  "Configure AI",
+  "All Set",
+] as const;
+
+function StepContent({ step }: { step: number }) {
+  switch (step) {
+    case 0:
+      return <WelcomeStep />;
+    case 1:
+      return <UploadStep />;
+    case 2:
+      return <ReviewStep />;
+    case 3:
+      return <ConfigureStep />;
+    case 4:
+      return <DoneStep />;
+    default:
+      return null;
+  }
+}
+
+export function ProgressDots({
+  total,
+  current,
+}: {
+  total: number;
+  current: number;
+}) {
+  return (
+    <div className="flex items-center justify-center gap-1.5" role="group" aria-label="Onboarding progress">
+      {Array.from({ length: total }, (_, i) => (
+        <div
+          key={i}
+          className={`h-1.5 rounded-full transition-all ${
+            i === current
+              ? "w-6 bg-primary"
+              : i < current
+              ? "w-1.5 bg-primary/50"
+              : "w-1.5 bg-muted"
+          }`}
+          aria-label={
+            i === current
+              ? `Step ${i + 1} of ${total}, current`
+              : i < current
+              ? `Step ${i + 1} of ${total}, completed`
+              : `Step ${i + 1} of ${total}`
+          }
+        />
+      ))}
+    </div>
+  );
+}
 const steps = [
   {
     title: "Welcome to Taida",
@@ -61,115 +114,76 @@ const steps = [
 ];
 
 export function OnboardingDialog() {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    // Check if onboarding has been completed
     const completed = localStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETED);
     if (!completed) {
-      // Small delay to let the page load first
       const timer = setTimeout(() => setOpen(true), 500);
       return () => clearTimeout(timer);
     }
   }, []);
 
-  const handleComplete = () => {
+  const markComplete = useCallback(() => {
     localStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETED, "true");
     setOpen(false);
-  };
+  }, []);
 
-  const handleSkip = () => {
-    localStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETED, "true");
-    setOpen(false);
-  };
-
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
+  const handleNext = useCallback(() => {
+    if (currentStep < ONBOARDING_STEP_COUNT - 1) {
+      setCurrentStep((s) => s + 1);
     } else {
-      handleComplete();
+      markComplete();
     }
-  };
-
-  const handleAction = (action?: string) => {
-    handleComplete();
-    if (action) {
-      router.push(action);
-    }
-  };
+  }, [currentStep, markComplete]);
 
   if (!mounted) return null;
 
-  const step = steps[currentStep];
+  const isLastStep = currentStep === ONBOARDING_STEP_COUNT - 1;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="sm:max-w-lg">
+        {/* Accessible but hidden title/description for the dialog */}
+        <DialogTitle className="sr-only">
+          {STEP_TITLES[currentStep]}
+        </DialogTitle>
+        <DialogDescription className="sr-only">
+          Onboarding step {currentStep + 1} of {ONBOARDING_STEP_COUNT}
+        </DialogDescription>
+
         {/* Skip button */}
         <button
-          onClick={handleSkip}
+          onClick={markComplete}
           className="absolute right-4 top-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           aria-label="Skip onboarding"
         >
           <X className="h-4 w-4" />
         </button>
 
-        {/* Progress indicators */}
-        <div className="flex items-center justify-center gap-1.5 mb-6">
-          {steps.map((_, i) => (
-            <div
-              key={i}
-              className={`h-1.5 rounded-full transition-all ${
-                i === currentStep
-                  ? "w-6 bg-primary"
-                  : i < currentStep
-                  ? "w-1.5 bg-primary/50"
-                  : "w-1.5 bg-muted"
-              }`}
-            />
-          ))}
+        {/* Progress dots */}
+        <div className="mb-6">
+          <ProgressDots total={ONBOARDING_STEP_COUNT} current={currentStep} />
         </div>
 
-        {/* Content */}
-        <div className="text-center">
-          <div
-            className={`inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br ${step.gradient} text-white shadow-lg mb-6`}
-          >
-            <step.icon className="h-10 w-10" />
-          </div>
-
-          <DialogHeader className="text-center">
-            <DialogTitle className="text-2xl">{step.title}</DialogTitle>
-            <DialogDescription className="text-base mt-2">
-              {step.description}
-            </DialogDescription>
-          </DialogHeader>
-        </div>
+        {/* Step content */}
+        <StepContent step={currentStep} />
 
         {/* Actions */}
         <div className="flex flex-col gap-3 mt-6">
-          {step.action ? (
-            <>
-              <Button
-                onClick={() => handleAction(step.action)}
-                className="gradient-bg text-white hover:opacity-90"
-              >
-                <Sparkles className="h-4 w-4 mr-2" />
-                Get Started
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-              <Button variant="ghost" onClick={handleNext}>
-                {currentStep < steps.length - 1 ? "Skip this step" : "Maybe later"}
-              </Button>
-            </>
-          ) : (
-            <Button onClick={handleNext} className="gradient-bg text-white hover:opacity-90">
-              Let&apos;s Begin
-              <ArrowRight className="h-4 w-4 ml-2" />
+          <Button
+            onClick={handleNext}
+            className="gradient-bg text-white hover:opacity-90"
+          >
+            {isLastStep ? "Get Started" : "Continue"}
+            <ArrowRight className="h-4 w-4 ml-2" />
+          </Button>
+          {!isLastStep && (
+            <Button variant="ghost" onClick={markComplete}>
+              Skip setup
             </Button>
           )}
         </div>
