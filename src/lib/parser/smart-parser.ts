@@ -14,6 +14,11 @@ import type {
 import { generateId } from "@/lib/utils";
 import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
 import { detectSections, type Section } from "./section-detector";
+import {
+  extractFieldsFromSections,
+  extractContact,
+  type ExtractedFields,
+} from "./field-extractor";
 
 type DetectedSection = Section & { text: string; confidence: number };
 
@@ -30,11 +35,6 @@ function calculateSectionConfidence(sections: Section[]): number {
   if (hasContact) score += 0.1;
   return Math.min(score, 1.0);
 }
-import {
-  extractFieldsFromSections,
-  extractContact,
-  type ExtractedFields,
-} from "./field-extractor";
 
 const CONFIDENCE_THRESHOLD = 0.7;
 
@@ -64,8 +64,9 @@ export async function smartParseResume(
 ): Promise<SmartParseResult> {
   // Step 1: Detect sections
   const rawSections = detectSections(text);
-  const sections: DetectedSection[] = rawSections.map(s => ({ ...s, text: s.content, confidence: 0.7 }));
+  const sections: DetectedSection[] = rawSections.map(s => ({ ...s, text: s.content, confidence: 0.5 }));
   const sectionConfidence = calculateSectionConfidence(rawSections);
+  const sections: DetectedSection[] = rawSections.map(s => ({ ...s, text: s.content, confidence: sectionConfidence }));
 
   // Step 2: Extract fields deterministically
   const extracted = extractFieldsFromSections(sections);
@@ -99,8 +100,23 @@ export async function smartParseResume(
 
   // Step 5: Low confidence + LLM available → targeted LLM for ambiguous sections
   if (llmConfig) {
+    // If no sections were detected, treat full text as one unstructured low-confidence section
+    const sectionsForEnhance: DetectedSection[] =
+      sections.length > 0
+        ? sections
+        : [
+            {
+              type: "experience",
+              startIndex: 0,
+              endIndex: text.length,
+              content: text,
+              text,
+              confidence: 0,
+            },
+          ];
+
     const { enhanced, llmSectionCount, warnings } = await enhanceWithLLM(
-      sections,
+      sectionsForEnhance,
       extracted,
       llmConfig,
       text
@@ -209,10 +225,13 @@ async function enhanceWithLLM(
   extracted: ExtractedFields,
   llmConfig: LLMConfig,
   fullText?: string
+  rawText?: string
+  fullText?: string
+  fullText: string
 ): Promise<LLMEnhanceResult> {
-  const lowConfSections = sections.filter(
-    (s) => s.confidence < CONFIDENCE_THRESHOLD && s.type !== "contact"
-  );
+  // All non-contact sections are sent to LLM — this function is only called
+  // when overall confidence is already below threshold.
+  const nonContactSections = sections.filter((s) => s.type !== "contact");
 
   // When no sections were detected at all, fall back to sending full text to LLM
   const useFullTextFallback = lowConfSections.length === 0 && sections.length === 0 && fullText;
@@ -226,6 +245,90 @@ async function enhanceWithLLM(
     : lowConfSections.map((s, i) => {
         return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
       });
+  // If no low-confidence sections but we have raw text (e.g. no sections detected at all),
+  // use the full text as a fallback
+  const useFullTextFallback = lowConfSections.length === 0 && rawText;
+  if (lowConfSections.length === 0 && !rawText) {
+    return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
+  }
+
+  // Build a batched prompt with all ambiguous sections (or full text)
+  const sectionPrompts = useFullTextFallback
+    ? [`--- Full Resume ---\n${rawText}`]
+    : lowConfSections.map((s, i) => {
+        return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
+      });
+  // If no low-confidence sections (e.g. no sections detected at all), fall back to full text
+  const hasContent = lowConfSections.length > 0 || (sections.length === 0 && rawText);
+  if (!hasContent) {
+    return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
+  }
+
+  // Build a batched prompt with all ambiguous sections (or full text if no sections)
+  const sectionPrompts = lowConfSections.length > 0
+    ? lowConfSections.map((s, i) => `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`)
+    : [`--- Full resume text ---\n${rawText}`];
+  // If no low-confidence sections exist but raw text is available, use it as a
+  // single unstructured section (handles resumes with no detectable headers).
+  if (lowConfSections.length === 0) {
+    if (!rawText) {
+      return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
+    }
+    // Treat full text as an unstructured section for LLM enhancement
+    const syntheticSection: DetectedSection = {
+      type: "experience",
+      startIndex: 0,
+      endIndex: rawText.length,
+      content: rawText,
+      text: rawText,
+      confidence: 0,
+    };
+    lowConfSections.push(syntheticSection);
+  }
+
+  // Build a batched prompt with all ambiguous sections
+  const sectionPrompts = lowConfSections.map((s, i) => {
+    return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
+  // If no sections were detected, fall back to parsing the full raw text
+  const sectionsToProcess = nonContactSections.length > 0
+    ? nonContactSections
+    : rawText
+    ? [{ type: "summary" as const, text: rawText, content: rawText, startIndex: 0, endIndex: rawText.length, confidence: 0 }]
+    : [];
+  // If no low-confidence sections were detected, fall back to full text (no section headers found)
+  const hasFullTextFallback = lowConfSections.length === 0 && fullText;
+  if (lowConfSections.length === 0 && !fullText) {
+    return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
+  }
+
+  // Build a batched prompt with all ambiguous sections (or full text as fallback)
+  const sectionPrompts = hasFullTextFallback
+    ? [`--- Full Resume Text ---\n${fullText}`]
+    : lowConfSections.map((s, i) => {
+        return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
+      });
+  // If no sections were detected at all, fall back to sending the full text to LLM
+  const sectionsToProcess =
+    lowConfSections.length > 0
+      ? lowConfSections
+      : sections.length === 0
+        ? [{ type: "experience" as const, text: fullText, content: fullText, startIndex: 0, endIndex: fullText.length, confidence: 0 }]
+        : [];
+
+  if (sectionsToProcess.length === 0) {
+    return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
+  }
+
+  // Build a batched prompt with all ambiguous sections
+  const sectionPrompts = sectionsToProcess.map((s, i) => {
+    const typeHint = s.type !== "summary" ? s.type : "unidentified section";
+  const sectionPrompts = lowConfSections.map((s, i) =>
+    `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`
+  );
+  const sectionPrompts = sectionsToProcess.map((s, i) => {
+    const typeHint = s.type;
+    return `--- Section ${i + 1} (detected as: ${typeHint}) ---\n${s.text}`;
+  });
 
   const batchPrompt = `You are a resume parser. Parse the following resume sections and return structured JSON.
 
@@ -262,6 +365,9 @@ ${sectionPrompts.join("\n\n")}`;
     return {
       enhanced,
       llmSectionCount: useFullTextFallback ? 1 : lowConfSections.length,
+      llmSectionCount: lowConfSections.length > 0 ? lowConfSections.length : 1,
+      llmSectionCount: hasFullTextFallback ? 1 : lowConfSections.length,
+      llmSectionCount: sectionsToProcess.length,
       warnings: [],
     };
   } catch (error) {
