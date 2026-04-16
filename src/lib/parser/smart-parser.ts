@@ -229,6 +229,7 @@ async function enhanceWithLLM(
   sections: DetectedSection[],
   extracted: ExtractedFields,
   llmConfig: LLMConfig,
+  fullText: string
   fullText?: string
 ): Promise<LLMEnhanceResult> {
   // When we reach this function, overall confidence is already below threshold.
@@ -252,6 +253,13 @@ async function enhanceWithLLM(
     (s) => s.confidence <= CONFIDENCE_THRESHOLD && s.type !== "contact"
   );
 
+  // If no structured sections were detected, treat the full text as a single section to parse
+  const sectionsToProcess: Array<{ type: string; text: string }> =
+    lowConfSections.length > 0
+      ? lowConfSections
+      : [{ type: "unstructured", text: fullText }];
+
+  if (sectionsToProcess.length === 0) {
   // If no sections at all, fall back to full-text LLM parse
   rawText?: string
   fullText?: string
@@ -355,6 +363,8 @@ async function enhanceWithLLM(
   }
 
   // Build a batched prompt with all ambiguous sections
+  const sectionPrompts = sectionsToProcess.map((s, i) => {
+    return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
   const sectionPrompts = lowConfSections.map((s, i) => {
     return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
   // If no sections were detected, fall back to parsing the full raw text
