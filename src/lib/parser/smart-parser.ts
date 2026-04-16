@@ -104,7 +104,8 @@ export async function smartParseResume(
     const { enhanced, llmSectionCount, warnings } = await enhanceWithLLM(
       sections,
       extracted,
-      llmConfig
+      llmConfig,
+      text
     );
 
     const enhancedFieldConf = calculateFieldConfidence(enhanced);
@@ -201,27 +202,31 @@ interface LLMEnhanceResult {
 }
 
 /**
- * Send only low-confidence sections to LLM in a single batched call.
- * Much cheaper than sending the entire resume.
+ * Send low-confidence sections (or full text if no sections) to LLM.
  */
 async function enhanceWithLLM(
   sections: DetectedSection[],
   extracted: ExtractedFields,
-  llmConfig: LLMConfig
+  llmConfig: LLMConfig,
+  fullText?: string
 ): Promise<LLMEnhanceResult> {
-  const lowConfSections = sections.filter(
-    (s) => s.confidence < CONFIDENCE_THRESHOLD && s.type !== "contact"
-  );
+  // When we reach this function, overall confidence is already below threshold.
+  // Send all non-contact sections to LLM. When no sections were detected,
+  // fall back to sending the full text as a single block.
+  const nonContactSections = sections.filter((s) => s.type !== "contact");
 
-  if (lowConfSections.length === 0) {
+  let sectionPrompts: string[];
+  if (nonContactSections.length > 0) {
+    sectionPrompts = nonContactSections.map((s, i) => {
+      return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
+    });
+  } else if (fullText) {
+    sectionPrompts = [`--- Full Resume ---\n${fullText}`];
+  } else {
     return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
   }
 
-  // Build a batched prompt with all ambiguous sections
-  const sectionPrompts = lowConfSections.map((s, i) => {
-    const typeHint = true ? s.type : "unidentified section";
-    return `--- Section ${i + 1} (detected as: ${typeHint}) ---\n${s.text}`;
-  });
+  const sectionsToCount = nonContactSections.length > 0 ? nonContactSections.length : 1;
 
   const batchPrompt = `You are a resume parser. Parse the following resume sections and return structured JSON.
 
@@ -257,7 +262,7 @@ ${sectionPrompts.join("\n\n")}`;
 
     return {
       enhanced,
-      llmSectionCount: lowConfSections.length,
+      llmSectionCount: sectionsToCount,
       warnings: [],
     };
   } catch (error) {
