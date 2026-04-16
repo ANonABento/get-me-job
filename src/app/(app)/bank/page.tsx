@@ -10,6 +10,7 @@ import { BANK_CATEGORIES, type BankCategory, type BankEntry } from "@/types";
 import { Database, Loader2, Upload, HardDrive } from "lucide-react";
 import { DriveFilePicker } from "@/components/google";
 import { SourceDocuments } from "@/components/bank/source-documents";
+import { AddEntryDialog } from "@/components/bank/add-entry-dialog";
 
 export default function BankPage() {
   const [entries, setEntries] = useState<BankEntry[]>([]);
@@ -126,6 +127,20 @@ export default function BankPage() {
     }
   }
 
+  async function handleCreate(category: BankCategory, content: Record<string, unknown>) {
+    try {
+      const res = await fetch("/api/bank", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category, content }),
+      });
+      if (!res.ok) throw new Error("Create failed");
+      handleDataRefresh();
+    } catch (err) {
+      console.error("Create error:", err);
+    }
+  }
+
   async function handleDelete(id: string) {
     try {
       const res = await fetch(`/api/bank/${id}`, { method: "DELETE" });
@@ -216,6 +231,7 @@ export default function BankPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <AddEntryDialog onCreate={handleCreate} />
           <DriveFilePicker
             onSelect={handleDriveSelect}
             accept={["application/pdf", "text/plain"]}
