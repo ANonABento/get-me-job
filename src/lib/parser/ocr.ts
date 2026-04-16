@@ -1,5 +1,3 @@
-import Tesseract from "tesseract.js";
-
 const OCR_TEXT_THRESHOLD = 50;
 const OCR_MAX_PAGES = 3;
 
@@ -26,6 +24,7 @@ export async function extractTextWithOCR(
   for await (const image of await pdfToImages(pdfBuffer, { scale: 2 })) {
     if (pages.length >= maxPages) break;
 
+    const Tesseract = (await import("tesseract.js")).default;
     const {
       data: { text },
     } = await Tesseract.recognize(image, "eng");

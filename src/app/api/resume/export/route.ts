@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { getGeneratedResume } from "@/lib/db";
-import { generateResumeHTML } from "@/lib/resume/pdf";
-import { generatePDF } from "@/lib/resume/pdf-export";
-import { generateResumeLatex, LATEX_TEMPLATES, type LatexOptions } from "@/lib/resume/latex-generator";
 import type { TailoredResume } from "@/lib/resume/generator";
+import type { LatexOptions } from "@/lib/resume/latex-generator";
 import { exec } from "child_process";
 import { writeFile, readFile, unlink, mkdtemp } from "fs/promises";
 import { tmpdir } from "os";
@@ -17,6 +15,7 @@ const LATEX_CLEANUP_EXTENSIONS = ["resume.tex", "resume.pdf", "resume.aux", "res
 
 // GET — list available templates
 export async function GET() {
+  const { LATEX_TEMPLATES } = await import("@/lib/resume/latex-generator");
   return NextResponse.json({
     templates: LATEX_TEMPLATES.map((t) => ({
       id: t.id,
@@ -69,6 +68,7 @@ export async function POST(request: NextRequest) {
       if (!resume) {
         return NextResponse.json({ error: "resumeId required for LaTeX export" }, { status: 400 });
       }
+      const { generateResumeLatex } = await import("@/lib/resume/latex-generator");
       const latex = generateResumeLatex(resume, templateId, (latexOptions || {}) as LatexOptions);
 
       if (compilePdf) {
@@ -115,6 +115,7 @@ export async function POST(request: NextRequest) {
       if (!resume) {
         return NextResponse.json({ error: "resumeId required for HTML export" }, { status: 400 });
       }
+      const { generateResumeHTML } = await import("@/lib/resume/pdf");
       const html = generateResumeHTML(resume, templateId);
       return new NextResponse(html, {
         headers: { "Content-Type": "text/html", "Content-Disposition": `attachment; filename="resume.html"` },
@@ -126,11 +127,13 @@ export async function POST(request: NextRequest) {
     if (rawHtml) {
       html = rawHtml;
     } else if (resume) {
+      const { generateResumeHTML } = await import("@/lib/resume/pdf");
       html = generateResumeHTML(resume, templateId);
     } else {
       return NextResponse.json({ error: "Provide resumeId or html" }, { status: 400 });
     }
 
+    const { generatePDF } = await import("@/lib/resume/pdf-export");
     const pdfBuffer = await generatePDF(html);
     return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,
