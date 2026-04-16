@@ -218,6 +218,7 @@ interface LLMEnhanceResult {
 }
 
 /**
+ * Send low-confidence sections (or full text if no sections) to LLM.
  * Send only low-confidence sections to LLM in a single batched call.
  * Much cheaper than sending the entire resume.
  * Falls back to sending the full text when no sections were detected.
@@ -230,6 +231,23 @@ async function enhanceWithLLM(
   llmConfig: LLMConfig,
   fullText?: string
 ): Promise<LLMEnhanceResult> {
+  // When we reach this function, overall confidence is already below threshold.
+  // Send all non-contact sections to LLM. When no sections were detected,
+  // fall back to sending the full text as a single block.
+  const nonContactSections = sections.filter((s) => s.type !== "contact");
+
+  let sectionPrompts: string[];
+  if (nonContactSections.length > 0) {
+    sectionPrompts = nonContactSections.map((s, i) => {
+      return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
+    });
+  } else if (fullText) {
+    sectionPrompts = [`--- Full Resume ---\n${fullText}`];
+  } else {
+    return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
+  }
+
+  const sectionsToCount = nonContactSections.length > 0 ? nonContactSections.length : 1;
   const lowConfSections = sections.filter(
     (s) => s.confidence <= CONFIDENCE_THRESHOLD && s.type !== "contact"
   );
@@ -479,6 +497,7 @@ async function enhanceWithLLM(
 
     return {
       enhanced,
+      llmSectionCount: sectionsToCount,
       llmSectionCount: sectionCount,
       llmSectionCount: useFullTextFallback ? 1 : lowConfSections.length,
       llmSectionCount: lowConfSections.length > 0 ? lowConfSections.length : 1,
