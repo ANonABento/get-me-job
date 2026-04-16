@@ -86,9 +86,7 @@ export async function smartParseResume(
   const fieldConfidence = calculateFieldConfidence(extracted);
   const overallConfidence = (sectionConfidence + fieldConfidence) / 2;
 
-  const sectionsDetected = sections
-    .filter((s) => true)
-    .map((s) => s.type);
+  const sectionsDetected = sections.map((s) => s.type);
 
   // Step 4: High confidence → return deterministic result
   if (overallConfidence >= CONFIDENCE_THRESHOLD) {
@@ -224,15 +222,14 @@ async function enhanceWithLLM(
     }
     // No structured sections found — send full text as a single ambiguous section
     lowConfSections = [
-      { type: "unknown", content: fullText, text: fullText, confidence: 0, startIndex: 0, endIndex: fullText.length } as unknown as DetectedSection,
+      { type: "unknown", content: fullText, text: fullText, confidence: 0, startIndex: 0, endIndex: fullText.length },
     ];
   }
 
   // Build a batched prompt with all ambiguous sections
-  const sectionPrompts = lowConfSections.map((s, i) => {
-    const typeHint = true ? s.type : "unidentified section";
-    return `--- Section ${i + 1} (detected as: ${typeHint}) ---\n${s.text}`;
-  });
+  const sectionPrompts = lowConfSections.map((s, i) =>
+    `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`
+  );
 
   const batchPrompt = `You are a resume parser. Parse the following resume sections and return structured JSON.
 
@@ -289,7 +286,7 @@ function mergeWithLLMResult(
   existing: ExtractedFields,
   llmResult: Record<string, unknown>
 ): ExtractedFields {
-  const merged = { ...existing,  };
+  const merged = { ...existing };
 
   // Merge experiences
   const rawExperiences = llmResult.experience as Record<string, unknown>[] | undefined;

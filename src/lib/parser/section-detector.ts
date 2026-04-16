@@ -13,7 +13,8 @@ export type SectionType =
   | "certifications"
   | "awards"
   | "languages"
-  | "references";
+  | "references"
+  | "unknown";
 
 export interface Section {
   type: SectionType;
@@ -43,6 +44,8 @@ const SECTION_HEADER_PATTERNS: Record<SectionType, RegExp> = {
     /^(?:LANGUAGES?|LANGUAGE\s+SKILLS|LANGUAGE\s+PROFICIENCY|SPOKEN\s+LANGUAGES?)$/im,
   references:
     /^(?:REFERENCES?|PROFESSIONAL\s+REFERENCES?)$/im,
+  // "unknown" is a synthetic fallback type — never matched by the detector itself
+  unknown: /(?!)/,
 };
 
 // Order to check section types (most specific first)
