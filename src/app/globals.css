@@ -125,12 +125,14 @@
   html {
     scroll-behavior: smooth;
     overscroll-behavior: none;
+    overflow-x: hidden;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
     overscroll-behavior: none;
+    overflow-x: hidden;
   }
 
   /* Prevent overscroll bounce in scrollable containers */

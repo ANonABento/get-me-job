@@ -268,7 +268,7 @@ export function createInterviewEventInput(
   descriptionParts.push(
     "",
     "---",
-    "Created by Get Me Job"
+    "Created by Taida"
   );
 
   return {
@@ -302,7 +302,7 @@ export function createDeadlineEventInput(
       job.url ? `Apply here: ${job.url}` : "",
       "",
       "---",
-      "Created by Get Me Job",
+      "Created by Taida",
     ]
       .filter(Boolean)
       .join("\n"),
@@ -329,7 +329,7 @@ export function createReminderEventInput(
     descriptionParts.push("", `Related to: ${jobInfo.title} at ${jobInfo.company}`);
   }
 
-  descriptionParts.push("", "---", "Created by Get Me Job");
+  descriptionParts.push("", "---", "Created by Taida");
 
   return {
     title: reminder.title,

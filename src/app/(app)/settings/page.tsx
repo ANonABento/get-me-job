@@ -178,19 +178,19 @@ export default function SettingsPage() {
       switch (type) {
         case "profile":
           url = "/api/export/profile?format=json";
-          filename = `get-me-job-profile-${new Date().toISOString().split("T")[0]}.json`;
+          filename = `taida-profile-${new Date().toISOString().split("T")[0]}.json`;
           break;
         case "jobs-json":
           url = "/api/export/jobs?format=json";
-          filename = `get-me-job-jobs-${new Date().toISOString().split("T")[0]}.json`;
+          filename = `taida-jobs-${new Date().toISOString().split("T")[0]}.json`;
           break;
         case "jobs-csv":
           url = "/api/export/jobs?format=csv";
-          filename = `get-me-job-jobs-${new Date().toISOString().split("T")[0]}.csv`;
+          filename = `taida-jobs-${new Date().toISOString().split("T")[0]}.csv`;
           break;
         case "backup":
           url = "/api/backup";
-          filename = `get-me-job-backup-${new Date().toISOString().split("T")[0]}.json`;
+          filename = `taida-backup-${new Date().toISOString().split("T")[0]}.json`;
           break;
       }
 
@@ -352,7 +352,7 @@ export default function SettingsPage() {
               <div>
                 <h2 className="font-semibold">AI Provider</h2>
                 <p className="text-sm text-muted-foreground">
-                  Choose how Get Me Job will process your documents
+                  Choose how Taida will process your documents
                 </p>
               </div>
             </div>
@@ -771,7 +771,7 @@ export default function SettingsPage() {
               <div className="text-sm">
                 <p className="font-medium text-amber-800 dark:text-amber-200">Make sure Ollama is running</p>
                 <p className="text-amber-700/80 dark:text-amber-300/80 mt-1">
-                  Ollama must be running in the background for Get Me Job to work. If you get connection errors, start Ollama from your Applications folder.
+                  Ollama must be running in the background for Taida to work. If you get connection errors, start Ollama from your Applications folder.
                 </p>
               </div>
             </div>
