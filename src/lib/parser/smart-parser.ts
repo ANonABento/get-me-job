@@ -209,6 +209,8 @@ function buildProfile(fields: ExtractedFields, rawText: string): Partial<Profile
 
 // ─── Targeted LLM enhancement ───────────────────────────────────────
 
+function buildBatchPrompt(sectionPrompts: string[]): string {
+  return `You are a resume parser. Parse the following resume sections and return structured JSON.
 interface LLMEnhanceResult {
   enhanced: ExtractedFields;
   llmSectionCount: number;
@@ -350,6 +352,62 @@ Rules:
 Sections to parse:
 
 ${sectionPrompts.join("\n\n")}`;
+}
+
+interface LLMEnhanceResult {
+  enhanced: ExtractedFields;
+  llmSectionCount: number;
+  warnings: string[];
+}
+
+/**
+ * Send only low-confidence sections to LLM in a single batched call.
+ * Much cheaper than sending the entire resume.
+ */
+async function enhanceWithLLM(
+  sections: DetectedSection[],
+  extracted: ExtractedFields,
+  llmConfig: LLMConfig,
+  fullText?: string
+): Promise<LLMEnhanceResult> {
+  const lowConfSections = sections.filter(
+    (s) => s.confidence < CONFIDENCE_THRESHOLD && s.type !== "contact"
+  );
+
+  // If no targeted low-confidence sections, fall back to full text if available
+  if (lowConfSections.length === 0) {
+    if (!fullText) {
+      return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
+    }
+    // Use full text as a single unstructured block for LLM to parse
+    const sectionPrompts = [`--- Full Resume Text ---\n${fullText}`];
+    const batchPrompt = buildBatchPrompt(sectionPrompts);
+    try {
+      const client = new LLMClient(llmConfig);
+      const response = await client.complete({
+        messages: [{ role: "user", content: batchPrompt }],
+        temperature: 0.1,
+        maxTokens: 2048,
+      });
+      const parsed = parseJSONFromLLM<Record<string, unknown>>(response);
+      const enhanced = mergeWithLLMResult(extracted, parsed);
+      return { enhanced, llmSectionCount: 1, warnings: [] };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Unknown error";
+      return {
+        enhanced: extracted,
+        llmSectionCount: 0,
+        warnings: [`LLM enhancement failed: ${msg}. Using deterministic results only.`],
+      };
+    }
+  }
+
+  // Build a batched prompt with all ambiguous sections
+  const sectionPrompts = lowConfSections.map((s, i) => {
+    return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
+  });
+
+  const batchPrompt = buildBatchPrompt(sectionPrompts);
 
   try {
     const client = new LLMClient(llmConfig);

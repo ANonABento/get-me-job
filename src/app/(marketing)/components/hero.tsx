@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Sparkles, Play } from "lucide-react";
+import { ArrowRight, ScanSearch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function Hero() {
@@ -15,21 +15,23 @@ export function Hero() {
         <div className="max-w-3xl mx-auto text-center">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <ScanSearch className="h-4 w-4" />
+            AI-Powered Resume Intelligence
             <Sparkles className="h-4 w-4" />
             You&apos;re not lazy. You&apos;re efficient.
           </div>
 
           {/* Headline */}
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-            Land Your Dream Job with{" "}
-            <span className="gradient-text">AI-Powered Confidence</span>
+            You&apos;re not lazy.{" "}
+            <span className="gradient-text">You&apos;re efficient.</span>
           </h1>
 
           {/* Subheadline */}
           <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-            Upload your resume, match with jobs, generate tailored applications,
-            and ace interviews with intelligent AI coaching. Your complete job
-            search command center.
+            Taida builds a knowledge bank from your career history, then
+            generates perfectly tailored resumes for every job — so you
+            can stop rewriting and start interviewing.
           </p>
 
           {/* CTAs */}
@@ -37,18 +39,22 @@ export function Hero() {
             <Button
               asChild
               size="lg"
+              variant="outline"
+            >
+              <Link href="/ats-scanner">
+                <ScanSearch className="mr-2 h-5 w-5" />
+                Try Free ATS Scanner
+              </Link>
+            </Button>
+            <Button
+              asChild
+              size="lg"
               className="gradient-bg text-white hover:opacity-90 shadow-lg shadow-primary/25"
             >
               <Link href="/sign-up?redirect_url=/dashboard">
-                Get Started Free
+                Get Started
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <a href="#how-it-works">
-                <Play className="mr-2 h-5 w-5" />
-                See How It Works
-              </a>
             </Button>
           </div>
 
@@ -56,7 +62,7 @@ export function Hero() {
           <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-muted-foreground animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
             <div className="flex items-center gap-2">
               <div className="flex -space-x-2">
-                {[1, 2, 3, 4].map((i) => (
+                {[0, 1, 2, 3].map((i) => (
                   <div
                     key={i}
                     className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 border-2 border-background flex items-center justify-center text-xs font-medium"

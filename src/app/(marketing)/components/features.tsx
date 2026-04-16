@@ -1,54 +1,38 @@
 import {
-  Upload,
-  Target,
-  FileText,
-  MessageSquare,
-  ShieldCheck,
-  BarChart3,
+  Database,
+  FileSearch,
+  Wand2,
+  ScanSearch,
 } from "lucide-react";
 
 const features = [
   {
-    icon: Upload,
-    title: "AI Resume Parsing",
+    icon: Database,
+    title: "Knowledge Bank",
     description:
-      "Upload your resume and let AI extract your professional details instantly. No more manual data entry.",
+      "Upload resumes, cover letters, and career docs. Taida chunks and indexes everything into a searchable knowledge bank — your career history, always ready.",
     gradient: "from-violet-500 to-purple-400",
   },
   {
-    icon: Target,
-    title: "Job Match Scoring",
+    icon: FileSearch,
+    title: "Smart Parser",
     description:
-      "See how well you match with any job posting. Get instant compatibility scores and improvement suggestions.",
+      "Deterministic section detection extracts experience, education, skills, and projects with precision. No LLM guesswork for structured data.",
     gradient: "from-rose-400 to-orange-400",
   },
   {
-    icon: FileText,
-    title: "Tailored Resumes",
+    icon: Wand2,
+    title: "AI Tailoring",
     description:
-      "Generate customized resumes for each application. Highlight the skills that matter most for each role.",
+      "Match your bank against any job description. Taida generates a tailored resume that highlights exactly what the role demands.",
     gradient: "from-blue-500 to-indigo-400",
   },
   {
-    icon: MessageSquare,
-    title: "AI Interview Coach",
+    icon: ScanSearch,
+    title: "ATS Scanner",
     description:
-      "Practice with realistic mock interviews. Get feedback on your answers and improve your confidence.",
+      "Score your resume against real ATS criteria — keyword matching, formatting, section completeness. Fix issues before you apply.",
     gradient: "from-amber-400 to-orange-400",
-  },
-  {
-    icon: ShieldCheck,
-    title: "ATS Optimization",
-    description:
-      "Ensure your resume passes applicant tracking systems. Get tips to improve ATS compatibility.",
-    gradient: "from-pink-500 to-rose-400",
-  },
-  {
-    icon: BarChart3,
-    title: "Progress Tracking",
-    description:
-      "Track all your applications in one place. See your funnel, success rates, and insights.",
-    gradient: "from-indigo-500 to-violet-400",
   },
 ];
 
@@ -62,17 +46,19 @@ export function Features() {
             Features
           </div>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-            Everything you need to{" "}
-            <span className="gradient-text">land your dream job</span>
+            Your career data,{" "}
+            <span className="gradient-text">working for you</span>
           </h2>
           <p className="text-lg text-muted-foreground">
+            Taida combines smart parsing with AI tailoring to turn your
+            career history into job-winning resumes.
             Taida combines AI-powered tools with smart tracking to streamline
             your entire job search process.
           </p>
         </div>
 
         {/* Features Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 gap-6">
           {features.map((feature, index) => (
             <div
               key={feature.title}
@@ -86,25 +72,6 @@ export function Features() {
               </div>
               <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
               <p className="text-muted-foreground">{feature.description}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Stats Row */}
-        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8">
-          {[
-            { value: "10K+", label: "Active Users" },
-            { value: "50K+", label: "Resumes Optimized" },
-            { value: "85%", label: "Interview Success Rate" },
-            { value: "4.9/5", label: "User Rating" },
-          ].map((stat) => (
-            <div key={stat.label} className="text-center">
-              <div className="text-3xl md:text-4xl font-bold gradient-text">
-                {stat.value}
-              </div>
-              <div className="text-sm text-muted-foreground mt-1">
-                {stat.label}
-              </div>
             </div>
           ))}
         </div>
