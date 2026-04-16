@@ -96,6 +96,7 @@ export function JDInput({ onSubmit, isLoading }: JDInputProps) {
         disabled={isLoading || jobDescription.trim().length < 20}
         className="w-full"
         size="lg"
+        title="Generate Tailored Resume (Ctrl+Enter to re-generate)"
       >
         {isLoading ? "Generating..." : "Generate Tailored Resume"}
       </Button>

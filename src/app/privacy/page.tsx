@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Privacy Policy | Get Me Job",
-  description: "How Get Me Job stores, uses, and protects your job search data.",
+  title: "Privacy Policy | Taida",
+  description: "How Taida stores, uses, and protects your job search data.",
 };
 
 export default function PrivacyPage() {
@@ -23,7 +23,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-xl font-semibold text-foreground">What we collect</h2>
             <p className="mt-2">
-              Get Me Job stores the profile, resume, job tracking, reminder, and interview
+              Taida stores the profile, resume, job tracking, reminder, and interview
               preparation data you add to the product. If you connect Google services, the
               app also stores the minimum tokens and metadata needed to sync with those tools.
             </p>

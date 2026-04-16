@@ -1,37 +1,29 @@
-import { Upload, User, Target, Trophy } from "lucide-react";
+import { Upload, Database, FileOutput } from "lucide-react";
 
 const steps = [
   {
     number: "01",
     icon: Upload,
-    title: "Upload Your Resume",
+    title: "Upload",
     description:
-      "Start by uploading your existing resume. Our AI instantly parses and organizes your professional information.",
+      "Drop in your resumes, cover letters, and career docs. Taida parses and organizes everything automatically.",
     gradient: "from-violet-500 to-purple-400",
   },
   {
     number: "02",
-    icon: User,
-    title: "Build Your Profile",
+    icon: Database,
+    title: "Bank",
     description:
-      "Review and enhance your profile. Add skills, experiences, and achievements to maximize your match potential.",
+      "Your career data is chunked, indexed, and stored in a searchable knowledge bank — ready to be assembled on demand.",
     gradient: "from-rose-400 to-orange-400",
   },
   {
     number: "03",
-    icon: Target,
-    title: "Match With Jobs",
+    icon: FileOutput,
+    title: "Build",
     description:
-      "Add target jobs and get instant match scores. Generate tailored resumes optimized for each position.",
+      "Paste a job description and Taida generates a tailored resume pulling exactly the right experience from your bank.",
     gradient: "from-blue-500 to-indigo-400",
-  },
-  {
-    number: "04",
-    icon: Trophy,
-    title: "Land Interviews",
-    description:
-      "Prepare with AI interview coaching. Practice answers, get feedback, and land your dream job with confidence.",
-    gradient: "from-amber-400 to-orange-400",
   },
 ];
 
@@ -45,22 +37,21 @@ export function HowItWorks() {
             How It Works
           </div>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-            From resume to offer in{" "}
-            <span className="gradient-text">four simple steps</span>
+            From upload to tailored resume in{" "}
+            <span className="gradient-text">three steps</span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            Our streamlined process takes the guesswork out of job hunting.
-            Follow these steps to maximize your success.
+            No more rewriting from scratch. Upload once, tailor endlessly.
           </p>
         </div>
 
         {/* Steps */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid md:grid-cols-3 gap-8">
           {steps.map((step, index) => (
             <div key={step.number} className="relative">
               {/* Connector line */}
               {index < steps.length - 1 && (
-                <div className="hidden lg:block absolute top-12 left-1/2 w-full h-px bg-gradient-to-r from-border via-primary/30 to-border" />
+                <div className="hidden md:block absolute top-12 left-1/2 w-full h-px bg-gradient-to-r from-border via-primary/30 to-border" />
               )}
 
               <div className="relative z-10 flex flex-col items-center text-center">

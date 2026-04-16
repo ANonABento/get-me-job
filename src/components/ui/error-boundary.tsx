@@ -2,6 +2,7 @@
 
 import { Component, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { Button } from "./button";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -49,13 +50,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <p className="text-sm text-muted-foreground mb-4 max-w-md">
               {this.state.error?.message || "An unexpected error occurred while loading this component."}
             </p>
-            <button
-              onClick={this.handleReset}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              <RefreshCw className="h-4 w-4" />
+            <Button onClick={this.handleReset}>
+              <RefreshCw className="h-4 w-4 mr-2" />
               Try Again
-            </button>
+            </Button>
           </div>
         </div>
       );
@@ -67,7 +65,6 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
 interface AsyncBoundaryProps {
   children: ReactNode;
-  loading?: ReactNode;
   error?: ReactNode;
 }
 

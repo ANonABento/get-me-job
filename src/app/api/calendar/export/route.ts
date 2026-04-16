@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
     return new Response(icsContent, {
       headers: {
         "Content-Type": "text/calendar; charset=utf-8",
-        "Content-Disposition": `attachment; filename="get-me-job-${type}-events.ics"`,
+        "Content-Disposition": `attachment; filename="taida-${type}-events.ics"`,
       },
     });
   } catch (error) {
