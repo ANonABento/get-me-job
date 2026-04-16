@@ -245,8 +245,6 @@ describe("Pipeline Integration: upload → parse → bank", () => {
 
       const entries = extractBankEntries(parseResult.profile, "doc-alt");
 
-      // Should include certifications
-      const certEntries = entries.filter((e) => e.category === "certification");
       // Certifications may or may not be parsed deterministically from this format
       // but other entries must be present
       const expEntries = entries.filter((e) => e.category === "experience");
