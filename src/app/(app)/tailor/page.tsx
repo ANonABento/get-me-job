@@ -5,6 +5,8 @@ import { JDInput } from "@/components/tailor/jd-input";
 import { ResumePreview } from "@/components/tailor/resume-preview";
 import { GapAnalysis } from "@/components/tailor/gap-analysis";
 import { FileText, Sparkles } from "lucide-react";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { ErrorState } from "@/components/ui/error-state";
 import type { TailoredResume } from "@/lib/resume/generator";
 import type { GapItem } from "@/lib/tailor/analyze";
 
@@ -107,6 +109,7 @@ export default function TailorPage() {
   }
 
   return (
+    <ErrorBoundary>
     <div className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <div>
@@ -133,9 +136,12 @@ export default function TailorPage() {
 
       {/* Error */}
       {error && (
-        <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
-          {error}
-        </div>
+        <ErrorState
+          title="Generation failed"
+          message={error}
+          onDismiss={() => setError(null)}
+          variant="inline"
+        />
       )}
 
       {/* Results */}
@@ -181,5 +187,6 @@ export default function TailorPage() {
         </>
       )}
     </div>
+    </ErrorBoundary>
   );
 }

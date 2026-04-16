@@ -22,6 +22,8 @@ import {
   LogIn,
 } from "lucide-react";
 import { InsightsPanel } from "@/components/dashboard/insights-panel";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { SkeletonStatCard, SkeletonInsights } from "@/components/ui/skeleton";
 
 interface Stats {
   documentsCount: number;
@@ -191,6 +193,7 @@ export default function Dashboard() {
   }
 
   return (
+    <ErrorBoundary>
     <div className="min-h-screen">
       {/* Hero Section */}
       <div className="hero-gradient border-b">
@@ -228,41 +231,49 @@ export default function Dashboard() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-2 gap-4 lg:w-80">
-              <div className="rounded-xl border bg-card p-4 col-span-2">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-muted-foreground">Profile Completeness</span>
-                  <span className="text-sm font-semibold">{stats.profileCompleteness}%</span>
-                </div>
-                <Progress value={stats.profileCompleteness} className="h-2" />
-              </div>
-              <StatCard
-                icon={Briefcase}
-                label="Jobs Tracked"
-                value={stats.jobsCount.toString()}
-                color="text-primary"
-                loading={loading}
-              />
-              <StatCard
-                icon={Star}
-                label="Applied"
-                value={stats.appliedJobs.toString()}
-                color="text-warning"
-                loading={loading}
-              />
-              <StatCard
-                icon={MessageSquare}
-                label="Interviews"
-                value={stats.interviewsCount.toString()}
-                color="text-success"
-                loading={loading}
-              />
-              <StatCard
-                icon={TrendingUp}
-                label="Progress"
-                value={`${completedSteps}/4`}
-                color="text-accent"
-                loading={loading}
-              />
+              {loading ? (
+                <>
+                  <SkeletonStatCard className="col-span-2" />
+                  <SkeletonStatCard />
+                  <SkeletonStatCard />
+                  <SkeletonStatCard />
+                  <SkeletonStatCard />
+                </>
+              ) : (
+                <>
+                  <div className="rounded-xl border bg-card p-4 col-span-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-muted-foreground">Profile Completeness</span>
+                      <span className="text-sm font-semibold">{stats.profileCompleteness}%</span>
+                    </div>
+                    <Progress value={stats.profileCompleteness} className="h-2" />
+                  </div>
+                  <StatCard
+                    icon={Briefcase}
+                    label="Jobs Tracked"
+                    value={stats.jobsCount.toString()}
+                    color="text-primary"
+                  />
+                  <StatCard
+                    icon={Star}
+                    label="Applied"
+                    value={stats.appliedJobs.toString()}
+                    color="text-warning"
+                  />
+                  <StatCard
+                    icon={MessageSquare}
+                    label="Interviews"
+                    value={stats.interviewsCount.toString()}
+                    color="text-success"
+                  />
+                  <StatCard
+                    icon={TrendingUp}
+                    label="Progress"
+                    value={`${completedSteps}/4`}
+                    color="text-accent"
+                  />
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -481,6 +492,7 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+    </ErrorBoundary>
   );
 }
 
@@ -489,13 +501,11 @@ function StatCard({
   label,
   value,
   color,
-  loading,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   color: string;
-  loading: boolean;
 }) {
   return (
     <div className="rounded-xl border bg-card p-4 space-y-2">
@@ -503,11 +513,7 @@ function StatCard({
         <Icon className="h-4 w-4" />
         <span className="text-xs font-medium">{label}</span>
       </div>
-      {loading ? (
-        <div className="h-6 w-16 skeleton rounded" />
-      ) : (
-        <p className={`text-lg font-bold ${color}`}>{value}</p>
-      )}
+      <p className={`text-lg font-bold ${color}`}>{value}</p>
     </div>
   );
 }
