@@ -53,11 +53,20 @@ import {
   FileDown,
   Mail,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { CoverLetterDialog } from "@/components/cover-letter/cover-letter-dialog";
 import { ImportJobDialog } from "@/components/jobs/import-job-dialog";
-import { ATSScoreBreakdown, ATSScoreBadge } from "@/components/ats/score-breakdown";
 import { GmailImportModal } from "@/components/google";
 import type { ATSAnalysisResult } from "@/lib/ats/analyzer";
+
+const ATSScoreBreakdown = dynamic(
+  () => import("@/components/ats/score-breakdown").then((m) => m.ATSScoreBreakdown),
+  { loading: () => <div className="h-32 animate-pulse rounded-lg bg-muted" /> }
+);
+const ATSScoreBadge = dynamic(
+  () => import("@/components/ats/score-breakdown").then((m) => m.ATSScoreBadge),
+  { loading: () => <div className="h-6 w-16 animate-pulse rounded bg-muted" /> }
+);
 
 interface Template {
   id: string;

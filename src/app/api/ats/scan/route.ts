@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfile } from "@/lib/db";
 import { getJob } from "@/lib/db/jobs";
-import { generateScanReport } from "@/lib/ats/analyzer";
 import { generateFixSuggestions } from "@/lib/ats/fix-suggestions";
 import { saveScanResult, getScanHistory } from "@/lib/db/ats-scans";
 import { requireAuth, isAuthError } from "@/lib/auth";
@@ -21,6 +20,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const { generateScanReport } = await import("@/lib/ats/analyzer");
     const job = jobId ? getJob(jobId, authResult.userId) : undefined;
     const report = generateScanReport(profile, job || undefined);
     const fixes = generateFixSuggestions(profile, report.issues, report.keywords);

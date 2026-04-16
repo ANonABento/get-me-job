@@ -101,8 +101,14 @@ export async function smartParseResume(
 
   // Step 5: Low confidence + LLM available → targeted LLM for ambiguous sections
   if (llmConfig) {
+    // If no sections were detected, create a fallback section from the full text
+    const sectionsForLLM: DetectedSection[] =
+      sections.length > 0
+        ? sections
+        : [{ type: "experience", startIndex: 0, endIndex: text.length, content: text, text, confidence: 0 }];
+
     const { enhanced, llmSectionCount, warnings } = await enhanceWithLLM(
-      sections,
+      sectionsForLLM,
       extracted,
       llmConfig
     );

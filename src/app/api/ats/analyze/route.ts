@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfile } from "@/lib/db";
 import { getJob } from "@/lib/db/jobs";
-import { analyzeATS } from "@/lib/ats/analyzer";
 import { requireAuth, isAuthError } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
@@ -19,6 +18,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const { analyzeATS } = await import("@/lib/ats/analyzer");
     const job = jobId ? getJob(jobId, authResult.userId) : undefined;
     const result = analyzeATS(profile, job || undefined);
 
