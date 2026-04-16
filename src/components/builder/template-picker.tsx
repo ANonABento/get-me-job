@@ -49,11 +49,12 @@ export function TemplatePicker({ templates, selectedId, onSelect }: TemplatePick
           );
         })}
       </div>
-      {templates.find((t) => t.id === selectedId) && (
-        <p className="text-xs text-muted-foreground">
-          {templates.find((t) => t.id === selectedId)!.description}
-        </p>
-      )}
+      {(() => {
+        const selected = templates.find((t) => t.id === selectedId);
+        return selected ? (
+          <p className="text-xs text-muted-foreground">{selected.description}</p>
+        ) : null;
+      })()}
     </div>
   );
 }
