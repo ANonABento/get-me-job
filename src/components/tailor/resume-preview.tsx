@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronUp,
   CheckCircle2,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TailoredResume } from "@/lib/resume/generator";

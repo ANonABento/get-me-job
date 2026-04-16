@@ -26,8 +26,7 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
   name: "Taida",
-  description:
-    "AI-powered job application assistant — resume tailoring, interview prep, and application tracking.",
+  description: "AI-powered job application assistant — resume tailoring, interview prep, and application tracking.",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   offers: {

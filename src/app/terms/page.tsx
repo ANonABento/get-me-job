@@ -12,8 +12,6 @@ export const metadata = {
     title: "Terms of Service",
     description: "Terms governing use of the Taida application.",
   },
-  title: "Terms of Service | Taida",
-  description: "Terms governing use of the Taida application.",
 };
 
 export default function TermsPage() {

@@ -8,7 +8,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, X } from "lucide-react";
+import { ArrowRight, X, MessageSquare, CheckCircle, Upload, FileText, Briefcase, Rocket } from "lucide-react";
 import { STORAGE_KEYS } from "@/lib/constants";
 import {
   WelcomeStep,

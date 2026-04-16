@@ -26,7 +26,6 @@ export const metadata: Metadata = {
     type: "website",
     siteName: SITE_NAME,
     title: `${SITE_NAME} — AI-Powered Job Application Assistant`,
-    description: SITE_DESCRIPTION,
     locale: "en_US",
   },
   twitter: {
@@ -34,8 +33,6 @@ export const metadata: Metadata = {
     title: `${SITE_NAME} — AI-Powered Job Application Assistant`,
     description: SITE_DESCRIPTION,
   },
-  title: "Taida — AI Resume Builder",
-  description: "Build tailored resumes from your career knowledge bank.",
 };
 
 export default function RootLayout({

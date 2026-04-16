@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, ScanSearch } from "lucide-react";
+import { ArrowRight, ScanSearch, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function Hero() {

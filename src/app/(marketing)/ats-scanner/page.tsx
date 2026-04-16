@@ -25,7 +25,7 @@ const BENEFITS = [
   {
     icon: Zap,
     title: "Instant Results",
-    description: "Get your ATS score in seconds, no waiting",
+    description: "Get your ATS score in seconds, no signup required",
   },
   {
     icon: Eye,
@@ -35,7 +35,7 @@ const BENEFITS = [
   {
     icon: DollarSign,
     title: "100% Free",
-    description: "No sign-up, no credit card, no limits",
+    description: "No hidden fees, no credit card needed",
   },
 ];
 

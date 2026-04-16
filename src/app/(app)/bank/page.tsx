@@ -240,9 +240,8 @@ export default function BankPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
     <ErrorBoundary>
-    <div className="p-6 lg:p-8 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       {/* Upload overlay for drag-and-drop */}
       <UploadOverlay onComplete={handleDataRefresh} />
 
@@ -373,6 +372,7 @@ export default function BankPage() {
           ))}
         </div>
       )}
+    </div>
     </div>
     </ErrorBoundary>
   );

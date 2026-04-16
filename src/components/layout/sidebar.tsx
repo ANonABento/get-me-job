@@ -26,7 +26,7 @@ import {
   DollarSign,
   LogIn,
   Sparkles,
-  PenLine,
+  PenLine, Upload, FileText,
   type LucideIcon,
 } from "lucide-react";
 import { NotificationCenter } from "@/components/notifications/notification-center";
