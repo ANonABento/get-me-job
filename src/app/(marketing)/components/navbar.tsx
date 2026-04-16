@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Rocket, Menu, X } from "lucide-react";
+import { Sparkles, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
@@ -36,12 +36,13 @@ export function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl gradient-bg text-white font-bold text-lg shadow-md">
-              <Rocket className="h-5 w-5" />
+              <Sparkles className="h-5 w-5" />
             </div>
             <div className="flex flex-col">
-              <span className="text-lg font-bold gradient-text">Get Me Job</span>
+              <span className="text-lg font-bold gradient-text">Taida</span>
               <span className="text-2xs text-muted-foreground hidden sm:block">
-                Job Assistant
+                Resume Intelligence
+                怠惰
               </span>
             </div>
           </Link>

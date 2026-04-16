@@ -64,7 +64,7 @@ export function generateAnalyticsCSV(data: AnalyticsReportData): string {
   const lines: string[] = [];
 
   // Header
-  lines.push("Get Me Job Search Analytics Report");
+  lines.push("Taida Search Analytics Report");
   lines.push(`Generated: ${formatDate(data.generatedAt)}`);
   lines.push(`Date Range: ${data.range}`);
   lines.push("");

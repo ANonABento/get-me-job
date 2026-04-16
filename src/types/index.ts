@@ -1,4 +1,4 @@
-// Core profile types for Get Me Job
+// Core profile types for Taida
 
 export interface ContactInfo {
   name: string;

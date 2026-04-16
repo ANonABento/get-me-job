@@ -1,34 +1,63 @@
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, ScanSearch, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const benefits = [
-  "Free to get started",
-  "AI-powered resume optimization",
-  "Unlimited job applications",
-  "Mock interview practice",
+  "Free ATS scanner included",
+  "Smart resume parsing",
+  "Unlimited tailored resumes",
+  "Knowledge bank for your career",
 ];
 
 export function CTASection() {
   return (
     <section className="py-20 lg:py-32 bg-muted/30">
       <div className="max-w-4xl mx-auto px-6 text-center">
-        {/* Main CTA Box */}
-        <div className="relative rounded-3xl border bg-card p-8 md:p-12 overflow-hidden">
-          {/* Background decoration */}
+        {/* ATS Scanner CTA */}
+        <div className="relative rounded-3xl border bg-card p-8 md:p-12 overflow-hidden mb-8">
           <div className="absolute inset-0 overflow-hidden">
             <div className="absolute -top-1/2 -right-1/2 w-full h-full bg-gradient-to-bl from-primary/5 via-transparent to-transparent rounded-full" />
             <div className="absolute -bottom-1/2 -left-1/2 w-full h-full bg-gradient-to-tr from-accent/5 via-transparent to-transparent rounded-full" />
           </div>
 
           <div className="relative z-10">
+            <div className="inline-flex p-3 rounded-xl bg-primary/10 text-primary mb-4">
+              <ScanSearch className="h-8 w-8" />
+            </div>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              Ready to land your{" "}
-              <span className="gradient-text">dream job</span>?
+              Try the free{" "}
+              <span className="gradient-text">ATS Scanner</span>
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+              Paste your resume and a job description. Get an instant ATS
+              compatibility score with actionable fixes — no sign-up required.
+            </p>
+
+            <Button
+              asChild
+              size="lg"
+              className="gradient-bg text-white hover:opacity-90 shadow-lg shadow-primary/25"
+            >
+              <Link href="/ats-scanner">
+                Scan My Resume
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+
+        {/* Get Started CTA */}
+        <div className="relative rounded-3xl border bg-card p-8 md:p-12 overflow-hidden">
+          <div className="relative z-10">
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-4">
+              Ready to stop rewriting{" "}
+              <span className="gradient-text">resumes</span>?
+            </h2>
+            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+              Join thousands of job seekers who build tailored resumes in
+              minutes, not hours.
               Join thousands of successful job seekers who have transformed their
-              career journey with Get Me Job.
+              career journey with Taida.
             </p>
 
             {/* Benefits */}
@@ -44,20 +73,19 @@ export function CTASection() {
               ))}
             </div>
 
-            {/* CTA Button */}
             <Button
               asChild
               size="lg"
-              className="gradient-bg text-white hover:opacity-90 shadow-lg shadow-primary/25"
+              variant="outline"
             >
-              <Link href="/dashboard">
-                Start Your Job Search
+              <Link href="/sign-up?redirect_url=/dashboard">
+                Get Started Free
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
 
             <p className="mt-4 text-sm text-muted-foreground">
-              No credit card required · Setup in 2 minutes
+              No credit card required
             </p>
           </div>
         </div>
