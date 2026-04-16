@@ -1,6 +1,17 @@
 import Link from "next/link";
 
 export const metadata = {
+  title: "Privacy Policy",
+  description: "How Taida stores, uses, and protects your job search data.",
+  openGraph: {
+    title: "Privacy Policy",
+    description: "How Taida stores, uses, and protects your job search data.",
+    url: "/privacy",
+  },
+  twitter: {
+    title: "Privacy Policy",
+    description: "How Taida stores, uses, and protects your job search data.",
+  },
   title: "Privacy Policy | Taida",
   description: "How Taida stores, uses, and protects your job search data.",
 };

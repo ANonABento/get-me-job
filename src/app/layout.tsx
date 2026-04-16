@@ -9,7 +9,31 @@ const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-sans",
 });
 
+const SITE_NAME = "Taida";
+const SITE_DESCRIPTION =
+  "AI-powered job application assistant — resume tailoring, interview prep, and application tracking to land your dream job.";
+
 export const metadata: Metadata = {
+  title: {
+    default: `${SITE_NAME} — AI-Powered Job Application Assistant`,
+    template: `%s — ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://taida.app"
+  ),
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} — AI-Powered Job Application Assistant`,
+    description: SITE_DESCRIPTION,
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} — AI-Powered Job Application Assistant`,
+    description: SITE_DESCRIPTION,
+  },
   title: "Taida — AI Resume Builder",
   description: "Build tailored resumes from your career knowledge bank.",
 };

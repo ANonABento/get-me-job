@@ -237,6 +237,7 @@ async function enhanceWithLLM(
   sections: DetectedSection[],
   extracted: ExtractedFields,
   llmConfig: LLMConfig,
+  rawText: string
   fullText: string
   fullText?: string
 ): Promise<LLMEnhanceResult> {
@@ -261,6 +262,15 @@ async function enhanceWithLLM(
     (s) => s.confidence <= CONFIDENCE_THRESHOLD && s.type !== "contact"
   );
 
+  // If no sections were detected at all, fall back to parsing the full text
+  const sectionsToSend =
+    lowConfSections.length > 0
+      ? lowConfSections
+      : sections.length > 0
+        ? sections.filter((s) => s.type !== "contact")
+        : [{ type: "experience" as const, text: rawText, confidence: 0, content: rawText, startIndex: 0, endIndex: rawText.length }];
+
+  if (sectionsToSend.length === 0) {
   // If no structured sections were detected, treat the full text as a single section to parse
   const sectionsToProcess: Array<{ type: string; text: string }> =
     lowConfSections.length > 0
@@ -406,6 +416,8 @@ async function enhanceWithLLM(
   }
 
   // Build a batched prompt with all ambiguous sections
+  const sectionPrompts = sectionsToSend.map((s, i) => {
+    return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
   const sectionPrompts = sectionsToProcess.map((s, i) => {
     const typeHint = s.type !== "summary" ? s.type : "unidentified section";
   const sectionPrompts = lowConfSections.map((s, i) =>
@@ -515,6 +527,7 @@ async function enhanceWithLLM(
 
     return {
       enhanced,
+      llmSectionCount: sectionsToSend.length,
       llmSectionCount: sectionsToCount,
       llmSectionCount: sectionCount,
       llmSectionCount: useFullTextFallback ? 1 : lowConfSections.length,
