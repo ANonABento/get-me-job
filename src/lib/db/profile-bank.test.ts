@@ -25,6 +25,8 @@ import {
   clearBankEntries,
   findDuplicateEntry,
   updateBankEntry,
+  getSourceDocuments,
+  deleteSourceDocument,
 } from "./profile-bank";
 
 describe("Profile Bank DB Functions", () => {
@@ -249,6 +251,75 @@ describe("Profile Bank DB Functions", () => {
         0.95,
         "entry-1"
       );
+    });
+  });
+
+  describe("getSourceDocuments", () => {
+    it("should return source documents with chunk counts", () => {
+      const mockRows = [
+        {
+          id: "doc-1",
+          filename: "resume.pdf",
+          size: 12345,
+          uploaded_at: "2024-01-15T10:00:00.000Z",
+          chunk_count: 5,
+        },
+      ];
+      (db.prepare as Mock).mockReturnValue({ all: vi.fn().mockReturnValue(mockRows) });
+
+      const result = getSourceDocuments();
+
+      expect(result).toEqual([
+        {
+          id: "doc-1",
+          filename: "resume.pdf",
+          size: 12345,
+          uploadedAt: "2024-01-15T10:00:00.000Z",
+          chunkCount: 5,
+        },
+      ]);
+    });
+
+    it("should return empty array when no source documents", () => {
+      (db.prepare as Mock).mockReturnValue({ all: vi.fn().mockReturnValue([]) });
+
+      const result = getSourceDocuments();
+      expect(result).toEqual([]);
+    });
+
+    it("should pass userId to query", () => {
+      const mockAll = vi.fn().mockReturnValue([]);
+      (db.prepare as Mock).mockReturnValue({ all: mockAll });
+
+      getSourceDocuments("user-123");
+
+      expect(mockAll).toHaveBeenCalledWith("user-123", "user-123");
+    });
+  });
+
+  describe("deleteSourceDocument", () => {
+    it("should delete bank entries and document in a transaction", () => {
+      const mockRun = vi.fn().mockReturnValue({ changes: 3 });
+      (db.prepare as Mock).mockReturnValue({ run: mockRun });
+      (db.transaction as Mock).mockImplementation((fn) => fn);
+
+      const count = deleteSourceDocument("doc-1");
+
+      expect(count).toBe(3);
+      // First call: delete from profile_bank
+      expect(mockRun).toHaveBeenCalledWith("doc-1", "default");
+      // Second call: delete from documents
+      expect(mockRun).toHaveBeenCalledTimes(2);
+    });
+
+    it("should pass userId to both queries", () => {
+      const mockRun = vi.fn().mockReturnValue({ changes: 0 });
+      (db.prepare as Mock).mockReturnValue({ run: mockRun });
+      (db.transaction as Mock).mockImplementation((fn) => fn);
+
+      deleteSourceDocument("doc-1", "user-123");
+
+      expect(mockRun).toHaveBeenCalledWith("doc-1", "user-123");
     });
   });
 });

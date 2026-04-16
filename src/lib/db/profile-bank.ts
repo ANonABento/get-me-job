@@ -122,6 +122,64 @@ export function deleteBankEntriesBySource(
   return result.changes;
 }
 
+interface SourceDocumentRow {
+  id: string;
+  filename: string;
+  size: number;
+  uploaded_at: string;
+  chunk_count: number;
+}
+
+export interface SourceDocument {
+  id: string;
+  filename: string;
+  size: number;
+  uploadedAt: string;
+  chunkCount: number;
+}
+
+function rowToSourceDocument(row: SourceDocumentRow): SourceDocument {
+  return {
+    id: row.id,
+    filename: row.filename,
+    size: row.size,
+    uploadedAt: row.uploaded_at,
+    chunkCount: row.chunk_count,
+  };
+}
+
+export function getSourceDocuments(userId: string = "default"): SourceDocument[] {
+  const rows = db
+    .prepare(
+      `SELECT d.id, d.filename, d.size, d.uploaded_at,
+              COUNT(pb.id) AS chunk_count
+       FROM documents d
+       INNER JOIN profile_bank pb ON pb.source_document_id = d.id AND pb.user_id = ?
+       WHERE d.user_id = ?
+       GROUP BY d.id
+       ORDER BY d.uploaded_at DESC`
+    )
+    .all(userId, userId) as SourceDocumentRow[];
+  return rows.map(rowToSourceDocument);
+}
+
+export function deleteSourceDocument(documentId: string, userId: string = "default"): number {
+  const deleteEntries = db.prepare(
+    "DELETE FROM profile_bank WHERE source_document_id = ? AND user_id = ?"
+  );
+  const deleteDoc = db.prepare(
+    "DELETE FROM documents WHERE id = ? AND user_id = ?"
+  );
+
+  const transaction = db.transaction(() => {
+    const result = deleteEntries.run(documentId, userId);
+    deleteDoc.run(documentId, userId);
+    return result.changes;
+  });
+
+  return transaction();
+}
+
 export function clearBankEntries(userId: string = "default"): void {
   db.prepare("DELETE FROM profile_bank WHERE user_id = ?").run(userId);
 }
