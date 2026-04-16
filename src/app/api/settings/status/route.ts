@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getLLMConfig } from "@/lib/db";
 import { requireAuth, isAuthError } from "@/lib/auth";
+import type { LLMConfig } from "@/types";
 
 /**
  * Lightweight endpoint to check if LLM is configured.
@@ -24,21 +25,15 @@ export async function GET() {
   }
 }
 
-interface LLMConfigLike {
-  provider: string;
-  apiKey?: string;
-  model: string;
-}
-
 /**
  * Check if an LLM config has enough info to be usable.
  * Ollama doesn't need an API key; cloud providers do.
  */
-export function isLLMConfigured(config: LLMConfigLike | null): boolean {
+export function isLLMConfigured(config: LLMConfig | null): boolean {
   if (!config) return false;
   if (!config.model) return false;
 
   if (config.provider === "ollama") return true;
 
-  return !!config.apiKey && config.apiKey.length > 0;
+  return !!config.apiKey;
 }
