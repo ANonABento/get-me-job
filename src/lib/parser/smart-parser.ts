@@ -64,7 +64,7 @@ export async function smartParseResume(
 ): Promise<SmartParseResult> {
   // Step 1: Detect sections
   const rawSections = detectSections(text);
-  const sections: DetectedSection[] = rawSections.map(s => ({ ...s, text: s.content, confidence: 0.7 }));
+  const sections: DetectedSection[] = rawSections.map(s => ({ ...s, text: s.content, confidence: 0.5 }));
   const sectionConfidence = calculateSectionConfidence(rawSections);
 
   // Step 2: Extract fields deterministically
@@ -104,7 +104,8 @@ export async function smartParseResume(
     const { enhanced, llmSectionCount, warnings } = await enhanceWithLLM(
       sections,
       extracted,
-      llmConfig
+      llmConfig,
+      text
     );
 
     const enhancedFieldConf = calculateFieldConfidence(enhanced);
@@ -207,14 +208,29 @@ interface LLMEnhanceResult {
 async function enhanceWithLLM(
   sections: DetectedSection[],
   extracted: ExtractedFields,
-  llmConfig: LLMConfig
+  llmConfig: LLMConfig,
+  rawText?: string
 ): Promise<LLMEnhanceResult> {
   const lowConfSections = sections.filter(
     (s) => s.confidence < CONFIDENCE_THRESHOLD && s.type !== "contact"
   );
 
+  // If no low-confidence sections exist but raw text is available, use it as a
+  // single unstructured section (handles resumes with no detectable headers).
   if (lowConfSections.length === 0) {
-    return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
+    if (!rawText) {
+      return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
+    }
+    // Treat full text as an unstructured section for LLM enhancement
+    const syntheticSection: DetectedSection = {
+      type: "experience",
+      startIndex: 0,
+      endIndex: rawText.length,
+      content: rawText,
+      text: rawText,
+      confidence: 0,
+    };
+    lowConfSections.push(syntheticSection);
   }
 
   // Build a batched prompt with all ambiguous sections

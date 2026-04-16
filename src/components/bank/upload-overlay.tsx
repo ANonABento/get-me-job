@@ -340,7 +340,7 @@ export function UploadOverlay({ onComplete }: UploadOverlayProps) {
                     stageIndex(s) <= stageIndex(stage) && "text-primary font-medium"
                   )}
                 >
-                  {MIME_LABELS[s as AcceptedMimeType] ?? s.charAt(0).toUpperCase() + s.slice(1)}
+                  {STAGE_LABELS[s]}
                 </span>
               ))}
             </div>
