@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       return new NextResponse(csv, {
         headers: {
           "Content-Type": "text/csv",
-          "Content-Disposition": `attachment; filename="get-me-job-jobs-${new Date().toISOString().split("T")[0]}.csv"`,
+          "Content-Disposition": `attachment; filename="taida-jobs-${new Date().toISOString().split("T")[0]}.csv"`,
         },
       });
     }
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(JSON.stringify(exportData, null, 2), {
       headers: {
         "Content-Type": "application/json",
-        "Content-Disposition": `attachment; filename="get-me-job-jobs-${new Date().toISOString().split("T")[0]}.json"`,
+        "Content-Disposition": `attachment; filename="taida-jobs-${new Date().toISOString().split("T")[0]}.json"`,
       },
     });
   } catch (error) {

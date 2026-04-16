@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
@@ -10,31 +10,30 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Command,
   Home,
   Upload,
-  User,
   FileText,
-  Briefcase,
-  MessageSquare,
   Settings,
-  BarChart3,
   Keyboard,
+  Search,
+  Sparkles,
 } from "lucide-react";
+import {
+  matchesShortcut,
+  isInputTarget,
+  formatShortcutKeys,
+  type ShortcutDefinition,
+} from "@/lib/keyboard-shortcuts";
 
-interface Shortcut {
-  key: string;
-  ctrl?: boolean;
-  meta?: boolean;
-  shift?: boolean;
-  description: string;
+interface Shortcut extends ShortcutDefinition {
   action: () => void;
-  category: "navigation" | "actions" | "general";
 }
 
 interface KeyboardShortcutsContextType {
   showHelp: boolean;
   setShowHelp: (show: boolean) => void;
+  registerShortcuts: (id: string, shortcuts: Shortcut[]) => void;
+  unregisterShortcuts: (id: string) => void;
 }
 
 const KeyboardShortcutsContext = createContext<KeyboardShortcutsContextType | undefined>(undefined);
@@ -42,61 +41,96 @@ const KeyboardShortcutsContext = createContext<KeyboardShortcutsContextType | un
 export function KeyboardShortcutsProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [showHelp, setShowHelp] = useState(false);
+  // Ref for handleKeyDown — always reads latest shortcuts without stale closure
+  const pageShortcutsRef = useRef<Map<string, Shortcut[]>>(new Map());
+  // State for rendering — triggers re-render so allShortcuts memo recomputes
+  const [pageShortcutsMap, setPageShortcutsMap] = useState<Map<string, Shortcut[]>>(new Map());
 
-  const shortcuts: Shortcut[] = useMemo(() => [
+  const registerShortcuts = useCallback((id: string, shortcuts: Shortcut[]) => {
+    pageShortcutsRef.current.set(id, shortcuts);
+    setPageShortcutsMap((prev) => new Map(prev).set(id, shortcuts));
+  }, []);
+
+  const unregisterShortcuts = useCallback((id: string) => {
+    pageShortcutsRef.current.delete(id);
+    setPageShortcutsMap((prev) => {
+      const next = new Map(prev);
+      next.delete(id);
+      return next;
+    });
+  }, []);
+
+  const globalShortcuts: Shortcut[] = useMemo(() => [
     // Navigation
-    { key: "h", description: "Go to Dashboard", action: () => router.push("/"), category: "navigation" },
-    { key: "u", description: "Go to Knowledge Bank", action: () => router.push("/bank"), category: "navigation" },
-    { key: "p", description: "Go to Knowledge Bank", action: () => router.push("/bank"), category: "navigation" },
-    { key: "d", description: "Go to Knowledge Bank", action: () => router.push("/bank"), category: "navigation" },
-    { key: "j", description: "Go to Jobs", action: () => router.push("/jobs"), category: "navigation" },
-    { key: "i", description: "Go to Interview Prep", action: () => router.push("/interview"), category: "navigation" },
-    { key: "a", description: "Go to Analytics", action: () => router.push("/analytics"), category: "navigation" },
+    { key: "h", description: "Go to Dashboard", action: () => router.push("/dashboard"), category: "navigation" },
+    { key: "b", description: "Go to Documents", action: () => router.push("/bank"), category: "navigation" },
+    { key: "t", description: "Go to Tailor Resume", action: () => router.push("/tailor"), category: "navigation" },
     { key: "s", description: "Go to Settings", action: () => router.push("/settings"), category: "navigation" },
     // General
     { key: "?", shift: true, description: "Show keyboard shortcuts", action: () => setShowHelp(true), category: "general" },
     { key: "Escape", description: "Close dialogs", action: () => setShowHelp(false), category: "general" },
   ], [router]);
 
+  const allShortcuts = useMemo(() => {
+    const pageShortcuts = Array.from(pageShortcutsMap.values()).flat();
+    return [...globalShortcuts, ...pageShortcuts];
+  }, [globalShortcuts, pageShortcutsMap]);
+
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    // Ignore shortcuts when typing in inputs
     const target = event.target as HTMLElement;
-    if (
-      target.tagName === "INPUT" ||
-      target.tagName === "TEXTAREA" ||
-      target.isContentEditable
-    ) {
-      // Still allow Escape in inputs
-      if (event.key === "Escape") {
-        setShowHelp(false);
+    const inInput = isInputTarget(target);
+    const pageShortcuts = Array.from(pageShortcutsRef.current.values()).flat();
+
+    // Page shortcuts with ctrl/meta should work even in inputs
+    for (const shortcut of pageShortcuts) {
+      if (shortcut.ctrl || shortcut.meta) {
+        if (matchesShortcut(event, shortcut)) {
+          event.preventDefault();
+          shortcut.action();
+          return;
+        }
+      }
+    }
+
+    // Allow Escape everywhere — fire all Escape handlers
+    if (event.key === "Escape") {
+      for (const shortcut of [...globalShortcuts, ...pageShortcuts]) {
+        if (shortcut.key === "Escape") {
+          shortcut.action();
+        }
       }
       return;
     }
 
-    for (const shortcut of shortcuts) {
-      const ctrlMatch = shortcut.ctrl ? (event.ctrlKey || event.metaKey) : !event.ctrlKey;
-      const metaMatch = shortcut.meta ? event.metaKey : true;
-      const shiftMatch = shortcut.shift ? event.shiftKey : !event.shiftKey;
-      const keyMatch = event.key.toLowerCase() === shortcut.key.toLowerCase() ||
-        (shortcut.key === "?" && event.key === "/" && event.shiftKey);
+    // Block non-modifier shortcuts when in input fields
+    if (inInput) return;
 
-      if (keyMatch && ctrlMatch && metaMatch && shiftMatch) {
+    // Check page shortcuts first (higher priority), then global
+    for (const shortcut of [...pageShortcuts, ...globalShortcuts]) {
+      if (matchesShortcut(event, shortcut)) {
         event.preventDefault();
         shortcut.action();
         return;
       }
     }
-  }, [shortcuts]);
+  }, [globalShortcuts]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
+  const contextValue = useMemo(() => ({
+    showHelp,
+    setShowHelp,
+    registerShortcuts,
+    unregisterShortcuts,
+  }), [showHelp, registerShortcuts, unregisterShortcuts]);
+
   return (
-    <KeyboardShortcutsContext.Provider value={{ showHelp, setShowHelp }}>
+    <KeyboardShortcutsContext.Provider value={contextValue}>
       {children}
-      <ShortcutsHelpDialog open={showHelp} onOpenChange={setShowHelp} shortcuts={shortcuts} />
+      <ShortcutsHelpDialog open={showHelp} onOpenChange={setShowHelp} shortcuts={allShortcuts} />
     </KeyboardShortcutsContext.Provider>
   );
 }
@@ -109,6 +143,24 @@ export function useKeyboardShortcuts() {
   return context;
 }
 
+/**
+ * Hook for pages to register their own shortcuts.
+ * Shortcuts are automatically cleaned up when the component unmounts.
+ */
+export function useRegisterShortcuts(id: string, shortcuts: Shortcut[]) {
+  const { registerShortcuts, unregisterShortcuts } = useKeyboardShortcuts();
+  const shortcutsRef = useRef(shortcuts);
+  shortcutsRef.current = shortcuts;
+
+  useEffect(() => {
+    registerShortcuts(id, shortcutsRef.current);
+    return () => unregisterShortcuts(id);
+  }, [id, registerShortcuts, unregisterShortcuts]);
+}
+
+// Re-export for convenience
+export type { Shortcut };
+
 function ShortcutsHelpDialog({
   open,
   onOpenChange,
@@ -119,17 +171,16 @@ function ShortcutsHelpDialog({
   shortcuts: Shortcut[];
 }) {
   const navigationShortcuts = shortcuts.filter((s) => s.category === "navigation");
+  const actionShortcuts = shortcuts.filter((s) => s.category === "actions");
   const generalShortcuts = shortcuts.filter((s) => s.category === "general");
 
   const icons: Record<string, React.ElementType> = {
     h: Home,
-    u: Upload,
-    p: User,
-    d: FileText,
-    j: Briefcase,
-    i: MessageSquare,
-    a: BarChart3,
+    b: FileText,
+    t: Sparkles,
     s: Settings,
+    "/": Search,
+    u: Upload,
   };
 
   return (
@@ -141,7 +192,7 @@ function ShortcutsHelpDialog({
             Keyboard Shortcuts
           </DialogTitle>
           <DialogDescription>
-            Browse navigation and global shortcuts available across the app.
+            Navigate faster with keyboard shortcuts across the app.
           </DialogDescription>
         </DialogHeader>
 
@@ -150,10 +201,10 @@ function ShortcutsHelpDialog({
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-3">Navigation</h3>
             <div className="space-y-2">
-              {navigationShortcuts.map((shortcut) => {
+              {navigationShortcuts.map((shortcut, i) => {
                 const Icon = icons[shortcut.key];
                 return (
-                  <div key={shortcut.key} className="flex items-center justify-between">
+                  <div key={`nav-${shortcut.key}-${i}`} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
                       <span className="text-sm">{shortcut.description}</span>
@@ -165,12 +216,33 @@ function ShortcutsHelpDialog({
             </div>
           </div>
 
+          {/* Page Actions */}
+          {actionShortcuts.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">Page Actions</h3>
+              <div className="space-y-2">
+                {actionShortcuts.map((shortcut, i) => {
+                  const Icon = icons[shortcut.key];
+                  return (
+                    <div key={`act-${shortcut.key}-${i}`} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+                        <span className="text-sm">{shortcut.description}</span>
+                      </div>
+                      <ShortcutKey shortcut={shortcut} />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* General */}
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-3">General</h3>
             <div className="space-y-2">
-              {generalShortcuts.map((shortcut) => (
-                <div key={shortcut.key} className="flex items-center justify-between">
+              {generalShortcuts.map((shortcut, i) => (
+                <div key={`gen-${shortcut.key}-${i}`} className="flex items-center justify-between">
                   <span className="text-sm">{shortcut.description}</span>
                   <ShortcutKey shortcut={shortcut} />
                 </div>
@@ -189,17 +261,9 @@ function ShortcutsHelpDialog({
   );
 }
 
-function ShortcutKey({ shortcut }: { shortcut: Shortcut }) {
+function ShortcutKey({ shortcut }: { shortcut: ShortcutDefinition }) {
   const isMac = typeof window !== "undefined" && navigator.platform.includes("Mac");
-  const parts: string[] = [];
-
-  if (shortcut.ctrl) {
-    parts.push(isMac ? "⌘" : "Ctrl");
-  }
-  if (shortcut.shift) {
-    parts.push("⇧");
-  }
-  parts.push(shortcut.key.toUpperCase());
+  const parts = formatShortcutKeys(shortcut, isMac);
 
   return (
     <div className="flex items-center gap-1">

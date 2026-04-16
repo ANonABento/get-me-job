@@ -168,7 +168,7 @@ export function Dropzone({
           !isDragActive && "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30"
         )}
       >
-        <input {...getInputProps()} aria-label="Upload resume file" />
+        <input {...getInputProps()} aria-label="Upload resume file" aria-describedby="dropzone-help" />
 
         {/* Background decoration */}
         <div className="absolute inset-0 opacity-5 pointer-events-none">
@@ -217,7 +217,7 @@ export function Dropzone({
             </span>
           </div>
 
-          <p className="mt-4 text-xs text-muted-foreground">
+          <p id="dropzone-help" className="mt-4 text-xs text-muted-foreground">
             Maximum file size: {formatFileSize(maxSize)}
           </p>
         </div>
@@ -274,7 +274,7 @@ export function Dropzone({
                 </div>
 
                 {/* Status Indicator */}
-                <div className="shrink-0">
+                <div className="shrink-0" aria-live="polite">
                   {uploadedFile.status === "pending" && (
                     <Button
                       variant="ghost"
@@ -305,6 +305,7 @@ export function Dropzone({
                           e.stopPropagation();
                           removeFile(index);
                         }}
+                        aria-label="Remove file"
                       >
                         <X className="h-4 w-4" />
                       </Button>

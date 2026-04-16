@@ -1,8 +1,19 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Terms of Service | Get Me Job",
-  description: "Terms governing use of the Get Me Job application.",
+  title: "Terms of Service",
+  description: "Terms governing use of the Taida application.",
+  openGraph: {
+    title: "Terms of Service",
+    description: "Terms governing use of the Taida application.",
+    url: "/terms",
+  },
+  twitter: {
+    title: "Terms of Service",
+    description: "Terms governing use of the Taida application.",
+  },
+  title: "Terms of Service | Taida",
+  description: "Terms governing use of the Taida application.",
 };
 
 export default function TermsPage() {
@@ -23,7 +34,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold text-foreground">Use of the service</h2>
             <p className="mt-2">
-              Get Me Job is provided to help you organize and improve your job search. You are
+              Taida is provided to help you organize and improve your job search. You are
               responsible for the accuracy of the information you upload and for how you use any
               generated content in applications or interviews.
             </p>

@@ -20,7 +20,6 @@ vi.mock("playwright", () => ({
   },
 }));
 
-import { chromium } from "playwright";
 import { generatePDF } from "./pdf-export";
 
 describe("generatePDF", () => {
@@ -30,7 +29,6 @@ describe("generatePDF", () => {
     mockSetContent.mockResolvedValue(undefined);
     mockBrowser.newPage.mockResolvedValue(mockPage);
     mockClose.mockResolvedValue(undefined);
-    (chromium.launch as ReturnType<typeof vi.fn>).mockResolvedValue(mockBrowser);
   });
 
   it("returns a Buffer containing PDF data", async () => {
@@ -96,5 +94,12 @@ describe("generatePDF", () => {
     await generatePDF("<html><body>Test</body></html>");
 
     expect(mockClose).toHaveBeenCalled();
+  });
+
+  it("dynamically imports playwright", async () => {
+    const playwright = await import("playwright");
+    await generatePDF("<html><body>Test</body></html>");
+
+    expect(playwright.chromium.launch).toHaveBeenCalled();
   });
 });

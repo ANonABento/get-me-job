@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { SignIn } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: "Sign In",
+  description: "Sign in to your Taida account.",
+};
 
 export default function SignInPage() {
   if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
