@@ -15,6 +15,16 @@ import { useRegisterShortcuts } from "@/components/keyboard-shortcuts";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { AddEntryDialog } from "@/components/bank/add-entry-dialog";
+import { useToast } from "@/components/ui/toast";
+
+/** Build the success toast title after a file upload. Exported for testing. */
+export function uploadSuccessMessage(entriesCreated: number, fileName: string): string {
+  if (entriesCreated > 0) {
+    const noun = entriesCreated === 1 ? "entry" : "entries";
+    return `Added ${entriesCreated} ${noun} from ${fileName}`;
+  }
+  return `Uploaded ${fileName}`;
+}
 
 export default function BankPage() {
   const [entries, setEntries] = useState<BankEntry[]>([]);
@@ -33,8 +43,10 @@ export default function BankPage() {
   // Upload via button
   const fileInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const newEntriesRef = useRef<HTMLDivElement>(null);
   const [uploading, setUploading] = useState(false);
   const [driveImporting, setDriveImporting] = useState(false);
+  const { addToast } = useToast();
 
   // Register page-specific keyboard shortcuts
   useRegisterShortcuts("bank", useMemo(() => [
@@ -62,8 +74,8 @@ export default function BankPage() {
     },
   ], []));
 
-  const fetchEntries = useCallback(async () => {
-    setLoading(true);
+  const fetchEntries = useCallback(async (options?: { silent?: boolean }) => {
+    if (!options?.silent) setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
@@ -76,7 +88,7 @@ export default function BankPage() {
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
-      setLoading(false);
+      if (!options?.silent) setLoading(false);
     }
   }, [query, activeCategory]);
 
@@ -202,8 +214,20 @@ export default function BankPage() {
       }
       console.log("[bank] Upload complete:", uploadData.document?.id);
 
-      // Upload route handles parse + ingest — just refresh the entries
-      handleDataRefresh();
+      // Silently refresh entries (no skeleton flash)
+      await handleDataRefreshSilent();
+
+      // Show success toast
+      const count = uploadData.entriesCreated ?? 0;
+      addToast({
+        type: "success",
+        title: uploadSuccessMessage(count, file.name),
+      });
+
+      // Scroll to newly added entries
+      requestAnimationFrame(() => {
+        newEntriesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     } catch (err) {
       console.error("[bank] Upload error:", err);
       setError(getErrorMessage(err));
@@ -235,6 +259,12 @@ export default function BankPage() {
 
   function handleDataRefresh() {
     fetchEntries();
+    refreshAllEntries();
+    setSourceRefreshKey((k) => k + 1);
+  }
+
+  async function handleDataRefreshSilent() {
+    await fetchEntries({ silent: true });
     refreshAllEntries();
     setSourceRefreshKey((k) => k + 1);
   }
@@ -349,7 +379,7 @@ export default function BankPage() {
           )}
         </div>
       ) : (
-        <div className="space-y-8">
+        <div ref={newEntriesRef} className="space-y-8">
           {groupedEntries.map((group) => (
             <div key={group.category}>
               <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
