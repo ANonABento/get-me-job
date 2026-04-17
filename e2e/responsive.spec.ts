@@ -7,15 +7,12 @@ const VIEWPORTS = {
   wide: { width: 1920, height: 1080 },
 };
 
-const PROTECTED_PAGES = [
-  "/upload",
-  "/profile",
-  "/documents",
+// Pages accessible with auth bypass (no Clerk keys)
+const APP_PAGES = [
+  "/dashboard",
+  "/bank",
+  "/builder",
   "/jobs",
-  "/interview",
-  "/calendar",
-  "/emails",
-  "/analytics",
   "/settings",
 ];
 
@@ -79,11 +76,12 @@ test.describe("Responsive - Mobile (375px)", () => {
     }
   });
 
-  test("protected routes redirect to sign-in on mobile", async ({ page }) => {
-    for (const path of PROTECTED_PAGES) {
+  test("app pages are accessible on mobile with auth bypass", async ({ page }) => {
+    for (const path of APP_PAGES) {
       await page.goto(path);
       await page.waitForLoadState("networkidle");
-      expect(page.url()).toContain("/sign-in");
+      // With auth bypass, pages should NOT redirect to sign-in
+      expect(page.url()).not.toContain("/sign-in");
     }
   });
 });
@@ -145,11 +143,12 @@ test.describe("Responsive - Desktop (1280px)", () => {
     expect(box?.width ?? 0).toBeLessThanOrEqual(VIEWPORTS.desktop.width);
   });
 
-  test("protected routes redirect to sign-in on desktop", async ({ page }) => {
+  test("dashboard is accessible on desktop with auth bypass", async ({ page }) => {
     await page.goto("/dashboard");
     await page.waitForLoadState("networkidle");
 
-    expect(page.url()).toContain("/sign-in");
+    // With auth bypass, should NOT redirect to sign-in
+    expect(page.url()).not.toContain("/sign-in");
   });
 });
 

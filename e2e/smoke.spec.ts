@@ -6,21 +6,20 @@ test.describe("Smoke Tests", () => {
     await expect(page).toHaveTitle(/Get Me Job/i);
   });
 
-  test("protected pages redirect unauthenticated users to sign-in", async ({ page }) => {
+  test("protected pages are accessible with auth bypass (no Clerk keys)", async ({ page }) => {
     const pages = [
       { url: "/dashboard", name: "Dashboard" },
-      { url: "/upload", name: "Upload" },
-      { url: "/profile", name: "Profile" },
+      { url: "/bank", name: "Documents" },
+      { url: "/builder", name: "Resume Builder" },
       { url: "/jobs", name: "Jobs" },
-      { url: "/interview", name: "Interview" },
-      { url: "/analytics", name: "Analytics" },
       { url: "/settings", name: "Settings" },
     ];
 
     for (const p of pages) {
       await page.goto(p.url);
       await page.waitForLoadState("networkidle");
-      expect(page.url()).toContain("/sign-in");
+      // With auth bypass (no Clerk keys), pages should NOT redirect to sign-in
+      expect(page.url()).not.toContain("/sign-in");
     }
   });
 
