@@ -135,38 +135,6 @@ export function getEntryTitle(entry: BankEntry): string {
   }
 }
 
-/** Get a preview string for collapsed state */
-export function getEntryPreview(entry: BankEntry): string {
-  const c = entry.content;
-  switch (entry.category) {
-    case "experience": {
-      const parts: string[] = [];
-      if (c.startDate) parts.push(String(c.startDate));
-      if (c.endDate) parts.push(String(c.endDate));
-      else if (c.current) parts.push("Present");
-      const dateStr = parts.join(" — ");
-      const desc = c.description ? String(c.description).slice(0, 120) : "";
-      return [dateStr, desc].filter(Boolean).join(" | ");
-    }
-    case "education": {
-      const parts: string[] = [];
-      if (c.field) parts.push(String(c.field));
-      if (c.gpa) parts.push(`GPA: ${c.gpa}`);
-      return parts.join(" | ") || "";
-    }
-    case "skill":
-      return [c.category, c.proficiency].filter(Boolean).join(" | ");
-    case "project":
-      return (c.description as string)?.slice(0, 120) || "";
-    case "certification":
-      return [c.date, c.url].filter(Boolean).join(" | ");
-    case "achievement":
-      return "";
-    default:
-      return JSON.stringify(c).slice(0, 120);
-  }
-}
-
 /** Get date range string for experience/education */
 export function getDateRange(content: Record<string, unknown>): string {
   const parts: string[] = [];

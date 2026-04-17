@@ -3,7 +3,6 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import {
   ChunkCard,
   getEntryTitle,
-  getEntryPreview,
   getDateRange,
   getHighlights,
   getTechnologies,
@@ -79,45 +78,6 @@ describe("getEntryTitle", () => {
   it("should fallback gracefully for empty content", () => {
     const entry = makeBankEntry({ category: "skill", content: {} });
     expect(getEntryTitle(entry)).toBe("Skill");
-  });
-});
-
-describe("getEntryPreview", () => {
-  it("should show date range for experience", () => {
-    const entry = makeBankEntry({
-      category: "experience",
-      content: { startDate: "2020", endDate: "2023", description: "Did things" },
-    });
-    const preview = getEntryPreview(entry);
-    expect(preview).toContain("2020");
-    expect(preview).toContain("2023");
-    expect(preview).toContain("Did things");
-  });
-
-  it("should show Present for current experience", () => {
-    const entry = makeBankEntry({
-      category: "experience",
-      content: { startDate: "2020", current: true },
-    });
-    expect(getEntryPreview(entry)).toContain("Present");
-  });
-
-  it("should show category and proficiency for skill", () => {
-    const entry = makeBankEntry({
-      category: "skill",
-      content: { name: "Go", category: "technical", proficiency: "advanced" },
-    });
-    const preview = getEntryPreview(entry);
-    expect(preview).toContain("technical");
-    expect(preview).toContain("advanced");
-  });
-
-  it("should show description for project", () => {
-    const entry = makeBankEntry({
-      category: "project",
-      content: { name: "App", description: "A cool project" },
-    });
-    expect(getEntryPreview(entry)).toContain("A cool project");
   });
 });
 
