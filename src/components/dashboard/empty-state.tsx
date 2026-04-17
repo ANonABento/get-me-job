@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Upload, FileText, ArrowRight } from "lucide-react";
 
 interface EmptyStateProps {
-  variant: "no-resume" | "no-documents";
+  variant: "no-resume" | "no-resumes-built";
 }
 
 export function EmptyState({ variant }: EmptyStateProps) {

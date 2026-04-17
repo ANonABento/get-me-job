@@ -26,47 +26,47 @@ export function ProfileCompletenessRing({ data }: ProfileCompletenessRingProps) 
           className="shrink-0 group"
           aria-label={`Profile ${percentage}% complete. Click to complete your profile.`}
         >
-          <svg
-            width={RING_SIZE}
-            height={RING_SIZE}
-            className="transform -rotate-90"
-          >
-            {/* Background circle */}
-            <circle
-              cx={RING_SIZE / 2}
-              cy={RING_SIZE / 2}
-              r={RADIUS}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={STROKE_WIDTH}
-              className="text-muted/30"
-            />
-            {/* Progress circle */}
-            <circle
-              cx={RING_SIZE / 2}
-              cy={RING_SIZE / 2}
-              r={RADIUS}
-              fill="none"
-              stroke="url(#ring-gradient)"
-              strokeWidth={STROKE_WIDTH}
-              strokeLinecap="round"
-              strokeDasharray={CIRCUMFERENCE}
-              strokeDashoffset={offset}
-              className="transition-all duration-700 ease-out"
-            />
-            <defs>
-              <linearGradient id="ring-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="hsl(172 66% 45%)" />
-                <stop offset="100%" stopColor="hsl(210 90% 50%)" />
-              </linearGradient>
-            </defs>
-          </svg>
-          {/* Center text */}
-          <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold pointer-events-none"
-            style={{ width: RING_SIZE, height: RING_SIZE, position: 'relative', marginTop: -RING_SIZE }}
-          >
-            {percentage}%
-          </span>
+          <div className="relative" style={{ width: RING_SIZE, height: RING_SIZE }}>
+            <svg
+              width={RING_SIZE}
+              height={RING_SIZE}
+              className="transform -rotate-90"
+            >
+              {/* Background circle */}
+              <circle
+                cx={RING_SIZE / 2}
+                cy={RING_SIZE / 2}
+                r={RADIUS}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={STROKE_WIDTH}
+                className="text-muted/30"
+              />
+              {/* Progress circle */}
+              <circle
+                cx={RING_SIZE / 2}
+                cy={RING_SIZE / 2}
+                r={RADIUS}
+                fill="none"
+                stroke="url(#ring-gradient)"
+                strokeWidth={STROKE_WIDTH}
+                strokeLinecap="round"
+                strokeDasharray={CIRCUMFERENCE}
+                strokeDashoffset={offset}
+                className="transition-all duration-700 ease-out"
+              />
+              <defs>
+                <linearGradient id="ring-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="hsl(172 66% 45%)" />
+                  <stop offset="100%" stopColor="hsl(210 90% 50%)" />
+                </linearGradient>
+              </defs>
+            </svg>
+            {/* Center text — overlays the ring */}
+            <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold pointer-events-none">
+              {percentage}%
+            </span>
+          </div>
         </Link>
 
         {/* Section checklist */}

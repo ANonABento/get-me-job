@@ -261,7 +261,7 @@ export default function Dashboard() {
 
           {/* Empty state: has documents but no resumes built */}
           {!loading && hasDocuments && !hasResumes && (
-            <EmptyState variant="no-documents" />
+            <EmptyState variant="no-resumes-built" />
           )}
 
           {/* Profile Completeness Ring + Recent Activity (side by side) */}
