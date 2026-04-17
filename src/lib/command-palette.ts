@@ -106,9 +106,9 @@ export function getNavigationCommands(): CommandItem[] {
  */
 export function getActionCommands(): CommandItem[] {
   return [
-    { id: "act-upload", label: "Upload Resume", category: "actions", shortcut: "Ctrl+U", keywords: ["import", "file", "pdf"] },
-    { id: "act-build", label: "Build Resume", category: "actions", keywords: ["create", "new", "generate"] },
-    { id: "act-tailor", label: "Tailor to Job", category: "actions", keywords: ["customize", "match", "job"] },
+    { id: "act-upload", label: "Upload Resume", category: "actions", href: "/bank", shortcut: "Ctrl+U", keywords: ["import", "file", "pdf"] },
+    { id: "act-build", label: "Build Resume", category: "actions", href: "/builder", keywords: ["create", "new", "generate"] },
+    { id: "act-tailor", label: "Tailor to Job", category: "actions", href: "/tailor", keywords: ["customize", "match", "job"] },
   ];
 }
 

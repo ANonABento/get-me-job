@@ -92,6 +92,12 @@ export function CommandPalette() {
   // Flatten for index-based keyboard navigation
   const flatItems = useMemo(() => grouped.flatMap((g) => g.items), [grouped]);
 
+  const flatItemIndexes = useMemo(() => {
+    const map = new Map<CommandItem, number>();
+    flatItems.forEach((item, i) => map.set(item, i));
+    return map;
+  }, [flatItems]);
+
   // Reset state when opening/closing
   useEffect(() => {
     if (open) {
@@ -118,23 +124,8 @@ export function CommandPalette() {
     (item: CommandItem) => {
       saveRecentAction(item.id);
       setOpen(false);
-
       if (item.href) {
         router.push(item.href);
-        return;
-      }
-
-      // Action commands route to their respective pages
-      switch (item.id) {
-        case "act-upload":
-          router.push("/bank");
-          break;
-        case "act-build":
-          router.push("/builder");
-          break;
-        case "act-tailor":
-          router.push("/tailor");
-          break;
       }
     },
     [router]
@@ -211,7 +202,7 @@ export function CommandPalette() {
                   {group.label}
                 </div>
                 {group.items.map((item) => {
-                  const globalIndex = flatItems.indexOf(item);
+                  const globalIndex = flatItemIndexes.get(item) ?? 0;
                   const isSelected = globalIndex === selectedIndex;
                   const Icon = COMMAND_ICONS[item.id] ?? (item.category === "recent" ? Clock : ArrowRight);
 
