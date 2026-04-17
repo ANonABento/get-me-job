@@ -18,7 +18,6 @@ export function Hero() {
             <ScanSearch className="h-4 w-4" />
             AI-Powered Resume Intelligence
             <Sparkles className="h-4 w-4" />
-            You&apos;re not lazy. You&apos;re efficient.
           </div>
 
           {/* Headline */}
