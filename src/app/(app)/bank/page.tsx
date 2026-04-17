@@ -17,7 +17,6 @@ import { SkeletonCard } from "@/components/ui/skeleton";
 import { AddEntryDialog } from "@/components/bank/add-entry-dialog";
 import { useToast } from "@/components/ui/toast";
 
-/** Build the success toast title after a file upload. Exported for testing. */
 export function uploadSuccessMessage(entriesCreated: number, fileName: string): string {
   if (entriesCreated > 0) {
     const noun = entriesCreated === 1 ? "entry" : "entries";
@@ -43,7 +42,7 @@ export default function BankPage() {
   // Upload via button
   const fileInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const newEntriesRef = useRef<HTMLDivElement>(null);
+  const entriesListRef = useRef<HTMLDivElement>(null);
   const [uploading, setUploading] = useState(false);
   const [driveImporting, setDriveImporting] = useState(false);
   const { addToast } = useToast();
@@ -214,19 +213,16 @@ export default function BankPage() {
       }
       console.log("[bank] Upload complete:", uploadData.document?.id);
 
-      // Silently refresh entries (no skeleton flash)
-      await handleDataRefreshSilent();
+      await handleDataRefresh({ silent: true });
 
-      // Show success toast
       const count = uploadData.entriesCreated ?? 0;
       addToast({
         type: "success",
         title: uploadSuccessMessage(count, file.name),
       });
 
-      // Scroll to newly added entries
       requestAnimationFrame(() => {
-        newEntriesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        entriesListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     } catch (err) {
       console.error("[bank] Upload error:", err);
@@ -257,14 +253,8 @@ export default function BankPage() {
     }
   }
 
-  function handleDataRefresh() {
-    fetchEntries();
-    refreshAllEntries();
-    setSourceRefreshKey((k) => k + 1);
-  }
-
-  async function handleDataRefreshSilent() {
-    await fetchEntries({ silent: true });
+  async function handleDataRefresh(options?: { silent?: boolean }) {
+    await fetchEntries(options);
     refreshAllEntries();
     setSourceRefreshKey((k) => k + 1);
   }
@@ -379,7 +369,7 @@ export default function BankPage() {
           )}
         </div>
       ) : (
-        <div ref={newEntriesRef} className="space-y-8">
+        <div ref={entriesListRef} className="space-y-8">
           {groupedEntries.map((group) => (
             <div key={group.category}>
               <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
