@@ -4,6 +4,10 @@ import {
   ChunkCard,
   getEntryTitle,
   getEntryPreview,
+  getDateRange,
+  getHighlights,
+  getTechnologies,
+  SKILL_CATEGORY_COLORS,
   listToText,
   textToList,
   cleanContent,
@@ -114,6 +118,69 @@ describe("getEntryPreview", () => {
       content: { name: "App", description: "A cool project" },
     });
     expect(getEntryPreview(entry)).toContain("A cool project");
+  });
+});
+
+describe("getDateRange", () => {
+  it("should return start — end for full range", () => {
+    expect(getDateRange({ startDate: "2020", endDate: "2023" })).toBe("2020 — 2023");
+  });
+
+  it("should return start — Present for current", () => {
+    expect(getDateRange({ startDate: "2020", current: true })).toBe("2020 — Present");
+  });
+
+  it("should return empty string for no dates", () => {
+    expect(getDateRange({})).toBe("");
+  });
+
+  it("should return just start date if no end", () => {
+    expect(getDateRange({ startDate: "2020" })).toBe("2020");
+  });
+});
+
+describe("getHighlights", () => {
+  it("should return first N highlights", () => {
+    const content = { highlights: ["Built API", "Led team", "Shipped v2", "Won award"] };
+    expect(getHighlights(content, 2)).toEqual(["Built API", "Led team"]);
+  });
+
+  it("should return all if fewer than max", () => {
+    const content = { highlights: ["Built API"] };
+    expect(getHighlights(content, 2)).toEqual(["Built API"]);
+  });
+
+  it("should return empty array if no highlights", () => {
+    expect(getHighlights({}, 2)).toEqual([]);
+  });
+
+  it("should return empty array if highlights is not array", () => {
+    expect(getHighlights({ highlights: "not array" }, 2)).toEqual([]);
+  });
+});
+
+describe("getTechnologies", () => {
+  it("should return technologies as strings", () => {
+    const content = { technologies: ["React", "Node.js"] };
+    expect(getTechnologies(content)).toEqual(["React", "Node.js"]);
+  });
+
+  it("should return empty array if no technologies", () => {
+    expect(getTechnologies({})).toEqual([]);
+  });
+
+  it("should return empty array if technologies is not array", () => {
+    expect(getTechnologies({ technologies: "React" })).toEqual([]);
+  });
+});
+
+describe("SKILL_CATEGORY_COLORS", () => {
+  it("should have colors for all skill categories", () => {
+    expect(SKILL_CATEGORY_COLORS).toHaveProperty("technical");
+    expect(SKILL_CATEGORY_COLORS).toHaveProperty("soft");
+    expect(SKILL_CATEGORY_COLORS).toHaveProperty("language");
+    expect(SKILL_CATEGORY_COLORS).toHaveProperty("tool");
+    expect(SKILL_CATEGORY_COLORS).toHaveProperty("other");
   });
 });
 
@@ -302,6 +369,95 @@ describe("ChunkCard", () => {
     // Should be back to normal view with Delete button
     expect(screen.getByText("Delete")).toBeInTheDocument();
     expect(onDelete).not.toHaveBeenCalled();
+  });
+
+  it("should show source document attribution when present", () => {
+    const entry = makeBankEntry({ sourceDocumentId: "resume-2024.pdf" });
+    render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
+    expect(screen.getByText("from resume-2024.pdf")).toBeInTheDocument();
+  });
+
+  it("should not show source attribution when absent", () => {
+    const entry = makeBankEntry({ sourceDocumentId: undefined });
+    render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
+    expect(screen.queryByText(/^from /)).not.toBeInTheDocument();
+  });
+
+  it("should show experience preview with date range and highlights", () => {
+    const entry = makeBankEntry({
+      category: "experience",
+      content: {
+        title: "Engineer",
+        company: "Acme",
+        startDate: "2020",
+        endDate: "2023",
+        location: "SF",
+        description: "Built great things",
+        highlights: ["Shipped v2", "Led team of 5", "Reduced latency"],
+      },
+    });
+    render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
+    expect(screen.getByText("SF · 2020 — 2023")).toBeInTheDocument();
+    expect(screen.getByText("Built great things")).toBeInTheDocument();
+    expect(screen.getByText("Shipped v2")).toBeInTheDocument();
+    expect(screen.getByText("Led team of 5")).toBeInTheDocument();
+    // Third highlight should NOT appear in collapsed preview (max 2)
+    expect(screen.queryByText("Reduced latency")).not.toBeInTheDocument();
+  });
+
+  it("should show education preview with field and date range", () => {
+    const entry = makeBankEntry({
+      category: "education",
+      content: {
+        institution: "MIT",
+        degree: "BS CS",
+        field: "Computer Science",
+        startDate: "2016",
+        endDate: "2020",
+        gpa: "3.8",
+      },
+    });
+    render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
+    expect(screen.getByText("Computer Science")).toBeInTheDocument();
+    expect(screen.getByText("2016 — 2020 · GPA: 3.8")).toBeInTheDocument();
+  });
+
+  it("should show skill preview with category badge", () => {
+    const entry = makeBankEntry({
+      category: "skill",
+      content: { name: "TypeScript", category: "technical", proficiency: "advanced" },
+    });
+    render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
+    expect(screen.getByText("technical")).toBeInTheDocument();
+    expect(screen.getByText("advanced")).toBeInTheDocument();
+  });
+
+  it("should show project preview with description and technology badges", () => {
+    const entry = makeBankEntry({
+      category: "project",
+      content: {
+        name: "Cool App",
+        description: "A great project that does things",
+        technologies: ["React", "Node.js", "PostgreSQL"],
+      },
+    });
+    render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
+    expect(screen.getByText("A great project that does things")).toBeInTheDocument();
+    expect(screen.getByText("React")).toBeInTheDocument();
+    expect(screen.getByText("Node.js")).toBeInTheDocument();
+    expect(screen.getByText("PostgreSQL")).toBeInTheDocument();
+  });
+
+  it("should show +N more for projects with many technologies", () => {
+    const entry = makeBankEntry({
+      category: "project",
+      content: {
+        name: "Big App",
+        technologies: ["React", "Node", "Postgres", "Redis", "Docker", "K8s", "Terraform"],
+      },
+    });
+    render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
+    expect(screen.getByText("+2 more")).toBeInTheDocument();
   });
 
   it("should render skill fields correctly in edit mode", () => {

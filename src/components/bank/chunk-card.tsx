@@ -167,6 +167,36 @@ export function getEntryPreview(entry: BankEntry): string {
   }
 }
 
+/** Get date range string for experience/education */
+export function getDateRange(content: Record<string, unknown>): string {
+  const parts: string[] = [];
+  if (content.startDate) parts.push(String(content.startDate));
+  if (content.endDate) parts.push(String(content.endDate));
+  else if (content.current) parts.push("Present");
+  return parts.join(" — ");
+}
+
+/** Get first N highlights from content */
+export function getHighlights(content: Record<string, unknown>, max: number): string[] {
+  if (!Array.isArray(content.highlights)) return [];
+  return content.highlights.slice(0, max).map(String);
+}
+
+/** Get technologies list from content */
+export function getTechnologies(content: Record<string, unknown>): string[] {
+  if (!Array.isArray(content.technologies)) return [];
+  return content.technologies.map(String);
+}
+
+/** Skill category badge color mapping */
+export const SKILL_CATEGORY_COLORS: Record<string, string> = {
+  technical: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  soft: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400",
+  language: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  tool: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+  other: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400",
+};
+
 /** Convert an array field value to newline-separated text for editing */
 export function listToText(value: unknown): string {
   if (Array.isArray(value)) return value.join("\n");
@@ -295,6 +325,111 @@ export function FieldEditor({ field, value, onChange }: FieldEditorProps) {
   }
 }
 
+// --- Content preview for collapsed state ---
+
+function ContentPreview({ entry }: { entry: BankEntry }) {
+  const c = entry.content;
+
+  switch (entry.category) {
+    case "experience": {
+      const dateRange = getDateRange(c);
+      const highlights = getHighlights(c, 2);
+      return (
+        <div className="mt-1 space-y-1">
+          {(c.location || dateRange) && (
+            <p className="text-xs text-muted-foreground">
+              {[c.location, dateRange].filter(Boolean).join(" · ")}
+            </p>
+          )}
+          {c.description ? (
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {String(c.description)}
+            </p>
+          ) : null}
+          {highlights.length > 0 && (
+            <ul className="text-xs text-muted-foreground list-disc list-inside">
+              {highlights.map((h, i) => (
+                <li key={i} className="truncate">{h}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      );
+    }
+    case "education": {
+      const dateRange = getDateRange(c);
+      return (
+        <div className="mt-1 space-y-0.5">
+          {c.field ? (
+            <p className="text-sm text-muted-foreground">{String(c.field)}</p>
+          ) : null}
+          <p className="text-xs text-muted-foreground">
+            {[dateRange, c.gpa ? `GPA: ${c.gpa}` : ""].filter(Boolean).join(" · ")}
+          </p>
+        </div>
+      );
+    }
+    case "skill": {
+      const cat = c.category ? String(c.category) : "";
+      const prof = c.proficiency ? String(c.proficiency) : "";
+      return (
+        <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+          {cat && (
+            <span className={cn("text-2xs px-1.5 py-0.5 rounded-full font-medium", SKILL_CATEGORY_COLORS[cat] || SKILL_CATEGORY_COLORS.other)}>
+              {cat}
+            </span>
+          )}
+          {prof && (
+            <span className="text-xs text-muted-foreground">{prof}</span>
+          )}
+        </div>
+      );
+    }
+    case "project": {
+      const techs = getTechnologies(c);
+      return (
+        <div className="mt-1 space-y-1">
+          {c.description ? (
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {String(c.description)}
+            </p>
+          ) : null}
+          {techs.length > 0 && (
+            <div className="flex gap-1 flex-wrap">
+              {techs.slice(0, 5).map((t, i) => (
+                <span key={i} className="text-2xs px-1.5 py-0.5 rounded-full bg-accent/10 text-accent font-medium">
+                  {t}
+                </span>
+              ))}
+              {techs.length > 5 && (
+                <span className="text-2xs text-muted-foreground">+{techs.length - 5} more</span>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+    case "certification": {
+      return (
+        <div className="mt-1">
+          <p className="text-xs text-muted-foreground">
+            {[c.issuer, c.date].filter(Boolean).map(String).join(" · ")}
+          </p>
+        </div>
+      );
+    }
+    case "achievement": {
+      return c.description ? (
+        <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+          {String(c.description)}
+        </p>
+      ) : null;
+    }
+    default:
+      return null;
+  }
+}
+
 // --- ChunkCard component ---
 
 interface ChunkCardProps {
@@ -312,7 +447,6 @@ export function ChunkCard({ entry, onUpdate, onDelete }: ChunkCardProps) {
   const config = CATEGORY_CONFIG[entry.category];
   const Icon = config.icon;
   const title = getEntryTitle(entry);
-  const preview = getEntryPreview(entry);
   const fields = CATEGORY_FIELDS[entry.category];
 
   function handleEdit() {
@@ -371,14 +505,19 @@ export function ChunkCard({ entry, onUpdate, onDelete }: ChunkCardProps) {
               </Badge>
             )}
           </div>
-          {!expanded && preview && (
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
-              {preview}
-            </p>
+          {!expanded && (
+            <ContentPreview entry={entry} />
           )}
-          <p className="text-xs text-muted-foreground mt-1">
-            {formatRelativeTime(entry.createdAt)}
-          </p>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span className="text-xs text-muted-foreground">
+              {formatRelativeTime(entry.createdAt)}
+            </span>
+            {entry.sourceDocumentId && (
+              <span className="text-xs text-muted-foreground/60 truncate max-w-[200px]">
+                from {entry.sourceDocumentId}
+              </span>
+            )}
+          </div>
         </div>
         <div className="shrink-0 text-muted-foreground">
           {expanded ? (
