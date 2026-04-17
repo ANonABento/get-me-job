@@ -319,4 +319,79 @@ describe("ChunkCard", () => {
     expect(screen.getByLabelText("Category")).toHaveValue("technical");
     expect(screen.getByLabelText("Proficiency")).toHaveValue("advanced");
   });
+
+  it("should render checkbox when onToggleSelect is provided", () => {
+    const entry = makeBankEntry();
+    render(
+      <ChunkCard
+        entry={entry}
+        onUpdate={vi.fn()}
+        onDelete={vi.fn()}
+        onToggleSelect={vi.fn()}
+        selected={false}
+        anySelected={false}
+      />
+    );
+    expect(screen.getByRole("checkbox", { name: /Select Engineer at Acme Corp/ })).toBeInTheDocument();
+  });
+
+  it("should not render checkbox when onToggleSelect is not provided", () => {
+    const entry = makeBankEntry();
+    render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
+  it("should call onToggleSelect when checkbox is clicked", () => {
+    const onToggleSelect = vi.fn();
+    const entry = makeBankEntry();
+    render(
+      <ChunkCard
+        entry={entry}
+        onUpdate={vi.fn()}
+        onDelete={vi.fn()}
+        onToggleSelect={onToggleSelect}
+        selected={false}
+        anySelected={false}
+      />
+    );
+    fireEvent.click(screen.getByRole("checkbox"));
+    expect(onToggleSelect).toHaveBeenCalledWith("test-1");
+  });
+
+  it("should show checkbox as checked when selected", () => {
+    const entry = makeBankEntry();
+    render(
+      <ChunkCard
+        entry={entry}
+        onUpdate={vi.fn()}
+        onDelete={vi.fn()}
+        onToggleSelect={vi.fn()}
+        selected={true}
+        anySelected={true}
+      />
+    );
+    expect(screen.getByRole("checkbox")).toBeChecked();
+  });
+
+  it("should apply highlight ring when highlighted", () => {
+    const entry = makeBankEntry();
+    const { container } = render(
+      <ChunkCard
+        entry={entry}
+        onUpdate={vi.fn()}
+        onDelete={vi.fn()}
+        highlighted={true}
+      />
+    );
+    const card = container.querySelector("[data-entry-id]");
+    expect(card?.className).toContain("ring-2");
+  });
+
+  it("should have data-entry-id attribute", () => {
+    const entry = makeBankEntry();
+    const { container } = render(
+      <ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />
+    );
+    expect(container.querySelector('[data-entry-id="test-1"]')).toBeInTheDocument();
+  });
 });
