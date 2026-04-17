@@ -356,7 +356,7 @@ export function ChunkCard({ entry, onUpdate, onDelete, selected, onToggleSelect,
   return (
     <div
       className={cn(
-        "rounded-xl border bg-card transition-all hover:border-primary/30 hover:shadow-md",
+        "group rounded-xl border bg-card transition-all hover:border-primary/30 hover:shadow-md",
         highlighted && "ring-2 ring-primary",
         selected && "border-primary bg-primary/5"
       )}

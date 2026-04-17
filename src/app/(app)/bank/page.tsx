@@ -382,8 +382,9 @@ export default function BankPage() {
       await Promise.all(
         ids.map((id) => fetch(`/api/bank/${id}`, { method: "DELETE" }))
       );
-      setEntries((prev) => prev.filter((e) => !selectedIds.has(e.id)));
-      setAllEntries((prev) => prev.filter((e) => !selectedIds.has(e.id)));
+      const deletedIds = new Set(ids);
+      setEntries((prev) => prev.filter((e) => !deletedIds.has(e.id)));
+      setAllEntries((prev) => prev.filter((e) => !deletedIds.has(e.id)));
       setSelectedIds(new Set());
     } catch (err) {
       console.error("Bulk delete error:", err);
@@ -396,6 +397,18 @@ export default function BankPage() {
     // Store selected entry IDs and navigate to profile/resume builder
     sessionStorage.setItem("bank_selected_entries", JSON.stringify(ids));
     window.location.href = "/profile?from=bank";
+  }
+
+  function handleExport() {
+    const selectedEntries = sortedEntries.filter((e) => selectedIds.has(e.id));
+    const json = JSON.stringify(selectedEntries, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `bank-entries-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -481,6 +494,7 @@ export default function BankPage() {
         onDeselectAll={deselectAll}
         onDelete={() => setConfirmBulkDelete(true)}
         onAddToResume={handleAddToResume}
+        onExport={handleExport}
       />
 
       {/* Bulk delete confirmation */}

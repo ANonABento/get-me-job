@@ -9,6 +9,7 @@ const defaultProps = {
   onDeselectAll: vi.fn(),
   onDelete: vi.fn(),
   onAddToResume: vi.fn(),
+  onExport: vi.fn(),
 };
 
 describe("BulkActionBar", () => {
@@ -67,5 +68,12 @@ describe("BulkActionBar", () => {
     render(<BulkActionBar {...defaultProps} onAddToResume={onAddToResume} />);
     fireEvent.click(screen.getByText("Add to Resume"));
     expect(onAddToResume).toHaveBeenCalled();
+  });
+
+  it("should call onExport when Export is clicked", () => {
+    const onExport = vi.fn();
+    render(<BulkActionBar {...defaultProps} onExport={onExport} />);
+    fireEvent.click(screen.getByText("Export"));
+    expect(onExport).toHaveBeenCalled();
   });
 });

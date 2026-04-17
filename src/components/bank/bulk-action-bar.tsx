@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Trash2, FileText, CheckSquare, XSquare } from "lucide-react";
+import { Trash2, FileText, CheckSquare, XSquare, Download } from "lucide-react";
 
 interface BulkActionBarProps {
   selectedCount: number;
@@ -10,6 +10,7 @@ interface BulkActionBarProps {
   onDeselectAll: () => void;
   onDelete: () => void;
   onAddToResume: () => void;
+  onExport: () => void;
 }
 
 export function BulkActionBar({
@@ -19,6 +20,7 @@ export function BulkActionBar({
   onDeselectAll,
   onDelete,
   onAddToResume,
+  onExport,
 }: BulkActionBarProps) {
   if (selectedCount === 0) return null;
 
@@ -48,6 +50,10 @@ export function BulkActionBar({
         )}
       </Button>
       <div className="flex-1" />
+      <Button variant="ghost" size="sm" onClick={onExport}>
+        <Download className="h-4 w-4 mr-1" />
+        Export
+      </Button>
       <Button variant="ghost" size="sm" onClick={onAddToResume}>
         <FileText className="h-4 w-4 mr-1" />
         Add to Resume
