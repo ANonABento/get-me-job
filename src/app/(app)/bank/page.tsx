@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SearchBar, CATEGORY_LABELS, type SortOption } from "@/components/bank/search-bar";
 import { ChunkCard } from "@/components/bank/chunk-card";
-import { UploadOverlay } from "@/components/bank/upload-overlay";
+import { UploadOverlay, formatUploadToast, type FileResult } from "@/components/bank/upload-overlay";
 import { ErrorState, getErrorMessage } from "@/components/ui/error-state";
 import { BANK_CATEGORIES, type BankCategory, type BankEntry } from "@/types";
 import { Database, Loader2, Upload, HardDrive } from "lucide-react";
@@ -13,8 +13,9 @@ import { DriveFilePicker } from "@/components/google";
 import { SourceDocuments } from "@/components/bank/source-documents";
 import { useRegisterShortcuts } from "@/components/keyboard-shortcuts";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { SkeletonCard } from "@/components/ui/skeleton";
+import { SkeletonCard, SkeletonChunkCard } from "@/components/ui/skeleton";
 import { AddEntryDialog } from "@/components/bank/add-entry-dialog";
+import { useToast } from "@/components/ui/toast";
 
 export default function BankPage() {
   const [entries, setEntries] = useState<BankEntry[]>([]);
@@ -33,8 +34,11 @@ export default function BankPage() {
   // Upload via button
   const fileInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const newEntriesRef = useRef<HTMLDivElement>(null);
   const [uploading, setUploading] = useState(false);
   const [driveImporting, setDriveImporting] = useState(false);
+  const [showUploadSkeletons, setShowUploadSkeletons] = useState(false);
+  const { addToast } = useToast();
 
   // Register page-specific keyboard shortcuts
   useRegisterShortcuts("bank", useMemo(() => [
@@ -185,6 +189,7 @@ export default function BankPage() {
 
   async function handleFileUpload(file: File) {
     setUploading(true);
+    setShowUploadSkeletons(true);
     setError(null);
     try {
       const formData = new FormData();
@@ -204,11 +209,32 @@ export default function BankPage() {
 
       // Upload route handles parse + ingest — just refresh the entries
       handleDataRefresh();
+
+      // Count entries from the upload response
+      const entryCount =
+        uploadData.parsing?.sectionsDetected?.length ?? 0;
+
+      const toast = formatUploadToast([
+        { fileName: file.name, entryCount },
+      ]);
+      addToast({
+        type: entryCount > 0 ? "success" : "error",
+        title: toast.title,
+        description: toast.description,
+      });
+
+      // Scroll to new entries
+      if (entryCount > 0) {
+        setTimeout(() => {
+          newEntriesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 300);
+      }
     } catch (err) {
       console.error("[bank] Upload error:", err);
       setError(getErrorMessage(err));
     } finally {
       setUploading(false);
+      setShowUploadSkeletons(false);
     }
   }
 
@@ -239,11 +265,34 @@ export default function BankPage() {
     setSourceRefreshKey((k) => k + 1);
   }
 
+  function handleOverlayUploadStart() {
+    setShowUploadSkeletons(true);
+  }
+
+  function handleOverlayComplete(results: FileResult[]) {
+    setShowUploadSkeletons(false);
+    handleDataRefresh();
+
+    const toast = formatUploadToast(results);
+    const totalEntries = results.reduce((sum, r) => sum + r.entryCount, 0);
+    addToast({
+      type: totalEntries > 0 ? "success" : "error",
+      title: toast.title,
+      description: toast.description,
+    });
+
+    if (totalEntries > 0) {
+      setTimeout(() => {
+        newEntriesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+    }
+  }
+
   return (
     <ErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       {/* Upload overlay for drag-and-drop */}
-      <UploadOverlay onComplete={handleDataRefresh} />
+      <UploadOverlay onComplete={handleOverlayComplete} onUploadStart={handleOverlayUploadStart} />
 
       {/* Hidden file input */}
       <input
@@ -314,6 +363,20 @@ export default function BankPage() {
         onDelete={handleDataRefresh}
       />
 
+      {/* Upload skeleton placeholders */}
+      {showUploadSkeletons && !loading && (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground animate-pulse">
+            Parsing resume&hellip;
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <SkeletonChunkCard key={`upload-skel-${i}`} className="animate-in" />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Content */}
       {loading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -349,7 +412,7 @@ export default function BankPage() {
           )}
         </div>
       ) : (
-        <div className="space-y-8">
+        <div ref={newEntriesRef} className="space-y-8">
           {groupedEntries.map((group) => (
             <div key={group.category}>
               <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
@@ -360,12 +423,13 @@ export default function BankPage() {
               </h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {group.entries.map((entry) => (
-                  <ChunkCard
-                    key={entry.id}
-                    entry={entry}
-                    onUpdate={handleUpdate}
-                    onDelete={handleDelete}
-                  />
+                  <div key={entry.id} className="animate-in">
+                    <ChunkCard
+                      entry={entry}
+                      onUpdate={handleUpdate}
+                      onDelete={handleDelete}
+                    />
+                  </div>
                 ))}
               </div>
             </div>
