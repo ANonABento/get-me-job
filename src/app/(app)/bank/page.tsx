@@ -160,21 +160,13 @@ export default function BankPage() {
       key: "Delete",
       description: "Delete selected",
       category: "actions" as const,
-      action: () => {
-        if (selectedIdsRef.current.size > 0) {
-          setConfirmBulkDelete(true);
-        }
-      },
+      action: () => { if (selectedIdsRef.current.size > 0) setConfirmBulkDelete(true); },
     },
     {
       key: "Backspace",
       description: "Delete selected",
       category: "actions" as const,
-      action: () => {
-        if (selectedIdsRef.current.size > 0) {
-          setConfirmBulkDelete(true);
-        }
-      },
+      action: () => { if (selectedIdsRef.current.size > 0) setConfirmBulkDelete(true); },
     },
   ], []));
 
@@ -435,7 +427,6 @@ export default function BankPage() {
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
-        <div className="flex gap-2">
           <AddEntryDialog onCreate={handleCreate} />
           <DriveFilePicker
             onSelect={handleDriveSelect}
@@ -464,7 +455,6 @@ export default function BankPage() {
             {uploading ? "Uploading..." : "Upload"}
           </Button>
         </div>
-      </div>
 
       {/* Search & Filters */}
       <SearchBar
