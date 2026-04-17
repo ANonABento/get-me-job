@@ -104,7 +104,8 @@ export async function smartParseResume(
     const { enhanced, llmSectionCount, warnings } = await enhanceWithLLM(
       sections,
       extracted,
-      llmConfig
+      llmConfig,
+      text
     );
 
     const enhancedFieldConf = calculateFieldConfidence(enhanced);
@@ -207,21 +208,28 @@ interface LLMEnhanceResult {
 async function enhanceWithLLM(
   sections: DetectedSection[],
   extracted: ExtractedFields,
-  llmConfig: LLMConfig
+  llmConfig: LLMConfig,
+  rawText?: string
 ): Promise<LLMEnhanceResult> {
   const lowConfSections = sections.filter(
     (s) => s.confidence < CONFIDENCE_THRESHOLD && s.type !== "contact"
   );
 
-  if (lowConfSections.length === 0) {
+  // Fall back to all non-contact sections, or raw text if no sections were detected
+  const sectionsToProcess =
+    lowConfSections.length > 0
+      ? lowConfSections
+      : sections.filter((s) => s.type !== "contact");
+
+  if (sectionsToProcess.length === 0 && !rawText) {
     return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
   }
 
-  // Build a batched prompt with all ambiguous sections
-  const sectionPrompts = lowConfSections.map((s, i) => {
-    const typeHint = true ? s.type : "unidentified section";
-    return `--- Section ${i + 1} (detected as: ${typeHint}) ---\n${s.text}`;
-  });
+  // Build a batched prompt with all ambiguous sections (or raw text as fallback)
+  const contentToparse =
+    sectionsToProcess.length > 0
+      ? sectionsToProcess.map((s, i) => `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`).join("\n\n")
+      : rawText!;
 
   const batchPrompt = `You are a resume parser. Parse the following resume sections and return structured JSON.
 
@@ -242,7 +250,7 @@ Rules:
 
 Sections to parse:
 
-${sectionPrompts.join("\n\n")}`;
+${contentToparse}`;
 
   try {
     const client = new LLMClient(llmConfig);
@@ -257,7 +265,7 @@ ${sectionPrompts.join("\n\n")}`;
 
     return {
       enhanced,
-      llmSectionCount: lowConfSections.length,
+      llmSectionCount: sectionsToProcess.length > 0 ? sectionsToProcess.length : 1,
       warnings: [],
     };
   } catch (error) {
