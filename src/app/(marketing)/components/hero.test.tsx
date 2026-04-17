@@ -5,14 +5,15 @@ import { Hero } from "./hero";
 describe("Hero", () => {
   it("should render the Taida headline", () => {
     render(<Hero />);
-    expect(screen.getByText(/You're not lazy\./)).toBeInTheDocument();
-    expect(screen.getByText(/You're efficient\./)).toBeInTheDocument();
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading).toHaveTextContent(/You're not lazy/);
+    expect(heading).toHaveTextContent(/You're efficient/);
   });
 
   it("should render the badge text", () => {
     render(<Hero />);
     expect(
-      screen.getByText("AI-Powered Resume Intelligence")
+      screen.getByText(/AI-Powered Resume Intelligence/)
     ).toBeInTheDocument();
   });
 

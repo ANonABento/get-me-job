@@ -64,8 +64,8 @@ export async function smartParseResume(
 ): Promise<SmartParseResult> {
   // Step 1: Detect sections
   const rawSections = detectSections(text);
-  const sections: DetectedSection[] = rawSections.map(s => ({ ...s, text: s.content, confidence: 0.7 }));
   const sectionConfidence = calculateSectionConfidence(rawSections);
+  const sections: DetectedSection[] = rawSections.map(s => ({ ...s, text: s.content, confidence: sectionConfidence }));
 
   // Step 2: Extract fields deterministically
   const extracted = extractFieldsFromSections(sections);
@@ -101,8 +101,13 @@ export async function smartParseResume(
 
   // Step 5: Low confidence + LLM available → targeted LLM for ambiguous sections
   if (llmConfig) {
+    // If no sections were detected, treat the full text as one unstructured section
+    const sectionsForLLM: DetectedSection[] = sections.length > 0
+      ? sections
+      : [{ type: "other" as const, content: text, text, confidence: 0 }];
+
     const { enhanced, llmSectionCount, warnings } = await enhanceWithLLM(
-      sections,
+      sectionsForLLM,
       extracted,
       llmConfig
     );
