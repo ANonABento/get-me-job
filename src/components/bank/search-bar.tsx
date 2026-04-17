@@ -39,7 +39,7 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function S
   const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Search input */}
       <div className="flex gap-3">
         <div className="relative flex-1">
@@ -74,31 +74,51 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function S
       </div>
 
       {/* Category filter chips */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filter by category">
         <button
+          role="tab"
+          aria-selected={activeCategory === "all"}
           onClick={() => onCategoryChange("all")}
           className={cn(
-            "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
+            "px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200",
             activeCategory === "all"
-              ? "gradient-bg text-white"
-              : "bg-muted text-muted-foreground hover:text-foreground"
+              ? "gradient-bg text-white shadow-sm scale-105"
+              : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
           )}
         >
-          All ({totalCount})
+          All
+          <span className={cn(
+            "ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full text-xs",
+            activeCategory === "all"
+              ? "bg-white/20 text-white"
+              : "bg-background text-muted-foreground"
+          )}>
+            {totalCount}
+          </span>
         </button>
         {BANK_CATEGORIES.map((cat) => (
           <button
+            role="tab"
+            aria-selected={activeCategory === cat}
             key={cat}
             onClick={() => onCategoryChange(cat)}
             className={cn(
-              "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
+              "px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200",
               activeCategory === cat
-                ? "gradient-bg text-white"
-                : "bg-muted text-muted-foreground hover:text-foreground",
-              !counts[cat] && "opacity-50"
+                ? "gradient-bg text-white shadow-sm scale-105"
+                : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80",
+              !counts[cat] && activeCategory !== cat && "opacity-50"
             )}
           >
-            {CATEGORY_LABELS[cat]} ({counts[cat] || 0})
+            {CATEGORY_LABELS[cat]}
+            <span className={cn(
+              "ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full text-xs",
+              activeCategory === cat
+                ? "bg-white/20 text-white"
+                : "bg-background text-muted-foreground"
+            )}>
+              {counts[cat] || 0}
+            </span>
           </button>
         ))}
       </div>

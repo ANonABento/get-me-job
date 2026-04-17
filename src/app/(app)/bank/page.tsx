@@ -263,7 +263,6 @@ export default function BankPage() {
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
-        <div className="flex gap-2">
           <AddEntryDialog onCreate={handleCreate} />
           <DriveFilePicker
             onSelect={handleDriveSelect}
@@ -294,7 +293,8 @@ export default function BankPage() {
         </div>
       </div>
 
-      {/* Search & Filters */}
+      {/* Search & Filters - sticky below header */}
+      <div className="sticky top-0 z-10 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 bg-background/95 backdrop-blur-sm border-b border-border/50">
       <SearchBar
         ref={searchInputRef}
         query={query}
@@ -305,6 +305,7 @@ export default function BankPage() {
         onSortChange={setSortBy}
         counts={categoryCounts}
       />
+      </div>
 
       {/* Source Files */}
       <SourceDocuments
@@ -349,7 +350,7 @@ export default function BankPage() {
           )}
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-8 animate-in fade-in duration-200">
           {groupedEntries.map((group) => (
             <div key={group.category}>
               <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
@@ -372,7 +373,6 @@ export default function BankPage() {
           ))}
         </div>
       )}
-    </div>
     </div>
     </ErrorBoundary>
   );
