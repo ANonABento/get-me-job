@@ -295,16 +295,16 @@ export default function BankPage() {
 
       {/* Search & Filters - sticky below header */}
       <div className="sticky top-0 z-10 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 bg-background/95 backdrop-blur-sm border-b border-border/50">
-      <SearchBar
-        ref={searchInputRef}
-        query={query}
-        onQueryChange={setQuery}
-        activeCategory={activeCategory}
-        onCategoryChange={setActiveCategory}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
-        counts={categoryCounts}
-      />
+        <SearchBar
+          ref={searchInputRef}
+          query={query}
+          onQueryChange={setQuery}
+          activeCategory={activeCategory}
+          onCategoryChange={setActiveCategory}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          counts={categoryCounts}
+        />
       </div>
 
       {/* Source Files */}

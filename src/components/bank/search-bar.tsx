@@ -27,6 +27,17 @@ interface SearchBarProps {
   counts: Record<string, number>;
 }
 
+function CountBadge({ count, active }: { count: number; active: boolean }) {
+  return (
+    <span className={cn(
+      "ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full text-xs",
+      active ? "bg-white/20 text-white" : "bg-background text-muted-foreground"
+    )}>
+      {count}
+    </span>
+  );
+}
+
 export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function SearchBar({
   query,
   onQueryChange,
@@ -87,14 +98,7 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function S
           )}
         >
           All
-          <span className={cn(
-            "ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full text-xs",
-            activeCategory === "all"
-              ? "bg-white/20 text-white"
-              : "bg-background text-muted-foreground"
-          )}>
-            {totalCount}
-          </span>
+          <CountBadge count={totalCount} active={activeCategory === "all"} />
         </button>
         {BANK_CATEGORIES.map((cat) => (
           <button
@@ -111,14 +115,7 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function S
             )}
           >
             {CATEGORY_LABELS[cat]}
-            <span className={cn(
-              "ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full text-xs",
-              activeCategory === cat
-                ? "bg-white/20 text-white"
-                : "bg-background text-muted-foreground"
-            )}>
-              {counts[cat] || 0}
-            </span>
+            <CountBadge count={counts[cat] || 0} active={activeCategory === cat} />
           </button>
         ))}
       </div>
