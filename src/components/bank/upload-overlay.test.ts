@@ -8,6 +8,7 @@ import {
   fileTypeError,
   stageIndex,
   stageProgress,
+  formatUploadToast,
 } from "./upload-overlay";
 
 describe("isAcceptedType", () => {
@@ -122,5 +123,42 @@ describe("stageProgress", () => {
 
   it("should return 1 for final stage", () => {
     expect(stageProgress("storing")).toBe(1);
+  });
+});
+
+describe("formatUploadToast", () => {
+  it("should show entry count and filename for single file", () => {
+    const toast = formatUploadToast([{ fileName: "resume.pdf", entryCount: 8 }]);
+    expect(toast.title).toBe("Added 8 entries");
+    expect(toast.description).toBe("from resume.pdf");
+  });
+
+  it("should use singular 'entry' for count of 1", () => {
+    const toast = formatUploadToast([{ fileName: "resume.pdf", entryCount: 1 }]);
+    expect(toast.title).toBe("Added 1 entry");
+    expect(toast.description).toBe("from resume.pdf");
+  });
+
+  it("should show file count for multiple files", () => {
+    const toast = formatUploadToast([
+      { fileName: "resume.pdf", entryCount: 5 },
+      { fileName: "cv.docx", entryCount: 3 },
+    ]);
+    expect(toast.title).toBe("Added 8 entries");
+    expect(toast.description).toBe("from 2 files");
+  });
+
+  it("should show error message when no entries found", () => {
+    const toast = formatUploadToast([{ fileName: "bad.pdf", entryCount: 0 }]);
+    expect(toast.title).toBe("No entries found");
+    expect(toast.description).toContain("Couldn't parse");
+  });
+
+  it("should show error for multiple files with zero total entries", () => {
+    const toast = formatUploadToast([
+      { fileName: "a.pdf", entryCount: 0 },
+      { fileName: "b.pdf", entryCount: 0 },
+    ]);
+    expect(toast.title).toBe("No entries found");
   });
 });
