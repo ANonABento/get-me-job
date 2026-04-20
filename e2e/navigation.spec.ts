@@ -1,7 +1,5 @@
 import { test, expect } from "@playwright/test";
 
-test.skip(true, "Requires an authenticated Clerk test fixture and seeded app shell.");
-
 test.describe("Navigation", () => {
   test.beforeEach(async ({ page }) => {
     // Skip onboarding for navigation tests
@@ -11,70 +9,42 @@ test.describe("Navigation", () => {
     });
   });
 
-  test("should display sidebar with all navigation items", async ({ page }) => {
+  test("should display sidebar with navigation items", async ({ page }) => {
     await page.goto("/dashboard");
     await page.waitForLoadState("networkidle");
 
     // Get sidebar navigation
     const sidebar = page.locator("aside");
 
-    // Check main navigation items are visible in sidebar
+    // Check main navigation items visible in sidebar (feature-flagged items excluded)
     await expect(sidebar.getByRole("link", { name: /Dashboard/i })).toBeVisible();
-    await expect(sidebar.getByRole("link", { name: /Upload/i })).toBeVisible();
-    await expect(sidebar.getByRole("link", { name: /Profile/i })).toBeVisible();
     await expect(sidebar.getByRole("link", { name: /Documents/i })).toBeVisible();
-    await expect(sidebar.getByRole("link", { name: /Jobs/i })).toBeVisible();
-    await expect(sidebar.getByRole("link", { name: /Interview/i })).toBeVisible();
-    await expect(sidebar.getByRole("link", { name: /Analytics/i })).toBeVisible();
+    await expect(sidebar.getByRole("link", { name: /Resume Builder/i })).toBeVisible();
     await expect(sidebar.getByRole("link", { name: /Settings/i })).toBeVisible();
   });
 
   test("should navigate to Dashboard", async ({ page }) => {
-    await page.goto("/jobs");
+    await page.goto("/bank");
     await page.waitForLoadState("networkidle");
     const sidebar = page.locator("aside");
     await sidebar.getByRole("link", { name: /Dashboard/i }).click();
     await expect(page).toHaveURL("/dashboard");
   });
 
-  test("should navigate to Upload page", async ({ page }) => {
+  test("should navigate to Documents (Bank) page", async ({ page }) => {
     await page.goto("/dashboard");
     await page.waitForLoadState("networkidle");
     const sidebar = page.locator("aside");
-    await sidebar.getByRole("link", { name: /Upload/i }).click();
-    await expect(page).toHaveURL("/upload");
+    await sidebar.getByRole("link", { name: /Documents/i }).click();
+    await expect(page).toHaveURL("/bank");
   });
 
-  test("should navigate to Profile page", async ({ page }) => {
+  test("should navigate to Resume Builder page", async ({ page }) => {
     await page.goto("/dashboard");
     await page.waitForLoadState("networkidle");
     const sidebar = page.locator("aside");
-    await sidebar.getByRole("link", { name: /Profile/i }).click();
-    await expect(page).toHaveURL("/profile");
-  });
-
-  test("should navigate to Jobs page", async ({ page }) => {
-    await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
-    const sidebar = page.locator("aside");
-    await sidebar.getByRole("link", { name: /Jobs/i }).click();
-    await expect(page).toHaveURL("/jobs");
-  });
-
-  test("should navigate to Interview page", async ({ page }) => {
-    await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
-    const sidebar = page.locator("aside");
-    await sidebar.getByRole("link", { name: /Interview/i }).click();
-    await expect(page).toHaveURL("/interview");
-  });
-
-  test("should navigate to Analytics page", async ({ page }) => {
-    await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
-    const sidebar = page.locator("aside");
-    await sidebar.getByRole("link", { name: /Analytics/i }).click();
-    await expect(page).toHaveURL("/analytics");
+    await sidebar.getByRole("link", { name: /Resume Builder/i }).click();
+    await expect(page).toHaveURL("/builder");
   });
 
   test("should navigate to Settings page", async ({ page }) => {
@@ -86,10 +56,10 @@ test.describe("Navigation", () => {
   });
 
   test("should highlight active navigation item", async ({ page }) => {
-    await page.goto("/jobs");
+    await page.goto("/bank");
     await page.waitForLoadState("networkidle");
     const sidebar = page.locator("aside");
-    const activeLink = sidebar.getByRole("link", { name: /Jobs/i });
+    const activeLink = sidebar.getByRole("link", { name: /Documents/i });
     await expect(activeLink).toHaveClass(/gradient-bg/);
   });
 
@@ -97,7 +67,7 @@ test.describe("Navigation", () => {
     await page.goto("/dashboard");
     await page.waitForLoadState("networkidle");
     const sidebar = page.locator("aside");
-    await expect(sidebar.getByText("Get Me Job")).toBeVisible();
+    await expect(sidebar.getByText("Taida")).toBeVisible();
   });
 });
 
@@ -119,16 +89,6 @@ test.describe("Keyboard Shortcuts", () => {
 
   test("should navigate with keyboard shortcuts", async ({ page }) => {
     await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
-
-    // Press 'j' to go to Jobs
-    await page.keyboard.press("j");
-    await expect(page).toHaveURL("/jobs");
-    await page.waitForLoadState("networkidle");
-
-    // Press 'p' to go to Profile (from jobs page)
-    await page.keyboard.press("p");
-    await expect(page).toHaveURL("/profile");
     await page.waitForLoadState("networkidle");
 
     // Press 's' to go to Settings

@@ -16,7 +16,7 @@ test.describe("Modals - Onboarding", () => {
 
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
-    await expect(page.getByText(/welcome/i)).toBeVisible();
+    await expect(page.getByText(/welcome to taida/i)).toBeVisible();
   });
 
   test("onboarding modal can be navigated through all steps", async ({ page }) => {
@@ -29,19 +29,19 @@ test.describe("Modals - Onboarding", () => {
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
 
-    // Step through onboarding
-    const nextButton = page.getByRole("button", { name: /get started|next/i });
-    for (let i = 0; i < 5; i++) {
-      if (await nextButton.first().isVisible({ timeout: 500 }).catch(() => false)) {
-        await nextButton.first().click();
+    // Step through onboarding using Continue button
+    const continueButton = page.getByRole("button", { name: /continue/i });
+    for (let i = 0; i < 4; i++) {
+      if (await continueButton.isVisible({ timeout: 500 }).catch(() => false)) {
+        await continueButton.click();
         await page.waitForTimeout(200);
       }
     }
 
-    // Should reach final step or close
-    const finishButton = page.getByRole("button", { name: /let's go|finish|start/i });
-    if (await finishButton.isVisible({ timeout: 500 }).catch(() => false)) {
-      await finishButton.click();
+    // Should reach final step - click "Get Started"
+    const getStartedButton = page.getByRole("button", { name: /get started/i });
+    if (await getStartedButton.isVisible({ timeout: 500 }).catch(() => false)) {
+      await getStartedButton.click();
     }
 
     // Modal should close
@@ -60,13 +60,13 @@ test.describe("Modals - Onboarding", () => {
 
     // Take screenshot of each step
     let step = 1;
-    const nextButton = page.getByRole("button", { name: /get started|next/i });
+    const continueButton = page.getByRole("button", { name: /continue/i });
 
-    while (await nextButton.first().isVisible({ timeout: 500 }).catch(() => false)) {
+    while (await continueButton.isVisible({ timeout: 500 }).catch(() => false)) {
       await expect(dialog).toHaveScreenshot(`onboarding-step-${step}.png`, {
         animations: "disabled",
       });
-      await nextButton.first().click();
+      await continueButton.click();
       await page.waitForTimeout(300);
       step++;
       if (step > 6) break;
@@ -294,13 +294,13 @@ test.describe.skip("Modals - Interview Page", () => {
   });
 });
 
-test.describe.skip("Modals - Documents Page", () => {
+test.describe.skip("Modals - Bank Page", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.evaluate(() => {
       localStorage.setItem("get_me_job_onboarding_completed", "true");
     });
-    await page.goto("/documents");
+    await page.goto("/bank");
     await page.waitForLoadState("networkidle");
   });
 

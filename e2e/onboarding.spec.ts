@@ -12,28 +12,28 @@ test.describe("Onboarding Flow", () => {
 
   test("should show onboarding dialog on first visit", async ({ page }) => {
     await expect(page.getByRole("dialog")).toBeVisible();
-    await expect(page.getByText("Welcome to Get Me Job")).toBeVisible();
+    await expect(page.getByText("Welcome to Taida")).toBeVisible();
   });
 
   test("should navigate through onboarding steps", async ({ page }) => {
     // Step 1: Welcome
-    await expect(page.getByText("Welcome to Get Me Job")).toBeVisible();
-    await page.getByRole("button", { name: "Get Started" }).click();
+    await expect(page.getByText("Welcome to Taida")).toBeVisible();
+    await page.getByRole("button", { name: /continue/i }).click();
 
     // Step 2: Upload Resume
     await expect(page.getByText(/Upload Your Resume/i)).toBeVisible();
-    await page.getByRole("button", { name: "Next" }).click();
+    await page.getByRole("button", { name: /continue/i }).click();
 
-    // Step 3: Review Profile
-    await expect(page.getByText(/Review Your Profile/i)).toBeVisible();
-    await page.getByRole("button", { name: "Next" }).click();
+    // Step 3: Build Your Profile
+    await expect(page.getByText(/Build Your Profile/i)).toBeVisible();
+    await page.getByRole("button", { name: /continue/i }).click();
 
-    // Step 4: Add Jobs
-    await expect(page.getByText(/Add Jobs/i)).toBeVisible();
-    await page.getByRole("button", { name: "Next" }).click();
+    // Step 4: Track Target Jobs
+    await expect(page.getByText(/Track Target Jobs/i)).toBeVisible();
+    await page.getByRole("button", { name: /continue/i }).click();
 
-    // Step 5: Ready
-    await expect(page.getByText(/Ready/i)).toBeVisible();
+    // Step 5: Ace Your Interviews (last step)
+    await expect(page.getByText(/Ace Your Interviews/i)).toBeVisible();
   });
 
   test("should allow skipping onboarding", async ({ page }) => {
@@ -47,24 +47,19 @@ test.describe("Onboarding Flow", () => {
   });
 
   test("should close onboarding and persist completion", async ({ page }) => {
-    // Complete or skip onboarding
-    const skipButton = page.getByRole("button", { name: /skip/i });
-    const finishButton = page.getByRole("button", { name: /finish|let's go|start/i });
-
-    // Navigate to end and close
-    for (let i = 0; i < 5; i++) {
-      const nextButton = page.getByRole("button", { name: /next|get started/i });
-      if (await nextButton.isVisible({ timeout: 500 }).catch(() => false)) {
-        await nextButton.click();
+    // Navigate through all steps
+    for (let i = 0; i < 4; i++) {
+      const continueButton = page.getByRole("button", { name: /continue/i });
+      if (await continueButton.isVisible({ timeout: 500 }).catch(() => false)) {
+        await continueButton.click();
         await page.waitForTimeout(100);
       }
     }
 
-    // Click finish if available
-    if (await finishButton.isVisible({ timeout: 500 }).catch(() => false)) {
-      await finishButton.click();
-    } else if (await skipButton.isVisible({ timeout: 500 }).catch(() => false)) {
-      await skipButton.click();
+    // Click "Get Started" on the last step
+    const getStartedButton = page.getByRole("button", { name: /get started/i });
+    if (await getStartedButton.isVisible({ timeout: 500 }).catch(() => false)) {
+      await getStartedButton.click();
     }
 
     // Verify dialog is closed
@@ -75,6 +70,6 @@ test.describe("Onboarding Flow", () => {
     await page.waitForLoadState("networkidle");
 
     // Dialog should not appear after completion
-    await expect(page.getByText("Welcome to Get Me Job")).not.toBeVisible({ timeout: 2000 });
+    await expect(page.getByText("Welcome to Taida")).not.toBeVisible({ timeout: 2000 });
   });
 });
