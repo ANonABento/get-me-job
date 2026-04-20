@@ -209,35 +209,24 @@ async function enhanceWithLLM(
   sections: DetectedSection[],
   extracted: ExtractedFields,
   llmConfig: LLMConfig,
-  fullText: string
+  rawText?: string
 ): Promise<LLMEnhanceResult> {
   const lowConfSections = sections.filter(
     (s) => s.confidence < CONFIDENCE_THRESHOLD && s.type !== "contact"
   );
 
-  // If no low-confidence sections detected, fall back to full text
-  if (lowConfSections.length === 0 && sections.length === 0) {
-    const sectionPrompts = [`--- Full Resume ---\n${fullText}`];
-    return runLLMEnhancement(sectionPrompts, extracted, llmConfig, 1);
-  }
-
-  if (lowConfSections.length === 0) {
+  // When no sections were detected, fall back to parsing the full text
+  const useFullTextFallback = lowConfSections.length === 0 && rawText;
+  if (lowConfSections.length === 0 && !useFullTextFallback) {
     return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
   }
 
-  // Build a batched prompt with all ambiguous sections
-  const sectionPrompts = lowConfSections.map((s, i) => {
-    return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
-  });
-  return runLLMEnhancement(sectionPrompts, extracted, llmConfig, lowConfSections.length);
-}
-
-async function runLLMEnhancement(
-  sectionPrompts: string[],
-  extracted: ExtractedFields,
-  llmConfig: LLMConfig,
-  sectionCount: number
-): Promise<LLMEnhanceResult> {
+  // Build a batched prompt with all ambiguous sections (or full text as fallback)
+  const sectionPrompts = useFullTextFallback
+    ? [`--- Full resume text ---\n${rawText}`]
+    : lowConfSections.map((s, i) => {
+        return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
+      });
 
   const batchPrompt = `You are a resume parser. Parse the following resume sections and return structured JSON.
 
@@ -273,7 +262,7 @@ ${sectionPrompts.join("\n\n")}`;
 
     return {
       enhanced,
-      llmSectionCount: sectionCount,
+      llmSectionCount: useFullTextFallback ? 1 : lowConfSections.length,
       warnings: [],
     };
   } catch (error) {

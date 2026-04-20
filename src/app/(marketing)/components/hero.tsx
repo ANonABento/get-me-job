@@ -16,7 +16,7 @@ export function Hero() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <ScanSearch className="h-4 w-4" />
-            AI-Powered Resume Intelligence
+            <span>AI-Powered Resume Intelligence</span>
             <Sparkles className="h-4 w-4" />
           </div>
 
