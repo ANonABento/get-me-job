@@ -74,20 +74,45 @@ export function stageProgress(stage: UploadStage): number {
 
 type OverlayStep = "idle" | "processing" | "done" | "error";
 
-interface FileResult {
+export interface FileResult {
   fileName: string;
   entryCount: number;
 }
 
-interface UploadOverlayProps {
-  onComplete: () => void;
+/** Build a toast message from upload results. */
+export function formatUploadToast(results: FileResult[]): {
+  title: string;
+  description: string;
+} {
+  const totalEntries = results.reduce((sum, r) => sum + r.entryCount, 0);
+  if (totalEntries === 0) {
+    return {
+      title: "No entries found",
+      description:
+        "Couldn't parse any sections. Try a different format.",
+    };
+  }
+  const fileLabel =
+    results.length === 1
+      ? results[0].fileName
+      : `${results.length} files`;
+  return {
+    title: `Added ${totalEntries} ${totalEntries === 1 ? "entry" : "entries"}`,
+    description: `from ${fileLabel}`,
+  };
+}
+
+export interface UploadOverlayProps {
+  onComplete: (results: FileResult[]) => void;
+  /** Called when file processing begins so the parent can show skeletons. */
+  onUploadStart?: () => void;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function UploadOverlay({ onComplete }: UploadOverlayProps) {
+export function UploadOverlay({ onComplete, onUploadStart }: UploadOverlayProps) {
   const [step, setStep] = useState<OverlayStep>("idle");
   const [dragCount, setDragCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -177,6 +202,7 @@ export function UploadOverlay({ onComplete }: UploadOverlayProps) {
       processingRef.current = true;
       setStep("processing");
       setResults([]);
+      onUploadStart?.();
 
       const completed: FileResult[] = [];
       for (let i = 0; i < files.length; i++) {
@@ -201,10 +227,10 @@ export function UploadOverlay({ onComplete }: UploadOverlayProps) {
         setFileQueue([]);
         setQueueIndex(0);
         processingRef.current = false;
-        onComplete();
+        onComplete(completed);
       }, 2000);
     },
-    [onComplete, processFile]
+    [onComplete, onUploadStart, processFile]
   );
 
   // --- drop handler --------------------------------------------------------

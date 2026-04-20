@@ -18,19 +18,32 @@ describe("SearchBar", () => {
     expect(screen.getByPlaceholderText("Search your knowledge bank...")).toBeInTheDocument();
   });
 
-  it("should render All chip with total count", () => {
+  it("should render All chip with total count badge", () => {
     render(<SearchBar {...defaultProps} />);
-    expect(screen.getByText("All (12)")).toBeInTheDocument();
+    const allTab = screen.getByRole("tab", { name: /All/i });
+    expect(allTab).toBeInTheDocument();
+    expect(allTab).toHaveTextContent("12");
   });
 
-  it("should render category chips with counts", () => {
+  it("should render category chips with count badges", () => {
     render(<SearchBar {...defaultProps} />);
-    expect(screen.getByText("Experience (5)")).toBeInTheDocument();
-    expect(screen.getByText("Skills (3)")).toBeInTheDocument();
-    expect(screen.getByText("Projects (2)")).toBeInTheDocument();
-    expect(screen.getByText("Education (1)")).toBeInTheDocument();
-    expect(screen.getByText("Achievements (0)")).toBeInTheDocument();
-    expect(screen.getByText("Certifications (1)")).toBeInTheDocument();
+    const expTab = screen.getByRole("tab", { name: /Experience/i });
+    expect(expTab).toHaveTextContent("5");
+
+    const skillTab = screen.getByRole("tab", { name: /Skills/i });
+    expect(skillTab).toHaveTextContent("3");
+
+    const projTab = screen.getByRole("tab", { name: /Projects/i });
+    expect(projTab).toHaveTextContent("2");
+
+    const eduTab = screen.getByRole("tab", { name: /Education/i });
+    expect(eduTab).toHaveTextContent("1");
+
+    const achTab = screen.getByRole("tab", { name: /Achievements/i });
+    expect(achTab).toHaveTextContent("0");
+
+    const certTab = screen.getByRole("tab", { name: /Certifications/i });
+    expect(certTab).toHaveTextContent("1");
   });
 
   it("should call onQueryChange when typing", () => {
@@ -45,20 +58,19 @@ describe("SearchBar", () => {
   it("should call onCategoryChange when clicking a chip", () => {
     const onCategoryChange = vi.fn();
     render(<SearchBar {...defaultProps} onCategoryChange={onCategoryChange} />);
-    fireEvent.click(screen.getByText("Experience (5)"));
+    fireEvent.click(screen.getByRole("tab", { name: /Experience/i }));
     expect(onCategoryChange).toHaveBeenCalledWith("experience");
   });
 
   it("should call onCategoryChange with 'all' when clicking All chip", () => {
     const onCategoryChange = vi.fn();
     render(<SearchBar {...defaultProps} onCategoryChange={onCategoryChange} />);
-    fireEvent.click(screen.getByText("All (12)"));
+    fireEvent.click(screen.getByRole("tab", { name: /All/i }));
     expect(onCategoryChange).toHaveBeenCalledWith("all");
   });
 
   it("should show clear button when query is non-empty", () => {
     render(<SearchBar {...defaultProps} query="test" />);
-    // The X button should be present
     const clearButton = screen.getByPlaceholderText("Search your knowledge bank...")
       .parentElement?.querySelector("button");
     expect(clearButton).toBeInTheDocument();
@@ -92,5 +104,26 @@ describe("SearchBar", () => {
     expect(CATEGORY_LABELS.education).toBe("Education");
     expect(CATEGORY_LABELS.achievement).toBe("Achievements");
     expect(CATEGORY_LABELS.certification).toBe("Certifications");
+  });
+
+  it("should mark active category tab as aria-selected", () => {
+    render(<SearchBar {...defaultProps} activeCategory="experience" />);
+    const expTab = screen.getByRole("tab", { name: /Experience/i });
+    expect(expTab).toHaveAttribute("aria-selected", "true");
+
+    const allTab = screen.getByRole("tab", { name: /All/i });
+    expect(allTab).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("should render filter chips container with tablist role", () => {
+    render(<SearchBar {...defaultProps} />);
+    const tablist = screen.getByRole("tablist", { name: "Filter by category" });
+    expect(tablist).toBeInTheDocument();
+  });
+
+  it("should apply reduced opacity to categories with zero count", () => {
+    render(<SearchBar {...defaultProps} />);
+    const achTab = screen.getByRole("tab", { name: /Achievements/i });
+    expect(achTab.className).toContain("opacity-50");
   });
 });

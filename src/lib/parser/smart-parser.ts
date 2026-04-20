@@ -195,8 +195,40 @@ function buildProfile(fields: ExtractedFields, rawText: string): Partial<Profile
 
 // ─── Targeted LLM enhancement ───────────────────────────────────────
 
-function buildBatchPrompt(sectionPrompts: string[]): string {
-  return `You are a resume parser. Parse the following resume sections and return structured JSON.
+interface LLMEnhanceResult {
+  enhanced: ExtractedFields;
+  llmSectionCount: number;
+  warnings: string[];
+}
+
+/**
+ * Send only low-confidence sections to LLM in a single batched call.
+ * Much cheaper than sending the entire resume.
+ */
+async function enhanceWithLLM(
+  sections: DetectedSection[],
+  extracted: ExtractedFields,
+  llmConfig: LLMConfig,
+  rawText?: string
+): Promise<LLMEnhanceResult> {
+  const lowConfSections = sections.filter(
+    (s) => s.confidence < CONFIDENCE_THRESHOLD && s.type !== "contact"
+  );
+
+  // When no sections were detected, fall back to parsing the full text
+  const useFullTextFallback = lowConfSections.length === 0 && rawText;
+  if (lowConfSections.length === 0 && !useFullTextFallback) {
+    return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
+  }
+
+  // Build a batched prompt with all ambiguous sections (or full text as fallback)
+  const sectionPrompts = useFullTextFallback
+    ? [`--- Full resume text ---\n${rawText}`]
+    : lowConfSections.map((s, i) => {
+        return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
+      });
+
+  const batchPrompt = `You are a resume parser. Parse the following resume sections and return structured JSON.
 
 For each section, extract the relevant data. Return a JSON object with these keys (include only sections present):
 
@@ -216,64 +248,6 @@ Rules:
 Sections to parse:
 
 ${sectionPrompts.join("\n\n")}`;
-}
-
-interface LLMEnhanceResult {
-  enhanced: ExtractedFields;
-  llmSectionCount: number;
-  warnings: string[];
-}
-
-/**
- * Send only low-confidence sections to LLM in a single batched call.
- * Much cheaper than sending the entire resume.
- */
-async function enhanceWithLLM(
-  sections: DetectedSection[],
-  extracted: ExtractedFields,
-  llmConfig: LLMConfig,
-  fullText?: string
-): Promise<LLMEnhanceResult> {
-  const lowConfSections = sections.filter(
-    (s) => s.confidence < CONFIDENCE_THRESHOLD && s.type !== "contact"
-  );
-
-  // No low-confidence sections and no full text fallback — nothing to enhance
-  if (lowConfSections.length === 0 && !fullText) {
-    return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
-  }
-
-  // No sections detected at all — send full text to LLM
-  if (lowConfSections.length === 0 && sections.length === 0 && fullText) {
-    const sectionPrompts = [`--- Full Resume ---\n${fullText}`];
-    const batchPrompt = buildBatchPrompt(sectionPrompts);
-    try {
-      const client = new LLMClient(llmConfig);
-      const response = await client.complete({
-        messages: [{ role: "user", content: batchPrompt }],
-        temperature: 0.1,
-        maxTokens: 2048,
-      });
-      const parsed = parseJSONFromLLM<Record<string, unknown>>(response);
-      const enhanced = mergeWithLLMResult(extracted, parsed);
-      return { enhanced, llmSectionCount: 1, warnings: [] };
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "Unknown error";
-      return {
-        enhanced: extracted,
-        llmSectionCount: 0,
-        warnings: [`LLM enhancement failed: ${msg}. Using deterministic results only.`],
-      };
-    }
-  }
-
-  // Build a batched prompt with all ambiguous sections
-  const sectionPrompts = lowConfSections.map((s, i) => {
-    const typeHint = s.type;
-    return `--- Section ${i + 1} (detected as: ${typeHint}) ---\n${s.text}`;
-  });
-
-  const batchPrompt = buildBatchPrompt(sectionPrompts);
 
   try {
     const client = new LLMClient(llmConfig);
@@ -288,7 +262,7 @@ async function enhanceWithLLM(
 
     return {
       enhanced,
-      llmSectionCount: lowConfSections.length,
+      llmSectionCount: useFullTextFallback ? 1 : lowConfSections.length,
       warnings: [],
     };
   } catch (error) {

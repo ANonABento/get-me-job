@@ -138,6 +138,7 @@ export async function POST(request: NextRequest) {
     console.log(`[upload] Document saved: ${id}`);
 
     // Ingest into knowledge bank — writes to profile_bank table (what the UI reads)
+    let entriesCreated = 0;
     if (parsedData?.data) {
       try {
         const { insertBankEntries } = await import("@/lib/db/profile-bank");
@@ -184,6 +185,7 @@ export async function POST(request: NextRequest) {
 
         if (entries.length > 0) {
           insertBankEntries(entries, authResult.userId);
+          entriesCreated = entries.length;
           console.log(`[upload] Ingested ${entries.length} entries into bank`);
         }
       } catch (err) {
@@ -200,6 +202,7 @@ export async function POST(request: NextRequest) {
         size: file.size,
         extractedText: extractedText ? extractedText.slice(0, 500) + "..." : null,
       },
+      entriesCreated,
       ...(smartResult && {
         parsing: {
           confidence: smartResult.confidence,

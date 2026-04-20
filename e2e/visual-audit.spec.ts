@@ -2,21 +2,17 @@ import { test, expect, type Page } from "@playwright/test";
 
 const PUBLIC_PAGES = [
   { path: "/", name: "landing" },
-  { path: "/sign-in", name: "sign-in" },
 ];
 
-const PROTECTED_PAGES = [
-  "/upload",
-  "/profile",
-  "/documents",
+// Pages accessible with auth bypass (no Clerk keys configured)
+const APP_PAGES = [
+  "/dashboard",
+  "/bank",
+  "/builder",
+  "/tailor",
+  "/cover-letter",
   "/jobs",
-  "/interview",
-  "/calendar",
-  "/emails",
-  "/analytics",
   "/settings",
-  "/salary",
-  "/extension/connect",
 ];
 
 async function preparePage(page: Page) {
@@ -59,15 +55,16 @@ test.describe("Visual Audit - Public Pages", () => {
   }
 });
 
-test.describe("Visual Audit - Redirect Behavior", () => {
-  test("protected pages redirect unauthenticated visitors to sign-in", async ({ page }) => {
+test.describe("Visual Audit - Auth Bypass Behavior", () => {
+  test("app pages are accessible without Clerk keys (auth bypass)", async ({ page }) => {
     await preparePage(page);
 
-    for (const path of PROTECTED_PAGES) {
+    for (const path of APP_PAGES) {
       await page.goto(path);
       await page.waitForLoadState("networkidle");
 
-      expect(page.url()).toContain("/sign-in");
+      // With auth bypass, pages should NOT redirect to sign-in
+      expect(page.url()).not.toContain("/sign-in");
     }
   });
 });

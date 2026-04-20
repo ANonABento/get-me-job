@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { SearchBar, CATEGORY_LABELS, type SortOption } from "@/components/bank/search-bar";
 import { ChunkCard } from "@/components/bank/chunk-card";
 import { UploadOverlay } from "@/components/bank/upload-overlay";
-import { BulkActionBar } from "@/components/bank/bulk-action-bar";
 import { ErrorState, getErrorMessage } from "@/components/ui/error-state";
 import { BANK_CATEGORIES, type BankCategory, type BankEntry } from "@/types";
 import { Database, Loader2, Upload, HardDrive } from "lucide-react";
@@ -16,6 +15,15 @@ import { useRegisterShortcuts } from "@/components/keyboard-shortcuts";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { AddEntryDialog } from "@/components/bank/add-entry-dialog";
+import { useToast } from "@/components/ui/toast";
+
+function uploadSuccessMessage(entriesCreated: number, fileName: string): string {
+  if (entriesCreated > 0) {
+    const noun = entriesCreated === 1 ? "entry" : "entries";
+    return `Added ${entriesCreated} ${noun} from ${fileName}`;
+  }
+  return `Uploaded ${fileName}`;
+}
 
 export default function BankPage() {
   const [entries, setEntries] = useState<BankEntry[]>([]);
@@ -34,37 +42,12 @@ export default function BankPage() {
   // Upload via button
   const fileInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const entriesListRef = useRef<HTMLDivElement>(null);
   const [uploading, setUploading] = useState(false);
   const [driveImporting, setDriveImporting] = useState(false);
-
-  // Bulk selection state
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
-
-  const toggleSelect = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const selectAll = useCallback(() => {
-    setSelectedIds(new Set(sortedEntriesRef.current.map((e) => e.id)));
-  }, []);
-
-  const deselectAll = useCallback(() => {
-    setSelectedIds(new Set());
-  }, []);
+  const { addToast } = useToast();
 
   // Register page-specific keyboard shortcuts
-  // We use refs for sortedEntries/highlightedIndex to avoid re-creating shortcuts
-  const sortedEntriesRef = useRef<BankEntry[]>([]);
-  const highlightedIndexRef = useRef(-1);
-  const selectedIdsRef = useRef<Set<string>>(new Set());
-
   useRegisterShortcuts("bank", useMemo(() => [
     {
       key: "/",
@@ -74,16 +57,11 @@ export default function BankPage() {
     },
     {
       key: "Escape",
-      description: "Clear search / deselect",
+      description: "Clear search",
       category: "actions" as const,
       action: () => {
-        if (selectedIdsRef.current.size > 0) {
-          setSelectedIds(new Set());
-          setHighlightedIndex(-1);
-        } else {
-          setQuery("");
-          searchInputRef.current?.blur();
-        }
+        setQuery("");
+        searchInputRef.current?.blur();
       },
     },
     {
@@ -93,85 +71,10 @@ export default function BankPage() {
       category: "actions" as const,
       action: () => fileInputRef.current?.click(),
     },
-    {
-      key: "j",
-      description: "Next card",
-      category: "navigation" as const,
-      action: () => {
-        const entries = sortedEntriesRef.current;
-        if (entries.length === 0) return;
-        setHighlightedIndex((prev) => {
-          const next = Math.min(prev + 1, entries.length - 1);
-          highlightedIndexRef.current = next;
-          // Scroll into view
-          const el = document.querySelector(`[data-entry-id="${entries[next]?.id}"]`);
-          el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-          return next;
-        });
-      },
-    },
-    {
-      key: "k",
-      description: "Previous card",
-      category: "navigation" as const,
-      action: () => {
-        const entries = sortedEntriesRef.current;
-        if (entries.length === 0) return;
-        setHighlightedIndex((prev) => {
-          const next = Math.max(prev - 1, 0);
-          highlightedIndexRef.current = next;
-          const el = document.querySelector(`[data-entry-id="${entries[next]?.id}"]`);
-          el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-          return next;
-        });
-      },
-    },
-    {
-      key: " ",
-      description: "Toggle select",
-      category: "actions" as const,
-      action: () => {
-        const idx = highlightedIndexRef.current;
-        const entries = sortedEntriesRef.current;
-        if (idx < 0 || idx >= entries.length) return;
-        const id = entries[idx].id;
-        setSelectedIds((prev) => {
-          const next = new Set(prev);
-          if (next.has(id)) next.delete(id);
-          else next.add(id);
-          selectedIdsRef.current = next;
-          return next;
-        });
-      },
-    },
-    {
-      key: "Enter",
-      description: "Expand/collapse card",
-      category: "actions" as const,
-      action: () => {
-        const idx = highlightedIndexRef.current;
-        const entries = sortedEntriesRef.current;
-        if (idx < 0 || idx >= entries.length) return;
-        const el = document.querySelector(`[data-entry-id="${entries[idx].id}"] button`);
-        if (el instanceof HTMLElement) el.click();
-      },
-    },
-    {
-      key: "Delete",
-      description: "Delete selected",
-      category: "actions" as const,
-      action: () => { if (selectedIdsRef.current.size > 0) setConfirmBulkDelete(true); },
-    },
-    {
-      key: "Backspace",
-      description: "Delete selected",
-      category: "actions" as const,
-      action: () => { if (selectedIdsRef.current.size > 0) setConfirmBulkDelete(true); },
-    },
   ], []));
 
-  const fetchEntries = useCallback(async () => {
-    setLoading(true);
+  const fetchEntries = useCallback(async (options?: { silent?: boolean }) => {
+    if (!options?.silent) setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
@@ -184,7 +87,7 @@ export default function BankPage() {
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
-      setLoading(false);
+      if (!options?.silent) setLoading(false);
     }
   }, [query, activeCategory]);
 
@@ -231,26 +134,6 @@ export default function BankPage() {
     }
     return filtered;
   }, [entries, sortBy, activeDocumentId]);
-
-  // Keep refs in sync for keyboard shortcuts
-  sortedEntriesRef.current = sortedEntries;
-  highlightedIndexRef.current = highlightedIndex;
-  selectedIdsRef.current = selectedIds;
-
-  // Reset highlight when entries change
-  useEffect(() => {
-    setHighlightedIndex(-1);
-  }, [sortedEntries]);
-
-  // Clear selection of deleted entries
-  useEffect(() => {
-    const entryIds = new Set(sortedEntries.map((e) => e.id));
-    setSelectedIds((prev) => {
-      const next = new Set(Array.from(prev).filter((id) => entryIds.has(id)));
-      if (next.size === prev.size) return prev;
-      return next;
-    });
-  }, [sortedEntries]);
 
   // Group by category for display
   const groupedEntries = useMemo(() => {
@@ -330,8 +213,17 @@ export default function BankPage() {
       }
       console.log("[bank] Upload complete:", uploadData.document?.id);
 
-      // Upload route handles parse + ingest — just refresh the entries
-      handleDataRefresh();
+      await handleDataRefresh({ silent: true });
+
+      const count = uploadData.entriesCreated ?? 0;
+      addToast({
+        type: "success",
+        title: uploadSuccessMessage(count, file.name),
+      });
+
+      requestAnimationFrame(() => {
+        entriesListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     } catch (err) {
       console.error("[bank] Upload error:", err);
       setError(getErrorMessage(err));
@@ -361,46 +253,10 @@ export default function BankPage() {
     }
   }
 
-  function handleDataRefresh() {
-    fetchEntries();
+  async function handleDataRefresh(options?: { silent?: boolean }) {
+    await fetchEntries(options);
     refreshAllEntries();
     setSourceRefreshKey((k) => k + 1);
-  }
-
-  async function handleBulkDelete() {
-    const ids = Array.from(selectedIds);
-    setConfirmBulkDelete(false);
-    try {
-      await Promise.all(
-        ids.map((id) => fetch(`/api/bank/${id}`, { method: "DELETE" }))
-      );
-      const deletedIds = new Set(ids);
-      setEntries((prev) => prev.filter((e) => !deletedIds.has(e.id)));
-      setAllEntries((prev) => prev.filter((e) => !deletedIds.has(e.id)));
-      setSelectedIds(new Set());
-    } catch (err) {
-      console.error("Bulk delete error:", err);
-      setError(getErrorMessage(err));
-    }
-  }
-
-  function handleAddToResume() {
-    const ids = Array.from(selectedIds);
-    // Store selected entry IDs and navigate to profile/resume builder
-    sessionStorage.setItem("bank_selected_entries", JSON.stringify(ids));
-    window.location.href = "/profile?from=bank";
-  }
-
-  function handleExport() {
-    const selectedEntries = sortedEntries.filter((e) => selectedIds.has(e.id));
-    const json = JSON.stringify(selectedEntries, null, 2);
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `bank-entries-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
   }
 
   return (
@@ -426,7 +282,11 @@ export default function BankPage() {
             Upload resumes and career documents. Drag files anywhere or click upload.
           </p>
         </div>
+<<<<<<< HEAD
         <div className="flex gap-2 shrink-0">
+=======
+        <div className="flex gap-2">
+>>>>>>> origin/main
           <AddEntryDialog onCreate={handleCreate} />
           <DriveFilePicker
             onSelect={handleDriveSelect}
@@ -455,8 +315,25 @@ export default function BankPage() {
             {uploading ? "Uploading..." : "Upload"}
           </Button>
         </div>
+      </div>
 
+<<<<<<< HEAD
+      {/* Search & Filters - sticky below header */}
+      <div className="sticky top-0 z-10 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 bg-background/95 backdrop-blur-sm border-b border-border/50">
+        <SearchBar
+          ref={searchInputRef}
+          query={query}
+          onQueryChange={setQuery}
+          activeCategory={activeCategory}
+          onCategoryChange={setActiveCategory}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          counts={categoryCounts}
+        />
+      </div>
+=======
       {/* Search & Filters */}
+
       <SearchBar
         ref={searchInputRef}
         query={query}
@@ -467,6 +344,7 @@ export default function BankPage() {
         onSortChange={setSortBy}
         counts={categoryCounts}
       />
+>>>>>>> origin/main
 
       {/* Source Files */}
       <SourceDocuments
@@ -475,33 +353,6 @@ export default function BankPage() {
         activeDocumentId={activeDocumentId}
         onDelete={handleDataRefresh}
       />
-
-      {/* Bulk action bar */}
-      <BulkActionBar
-        selectedCount={selectedIds.size}
-        totalCount={sortedEntries.length}
-        onSelectAll={selectAll}
-        onDeselectAll={deselectAll}
-        onDelete={() => setConfirmBulkDelete(true)}
-        onAddToResume={handleAddToResume}
-        onExport={handleExport}
-      />
-
-      {/* Bulk delete confirmation */}
-      {confirmBulkDelete && (
-        <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 flex items-center gap-3">
-          <span className="text-sm">
-            Delete {selectedIds.size} selected {selectedIds.size === 1 ? "entry" : "entries"}? This cannot be undone.
-          </span>
-          <div className="flex-1" />
-          <Button variant="ghost" size="sm" onClick={() => setConfirmBulkDelete(false)}>
-            Cancel
-          </Button>
-          <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
-            Delete
-          </Button>
-        </div>
-      )}
 
       {/* Content */}
       {loading ? (
@@ -538,7 +389,11 @@ export default function BankPage() {
           )}
         </div>
       ) : (
-        <div className="space-y-8">
+<<<<<<< HEAD
+        <div className="space-y-8 animate-in fade-in duration-200">
+=======
+        <div ref={entriesListRef} className="space-y-8">
+>>>>>>> origin/main
           {groupedEntries.map((group) => (
             <div key={group.category}>
               <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
@@ -554,10 +409,6 @@ export default function BankPage() {
                     entry={entry}
                     onUpdate={handleUpdate}
                     onDelete={handleDelete}
-                    selected={selectedIds.has(entry.id)}
-                    onToggleSelect={toggleSelect}
-                    highlighted={sortedEntries[highlightedIndex]?.id === entry.id}
-                    anySelected={selectedIds.size > 0}
                   />
                 ))}
               </div>
@@ -565,7 +416,6 @@ export default function BankPage() {
           ))}
         </div>
       )}
-    </div>
     </div>
     </ErrorBoundary>
   );

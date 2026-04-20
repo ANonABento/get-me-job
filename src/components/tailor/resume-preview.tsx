@@ -9,10 +9,18 @@ import {
   ChevronUp,
   CheckCircle2,
   Download,
+  Wand2,
+  Loader2,
+  Undo2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TailoredResume } from "@/lib/resume/generator";
 import { ExportMenu } from "./export-menu";
+import {
+  highlightKeywords,
+  type HighlightSegment,
+} from "@/lib/tailor/highlight";
+import { ScoreRing, SCORE_STRONG, SCORE_MODERATE } from "./gap-analysis";
 
 interface ResumePreviewProps {
   resume: TailoredResume;
@@ -22,6 +30,111 @@ interface ResumePreviewProps {
   templateId: string;
   templates: { id: string; name: string; description: string }[];
   onTemplateChange: (templateId: string) => void;
+  keywordsFound?: string[];
+  keywordsMissing?: string[];
+  jobDescription?: string;
+}
+
+function HighlightedText({
+  segments,
+}: {
+  segments: HighlightSegment[];
+}) {
+  return (
+    <>
+      {segments.map((seg, i) => {
+        if (seg.type === "matched") {
+          return (
+            <mark
+              key={i}
+              className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded px-0.5"
+            >
+              {seg.text}
+            </mark>
+          );
+        }
+        if (seg.type === "missing") {
+          return (
+            <mark
+              key={i}
+              className="bg-amber-500/20 text-amber-700 dark:text-amber-300 rounded px-0.5"
+            >
+              {seg.text}
+            </mark>
+          );
+        }
+        return <span key={i}>{seg.text}</span>;
+      })}
+    </>
+  );
+}
+
+function HighlightText({
+  text,
+  matchedKeywords,
+  missingKeywords,
+}: {
+  text: string;
+  matchedKeywords: string[];
+  missingKeywords: string[];
+}) {
+  const segments = highlightKeywords(text, matchedKeywords, missingKeywords);
+  return <HighlightedText segments={segments} />;
+}
+
+interface DiffLine {
+  type: "added" | "removed" | "unchanged";
+  text: string;
+}
+
+function DiffView({ original, improved }: { original: string; improved: string }) {
+  const origLines = original.split("\n");
+  const impLines = improved.split("\n");
+  const maxLen = Math.max(origLines.length, impLines.length);
+
+  const lines: DiffLine[] = [];
+  for (let i = 0; i < maxLen; i++) {
+    const origLine = origLines[i] ?? "";
+    const impLine = impLines[i] ?? "";
+    if (origLine === impLine) {
+      lines.push({ type: "unchanged", text: origLine });
+    } else {
+      if (origLine) lines.push({ type: "removed", text: origLine });
+      if (impLine) lines.push({ type: "added", text: impLine });
+    }
+  }
+
+  return (
+    <div className="rounded-md border bg-muted/30 p-3 text-xs font-mono space-y-0.5 max-h-80 overflow-y-auto">
+      {lines.map((line, i) => (
+        <div
+          key={i}
+          className={cn(
+            "px-2 py-0.5 rounded",
+            line.type === "added" && "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+            line.type === "removed" && "bg-red-500/10 text-red-700 dark:text-red-300 line-through",
+            line.type === "unchanged" && "text-muted-foreground"
+          )}
+        >
+          <span className="select-none mr-2 opacity-50">
+            {line.type === "added" ? "+" : line.type === "removed" ? "-" : " "}
+          </span>
+          {line.text}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function resumeToText(resume: TailoredResume): string {
+  const parts: string[] = [];
+  if (resume.summary) parts.push(resume.summary);
+  for (const exp of resume.experiences) {
+    parts.push(`${exp.title} at ${exp.company}`);
+    parts.push(exp.highlights.join("\n"));
+  }
+  parts.push(resume.skills.join(", "));
+  return parts.join("\n");
 }
 
 export function ResumePreview({
@@ -32,39 +145,93 @@ export function ResumePreview({
   templateId,
   templates,
   onTemplateChange,
+  keywordsFound = [],
+  keywordsMissing = [],
+  jobDescription = "",
 }: ResumePreviewProps) {
   const [expanded, setExpanded] = useState(true);
+  const [autoFixLoading, setAutoFixLoading] = useState(false);
+  const [autoFixResult, setAutoFixResult] = useState<TailoredResume | null>(null);
+  const [showDiff, setShowDiff] = useState(false);
+
+  const displayResume = autoFixResult ?? resume;
+
+  async function handleAutoFix() {
+    if (keywordsMissing.length === 0 || !jobDescription) return;
+
+    setAutoFixLoading(true);
+    try {
+      const res = await fetch("/api/tailor/autofix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resume,
+          keywordsMissing,
+          jobDescription,
+        }),
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      if (data.resume) {
+        setAutoFixResult(data.resume);
+        setShowDiff(true);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setAutoFixLoading(false);
+    }
+  }
+
+  function handleRevert() {
+    setAutoFixResult(null);
+    setShowDiff(false);
+  }
 
   return (
     <div className="space-y-4">
-      {/* Match score badge */}
+      {/* Match score ring + actions */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div
-            className={cn(
-              "flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold text-white",
-              matchScore >= 70
-                ? "bg-emerald-500"
-                : matchScore >= 40
-                ? "bg-amber-500"
-                : "bg-red-500"
-            )}
-          >
-            {matchScore}%
+        <div className="flex items-center gap-4">
+          <div className="relative flex-shrink-0">
+            <ScoreRing score={matchScore} size={80} strokeWidth={7} />
           </div>
           <div>
             <p className="font-semibold">Match Score</p>
             <p className="text-sm text-muted-foreground">
-              {matchScore >= 70
+              {matchScore >= SCORE_STRONG
                 ? "Strong match"
-                : matchScore >= 40
+                : matchScore >= SCORE_MODERATE
                 ? "Moderate match"
-                : "Weak match — review gaps below"}
+                : "Needs work — review gaps below"}
             </p>
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap justify-end">
+          {keywordsMissing.length > 0 && jobDescription && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAutoFix}
+              disabled={autoFixLoading}
+            >
+              {autoFixLoading ? (
+                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+              ) : (
+                <Wand2 className="h-4 w-4 mr-1.5" />
+              )}
+              Auto-fix
+            </Button>
+          )}
+          {autoFixResult && (
+            <Button variant="ghost" size="sm" onClick={handleRevert}>
+              <Undo2 className="h-4 w-4 mr-1.5" />
+              Revert
+            </Button>
+          )}
           <Button variant="outline" size="sm" asChild>
             <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="h-4 w-4 mr-1.5" />
@@ -79,7 +246,7 @@ export function ResumePreview({
           </Button>
           <ExportMenu
             resumeId={resumeId}
-            resume={resume}
+            resume={displayResume}
             templateId={templateId}
           />
         </div>
@@ -104,6 +271,24 @@ export function ResumePreview({
         ))}
       </div>
 
+      {/* Diff view when auto-fix was applied */}
+      {showDiff && autoFixResult && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Wand2 className="h-4 w-4 text-primary" />
+              Auto-fix Changes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DiffView
+              original={resumeToText(resume)}
+              improved={resumeToText(autoFixResult)}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Resume content preview */}
       <Card>
         <CardHeader className="pb-2">
@@ -126,9 +311,9 @@ export function ResumePreview({
           <CardContent className="space-y-4 text-sm">
             {/* Contact */}
             <div>
-              <h3 className="font-semibold text-lg">{resume.contact.name}</h3>
+              <h3 className="font-semibold text-lg">{displayResume.contact.name}</h3>
               <p className="text-muted-foreground text-xs">
-                {[resume.contact.email, resume.contact.phone, resume.contact.location]
+                {[displayResume.contact.email, displayResume.contact.phone, displayResume.contact.location]
                   .filter(Boolean)
                   .join(" | ")}
               </p>
@@ -139,17 +324,23 @@ export function ResumePreview({
               <h4 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-1">
                 Summary
               </h4>
-              <p>{resume.summary}</p>
+              <p>
+                <HighlightText
+                  text={displayResume.summary}
+                  matchedKeywords={keywordsFound}
+                  missingKeywords={keywordsMissing}
+                />
+              </p>
             </div>
 
             {/* Experience */}
-            {resume.experiences.length > 0 && (
+            {displayResume.experiences.length > 0 && (
               <div>
                 <h4 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-2">
                   Experience
                 </h4>
                 <div className="space-y-3">
-                  {resume.experiences.map((exp, i) => (
+                  {displayResume.experiences.map((exp, i) => (
                     <div key={i}>
                       <div className="flex justify-between items-baseline">
                         <p className="font-medium">
@@ -169,7 +360,13 @@ export function ResumePreview({
                             className="flex items-start gap-1.5 text-muted-foreground"
                           >
                             <CheckCircle2 className="h-3 w-3 mt-1 shrink-0 text-primary" />
-                            <span>{h}</span>
+                            <span>
+                              <HighlightText
+                                text={h}
+                                matchedKeywords={keywordsFound}
+                                missingKeywords={keywordsMissing}
+                              />
+                            </span>
                           </li>
                         ))}
                       </ul>
@@ -180,31 +377,41 @@ export function ResumePreview({
             )}
 
             {/* Skills */}
-            {resume.skills.length > 0 && (
+            {displayResume.skills.length > 0 && (
               <div>
                 <h4 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-1">
                   Skills
                 </h4>
                 <div className="flex flex-wrap gap-1.5">
-                  {resume.skills.map((skill, i) => (
-                    <span
-                      key={i}
-                      className="rounded-full bg-muted px-2.5 py-0.5 text-xs"
-                    >
-                      {skill}
-                    </span>
-                  ))}
+                  {displayResume.skills.map((skill, i) => {
+                    const isMatched = keywordsFound.some(
+                      (kw) => kw.toLowerCase() === skill.toLowerCase()
+                    );
+                    return (
+                      <span
+                        key={i}
+                        className={cn(
+                          "rounded-full px-2.5 py-0.5 text-xs",
+                          isMatched
+                            ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                            : "bg-muted"
+                        )}
+                      >
+                        {skill}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
             {/* Education */}
-            {resume.education.length > 0 && (
+            {displayResume.education.length > 0 && (
               <div>
                 <h4 className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-1">
                   Education
                 </h4>
-                {resume.education.map((edu, i) => (
+                {displayResume.education.map((edu, i) => (
                   <div key={i} className="flex justify-between items-baseline">
                     <p>
                       {edu.degree} in {edu.field},{" "}
@@ -225,3 +432,5 @@ export function ResumePreview({
     </div>
   );
 }
+
+export { HighlightedText, DiffView, resumeToText };
