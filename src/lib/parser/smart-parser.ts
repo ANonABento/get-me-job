@@ -215,26 +215,18 @@ async function enhanceWithLLM(
     (s) => s.confidence < CONFIDENCE_THRESHOLD && s.type !== "contact"
   );
 
-  // If no low-confidence sections found but overall confidence was still low,
-  // fall back to sending the full raw text to LLM
-  if (lowConfSections.length === 0) {
-    if (!rawText) {
-      return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
-    }
-    lowConfSections.push({
-      type: "unknown",
-      startIndex: 0,
-      endIndex: rawText.length,
-      content: rawText,
-      text: rawText,
-      confidence: 0,
-    });
+  // When no sections were detected, fall back to parsing the full text
+  const useFullTextFallback = lowConfSections.length === 0 && rawText;
+  if (lowConfSections.length === 0 && !useFullTextFallback) {
+    return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
   }
 
-  // Build a batched prompt with all ambiguous sections
-  const sectionPrompts = lowConfSections.map((s, i) => {
-    return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
-  });
+  // Build a batched prompt with all ambiguous sections (or full text as fallback)
+  const sectionPrompts = useFullTextFallback
+    ? [`--- Full resume text ---\n${rawText}`]
+    : lowConfSections.map((s, i) => {
+        return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
+      });
 
   const batchPrompt = `You are a resume parser. Parse the following resume sections and return structured JSON.
 
@@ -270,7 +262,7 @@ ${sectionPrompts.join("\n\n")}`;
 
     return {
       enhanced,
-      llmSectionCount: lowConfSections.length,
+      llmSectionCount: useFullTextFallback ? 1 : lowConfSections.length,
       warnings: [],
     };
   } catch (error) {

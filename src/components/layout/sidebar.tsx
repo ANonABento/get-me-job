@@ -4,32 +4,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { useTheme } from "@/components/theme-provider";
-import { UserButton, SignedIn, SignedOut } from "@clerk/nextjs";
 import {
   Home,
   Database,
   Briefcase,
   MessageSquare,
   Settings,
-  ChevronLeft,
-  ChevronRight,
   Menu,
   X,
   Rocket,
   BarChart3,
-  Sun,
-  Moon,
-  Monitor,
   Mail,
   Calendar,
   DollarSign,
-  LogIn,
   Sparkles,
-  PenLine, Upload, FileText,
+  PenLine,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
-import { NotificationCenter } from "@/components/notifications/notification-center";
 import { useLLMStatus } from "@/hooks/useLLMStatus";
 
 interface NavItem {
@@ -44,14 +36,15 @@ interface NavGroup {
 }
 
 // Feature flags — set to true to enable sections
-const FEATURES = {
+export const FEATURES = {
+  tailorResume: false,  // Tailor Resume, Cover Letter
   jobTracker: false,    // Jobs, Calendar, Email Templates
   interview: false,     // Interview Prep
   salary: false,        // Salary Tools
   analytics: false,     // Analytics dashboard
 };
 
-const navigationGroups: NavGroup[] = [
+export const navigationGroups: NavGroup[] = [
   {
     label: "Overview",
     items: [
@@ -63,8 +56,10 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: "Documents", href: "/bank", icon: Database },
       { name: "Resume Builder", href: "/builder", icon: FileText },
-      { name: "Tailor Resume", href: "/tailor", icon: Sparkles },
-      { name: "Cover Letter", href: "/cover-letter", icon: PenLine },
+      ...(FEATURES.tailorResume ? [
+        { name: "Tailor Resume", href: "/tailor", icon: Sparkles },
+        { name: "Cover Letter", href: "/cover-letter", icon: PenLine },
+      ] : []),
     ],
   },
   ...(FEATURES.jobTracker ? [{
@@ -95,82 +90,15 @@ const navigationGroups: NavGroup[] = [
   }] : []),
 ];
 
-const bottomNavigation = [
+export const bottomNavigation: NavItem[] = [
   { name: "Settings", href: "/settings", icon: Settings },
 ];
-
-function SidebarUserSection({ collapsed }: { collapsed: boolean }) {
-  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
-    return (
-      <Link
-        href="/sign-in"
-        className={cn(
-          "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200",
-          collapsed && "justify-center px-2"
-        )}
-      >
-        <LogIn className="h-5 w-5 shrink-0" />
-        {!collapsed && <span>Sign In</span>}
-      </Link>
-    );
-  }
-
-  return (
-    <>
-      <SignedIn>
-        <div
-          className={cn(
-            "flex items-center gap-3 rounded-xl px-3 py-2.5",
-            collapsed && "justify-center px-2"
-          )}
-        >
-          <UserButton
-            afterSignOutUrl="/"
-            appearance={{
-              elements: {
-                avatarBox: "h-8 w-8",
-              },
-            }}
-          />
-          {!collapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-muted-foreground">
-                Press <kbd className="px-1 py-0.5 rounded bg-muted text-2xs font-mono">?</kbd> for shortcuts
-              </p>
-            </div>
-          )}
-        </div>
-      </SignedIn>
-      <SignedOut>
-        <Link
-          href="/sign-in"
-          className={cn(
-            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200",
-            collapsed && "justify-center px-2"
-          )}
-        >
-          <LogIn className="h-5 w-5 shrink-0" />
-          {!collapsed && <span>Sign In</span>}
-        </Link>
-      </SignedOut>
-    </>
-  );
-}
 
 export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { theme, setTheme, resolvedTheme } = useTheme();
   const llmStatus = useLLMStatus();
-
-  const cycleTheme = () => {
-    if (theme === "light") setTheme("dark");
-    else if (theme === "dark") setTheme("system");
-    else setTheme("light");
-  };
-
-  const ThemeIcon = theme === "light" ? Sun : theme === "dark" ? Moon : Monitor;
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -298,9 +226,6 @@ export function Sidebar() {
 
         {/* Bottom navigation */}
         <div className="border-t p-3 space-y-1">
-          {/* Notification Center */}
-          <NotificationCenter collapsed={collapsed} />
-
           {bottomNavigation.map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -348,55 +273,6 @@ export function Sidebar() {
               </Link>
             );
           })}
-
-          {/* Theme toggle */}
-          <button
-            onClick={cycleTheme}
-            title={`Theme: ${theme} (click to change)`}
-            aria-label={`Theme: ${theme}. Click to change`}
-            className={cn(
-              "group relative flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 min-h-[44px]",
-              collapsed && "justify-center px-2"
-            )}
-          >
-            <ThemeIcon className="h-5 w-5 shrink-0" />
-            {!collapsed && (
-              <span className="capitalize">{theme === "system" ? `System (${resolvedTheme})` : theme}</span>
-            )}
-
-            {/* Tooltip for collapsed state */}
-            {collapsed && (
-              <div className="absolute left-full ml-2 hidden group-hover:flex items-center">
-                <div className="bg-popover text-popover-foreground text-sm font-medium px-3 py-1.5 rounded-lg shadow-lg border whitespace-nowrap capitalize">
-                  {theme} mode
-                </div>
-              </div>
-            )}
-          </button>
-
-          {/* Collapse button - desktop only */}
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className={cn(
-              "hidden lg:flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 min-h-[44px]",
-              collapsed && "justify-center px-2"
-            )}
-          >
-            {collapsed ? (
-              <ChevronRight className="h-5 w-5" />
-            ) : (
-              <>
-                <ChevronLeft className="h-5 w-5" />
-                <span>Collapse</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* User Profile Footer */}
-        <div className="border-t p-3">
-          <SidebarUserSection collapsed={collapsed} />
         </div>
       </aside>
 
