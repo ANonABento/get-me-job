@@ -404,9 +404,13 @@ interface ChunkCardProps {
   entry: BankEntry;
   onUpdate: (id: string, content: Record<string, unknown>) => void;
   onDelete: (id: string) => void;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
+  highlighted?: boolean;
+  anySelected?: boolean;
 }
 
-export function ChunkCard({ entry, onUpdate, onDelete }: ChunkCardProps) {
+export function ChunkCard({ entry, onUpdate, onDelete, selected, onToggleSelect, highlighted, anySelected }: ChunkCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState<Record<string, unknown>>({});
@@ -452,12 +456,41 @@ export function ChunkCard({ entry, onUpdate, onDelete }: ChunkCardProps) {
   }
 
   return (
-    <div className="rounded-xl border bg-card transition-all hover:border-primary/30">
+    <div
+      className={cn(
+        "group rounded-xl border bg-card transition-all hover:border-primary/30 hover:shadow-md",
+        highlighted && "ring-2 ring-primary",
+        selected && "border-primary bg-primary/5"
+      )}
+      data-entry-id={entry.id}
+    >
       {/* Header */}
-      <button
-        onClick={() => !editing && setExpanded(!expanded)}
-        className="flex w-full items-start gap-3 p-4 text-left"
-      >
+      <div className="flex w-full items-start gap-3 p-4 text-left">
+        {/* Checkbox */}
+        {onToggleSelect && (
+          <div
+            className={cn(
+              "shrink-0 pt-1 transition-opacity",
+              anySelected ? "opacity-100" : "opacity-0 group-hover:opacity-100 [div:hover>&]:opacity-100"
+            )}
+          >
+            <input
+              type="checkbox"
+              checked={!!selected}
+              onChange={(e) => {
+                e.stopPropagation();
+                onToggleSelect(entry.id);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
+              aria-label={`Select ${getEntryTitle(entry)}`}
+            />
+          </div>
+        )}
+        <button
+          onClick={() => !editing && setExpanded(!expanded)}
+          className="flex flex-1 items-start gap-3 text-left min-w-0"
+        >
         <div className={cn("p-2 rounded-lg shrink-0", config.color)}>
           <Icon className="h-4 w-4" />
         </div>
@@ -494,7 +527,8 @@ export function ChunkCard({ entry, onUpdate, onDelete }: ChunkCardProps) {
             <ChevronDown className="h-4 w-4" />
           )}
         </div>
-      </button>
+        </button>
+      </div>
 
       {/* Expanded content */}
       {expanded && (
