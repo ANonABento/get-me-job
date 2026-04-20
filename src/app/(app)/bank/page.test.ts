@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { uploadSuccessMessage } from "./page";
+import { uploadSuccessMessage } from "./utils";
 
 describe("uploadSuccessMessage", () => {
   it("should show entry count and filename when entries were created", () => {

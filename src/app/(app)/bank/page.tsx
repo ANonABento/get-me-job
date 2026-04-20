@@ -17,13 +17,7 @@ import { SkeletonCard } from "@/components/ui/skeleton";
 import { AddEntryDialog } from "@/components/bank/add-entry-dialog";
 import { useToast } from "@/components/ui/toast";
 
-export function uploadSuccessMessage(entriesCreated: number, fileName: string): string {
-  if (entriesCreated > 0) {
-    const noun = entriesCreated === 1 ? "entry" : "entries";
-    return `Added ${entriesCreated} ${noun} from ${fileName}`;
-  }
-  return `Uploaded ${fileName}`;
-}
+import { uploadSuccessMessage } from "./utils";
 
 export default function BankPage() {
   const [entries, setEntries] = useState<BankEntry[]>([]);
