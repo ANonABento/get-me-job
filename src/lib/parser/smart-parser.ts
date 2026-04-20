@@ -14,11 +14,6 @@ import type {
 import { generateId } from "@/lib/utils";
 import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
 import { detectSections, type Section } from "./section-detector";
-import {
-  extractFieldsFromSections,
-  extractContact,
-  type ExtractedFields,
-} from "./field-extractor";
 
 type DetectedSection = Section & { text: string; confidence: number };
 
@@ -35,6 +30,11 @@ function calculateSectionConfidence(sections: Section[]): number {
   if (hasContact) score += 0.1;
   return Math.min(score, 1.0);
 }
+import {
+  extractFieldsFromSections,
+  extractContact,
+  type ExtractedFields,
+} from "./field-extractor";
 
 const CONFIDENCE_THRESHOLD = 0.7;
 
@@ -64,8 +64,8 @@ export async function smartParseResume(
 ): Promise<SmartParseResult> {
   // Step 1: Detect sections
   const rawSections = detectSections(text);
+  const sections: DetectedSection[] = rawSections.map(s => ({ ...s, text: s.content, confidence: 0.7 }));
   const sectionConfidence = calculateSectionConfidence(rawSections);
-  const sections: DetectedSection[] = rawSections.map(s => ({ ...s, text: s.content, confidence: sectionConfidence }));
 
   // Step 2: Extract fields deterministically
   const extracted = extractFieldsFromSections(sections);
@@ -83,7 +83,9 @@ export async function smartParseResume(
   const fieldConfidence = calculateFieldConfidence(extracted);
   const overallConfidence = (sectionConfidence + fieldConfidence) / 2;
 
-  const sectionsDetected = sections.map((s) => s.type);
+  const sectionsDetected = sections
+    .filter((s) => true)
+    .map((s) => s.type);
 
   // Step 4: High confidence → return deterministic result
   if (overallConfidence >= CONFIDENCE_THRESHOLD) {
@@ -99,15 +101,11 @@ export async function smartParseResume(
 
   // Step 5: Low confidence + LLM available → targeted LLM for ambiguous sections
   if (llmConfig) {
-    // If no sections were detected, treat the full text as one unstructured section
-    const sectionsForLLM: DetectedSection[] = sections.length > 0
-      ? sections
-      : [{ type: "unknown" as const, content: text, text, confidence: 0, startIndex: 0, endIndex: text.length }];
-
     const { enhanced, llmSectionCount, warnings } = await enhanceWithLLM(
-      sectionsForLLM,
+      sections,
       extracted,
-      llmConfig
+      llmConfig,
+      text
     );
 
     const enhancedFieldConf = calculateFieldConfidence(enhanced);
@@ -210,20 +208,25 @@ interface LLMEnhanceResult {
 async function enhanceWithLLM(
   sections: DetectedSection[],
   extracted: ExtractedFields,
-  llmConfig: LLMConfig
+  llmConfig: LLMConfig,
+  rawText?: string
 ): Promise<LLMEnhanceResult> {
   const lowConfSections = sections.filter(
     (s) => s.confidence < CONFIDENCE_THRESHOLD && s.type !== "contact"
   );
 
-  if (lowConfSections.length === 0) {
+  // When no sections were detected, fall back to parsing the full text
+  const useFullTextFallback = lowConfSections.length === 0 && rawText;
+  if (lowConfSections.length === 0 && !useFullTextFallback) {
     return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
   }
 
-  // Build a batched prompt with all ambiguous sections
-  const sectionPrompts = lowConfSections.map((s, i) =>
-    `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`
-  );
+  // Build a batched prompt with all ambiguous sections (or full text as fallback)
+  const sectionPrompts = useFullTextFallback
+    ? [`--- Full resume text ---\n${rawText}`]
+    : lowConfSections.map((s, i) => {
+        return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
+      });
 
   const batchPrompt = `You are a resume parser. Parse the following resume sections and return structured JSON.
 
@@ -259,7 +262,7 @@ ${sectionPrompts.join("\n\n")}`;
 
     return {
       enhanced,
-      llmSectionCount: lowConfSections.length,
+      llmSectionCount: useFullTextFallback ? 1 : lowConfSections.length,
       warnings: [],
     };
   } catch (error) {
@@ -280,7 +283,7 @@ function mergeWithLLMResult(
   existing: ExtractedFields,
   llmResult: Record<string, unknown>
 ): ExtractedFields {
-  const merged = { ...existing };
+  const merged = { ...existing,  };
 
   // Merge experiences
   const rawExperiences = llmResult.experience as Record<string, unknown>[] | undefined;

@@ -204,6 +204,9 @@ export default function TailorPage() {
               templateId={selectedTemplate}
               templates={templates}
               onTemplateChange={handleTemplateChange}
+              keywordsFound={result.analysis.keywordsFound}
+              keywordsMissing={result.analysis.keywordsMissing}
+              jobDescription={lastInput?.jobDescription}
             />
           </div>
 
