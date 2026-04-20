@@ -209,28 +209,24 @@ async function enhanceWithLLM(
   sections: DetectedSection[],
   extracted: ExtractedFields,
   llmConfig: LLMConfig,
-  fullText: string
+  rawText?: string
 ): Promise<LLMEnhanceResult> {
   const lowConfSections = sections.filter(
     (s) => s.confidence < CONFIDENCE_THRESHOLD && s.type !== "contact"
   );
 
-  // When no sections were detected at all (unstructured text), treat the full text as the payload
-  const sectionsToProcess: DetectedSection[] =
-    lowConfSections.length > 0
-      ? lowConfSections
-      : sections.length === 0
-        ? [{ type: "unknown", startIndex: 0, endIndex: fullText.length, content: fullText, text: fullText, confidence: 0 }]
-        : [];
-
-  if (sectionsToProcess.length === 0) {
+  // When no sections were detected, fall back to parsing the full text
+  const useFullTextFallback = lowConfSections.length === 0 && rawText;
+  if (lowConfSections.length === 0 && !useFullTextFallback) {
     return { enhanced: extracted, llmSectionCount: 0, warnings: [] };
   }
 
-  // Build a batched prompt with all ambiguous sections
-  const sectionPrompts = sectionsToProcess.map((s, i) => {
-    return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
-  });
+  // Build a batched prompt with all ambiguous sections (or full text as fallback)
+  const sectionPrompts = useFullTextFallback
+    ? [`--- Full resume text ---\n${rawText}`]
+    : lowConfSections.map((s, i) => {
+        return `--- Section ${i + 1} (detected as: ${s.type}) ---\n${s.text}`;
+      });
 
   const batchPrompt = `You are a resume parser. Parse the following resume sections and return structured JSON.
 
@@ -266,7 +262,7 @@ ${sectionPrompts.join("\n\n")}`;
 
     return {
       enhanced,
-      llmSectionCount: sectionsToProcess.length,
+      llmSectionCount: useFullTextFallback ? 1 : lowConfSections.length,
       warnings: [],
     };
   } catch (error) {
