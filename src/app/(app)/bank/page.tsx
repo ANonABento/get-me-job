@@ -282,7 +282,11 @@ export default function BankPage() {
             Upload resumes and career documents. Drag files anywhere or click upload.
           </p>
         </div>
+<<<<<<< HEAD
+        <div className="flex gap-2 shrink-0">
+=======
         <div className="flex gap-2">
+>>>>>>> origin/main
           <AddEntryDialog onCreate={handleCreate} />
           <DriveFilePicker
             onSelect={handleDriveSelect}
@@ -313,6 +317,21 @@ export default function BankPage() {
         </div>
       </div>
 
+<<<<<<< HEAD
+      {/* Search & Filters - sticky below header */}
+      <div className="sticky top-0 z-10 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 bg-background/95 backdrop-blur-sm border-b border-border/50">
+        <SearchBar
+          ref={searchInputRef}
+          query={query}
+          onQueryChange={setQuery}
+          activeCategory={activeCategory}
+          onCategoryChange={setActiveCategory}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          counts={categoryCounts}
+        />
+      </div>
+=======
       {/* Search & Filters */}
 
       <SearchBar
@@ -325,6 +344,7 @@ export default function BankPage() {
         onSortChange={setSortBy}
         counts={categoryCounts}
       />
+>>>>>>> origin/main
 
       {/* Source Files */}
       <SourceDocuments
@@ -369,7 +389,11 @@ export default function BankPage() {
           )}
         </div>
       ) : (
+<<<<<<< HEAD
+        <div className="space-y-8 animate-in fade-in duration-200">
+=======
         <div ref={entriesListRef} className="space-y-8">
+>>>>>>> origin/main
           {groupedEntries.map((group) => (
             <div key={group.category}>
               <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
