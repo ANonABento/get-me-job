@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { Sidebar } from "@/components/layout/sidebar";
 import { ToastProvider } from "@/components/ui/toast";
 import { KeyboardShortcutsProvider } from "@/components/keyboard-shortcuts";
+import { CommandPalette } from "@/components/command-palette";
 import { OnboardingDialog } from "@/components/onboarding";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
             {children}
           </main>
         </div>
+        <CommandPalette />
         <OnboardingDialog />
       </ToastProvider>
     </KeyboardShortcutsProvider>
