@@ -21,6 +21,7 @@ import { RecentActivity, type ActivityItem } from "@/components/dashboard/recent
 import { calculateProfileCompleteness, type ProfileCompletenessResult } from "@/lib/profile-completeness";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { SkeletonStatCard, SkeletonInsights } from "@/components/ui/skeleton";
+import { buildQuickActions } from "./quick-actions";
 
 interface DashboardStats {
   documentsCount: number;
@@ -281,31 +282,19 @@ export default function Dashboard() {
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
-                <QuickAction
-                  title="Upload Resume"
-                  description={`${stats.documentsCount} document${stats.documentsCount !== 1 ? "s" : ""} uploaded`}
-                  href="/bank"
-                  icon={Upload}
-                  gradient="from-violet-500 to-purple-400"
-                />
-                <QuickAction
-                  title="Edit Profile"
-                  description="Review and refine your career details"
-                  href="/bank"
-                  icon={FileText}
-                  gradient="from-rose-400 to-orange-400"
-                />
-                <QuickAction
-                  title={hasResumes ? `${stats.resumesGenerated} Resume${stats.resumesGenerated !== 1 ? "s" : ""} Built` : "Build a Resume"}
-                  description={
-                    hasResumes
-                      ? "Generate more tailored resumes"
-                      : "Add a job to generate your first tailored resume"
-                  }
-                  href="/jobs"
-                  icon={FileText}
-                  gradient="from-blue-500 to-indigo-400"
-                />
+                {buildQuickActions({
+                  documentsCount: stats.documentsCount,
+                  resumesGenerated: stats.resumesGenerated,
+                }).map((action, index) => (
+                  <QuickAction
+                    key={action.href + index}
+                    title={action.title}
+                    description={action.description}
+                    href={action.href}
+                    icon={index === 0 ? Upload : FileText}
+                    gradient={action.gradient}
+                  />
+                ))}
               </div>
             </div>
           )}
