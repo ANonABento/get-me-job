@@ -6,6 +6,27 @@ export interface SectionState {
 }
 
 /**
+ * Which builder panel is visible on mobile viewports. Desktop shows both.
+ */
+export type BuilderPanel = "edit" | "preview";
+
+export const BUILDER_PANELS: readonly BuilderPanel[] = ["edit", "preview"];
+
+export const DEFAULT_BUILDER_PANEL: BuilderPanel = "edit";
+
+/**
+ * Returns Tailwind classes that hide a panel on mobile when it is not the
+ * active view and show it on desktop (md+) regardless. The active panel
+ * is visible on both breakpoints.
+ */
+export function getMobilePanelClasses(
+  activeView: BuilderPanel,
+  panel: BuilderPanel
+): string {
+  return activeView === panel ? "flex md:flex" : "hidden md:flex";
+}
+
+/**
  * Default section ordering for the resume builder.
  */
 export const DEFAULT_SECTION_ORDER: BankCategory[] = [
