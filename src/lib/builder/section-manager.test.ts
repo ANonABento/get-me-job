@@ -154,19 +154,19 @@ describe("getVisibleSectionIds", () => {
 
 describe("getMobilePanelClasses", () => {
   it("shows the edit panel on mobile and desktop when edit is active", () => {
-    expect(getMobilePanelClasses("edit", "edit")).toBe("flex md:flex");
+    expect(getMobilePanelClasses("edit", "edit")).toBe("block md:block");
   });
 
   it("shows the preview panel on mobile and desktop when preview is active", () => {
-    expect(getMobilePanelClasses("preview", "preview")).toBe("flex md:flex");
+    expect(getMobilePanelClasses("preview", "preview")).toBe("block md:block");
   });
 
   it("hides the preview panel on mobile but shows it on desktop when edit is active", () => {
-    expect(getMobilePanelClasses("edit", "preview")).toBe("hidden md:flex");
+    expect(getMobilePanelClasses("edit", "preview")).toBe("hidden md:block");
   });
 
   it("hides the edit panel on mobile but shows it on desktop when preview is active", () => {
-    expect(getMobilePanelClasses("preview", "edit")).toBe("hidden md:flex");
+    expect(getMobilePanelClasses("preview", "edit")).toBe("hidden md:block");
   });
 });
 

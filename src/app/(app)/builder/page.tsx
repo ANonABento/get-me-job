@@ -261,6 +261,7 @@ export default function BuilderPage() {
         className="flex border-b md:hidden"
       >
         <button
+          id="builder-edit-tab"
           role="tab"
           aria-selected={mobileView === "edit"}
           aria-controls="builder-edit-panel"
@@ -276,6 +277,7 @@ export default function BuilderPage() {
           Edit
         </button>
         <button
+          id="builder-preview-tab"
           role="tab"
           aria-selected={mobileView === "preview"}
           aria-controls="builder-preview-panel"

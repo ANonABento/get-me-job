@@ -16,14 +16,15 @@ export const DEFAULT_BUILDER_PANEL: BuilderPanel = "edit";
 
 /**
  * Returns Tailwind classes that hide a panel on mobile when it is not the
- * active view and show it on desktop (md+) regardless. The active panel
- * is visible on both breakpoints.
+ * active view and show it on desktop (md+) regardless. Uses `block` to
+ * preserve the panels' original display so the child fills the panel width;
+ * switching to `flex` would reflow the child as a row flex item.
  */
 export function getMobilePanelClasses(
   activeView: BuilderPanel,
   panel: BuilderPanel
 ): string {
-  return activeView === panel ? "flex md:flex" : "hidden md:flex";
+  return activeView === panel ? "block md:block" : "hidden md:block";
 }
 
 /**
