@@ -285,13 +285,13 @@ export default function Dashboard() {
                 {buildQuickActions({
                   documentsCount: stats.documentsCount,
                   resumesGenerated: stats.resumesGenerated,
-                }).map((action, index) => (
+                }).map((action) => (
                   <QuickAction
-                    key={action.href + index}
+                    key={action.href}
                     title={action.title}
                     description={action.description}
                     href={action.href}
-                    icon={index === 0 ? Upload : FileText}
+                    icon={action.icon}
                     gradient={action.gradient}
                   />
                 ))}
