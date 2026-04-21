@@ -20,7 +20,7 @@ describe("FEATURES", () => {
 });
 
 describe("navigationGroups", () => {
-  it("should have Overview and Resume groups when features are disabled", () => {
+  it("should always include Overview and Resume groups", () => {
     const labels = navigationGroups.map((g) => g.label);
     expect(labels).toContain("Overview");
     expect(labels).toContain("Resume");
