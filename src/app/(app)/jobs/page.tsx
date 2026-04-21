@@ -56,9 +56,8 @@ import {
 import dynamic from "next/dynamic";
 import { CoverLetterDialog } from "@/components/cover-letter/cover-letter-dialog";
 import { ImportJobDialog } from "@/components/jobs/import-job-dialog";
-import { GmailImportModal } from "@/components/google";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { SkeletonJobCard } from "@/components/ui/skeleton";
+import { SkeletonJobCard, SkeletonButton } from "@/components/ui/skeleton";
 import type { ATSAnalysisResult } from "@/lib/ats/analyzer";
 
 const ATSScoreBreakdown = dynamic(
@@ -68,6 +67,10 @@ const ATSScoreBreakdown = dynamic(
 const ATSScoreBadge = dynamic(
   () => import("@/components/ats/score-breakdown").then((m) => m.ATSScoreBadge),
   { loading: () => <div className="h-6 w-16 animate-pulse rounded bg-muted" /> }
+);
+const GmailImportModal = dynamic(
+  () => import("@/components/google").then((m) => m.GmailImportModal),
+  { loading: () => <SkeletonButton className="h-10 w-36" />, ssr: false }
 );
 
 interface Template {

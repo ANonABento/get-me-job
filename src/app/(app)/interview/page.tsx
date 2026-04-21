@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,7 +47,12 @@ import {
 } from "@/components/ui/select";
 import { PrepGuideCard } from "@/components/interview/prep-guide-card";
 import { RecordingControls } from "@/components/interview/recording-controls";
-import { SaveToDocsButton } from "@/components/google";
+import { SkeletonButton } from "@/components/ui/skeleton";
+
+const SaveToDocsButton = dynamic(
+  () => import("@/components/google").then((m) => m.SaveToDocsButton),
+  { loading: () => <SkeletonButton className="w-36" />, ssr: false }
+);
 
 interface InterviewQuestion {
   question: string;

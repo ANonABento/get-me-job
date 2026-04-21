@@ -38,10 +38,10 @@ interface NavGroup {
 // Feature flags — set to true to enable sections
 export const FEATURES = {
   tailorResume: false,  // Tailor Resume, Cover Letter
-  jobTracker: true,     // Jobs, Calendar, Email Templates
-  interview: false,     // Interview Prep
+  jobTracker: false,    // Jobs, Calendar, Email Templates
+  interview: true,      // Interview Prep
   salary: false,        // Salary Tools
-  analytics: false,     // Analytics dashboard
+  analytics: true,      // Analytics dashboard
 };
 
 export const navigationGroups: NavGroup[] = [
