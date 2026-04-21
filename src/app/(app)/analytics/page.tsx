@@ -24,6 +24,7 @@ import {
   ChevronDown,
   Printer,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -34,10 +35,24 @@ import {
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { TrendCharts } from "@/components/analytics/trend-charts";
-import { SuccessDashboard } from "@/components/analytics/success-dashboard";
-import { SkillLearningPaths } from "@/components/learning/skill-learning-paths";
-import { ExportToSheetsButton } from "@/components/google";
+import { SkeletonChart, SkeletonButton } from "@/components/ui/skeleton";
+
+const TrendCharts = dynamic(
+  () => import("@/components/analytics/trend-charts").then((m) => m.TrendCharts),
+  { loading: () => <SkeletonChart /> }
+);
+const SuccessDashboard = dynamic(
+  () => import("@/components/analytics/success-dashboard").then((m) => m.SuccessDashboard),
+  { loading: () => <SkeletonChart /> }
+);
+const SkillLearningPaths = dynamic(
+  () => import("@/components/learning/skill-learning-paths").then((m) => m.SkillLearningPaths),
+  { loading: () => <SkeletonChart /> }
+);
+const ExportToSheetsButton = dynamic(
+  () => import("@/components/google").then((m) => m.ExportToSheetsButton),
+  { loading: () => <SkeletonButton />, ssr: false }
+);
 
 interface Analytics {
   overview: {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -34,8 +35,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SendViaGmailButton } from "@/components/google";
+import { SkeletonButton } from "@/components/ui/skeleton";
 import type { EmailTemplateType, JobDescription } from "@/types";
+
+const SendViaGmailButton = dynamic(
+  () => import("@/components/google").then((m) => m.SendViaGmailButton),
+  { loading: () => <SkeletonButton className="w-36" />, ssr: false }
+);
 
 interface EmailDraft {
   id: string;

@@ -8,6 +8,8 @@ import {
   SkeletonJobCard,
   SkeletonInsights,
   SkeletonTableRow,
+  SkeletonChart,
+  SkeletonButton,
 } from "./skeleton";
 
 describe("Skeleton", () => {
@@ -119,5 +121,38 @@ describe("SkeletonTableRow", () => {
     const row = screen.getByTestId("row");
     const skeletons = row.querySelectorAll(".skeleton");
     expect(skeletons.length).toBe(6);
+  });
+});
+
+describe("SkeletonChart", () => {
+  it("should render chart structure with header and body", () => {
+    render(<SkeletonChart data-testid="chart" />);
+    const chart = screen.getByTestId("chart");
+    expect(chart.className).toContain("rounded-lg");
+    expect(chart.className).toContain("border");
+    expect(chart.className).toContain("bg-card");
+    const skeletons = chart.querySelectorAll(".skeleton");
+    // 2 header items + 1 chart body + 3 legend items = 6
+    expect(skeletons.length).toBe(6);
+  });
+
+  it("should merge custom className", () => {
+    render(<SkeletonChart data-testid="chart" className="h-96" />);
+    expect(screen.getByTestId("chart").className).toContain("h-96");
+  });
+});
+
+describe("SkeletonButton", () => {
+  it("should render a single skeleton sized like a button", () => {
+    render(<SkeletonButton data-testid="btn" />);
+    const btn = screen.getByTestId("btn");
+    expect(btn.className).toContain("skeleton");
+    expect(btn.className).toContain("h-9");
+    expect(btn.className).toContain("w-32");
+  });
+
+  it("should allow width override via className", () => {
+    render(<SkeletonButton data-testid="btn" className="w-48" />);
+    expect(screen.getByTestId("btn").className).toContain("w-48");
   });
 });

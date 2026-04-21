@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 
 import { Button } from "@/components/ui/button";
 import { SearchBar, CATEGORY_LABELS, type SortOption } from "@/components/bank/search-bar";
@@ -9,15 +10,18 @@ import { UploadOverlay } from "@/components/bank/upload-overlay";
 import { ErrorState, getErrorMessage } from "@/components/ui/error-state";
 import { BANK_CATEGORIES, type BankCategory, type BankEntry } from "@/types";
 import { Database, Loader2, Upload, HardDrive } from "lucide-react";
-import { DriveFilePicker } from "@/components/google";
 import { SourceDocuments } from "@/components/bank/source-documents";
 import { useRegisterShortcuts } from "@/components/keyboard-shortcuts";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { SkeletonCard } from "@/components/ui/skeleton";
+import { SkeletonCard, SkeletonButton } from "@/components/ui/skeleton";
 import { AddEntryDialog } from "@/components/bank/add-entry-dialog";
 import { useToast } from "@/components/ui/toast";
-
 import { uploadSuccessMessage } from "./utils";
+
+const DriveFilePicker = dynamic(
+  () => import("@/components/google").then((m) => m.DriveFilePicker),
+  { loading: () => <SkeletonButton className="w-40" />, ssr: false }
+);
 
 export default function BankPage() {
   const [entries, setEntries] = useState<BankEntry[]>([]);
