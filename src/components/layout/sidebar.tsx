@@ -37,7 +37,7 @@ interface NavGroup {
 
 // Feature flags — set to true to enable sections
 export const FEATURES = {
-  tailorResume: false,  // Tailor Resume, Cover Letter
+  tailorResume: true,   // Tailor Resume, Cover Letter
   jobTracker: false,    // Jobs, Calendar, Email Templates
   interview: false,     // Interview Prep
   salary: false,        // Salary Tools

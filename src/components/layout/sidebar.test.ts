@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { FEATURES, navigationGroups, bottomNavigation } from "./sidebar";
 
 describe("FEATURES", () => {
-  it("should have tailorResume flag disabled by default", () => {
-    expect(FEATURES.tailorResume).toBe(false);
+  it("should have tailorResume flag enabled", () => {
+    expect(FEATURES.tailorResume).toBe(true);
   });
 
   it("should have jobTracker flag disabled by default", () => {
@@ -49,12 +49,21 @@ describe("navigationGroups", () => {
     expect(names).toContain("Resume Builder");
   });
 
-  it("should not show Tailor Resume or Cover Letter when tailorResume flag is off", () => {
+  it("should show Tailor Resume and Cover Letter when tailorResume flag is on", () => {
     const resume = navigationGroups.find((g) => g.label === "Resume");
     expect(resume).toBeDefined();
     const names = resume!.items.map((i) => i.name);
-    expect(names).not.toContain("Tailor Resume");
-    expect(names).not.toContain("Cover Letter");
+    expect(names).toContain("Tailor Resume");
+    expect(names).toContain("Cover Letter");
+  });
+
+  it("should have correct hrefs for Tailor Resume and Cover Letter", () => {
+    const allItems = navigationGroups.flatMap((g) => g.items);
+    const tailor = allItems.find((i) => i.name === "Tailor Resume");
+    const coverLetter = allItems.find((i) => i.name === "Cover Letter");
+
+    expect(tailor?.href).toBe("/tailor");
+    expect(coverLetter?.href).toBe("/cover-letter");
   });
 
   it("should have correct hrefs for core nav items", () => {
