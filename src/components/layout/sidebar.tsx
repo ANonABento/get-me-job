@@ -39,9 +39,9 @@ interface NavGroup {
 export const FEATURES = {
   tailorResume: true,   // Tailor Resume, Cover Letter
   jobTracker: false,    // Jobs, Calendar, Email Templates
-  interview: false,     // Interview Prep
+  interview: true,      // Interview Prep
   salary: false,        // Salary Tools
-  analytics: false,     // Analytics dashboard
+  analytics: true,      // Analytics dashboard
 };
 
 export const navigationGroups: NavGroup[] = [

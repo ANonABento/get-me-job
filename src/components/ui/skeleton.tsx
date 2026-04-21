@@ -197,6 +197,46 @@ function SkeletonChunkCard({
   );
 }
 
+// Chart/analytics block skeleton — header row and chart body
+function SkeletonChart({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border bg-card p-6 space-y-4",
+        className
+      )}
+      {...props}
+    >
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-5 w-40" />
+        <Skeleton className="h-8 w-24 rounded-md" />
+      </div>
+      <Skeleton className="h-48 w-full" />
+      <div className="flex gap-3">
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-4 w-20" />
+      </div>
+    </div>
+  );
+}
+
+// Single button placeholder used while a lazy-loaded action button streams in
+function SkeletonButton({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <Skeleton
+      className={cn("h-9 w-32 rounded-md", className)}
+      {...props}
+    />
+  );
+}
+
 export {
   Skeleton,
   SkeletonText,
@@ -205,5 +245,7 @@ export {
   SkeletonJobCard,
   SkeletonInsights,
   SkeletonTableRow,
-  SkeletonChunkCard
+  SkeletonChunkCard,
+  SkeletonChart,
+  SkeletonButton
 };

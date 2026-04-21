@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +42,12 @@ import {
   Mail,
   FileText,
 } from "lucide-react";
-import { GoogleConnectButton } from "@/components/google";
+import { SkeletonButton } from "@/components/ui/skeleton";
+
+const GoogleConnectButton = dynamic(
+  () => import("@/components/google").then((m) => m.GoogleConnectButton),
+  { loading: () => <SkeletonButton className="w-48" />, ssr: false }
+);
 
 interface Provider {
   value: LLMConfig["provider"];

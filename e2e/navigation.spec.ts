@@ -16,10 +16,12 @@ test.describe("Navigation", () => {
     // Get sidebar navigation
     const sidebar = page.locator("aside");
 
-    // Check main navigation items visible in sidebar (feature-flagged items excluded)
+    // Check main navigation items visible in sidebar
     await expect(sidebar.getByRole("link", { name: /Dashboard/i })).toBeVisible();
     await expect(sidebar.getByRole("link", { name: /Documents/i })).toBeVisible();
     await expect(sidebar.getByRole("link", { name: /Resume Builder/i })).toBeVisible();
+    await expect(sidebar.getByRole("link", { name: /Interview Prep/i })).toBeVisible();
+    await expect(sidebar.getByRole("link", { name: /Analytics/i })).toBeVisible();
     await expect(sidebar.getByRole("link", { name: /Settings/i })).toBeVisible();
   });
 
@@ -53,6 +55,22 @@ test.describe("Navigation", () => {
     const sidebar = page.locator("aside");
     await sidebar.getByRole("link", { name: /Settings/i }).click();
     await expect(page).toHaveURL("/settings");
+  });
+
+  test("should navigate to Interview Prep page", async ({ page }) => {
+    await page.goto("/dashboard");
+    await page.waitForLoadState("networkidle");
+    const sidebar = page.locator("aside");
+    await sidebar.getByRole("link", { name: /Interview Prep/i }).click();
+    await expect(page).toHaveURL("/interview");
+  });
+
+  test("should navigate to Analytics page", async ({ page }) => {
+    await page.goto("/dashboard");
+    await page.waitForLoadState("networkidle");
+    const sidebar = page.locator("aside");
+    await sidebar.getByRole("link", { name: /Analytics/i }).click();
+    await expect(page).toHaveURL("/analytics");
   });
 
   test("should highlight active navigation item", async ({ page }) => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -38,8 +39,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CalendarSyncButton } from "@/components/google";
+import { SkeletonButton } from "@/components/ui/skeleton";
 import type { JobDescription } from "@/types";
+
+const CalendarSyncButton = dynamic(
+  () => import("@/components/google").then((m) => m.CalendarSyncButton),
+  { loading: () => <SkeletonButton className="w-32" />, ssr: false }
+);
 
 interface Reminder {
   id: string;

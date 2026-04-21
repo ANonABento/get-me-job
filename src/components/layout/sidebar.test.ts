@@ -2,12 +2,24 @@ import { describe, it, expect } from "vitest";
 import { FEATURES, navigationGroups, bottomNavigation } from "./sidebar";
 
 describe("FEATURES", () => {
-  it("should have tailorResume flag enabled", () => {
-    expect(FEATURES.tailorResume).toBe(true);
+  it("should have tailorResume flag disabled by default", () => {
+    expect(FEATURES.tailorResume).toBe(false);
   });
 
   it("should have jobTracker flag disabled by default", () => {
     expect(FEATURES.jobTracker).toBe(false);
+  });
+
+  it("should have salary flag disabled by default", () => {
+    expect(FEATURES.salary).toBe(false);
+  });
+
+  it("should have interview flag enabled", () => {
+    expect(FEATURES.interview).toBe(true);
+  });
+
+  it("should have analytics flag enabled", () => {
+    expect(FEATURES.analytics).toBe(true);
   });
 
   it("should have all feature flags defined", () => {
@@ -20,18 +32,18 @@ describe("FEATURES", () => {
 });
 
 describe("navigationGroups", () => {
-  it("should always include Overview and Resume groups", () => {
+  it("should include Overview, Resume, Interview, and Insights groups", () => {
     const labels = navigationGroups.map((g) => g.label);
     expect(labels).toContain("Overview");
     expect(labels).toContain("Resume");
+    expect(labels).toContain("Interview");
+    expect(labels).toContain("Insights");
   });
 
-  it("should not include Job Tracker, Interview, Negotiation, or Insights groups when flags are off", () => {
+  it("should not include Job Tracker or Negotiation groups (flags still off)", () => {
     const labels = navigationGroups.map((g) => g.label);
     expect(labels).not.toContain("Job Tracker");
-    expect(labels).not.toContain("Interview");
     expect(labels).not.toContain("Negotiation");
-    expect(labels).not.toContain("Insights");
   });
 
   it("should have Dashboard in Overview group", () => {
@@ -49,21 +61,30 @@ describe("navigationGroups", () => {
     expect(names).toContain("Resume Builder");
   });
 
-  it("should show Tailor Resume and Cover Letter when tailorResume flag is on", () => {
+  it("should not show Tailor Resume or Cover Letter when tailorResume flag is off", () => {
     const resume = navigationGroups.find((g) => g.label === "Resume");
     expect(resume).toBeDefined();
     const names = resume!.items.map((i) => i.name);
-    expect(names).toContain("Tailor Resume");
-    expect(names).toContain("Cover Letter");
+    expect(names).not.toContain("Tailor Resume");
+    expect(names).not.toContain("Cover Letter");
   });
 
-  it("should have correct hrefs for Tailor Resume and Cover Letter", () => {
-    const allItems = navigationGroups.flatMap((g) => g.items);
-    const tailor = allItems.find((i) => i.name === "Tailor Resume");
-    const coverLetter = allItems.find((i) => i.name === "Cover Letter");
+  it("should have Interview Prep in Interview group", () => {
+    const interview = navigationGroups.find((g) => g.label === "Interview");
+    expect(interview).toBeDefined();
+    const interviewPrep = interview!.items.find((i) => i.name === "Interview Prep");
+    expect(interviewPrep).toBeDefined();
+    expect(interviewPrep!.href).toBe("/interview");
+    expect(interviewPrep!.icon).toBeDefined();
+  });
 
-    expect(tailor?.href).toBe("/tailor");
-    expect(coverLetter?.href).toBe("/cover-letter");
+  it("should have Analytics in Insights group", () => {
+    const insights = navigationGroups.find((g) => g.label === "Insights");
+    expect(insights).toBeDefined();
+    const analytics = insights!.items.find((i) => i.name === "Analytics");
+    expect(analytics).toBeDefined();
+    expect(analytics!.href).toBe("/analytics");
+    expect(analytics!.icon).toBeDefined();
   });
 
   it("should have correct hrefs for core nav items", () => {
@@ -71,10 +92,14 @@ describe("navigationGroups", () => {
     const dashboard = allItems.find((i) => i.name === "Dashboard");
     const documents = allItems.find((i) => i.name === "Documents");
     const builder = allItems.find((i) => i.name === "Resume Builder");
+    const interviewPrep = allItems.find((i) => i.name === "Interview Prep");
+    const analytics = allItems.find((i) => i.name === "Analytics");
 
     expect(dashboard?.href).toBe("/dashboard");
     expect(documents?.href).toBe("/bank");
     expect(builder?.href).toBe("/builder");
+    expect(interviewPrep?.href).toBe("/interview");
+    expect(analytics?.href).toBe("/analytics");
   });
 
   it("should have icons for all nav items", () => {
