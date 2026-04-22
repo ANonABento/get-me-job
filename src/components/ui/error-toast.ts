@@ -19,6 +19,28 @@ interface ErrorToastOptions {
   fallbackDescription?: string;
 }
 
+export function getResponseErrorMessage(
+  body: unknown,
+  fallbackMessage: string
+): string {
+  if (typeof body === "object" && body !== null) {
+    if (
+      "error" in body &&
+      typeof (body as { error: unknown }).error === "string"
+    ) {
+      return (body as { error: string }).error;
+    }
+    if (
+      "message" in body &&
+      typeof (body as { message: unknown }).message === "string"
+    ) {
+      return (body as { message: string }).message;
+    }
+  }
+
+  return fallbackMessage;
+}
+
 export function createErrorToast({
   title,
   error,

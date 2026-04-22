@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createErrorToast, showErrorToast } from "./error-toast";
+import {
+  createErrorToast,
+  getResponseErrorMessage,
+  showErrorToast,
+} from "./error-toast";
 
 describe("error-toast", () => {
   it("builds an error toast from an Error instance", () => {
@@ -57,5 +61,23 @@ describe("error-toast", () => {
       title: "Couldn't delete source file",
       description: "Permission denied",
     });
+  });
+
+  it("extracts API error text from a response body", () => {
+    expect(
+      getResponseErrorMessage(
+        { error: "Template service unavailable" },
+        "Failed to load templates"
+      )
+    ).toBe("Template service unavailable");
+  });
+
+  it("falls back when an API response body has no usable message", () => {
+    expect(
+      getResponseErrorMessage(
+        { status: "bad" },
+        "Failed to generate preview"
+      )
+    ).toBe("Failed to generate preview");
   });
 });

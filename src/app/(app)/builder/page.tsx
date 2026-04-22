@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { showErrorToast } from "@/components/ui/error-toast";
+import {
+  getResponseErrorMessage,
+  showErrorToast,
+} from "@/components/ui/error-toast";
 import { useToast } from "@/components/ui/toast";
 import { SectionList } from "@/components/builder/section-list";
 import { ResumePreview } from "@/components/builder/resume-preview";
@@ -95,40 +98,66 @@ export default function BuilderPage() {
   useEffect(() => {
     if (orderedEntries.length === 0) {
       setHtml("");
+      setGenerating(false);
       return;
     }
 
     const controller = new AbortController();
-    setGenerating(true);
-
     const entryIds = orderedEntries.map((e) => e.id);
+    let active = true;
 
-    fetch("/api/builder", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        entryIds,
-        templateId,
-        sectionOrder: visibleCategoryIds,
-      }),
-      signal: controller.signal,
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.html) setHtml(data.html);
-      })
-      .catch((err) => {
-        if (err.name !== "AbortError") {
-          showErrorToast(addToast, {
-            title: "Couldn't update preview",
-            error: err,
-            fallbackDescription: "Please try changing your selection again.",
-          });
+    async function generatePreview() {
+      setGenerating(true);
+
+      try {
+        const res = await fetch("/api/builder", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            entryIds,
+            templateId,
+            sectionOrder: visibleCategoryIds,
+          }),
+          signal: controller.signal,
+        });
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          throw new Error(
+            getResponseErrorMessage(data, "Failed to generate preview")
+          );
         }
-      })
-      .finally(() => setGenerating(false));
 
-    return () => controller.abort();
+        if (active && data?.html) {
+          setHtml(data.html);
+        }
+      } catch (error) {
+        if (
+          !active ||
+          controller.signal.aborted ||
+          (error instanceof Error && error.name === "AbortError")
+        ) {
+          return;
+        }
+
+        showErrorToast(addToast, {
+          title: "Couldn't update preview",
+          error,
+          fallbackDescription: "Please try changing your selection again.",
+        });
+      } finally {
+        if (active && !controller.signal.aborted) {
+          setGenerating(false);
+        }
+      }
+    }
+
+    generatePreview();
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [addToast, orderedEntries, templateId, visibleCategoryIds]);
 
   const handleToggleEntry = useCallback((id: string) => {

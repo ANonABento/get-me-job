@@ -7,7 +7,10 @@ import { GapAnalysis } from "@/components/tailor/gap-analysis";
 import { FileText, Sparkles } from "lucide-react";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { ErrorState } from "@/components/ui/error-state";
-import { showErrorToast } from "@/components/ui/error-toast";
+import {
+  getResponseErrorMessage,
+  showErrorToast,
+} from "@/components/ui/error-toast";
 import { useToast } from "@/components/ui/toast";
 import type { TailoredResume } from "@/lib/resume/generator";
 import type { GapItem } from "@/lib/tailor/analyze";
@@ -60,18 +63,38 @@ export default function TailorPage() {
   selectedTemplateRef.current = selectedTemplate;
 
   useEffect(() => {
-    fetch("/api/tailor")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.templates) setTemplates(data.templates);
-      })
-      .catch((error) => {
+    let active = true;
+
+    async function loadTemplates() {
+      try {
+        const response = await fetch("/api/tailor");
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          throw new Error(
+            getResponseErrorMessage(data, "Failed to load templates")
+          );
+        }
+
+        if (active && data?.templates) {
+          setTemplates(data.templates);
+        }
+      } catch (error) {
+        if (!active) return;
+
         showErrorToast(addToast, {
           title: "Couldn't load templates",
           error,
           fallbackDescription: "Please refresh and try again.",
         });
-      });
+      }
+    }
+
+    loadTemplates();
+
+    return () => {
+      active = false;
+    };
   }, [addToast]);
 
   const generate = useCallback(
