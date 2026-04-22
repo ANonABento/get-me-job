@@ -39,6 +39,18 @@ describe("getSiteMetadata", () => {
       "https://jobs.example.com/"
     );
   });
+
+  it("falls back to the default site URL when the app URL is empty", () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
+
+    expect(getMetadataBase().toString()).toBe("https://taida.app/");
+  });
+
+  it("falls back to the default site URL when the app URL is invalid", () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "not a valid url");
+
+    expect(getMetadataBase().toString()).toBe("https://taida.app/");
+  });
 });
 
 describe("getMarketingPageMetadata", () => {
