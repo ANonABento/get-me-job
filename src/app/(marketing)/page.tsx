@@ -1,26 +1,11 @@
-import type { Metadata } from "next";
 import { Hero } from "./components/hero";
 import { Features } from "./components/features";
 import { HowItWorks } from "./components/how-it-works";
 import { Testimonials } from "./components/testimonials";
 import { CTASection } from "./components/cta-section";
+import { getMarketingPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Taida — AI-Powered Job Application Assistant",
-  description:
-    "Land your dream job with AI-powered resume tailoring, ATS optimization, interview coaching, and application tracking.",
-  openGraph: {
-    title: "Taida — AI-Powered Job Application Assistant",
-    description:
-      "Land your dream job with AI-powered resume tailoring, ATS optimization, interview coaching, and application tracking.",
-    url: "/",
-  },
-  twitter: {
-    title: "Taida — AI-Powered Job Application Assistant",
-    description:
-      "Land your dream job with AI-powered resume tailoring, ATS optimization, interview coaching, and application tracking.",
-  },
-};
+export const metadata = getMarketingPageMetadata();
 
 const jsonLd = {
   "@context": "https://schema.org",
