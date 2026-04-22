@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
 
 const SITE_NAME = "Taida";
 const SITE_DESCRIPTION =
@@ -42,7 +36,7 @@ export default function RootLayout({
 }>) {
   const app = (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${plusJakarta.variable} font-sans`}>
+      <body className="font-sans">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

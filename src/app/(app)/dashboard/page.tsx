@@ -20,7 +20,9 @@ import { EmptyState } from "@/components/dashboard/empty-state";
 import { RecentActivity, type ActivityItem } from "@/components/dashboard/recent-activity";
 import { calculateProfileCompleteness, type ProfileCompletenessResult } from "@/lib/profile-completeness";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { showErrorToast } from "@/components/ui/error-toast";
 import { SkeletonStatCard, SkeletonInsights } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/toast";
 
 interface DashboardStats {
   documentsCount: number;
@@ -37,6 +39,7 @@ interface RecentJob {
 }
 
 export default function Dashboard() {
+  const { addToast } = useToast();
   const [stats, setStats] = useState<DashboardStats>({
     documentsCount: 0,
     resumesGenerated: 0,
@@ -115,18 +118,24 @@ export default function Dashboard() {
         );
         setActivityItems(activities.slice(0, 5));
       } catch (error) {
-        console.error("Failed to fetch stats:", error);
-        setErrorMessage(
+        const message =
           error instanceof Error && error.message === "AUTH_REQUIRED"
             ? "Sign in to access your dashboard."
-            : "We couldn't load your dashboard data."
-        );
+            : "We couldn't load your dashboard data.";
+        setErrorMessage(message);
+        showErrorToast(addToast, {
+          title:
+            message === "Sign in to access your dashboard."
+              ? "Sign in required"
+              : "Couldn't load dashboard",
+          description: message,
+        });
       } finally {
         setLoading(false);
       }
     }
     fetchStats();
-  }, []);
+  }, [addToast]);
 
   if (errorMessage) {
     const needsSignIn = errorMessage === "Sign in to access your dashboard.";

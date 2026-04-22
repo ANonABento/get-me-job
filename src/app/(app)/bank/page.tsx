@@ -15,6 +15,7 @@ import { useRegisterShortcuts } from "@/components/keyboard-shortcuts";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { AddEntryDialog } from "@/components/bank/add-entry-dialog";
+import { showErrorToast } from "@/components/ui/error-toast";
 import { useToast } from "@/components/ui/toast";
 
 import { uploadSuccessMessage } from "./utils";
@@ -79,11 +80,16 @@ export default function BankPage() {
       const data = await res.json();
       setEntries(data.entries || []);
     } catch (err) {
-      setError(getErrorMessage(err));
+      const message = getErrorMessage(err);
+      setError(message);
+      showErrorToast(addToast, {
+        title: "Couldn't load entries",
+        description: message,
+      });
     } finally {
       if (!options?.silent) setLoading(false);
     }
-  }, [query, activeCategory]);
+  }, [activeCategory, addToast, query]);
 
   useEffect(() => {
     fetchEntries();
@@ -159,7 +165,11 @@ export default function BankPage() {
         prev.map((e) => (e.id === id ? { ...e, content } : e))
       );
     } catch (err) {
-      console.error("Update error:", err);
+      showErrorToast(addToast, {
+        title: "Couldn't update entry",
+        error: err,
+        fallbackDescription: "Please try saving your changes again.",
+      });
     }
   }
 
@@ -171,9 +181,13 @@ export default function BankPage() {
         body: JSON.stringify({ category, content }),
       });
       if (!res.ok) throw new Error("Create failed");
-      handleDataRefresh();
+      await handleDataRefresh();
     } catch (err) {
-      console.error("Create error:", err);
+      showErrorToast(addToast, {
+        title: "Couldn't create entry",
+        error: err,
+        fallbackDescription: "Please try adding the entry again.",
+      });
     }
   }
 
@@ -184,7 +198,11 @@ export default function BankPage() {
       setEntries((prev) => prev.filter((e) => e.id !== id));
       setAllEntries((prev) => prev.filter((e) => e.id !== id));
     } catch (err) {
-      console.error("Delete error:", err);
+      showErrorToast(addToast, {
+        title: "Couldn't delete entry",
+        error: err,
+        fallbackDescription: "Please try deleting the entry again.",
+      });
     }
   }
 
@@ -219,8 +237,12 @@ export default function BankPage() {
         entriesListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     } catch (err) {
-      console.error("[bank] Upload error:", err);
-      setError(getErrorMessage(err));
+      const message = getErrorMessage(err);
+      setError(message);
+      showErrorToast(addToast, {
+        title: "Upload failed",
+        description: message,
+      });
     } finally {
       setUploading(false);
     }
@@ -241,7 +263,12 @@ export default function BankPage() {
       const localFile = new File([blob], file.name, { type: file.mimeType });
       await handleFileUpload(localFile);
     } catch (err) {
-      setError(getErrorMessage(err));
+      const message = getErrorMessage(err);
+      setError(message);
+      showErrorToast(addToast, {
+        title: "Drive import failed",
+        description: message,
+      });
     } finally {
       setDriveImporting(false);
     }

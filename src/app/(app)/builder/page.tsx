@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { showErrorToast } from "@/components/ui/error-toast";
+import { useToast } from "@/components/ui/toast";
 import { SectionList } from "@/components/builder/section-list";
 import { ResumePreview } from "@/components/builder/resume-preview";
 import { TEMPLATES } from "@/lib/resume/template-data";
@@ -25,6 +27,7 @@ import {
 } from "lucide-react";
 
 export default function BuilderPage() {
+  const { addToast } = useToast();
   const [entries, setEntries] = useState<BankEntry[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sections, setSections] = useState<SectionState[]>(createInitialSections);
@@ -44,14 +47,18 @@ export default function BuilderPage() {
         const bankEntries: BankEntry[] = data.entries || [];
         setEntries(bankEntries);
         setSelectedIds(new Set(bankEntries.map((e) => e.id)));
-      } catch {
-        // Entries stay empty
+      } catch (error) {
+        showErrorToast(addToast, {
+          title: "Couldn't load bank entries",
+          error,
+          fallbackDescription: "Please refresh and try again.",
+        });
       } finally {
         setLoading(false);
       }
     }
     fetchEntries();
-  }, []);
+  }, [addToast]);
 
   const visibleCategoryIds = useMemo(
     () => getVisibleSectionIds(sections),
@@ -112,13 +119,17 @@ export default function BuilderPage() {
       })
       .catch((err) => {
         if (err.name !== "AbortError") {
-          console.error("Failed to generate preview:", err);
+          showErrorToast(addToast, {
+            title: "Couldn't update preview",
+            error: err,
+            fallbackDescription: "Please try changing your selection again.",
+          });
         }
       })
       .finally(() => setGenerating(false));
 
     return () => controller.abort();
-  }, [orderedEntries, templateId, visibleCategoryIds]);
+  }, [addToast, orderedEntries, templateId, visibleCategoryIds]);
 
   const handleToggleEntry = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -142,8 +153,16 @@ export default function BuilderPage() {
 
   const handleCopyHtml = useCallback(async () => {
     if (!html) return;
-    await navigator.clipboard.writeText(html);
-  }, [html]);
+    try {
+      await navigator.clipboard.writeText(html);
+    } catch (error) {
+      showErrorToast(addToast, {
+        title: "Couldn't copy HTML",
+        error,
+        fallbackDescription: "Please try copying again.",
+      });
+    }
+  }, [addToast, html]);
 
   const handleDownloadPdf = useCallback(() => {
     if (!html) return;
@@ -152,8 +171,13 @@ export default function BuilderPage() {
       win.document.write(html);
       win.document.close();
       win.onload = () => win.print();
+      return;
     }
-  }, [html]);
+    showErrorToast(addToast, {
+      title: "Couldn't open print preview",
+      fallbackDescription: "Please allow pop-ups and try again.",
+    });
+  }, [addToast, html]);
 
   const selectedTemplate = useMemo(
     () => TEMPLATES.find((t) => t.id === templateId),

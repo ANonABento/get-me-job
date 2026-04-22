@@ -7,6 +7,8 @@ import { GapAnalysis } from "@/components/tailor/gap-analysis";
 import { FileText, Sparkles } from "lucide-react";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { ErrorState } from "@/components/ui/error-state";
+import { showErrorToast } from "@/components/ui/error-toast";
+import { useToast } from "@/components/ui/toast";
 import type { TailoredResume } from "@/lib/resume/generator";
 import type { GapItem } from "@/lib/tailor/analyze";
 import { useRegisterShortcuts } from "@/components/keyboard-shortcuts";
@@ -35,6 +37,7 @@ interface GenerateResult {
 }
 
 export default function TailorPage() {
+  const { addToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
@@ -62,8 +65,14 @@ export default function TailorPage() {
       .then((data) => {
         if (data.templates) setTemplates(data.templates);
       })
-      .catch(() => {});
-  }, []);
+      .catch((error) => {
+        showErrorToast(addToast, {
+          title: "Couldn't load templates",
+          error,
+          fallbackDescription: "Please refresh and try again.",
+        });
+      });
+  }, [addToast]);
 
   const generate = useCallback(
     async (
@@ -87,18 +96,29 @@ export default function TailorPage() {
         const data = await res.json();
 
         if (!res.ok) {
-          setError(data.error || "Failed to generate resume");
+          const message = data.error || "Failed to generate resume";
+          setError(message);
+          showErrorToast(addToast, {
+            title: "Couldn't generate resume",
+            description: message,
+          });
           return;
         }
 
         setResult(data);
-      } catch {
-        setError("Network error. Please try again.");
+      } catch (error) {
+        const message = "Network error. Please try again.";
+        setError(message);
+        showErrorToast(addToast, {
+          title: "Couldn't generate resume",
+          error,
+          fallbackDescription: message,
+        });
       } finally {
         setIsLoading(false);
       }
     },
-    []
+    [addToast]
   );
 
   // Register page-specific keyboard shortcuts

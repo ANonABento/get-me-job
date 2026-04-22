@@ -11,6 +11,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FileText, Loader2, Trash2 } from "lucide-react";
+import { showErrorToast } from "@/components/ui/error-toast";
+import { useToast } from "@/components/ui/toast";
 import type { SourceDocument } from "@/lib/db/profile-bank";
 
 interface SourceDocumentsProps {
@@ -32,6 +34,7 @@ export function SourceDocuments({
   activeDocumentId,
   onDelete,
 }: SourceDocumentsProps) {
+  const { addToast } = useToast();
   const [documents, setDocuments] = useState<SourceDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<SourceDocument | null>(null);
@@ -43,12 +46,16 @@ export function SourceDocuments({
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       setDocuments(data.documents || []);
-    } catch {
-      console.error("Failed to fetch source documents");
+    } catch (error) {
+      showErrorToast(addToast, {
+        title: "Couldn't load source files",
+        error,
+        fallbackDescription: "Please refresh and try again.",
+      });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [addToast]);
 
   useEffect(() => {
     fetchDocuments();
@@ -68,7 +75,11 @@ export function SourceDocuments({
       }
       onDelete?.();
     } catch (err) {
-      console.error("Delete source document error:", err);
+      showErrorToast(addToast, {
+        title: "Couldn't delete source file",
+        error: err,
+        fallbackDescription: "Please try deleting the file again.",
+      });
     } finally {
       setDeleting(false);
       setDeleteTarget(null);

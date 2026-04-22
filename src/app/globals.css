@@ -4,6 +4,8 @@
 
 @layer base {
   :root {
+    --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+
     /* Background & Foreground - warm cream tint */
     --background: 30 25% 99%;
     --foreground: 258 20% 13%;
