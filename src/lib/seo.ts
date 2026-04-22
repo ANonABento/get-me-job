@@ -115,7 +115,17 @@ function buildMetadata(seo: RouteSeo): Metadata {
 }
 
 export function getMetadataBase(): URL {
-  return new URL(process.env.NEXT_PUBLIC_APP_URL ?? DEFAULT_SITE_URL);
+  const configuredSiteUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+
+  if (configuredSiteUrl) {
+    try {
+      return new URL(configuredSiteUrl);
+    } catch {
+      // Fall back to the production site URL when the env var is misconfigured.
+    }
+  }
+
+  return new URL(DEFAULT_SITE_URL);
 }
 
 export function getSiteMetadata(): Metadata {
