@@ -5,11 +5,21 @@ import type { Metadata } from "next";
  * Used by route layout files since page components are client-side.
  */
 
-interface PageSeo {
+interface RouteSeo {
   title: string;
   description: string;
   path: string;
+  absoluteTitle?: boolean;
 }
+
+export const SITE_NAME = "Taida";
+export const SITE_TITLE = `${SITE_NAME} — AI-Powered Job Application Assistant`;
+export const SITE_DESCRIPTION =
+  "AI-powered job application assistant — resume tailoring, interview prep, and application tracking to land your dream job.";
+
+const DEFAULT_SITE_URL = "https://taida.app";
+const DEFAULT_LOCALE = "en_US";
+const DEFAULT_TWITTER_CARD = "summary_large_image";
 
 const pages = {
   dashboard: {
@@ -71,21 +81,71 @@ const pages = {
     description: "Configure your AI provider, model preferences, and account settings.",
     path: "/settings",
   },
-};
+} satisfies Record<string, RouteSeo>;
 
-export function getPageMetadata(page: keyof typeof pages): Metadata {
-  const seo = pages[page];
+const marketingHomePage = {
+  title: SITE_TITLE,
+  description:
+    "Land your dream job with AI-powered resume tailoring, ATS optimization, interview coaching, and application tracking.",
+  path: "/",
+  absoluteTitle: true,
+} satisfies RouteSeo;
+
+function buildMetadata(seo: RouteSeo): Metadata {
   return {
-    title: seo.title,
+    title: seo.absoluteTitle ? { absolute: seo.title } : seo.title,
     description: seo.description,
+    alternates: {
+      canonical: seo.path,
+    },
     openGraph: {
+      type: "website",
+      locale: DEFAULT_LOCALE,
+      siteName: SITE_NAME,
       title: seo.title,
       description: seo.description,
       url: seo.path,
     },
     twitter: {
+      card: DEFAULT_TWITTER_CARD,
       title: seo.title,
       description: seo.description,
     },
   };
+}
+
+export function getMetadataBase(): URL {
+  return new URL(process.env.NEXT_PUBLIC_APP_URL ?? DEFAULT_SITE_URL);
+}
+
+export function getSiteMetadata(): Metadata {
+  return {
+    title: {
+      default: SITE_TITLE,
+      template: `%s — ${SITE_NAME}`,
+    },
+    description: SITE_DESCRIPTION,
+    metadataBase: getMetadataBase(),
+    openGraph: {
+      type: "website",
+      locale: DEFAULT_LOCALE,
+      siteName: SITE_NAME,
+      title: SITE_TITLE,
+      description: SITE_DESCRIPTION,
+      url: "/",
+    },
+    twitter: {
+      card: DEFAULT_TWITTER_CARD,
+      title: SITE_TITLE,
+      description: SITE_DESCRIPTION,
+    },
+  };
+}
+
+export function getPageMetadata(page: keyof typeof pages): Metadata {
+  return buildMetadata(pages[page]);
+}
+
+export function getMarketingPageMetadata(): Metadata {
+  return buildMetadata(marketingHomePage);
 }
