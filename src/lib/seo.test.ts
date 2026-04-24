@@ -71,6 +71,19 @@ describe("getMarketingPageMetadata", () => {
   });
 });
 
+const ALL_PAGES = [
+  "dashboard",
+  "bank",
+  "tailor",
+  "jobs",
+  "interview",
+  "calendar",
+  "emails",
+  "analytics",
+  "salary",
+  "settings",
+] as const;
+
 describe("getPageMetadata", () => {
   it("returns metadata with title and description for a known page", () => {
     const meta = getPageMetadata("dashboard");
@@ -97,40 +110,12 @@ describe("getPageMetadata", () => {
   });
 
   it("returns unique titles for each page", () => {
-    const pages = [
-      "dashboard",
-      "bank",
-      "tailor",
-      "jobs",
-      "interview",
-      "calendar",
-      "emails",
-      "analytics",
-      "salary",
-      "settings",
-    ] as const;
-
-    const titles = pages.map((p) => getPageMetadata(p).title);
-    const uniqueTitles = new Set(titles);
-    expect(uniqueTitles.size).toBe(pages.length);
+    const titles = ALL_PAGES.map((p) => getPageMetadata(p).title);
+    expect(new Set(titles).size).toBe(ALL_PAGES.length);
   });
 
   it("returns unique descriptions for each page", () => {
-    const pages = [
-      "dashboard",
-      "bank",
-      "tailor",
-      "jobs",
-      "interview",
-      "calendar",
-      "emails",
-      "analytics",
-      "salary",
-      "settings",
-    ] as const;
-
-    const descriptions = pages.map((p) => getPageMetadata(p).description);
-    const uniqueDescriptions = new Set(descriptions);
-    expect(uniqueDescriptions.size).toBe(pages.length);
+    const descriptions = ALL_PAGES.map((p) => getPageMetadata(p).description);
+    expect(new Set(descriptions).size).toBe(ALL_PAGES.length);
   });
 });
