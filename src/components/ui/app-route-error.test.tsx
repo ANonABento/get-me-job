@@ -2,17 +2,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { AppRouteError } from "./app-route-error";
 
-const originalError = console.error;
-
-beforeEach(() => {
-  console.error = vi.fn();
-});
-
-afterEach(() => {
-  console.error = originalError;
-});
-
 describe("AppRouteError", () => {
+  const originalError = console.error;
+
+  beforeEach(() => {
+    console.error = vi.fn();
+  });
+
+  afterEach(() => {
+    console.error = originalError;
+  });
+
   it("renders a friendly message with a retry action", () => {
     render(
       <AppRouteError error={new Error("boom")} reset={vi.fn()} />

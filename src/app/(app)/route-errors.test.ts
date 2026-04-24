@@ -6,15 +6,15 @@ const appDir = path.resolve(process.cwd(), "src/app/(app)");
 
 function findPageDirectories(dir: string): string[] {
   const entries = readdirSync(dir, { withFileTypes: true });
-  const directories = entries
+  const childPageDirs = entries
     .filter((entry) => entry.isDirectory())
     .flatMap((entry) => findPageDirectories(path.join(dir, entry.name)));
 
   if (entries.some((entry) => entry.isFile() && entry.name === "page.tsx")) {
-    directories.unshift(dir);
+    childPageDirs.unshift(dir);
   }
 
-  return directories;
+  return childPageDirs;
 }
 
 describe("app route error boundaries", () => {
