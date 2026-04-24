@@ -42,7 +42,6 @@ export default function BuilderPage() {
     DEFAULT_BUILDER_PANEL
   );
 
-  // Fetch bank entries
   useEffect(() => {
     async function fetchEntries() {
       try {
@@ -75,7 +74,6 @@ export default function BuilderPage() {
     [entries, selectedIds, visibleCategoryIds]
   );
 
-  // Order entries by section order
   const orderedEntries = useMemo(() => {
     const categoryOrder = new Map(
       visibleCategoryIds.map((id, i) => [id, i])
@@ -92,7 +90,6 @@ export default function BuilderPage() {
     [orderedEntries]
   );
 
-  // Generate HTML whenever selection, visibility, order, or template changes
   useEffect(() => {
     if (orderedEntries.length === 0) {
       setHtml("");
@@ -178,13 +175,11 @@ export default function BuilderPage() {
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
-      {/* Header with template switcher */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 md:px-6">
         <div className="flex items-center gap-3">
           <FileText className="h-5 w-5 text-primary" />
           <h1 className="text-lg font-semibold">Resume Builder</h1>
 
-          {/* Inline template switcher */}
           <div className="relative md:ml-4">
             <button
               onClick={() => setTemplateOpen((prev) => !prev)}
@@ -254,7 +249,6 @@ export default function BuilderPage() {
         </div>
       </div>
 
-      {/* Mobile tab switcher (hidden on desktop) */}
       <div
         role="tablist"
         aria-label="Builder view"
@@ -294,9 +288,7 @@ export default function BuilderPage() {
         </button>
       </div>
 
-      {/* Two-panel layout */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left: Section list with drag-and-drop */}
         <div
           id="builder-edit-panel"
           role="tabpanel"
@@ -316,7 +308,6 @@ export default function BuilderPage() {
           />
         </div>
 
-        {/* Right: Live preview */}
         <div
           id="builder-preview-panel"
           role="tabpanel"
