@@ -38,7 +38,6 @@ interface CategoryBadgeProps {
 
 export function CategoryBadge({ category, className = "" }: CategoryBadgeProps) {
   const style = categoryColors[category];
-  if (!style) return null;
 
   return (
     <span

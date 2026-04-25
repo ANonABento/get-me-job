@@ -24,16 +24,27 @@ import {
 } from "@/components/ui/select";
 import { PrepGuideCard } from "@/components/interview/prep-guide-card";
 import { PastSessionsList } from "@/components/interview/past-sessions-list";
+import {
+  INTERVIEW_DIFFICULTIES,
+  type InterviewDifficulty,
+} from "@/lib/constants";
 import type { JobDescription } from "@/types";
-import type { PastSession } from "@/types/interview";
+import type { InterviewMode, PastSession } from "@/types/interview";
+
+const INTERVIEW_DIFFICULTY_LABELS: Record<InterviewDifficulty, string> = {
+  entry: "Entry Level",
+  mid: "Mid Level",
+  senior: "Senior Level",
+  executive: "Executive",
+};
 
 interface InterviewJobSelectionProps {
   jobs: JobDescription[];
   selectedJob: string | null;
   generating: boolean;
-  onStartInterview: (jobId: string, mode: "text" | "voice") => void;
-  difficulty: string;
-  onDifficultyChange: (value: string) => void;
+  onStartInterview: (jobId: string, mode: InterviewMode) => void;
+  difficulty: InterviewDifficulty;
+  onDifficultyChange: (value: InterviewDifficulty) => void;
   pastSessions: PastSession[];
   onResumeSession: (session: PastSession) => void;
   onDeleteSession: (sessionId: string) => void;
@@ -116,15 +127,21 @@ export function InterviewJobSelection({
             <GraduationCap className="h-4 w-4" />
             Difficulty:
           </span>
-          <Select value={difficulty} onValueChange={onDifficultyChange}>
+          <Select
+            value={difficulty}
+            onValueChange={(value) =>
+              onDifficultyChange(value as InterviewDifficulty)
+            }
+          >
             <SelectTrigger className="w-36">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="entry">Entry Level</SelectItem>
-              <SelectItem value="mid">Mid Level</SelectItem>
-              <SelectItem value="senior">Senior Level</SelectItem>
-              <SelectItem value="executive">Executive</SelectItem>
+              {INTERVIEW_DIFFICULTIES.map((level) => (
+                <SelectItem key={level} value={level}>
+                  {INTERVIEW_DIFFICULTY_LABELS[level]}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

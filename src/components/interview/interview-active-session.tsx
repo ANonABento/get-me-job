@@ -205,6 +205,11 @@ export function InterviewActiveSession({
                   <h2 className="text-xl font-semibold leading-relaxed">
                     {currentFollowUp.question}
                   </h2>
+                  {currentFollowUp.reason.trim() && (
+                    <p className="max-w-2xl text-sm text-muted-foreground">
+                      Focus: {currentFollowUp.reason}
+                    </p>
+                  )}
                   {currentFollowUp.suggestedFocus.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2">
                       {currentFollowUp.suggestedFocus.map((focus) => (
@@ -302,6 +307,7 @@ export function InterviewActiveSession({
           {!followUpMode && currentQuestion?.suggestedAnswer && (
             <div className="overflow-hidden rounded-xl border bg-muted/30">
               <button
+                type="button"
                 onClick={() => setShowHint((currentValue) => !currentValue)}
                 className="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-muted/50"
               >

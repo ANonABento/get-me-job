@@ -35,6 +35,7 @@ export function PastSessionsList({
   return (
     <div className="rounded-2xl border bg-card overflow-hidden">
       <button
+        type="button"
         onClick={onToggleHistory}
         className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
       >

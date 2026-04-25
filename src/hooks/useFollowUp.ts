@@ -10,6 +10,16 @@ import {
 } from "react";
 import type { CurrentFollowUp, InterviewSession } from "@/types/interview";
 
+interface FollowUpApiResponse {
+  followUpQuestion?: string;
+  reason?: string;
+  suggestedFocus?: string[];
+}
+
+interface FollowUpAnswerResponse {
+  feedback?: string;
+}
+
 interface UseFollowUpArgs {
   session: InterviewSession | null;
   setSession: Dispatch<SetStateAction<InterviewSession | null>>;
@@ -26,6 +36,22 @@ interface UseFollowUpReturn {
   submitFollowUpAnswer: () => Promise<void>;
   skipFollowUp: () => void;
   resetFollowUp: () => void;
+}
+
+const JSON_HEADERS = { "Content-Type": "application/json" };
+
+async function fetchJson<T>(
+  url: string,
+  init: RequestInit | undefined,
+  errorContext: string
+): Promise<T> {
+  const response = await fetch(url, init);
+
+  if (!response.ok) {
+    throw new Error(`${errorContext} (${response.status})`);
+  }
+
+  return (await response.json()) as T;
 }
 
 export function useFollowUp({
@@ -56,28 +82,28 @@ export function useFollowUp({
     if (questionIndex < 0 || !question || !answer?.trim()) return;
 
     setLoadingFollowUp(true);
+
     try {
-      const res = await fetch("/api/interview/followup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jobId: session.jobId,
-          originalQuestion: question.question,
-          userAnswer: answer,
-          questionCategory: question.category,
-        }),
-      });
+      const data = await fetchJson<FollowUpApiResponse>(
+        "/api/interview/followup",
+        {
+          method: "POST",
+          headers: JSON_HEADERS,
+          body: JSON.stringify({
+            jobId: session.jobId,
+            originalQuestion: question.question,
+            userAnswer: answer,
+            questionCategory: question.category,
+          }),
+        },
+        "Failed to get follow-up question"
+      );
 
-      const data = await res.json();
-
-      if (
-        sessionRef.current === requestingSession &&
-        data.followUpQuestion
-      ) {
+      if (sessionRef.current === requestingSession && data.followUpQuestion) {
         setCurrentFollowUp({
           question: data.followUpQuestion,
-          reason: data.reason,
-          suggestedFocus: data.suggestedFocus || [],
+          reason: data.reason ?? "",
+          suggestedFocus: data.suggestedFocus ?? [],
         });
         setFollowUpMode(true);
         setCurrentAnswer("");
@@ -94,17 +120,20 @@ export function useFollowUp({
 
     const submittingSession = session;
     setSubmittingFollowUp(true);
-    try {
-      const res = await fetch("/api/interview/answer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jobId: session.jobId,
-          answer: currentAnswer,
-        }),
-      });
 
-      const data = await res.json();
+    try {
+      const data = await fetchJson<FollowUpAnswerResponse>(
+        "/api/interview/answer",
+        {
+          method: "POST",
+          headers: JSON_HEADERS,
+          body: JSON.stringify({
+            jobId: session.jobId,
+            answer: currentAnswer,
+          }),
+        },
+        "Failed to submit follow-up answer"
+      );
       let didUpdateFollowUps = false;
 
       setSession((currentSession) => {

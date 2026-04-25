@@ -6,6 +6,8 @@
  * envelope for all JSON responses.
  */
 
+import type { InterviewDifficulty } from "@/lib/constants";
+import type { InterviewQuestion } from "@/types/interview";
 import type {
   Profile,
   JobDescription,
@@ -297,13 +299,8 @@ export interface DocumentDeleteResponse {
 // ---------------------------------------------------------------------------
 
 export interface InterviewStartResponse {
-  questions: Array<{
-    id: string;
-    question: string;
-    category: string;
-    difficulty: string;
-  }>;
-  difficulty: string;
+  questions: InterviewQuestion[];
+  difficulty: InterviewDifficulty;
 }
 
 export interface InterviewAnswerFeedback {
@@ -314,14 +311,14 @@ export interface InterviewAnswerFeedback {
 }
 
 export interface InterviewAnswerResponse {
-  feedback: InterviewAnswerFeedback;
+  feedback: string;
 }
 
 export interface InterviewFollowupResponse {
   success: true;
   followUpQuestion: string;
   reason: string;
-  suggestedFocus: string;
+  suggestedFocus: string[];
 }
 
 export interface InterviewSession {
@@ -349,8 +346,15 @@ export interface InterviewSessionResponse {
 }
 
 export interface InterviewSessionAnswerResponse {
-  answer: string;
-  feedback: InterviewAnswerFeedback;
+  answer: {
+    id: string;
+    sessionId: string;
+    questionIndex: number;
+    answer: string;
+    feedback?: string;
+    createdAt: string;
+  };
+  feedback: string;
   isComplete: boolean;
 }
 

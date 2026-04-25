@@ -216,22 +216,22 @@ describe("API Types", () => {
     it("InterviewStartResponse should have questions and difficulty", () => {
       const response: InterviewStartResponse = {
         questions: [
-          { id: "q1", question: "Tell me about yourself", category: "behavioral", difficulty: "medium" },
+          {
+            question: "Tell me about yourself",
+            category: "behavioral",
+            difficulty: "mid",
+          },
         ],
-        difficulty: "medium",
+        difficulty: "mid",
       };
       expect(response.questions).toHaveLength(1);
     });
 
-    it("InterviewAnswerResponse should have feedback with score", () => {
+    it("InterviewAnswerResponse should have feedback text", () => {
       const response: InterviewAnswerResponse = {
-        feedback: {
-          score: 8,
-          strengths: ["Clear structure"],
-          improvements: ["Add more detail"],
-        },
+        feedback: "Clear structure. Add more detail.",
       };
-      expect(response.feedback.score).toBe(8);
+      expect(response.feedback).toContain("Clear structure");
     });
 
     it("InterviewFollowupResponse should have followUpQuestion", () => {
@@ -239,15 +239,22 @@ describe("API Types", () => {
         success: true,
         followUpQuestion: "Can you elaborate?",
         reason: "Vague answer",
-        suggestedFocus: "specifics",
+        suggestedFocus: ["specifics"],
       };
       expect(response.followUpQuestion).toBeTruthy();
     });
 
     it("InterviewSessionAnswerResponse should have isComplete flag", () => {
       const response: InterviewSessionAnswerResponse = {
-        answer: "My answer",
-        feedback: { score: 7, strengths: [], improvements: [] },
+        answer: {
+          id: "answer-1",
+          sessionId: "session-1",
+          questionIndex: 0,
+          answer: "My answer",
+          feedback: "Be more specific.",
+          createdAt: "2024-01-01T00:00:00.000Z",
+        },
+        feedback: "Be more specific.",
         isComplete: false,
       };
       expect(response.isComplete).toBe(false);

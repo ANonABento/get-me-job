@@ -1,13 +1,18 @@
+import type { InterviewDifficulty } from "@/lib/constants";
+
 export type InterviewQuestionCategory =
   | "behavioral"
   | "technical"
   | "situational"
   | "general";
 
+export type InterviewMode = "text" | "voice";
+
 export interface InterviewQuestion {
   question: string;
   category: InterviewQuestionCategory;
   suggestedAnswer?: string;
+  difficulty?: InterviewDifficulty;
 }
 
 export interface FollowUpExchange {
@@ -30,21 +35,23 @@ export interface InterviewSession {
   answers: string[];
   feedback: string[];
   followUps: FollowUpExchange[][];
-  mode: "text" | "voice";
+  mode: InterviewMode;
+}
+
+export interface PastSessionAnswer {
+  id: string;
+  questionIndex: number;
+  answer: string;
+  feedback?: string;
 }
 
 export interface PastSession {
   id: string;
   jobId: string;
-  mode: "text" | "voice";
+  mode: InterviewMode;
   status: "in_progress" | "completed";
   startedAt: string;
   completedAt?: string;
   questions: InterviewQuestion[];
-  answers?: Array<{
-    id: string;
-    questionIndex: number;
-    answer: string;
-    feedback?: string;
-  }>;
+  answers?: PastSessionAnswer[];
 }

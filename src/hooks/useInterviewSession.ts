@@ -8,8 +8,36 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
+import type { InterviewDifficulty } from "@/lib/constants";
 import type { JobDescription } from "@/types";
-import type { InterviewSession, PastSession } from "@/types/interview";
+import type {
+  InterviewMode,
+  InterviewQuestion,
+  InterviewSession,
+  PastSession,
+} from "@/types/interview";
+
+interface JobsResponse {
+  jobs?: JobDescription[];
+}
+
+interface InterviewSessionsResponse {
+  sessions?: PastSession[];
+}
+
+interface InterviewStartResponse {
+  questions?: InterviewQuestion[];
+}
+
+interface CreateInterviewSessionResponse {
+  session?: {
+    id?: string;
+  };
+}
+
+interface InterviewAnswerResponse {
+  feedback?: string;
+}
 
 interface UseInterviewSessionReturn {
   jobs: JobDescription[];
@@ -24,13 +52,29 @@ interface UseInterviewSessionReturn {
   generating: boolean;
   startInterview: (
     jobId: string,
-    mode: "text" | "voice",
-    difficulty: string
+    mode: InterviewMode,
+    difficulty: InterviewDifficulty
   ) => Promise<void>;
   submitAnswer: () => Promise<void>;
   resumeSession: (pastSession: PastSession) => void;
   deleteSession: (sessionId: string) => Promise<void>;
   resetSession: () => void;
+}
+
+const JSON_HEADERS = { "Content-Type": "application/json" };
+
+async function fetchJson<T>(
+  url: string,
+  init: RequestInit | undefined,
+  errorContext: string
+): Promise<T> {
+  const response = await fetch(url, init);
+
+  if (!response.ok) {
+    throw new Error(`${errorContext} (${response.status})`);
+  }
+
+  return (await response.json()) as T;
 }
 
 export function useInterviewSession(): UseInterviewSessionReturn {
@@ -51,8 +95,11 @@ export function useInterviewSession(): UseInterviewSessionReturn {
 
   const fetchJobs = useCallback(async () => {
     try {
-      const res = await fetch("/api/jobs");
-      const data = await res.json();
+      const data = await fetchJson<JobsResponse>(
+        "/api/jobs",
+        undefined,
+        "Failed to fetch jobs"
+      );
       setJobs(data.jobs || []);
     } catch (error) {
       console.error("Failed to fetch jobs:", error);
@@ -63,8 +110,11 @@ export function useInterviewSession(): UseInterviewSessionReturn {
 
   const fetchPastSessions = useCallback(async () => {
     try {
-      const res = await fetch("/api/interview/sessions");
-      const data = await res.json();
+      const data = await fetchJson<InterviewSessionsResponse>(
+        "/api/interview/sessions",
+        undefined,
+        "Failed to fetch past sessions"
+      );
       setPastSessions(data.sessions || []);
     } catch (error) {
       console.error("Failed to fetch past sessions:", error);
@@ -79,11 +129,15 @@ export function useInterviewSession(): UseInterviewSessionReturn {
   const completeSession = useCallback(
     async (sessionId: string) => {
       try {
-        await fetch(`/api/interview/sessions/${sessionId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "completed" }),
-        });
+        await fetchJson(
+          `/api/interview/sessions/${sessionId}`,
+          {
+            method: "PATCH",
+            headers: JSON_HEADERS,
+            body: JSON.stringify({ status: "completed" }),
+          },
+          "Failed to complete session"
+        );
         await fetchPastSessions();
       } catch (error) {
         console.error("Failed to complete session:", error);
@@ -95,9 +149,13 @@ export function useInterviewSession(): UseInterviewSessionReturn {
   const deleteSession = useCallback(
     async (sessionId: string) => {
       try {
-        await fetch(`/api/interview/sessions/${sessionId}`, {
-          method: "DELETE",
-        });
+        await fetchJson(
+          `/api/interview/sessions/${sessionId}`,
+          {
+            method: "DELETE",
+          },
+          "Failed to delete session"
+        );
         await fetchPastSessions();
       } catch (error) {
         console.error("Failed to delete session:", error);
@@ -108,8 +166,11 @@ export function useInterviewSession(): UseInterviewSessionReturn {
 
   const resumeSession = useCallback(
     (pastSession: PastSession) => {
-      const job = jobs.find((candidateJob) => candidateJob.id === pastSession.jobId);
-      if (!job) return;
+      const hasMatchingJob = jobs.some(
+        (candidateJob) => candidateJob.id === pastSession.jobId
+      );
+
+      if (!hasMatchingJob) return;
 
       invalidatePendingRequests();
 
@@ -142,33 +203,43 @@ export function useInterviewSession(): UseInterviewSessionReturn {
   );
 
   const startInterview = useCallback(
-    async (jobId: string, mode: "text" | "voice", difficulty: string) => {
+    async (
+      jobId: string,
+      mode: InterviewMode,
+      difficulty: InterviewDifficulty
+    ) => {
       const requestId = invalidatePendingRequests();
       setSelectedJob(jobId);
       setGenerating(true);
 
       try {
-        const questionsRes = await fetch("/api/interview/start", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ jobId, mode, difficulty }),
-        });
-        const questionsData = await questionsRes.json();
+        const questionsData = await fetchJson<InterviewStartResponse>(
+          "/api/interview/start",
+          {
+            method: "POST",
+            headers: JSON_HEADERS,
+            body: JSON.stringify({ jobId, mode, difficulty }),
+          },
+          "Failed to generate questions"
+        );
 
         if (!questionsData.questions) {
           throw new Error("Failed to generate questions");
         }
 
-        const sessionRes = await fetch("/api/interview/sessions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            jobId,
-            questions: questionsData.questions,
-            mode,
-          }),
-        });
-        const sessionData = await sessionRes.json();
+        const sessionData = await fetchJson<CreateInterviewSessionResponse>(
+          "/api/interview/sessions",
+          {
+            method: "POST",
+            headers: JSON_HEADERS,
+            body: JSON.stringify({
+              jobId,
+              questions: questionsData.questions,
+              mode,
+            }),
+          },
+          "Failed to create interview session"
+        );
 
         if (activeRequestRef.current !== requestId) {
           return;
@@ -201,21 +272,25 @@ export function useInterviewSession(): UseInterviewSessionReturn {
 
     const submittingSession = session;
     setSubmitting(true);
+
     try {
       const apiUrl = submittingSession.id
         ? `/api/interview/sessions/${submittingSession.id}/answer`
         : "/api/interview/answer";
 
-      const res = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jobId: submittingSession.jobId,
-          questionIndex: submittingSession.currentIndex,
-          answer: currentAnswer,
-        }),
-      });
-      const data = await res.json();
+      const data = await fetchJson<InterviewAnswerResponse>(
+        apiUrl,
+        {
+          method: "POST",
+          headers: JSON_HEADERS,
+          body: JSON.stringify({
+            jobId: submittingSession.jobId,
+            questionIndex: submittingSession.currentIndex,
+            answer: currentAnswer,
+          }),
+        },
+        "Failed to submit answer"
+      );
       let completedSessionId: string | null = null;
       let shouldClearAnswer = false;
 
@@ -224,27 +299,27 @@ export function useInterviewSession(): UseInterviewSessionReturn {
           return currentSession;
         }
 
-        const newAnswers = [...currentSession.answers];
-        newAnswers[currentSession.currentIndex] = currentAnswer;
+        const nextAnswers = [...currentSession.answers];
+        nextAnswers[currentSession.currentIndex] = currentAnswer;
 
-        const newFeedback = [...currentSession.feedback];
-        newFeedback[currentSession.currentIndex] = data.feedback || "";
+        const nextFeedback = [...currentSession.feedback];
+        nextFeedback[currentSession.currentIndex] = data.feedback || "";
 
         if (currentSession.currentIndex < currentSession.questions.length - 1) {
           shouldClearAnswer = true;
           return {
             ...currentSession,
             currentIndex: currentSession.currentIndex + 1,
-            answers: newAnswers,
-            feedback: newFeedback,
+            answers: nextAnswers,
+            feedback: nextFeedback,
           };
         }
 
         completedSessionId = currentSession.id ?? null;
         return {
           ...currentSession,
-          answers: newAnswers,
-          feedback: newFeedback,
+          answers: nextAnswers,
+          feedback: nextFeedback,
           currentIndex: currentSession.questions.length,
         };
       });

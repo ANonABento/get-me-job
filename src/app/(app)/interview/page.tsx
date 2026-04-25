@@ -8,10 +8,11 @@ import { InterviewJobSelection } from "@/components/interview/interview-job-sele
 import { InterviewSummary } from "@/components/interview/interview-summary";
 import { useFollowUp } from "@/hooks/useFollowUp";
 import { useInterviewSession } from "@/hooks/useInterviewSession";
-import type { PastSession } from "@/types/interview";
+import type { InterviewDifficulty } from "@/lib/constants";
+import type { InterviewMode, PastSession } from "@/types/interview";
 
 export default function InterviewPage() {
-  const [difficulty, setDifficulty] = useState("mid");
+  const [difficulty, setDifficulty] = useState<InterviewDifficulty>("mid");
   const interview = useInterviewSession();
   const followUp = useFollowUp({
     session: interview.session,
@@ -33,7 +34,7 @@ export default function InterviewPage() {
   }, [followUp, interview]);
 
   const handleStartInterview = useCallback(
-    (jobId: string, mode: "text" | "voice") => {
+    (jobId: string, mode: InterviewMode) => {
       followUp.resetFollowUp();
       void interview.startInterview(jobId, mode, difficulty);
     },
