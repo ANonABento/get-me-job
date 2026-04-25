@@ -11,7 +11,14 @@ const bankApiResponse = (resp: { url: () => string; status: () => number }) =>
 
 async function uploadFixture(page: Page): Promise<void> {
   const fileInput = page.locator("input[type='file']");
+  const uploadResponse = page.waitForResponse(
+    (resp) =>
+      resp.url().includes("/api/upload") &&
+      resp.request().method() === "POST" &&
+      resp.status() === 200
+  );
   await fileInput.setInputFiles(TEST_PDF);
+  await uploadResponse;
   await expect(
     page.getByRole("button", { name: /^upload$/i })
   ).toBeVisible({ timeout: 30000 });
@@ -24,7 +31,7 @@ test.describe("Bank Page - Layout & Empty State", () => {
 
   test("displays page heading", async ({ page }) => {
     await expect(
-      page.getByRole("heading", { name: /documents/i })
+      page.getByRole("heading", { name: /^documents$/i })
     ).toBeVisible();
   });
 
@@ -52,12 +59,12 @@ test.describe("Bank Page - Layout & Empty State", () => {
   test("displays category filter chips", async ({ page }) => {
     // Anchored patterns avoid matching chunk card buttons whose accessible
     // names also contain category words (e.g. "Uploaded Resume at Kevin Experience…").
-    await expect(page.getByRole("button", { name: /^all \(/i })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /^all/i })).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /^experience \(/i })
+      page.getByRole("tab", { name: /^experience/i })
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /^skills \(/i })
+      page.getByRole("tab", { name: /^skills/i })
     ).toBeVisible();
   });
 
@@ -100,10 +107,6 @@ test.describe("Bank Page - File Upload Flow", () => {
   test("uploads a PDF and shows entries in the bank", async ({ page }) => {
     await uploadFixture(page);
 
-    // Uploading spinner should appear then resolve
-    await expect(
-      page.getByRole("button", { name: /uploading/i })
-    ).toBeVisible({ timeout: 5000 });
     await expect(
       page.getByRole("button", { name: /^upload$/i })
     ).toBeVisible({ timeout: 30000 });
@@ -146,7 +149,7 @@ test.describe("Bank Page - Search & Filter", () => {
   });
 
   test("category filter chips narrow results", async ({ page }) => {
-    const experienceChip = page.getByRole("button", { name: /^experience \(/i });
+    const experienceChip = page.getByRole("tab", { name: /^experience/i });
 
     // waitForResponse instead of networkidle: networkidle can fire before the
     // response is fully processed by the React state update.
@@ -165,7 +168,7 @@ test.describe("Bank Page - Search & Filter", () => {
 
     await Promise.all([
       page.waitForResponse(bankApiResponse),
-      page.getByRole("button", { name: /^all \(/i }).click(),
+      page.getByRole("tab", { name: /^all/i }).click(),
     ]);
   });
 });

@@ -139,10 +139,10 @@ export async function POST(request: NextRequest) {
 
     // Ingest into knowledge bank — writes to profile_bank table (what the UI reads)
     let entriesCreated = 0;
-    if (parsedData?.data) {
+    if (parsedData?.data || extractedText) {
       try {
         const { insertBankEntries } = await import("@/lib/db/profile-bank");
-        const profile = parsedData.data as Record<string, unknown>;
+        const profile = (parsedData?.data ?? {}) as Record<string, unknown>;
         const entries: Array<{ category: "experience" | "education" | "skill" | "project" | "certification" | "achievement"; content: Record<string, unknown>; sourceDocumentId: string }> = [];
 
         // Chunk profile into bank entries (only valid BankCategory types)

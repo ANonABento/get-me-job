@@ -12,6 +12,22 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+function readStoredTheme(): Theme | null {
+  try {
+    return localStorage.getItem("theme") as Theme | null;
+  } catch {
+    return null;
+  }
+}
+
+function persistTheme(theme: Theme): void {
+  try {
+    localStorage.setItem("theme", theme);
+  } catch {
+    // Ignore storage errors and keep the in-memory theme.
+  }
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("system");
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
@@ -19,7 +35,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    const stored = localStorage.getItem("theme") as Theme | null;
+    const stored = readStoredTheme();
     if (stored) {
       setThemeState(stored);
     }
@@ -64,7 +80,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
-    localStorage.setItem("theme", newTheme);
+    persistTheme(newTheme);
   };
 
   // Prevent hydration mismatch by not rendering until mounted

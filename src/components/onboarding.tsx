@@ -28,6 +28,30 @@ const STEP_TITLES = [
   "All Set",
 ] as const;
 
+function readOnboardingCompleted(): string | null {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETED);
+  } catch {
+    return "true";
+  }
+}
+
+function writeOnboardingCompleted(value: string): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETED, value);
+  } catch {
+    // Ignore storage failures and keep the dialog closed for this session.
+  }
+}
+
+function clearOnboardingCompleted(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.ONBOARDING_COMPLETED);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
 function StepContent({ step }: { step: number }) {
   switch (step) {
     case 0:
@@ -120,7 +144,7 @@ export function OnboardingDialog() {
 
   useEffect(() => {
     setMounted(true);
-    const completed = localStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETED);
+    const completed = readOnboardingCompleted();
     if (!completed) {
       const timer = setTimeout(() => setOpen(true), 500);
       return () => clearTimeout(timer);
@@ -128,7 +152,7 @@ export function OnboardingDialog() {
   }, []);
 
   const markComplete = useCallback(() => {
-    localStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETED, "true");
+    writeOnboardingCompleted("true");
     setOpen(false);
   }, []);
 
@@ -219,13 +243,13 @@ export function OnboardingDialog() {
 // Hook to reset onboarding (useful for testing)
 export function useOnboarding() {
   const reset = () => {
-    localStorage.removeItem(STORAGE_KEYS.ONBOARDING_COMPLETED);
+    clearOnboardingCompleted();
     window.location.reload();
   };
 
   const isCompleted = () => {
     if (typeof window === "undefined") return true;
-    return !!localStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETED);
+    return !!readOnboardingCompleted();
   };
 
   return { reset, isCompleted };

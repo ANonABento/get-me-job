@@ -1,49 +1,46 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+
+const onboardingHeading = (page: Page) =>
+  page.getByRole("dialog").locator("h2.text-2xl");
 
 test.describe("Onboarding Flow", () => {
   test.beforeEach(async ({ page }) => {
-    // Clear localStorage to trigger onboarding
-    await page.goto("/");
+    await page.goto("/dashboard");
     await page.evaluate(() => {
       localStorage.removeItem("get_me_job_onboarding_completed");
     });
     await page.reload();
+    await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5000 });
   });
 
   test("should show onboarding dialog on first visit", async ({ page }) => {
-    await expect(page.getByRole("dialog")).toBeVisible();
-    await expect(page.getByText("Welcome to Taida")).toBeVisible();
+    await expect(onboardingHeading(page)).toHaveText("Welcome to Taida");
   });
 
   test("should navigate through onboarding steps", async ({ page }) => {
     // Step 1: Welcome
-    await expect(page.getByText("Welcome to Taida")).toBeVisible();
+    await expect(onboardingHeading(page)).toHaveText("Welcome to Taida");
     await page.getByRole("button", { name: /continue/i }).click();
 
     // Step 2: Upload Resume
-    await expect(page.getByText(/Upload Your Resume/i)).toBeVisible();
+    await expect(onboardingHeading(page)).toHaveText(/Upload Your Resume/i);
     await page.getByRole("button", { name: /continue/i }).click();
 
-    // Step 3: Build Your Profile
-    await expect(page.getByText(/Build Your Profile/i)).toBeVisible();
+    // Step 3: Review Your Profile
+    await expect(onboardingHeading(page)).toHaveText(/Review Your Profile/i);
     await page.getByRole("button", { name: /continue/i }).click();
 
-    // Step 4: Track Target Jobs
-    await expect(page.getByText(/Track Target Jobs/i)).toBeVisible();
+    // Step 4: Configure AI
+    await expect(onboardingHeading(page)).toHaveText(/Configure AI/i);
     await page.getByRole("button", { name: /continue/i }).click();
 
-    // Step 5: Ace Your Interviews (last step)
-    await expect(page.getByText(/Ace Your Interviews/i)).toBeVisible();
+    // Step 5: All Set (last step)
+    await expect(onboardingHeading(page)).toHaveText(/All Set|You're All Set/i);
   });
 
   test("should allow skipping onboarding", async ({ page }) => {
-    await expect(page.getByRole("dialog")).toBeVisible();
-
-    const skipButton = page.getByRole("button", { name: /skip/i });
-    if (await skipButton.isVisible()) {
-      await skipButton.click();
-      await expect(page.getByRole("dialog")).not.toBeVisible();
-    }
+    await page.getByRole("button", { name: "Skip setup" }).click();
+    await expect(page.getByRole("dialog")).not.toBeVisible();
   });
 
   test("should close onboarding and persist completion", async ({ page }) => {
@@ -70,6 +67,6 @@ test.describe("Onboarding Flow", () => {
     await page.waitForLoadState("networkidle");
 
     // Dialog should not appear after completion
-    await expect(page.getByText("Welcome to Taida")).not.toBeVisible({ timeout: 2000 });
+    await expect(page.getByRole("dialog")).not.toBeVisible({ timeout: 2000 });
   });
 });

@@ -1,17 +1,30 @@
 import { test, expect } from "@playwright/test";
 
+async function preparePage(page: Parameters<typeof test.beforeEach>[0]["page"], path = "/dashboard") {
+  await page.addInitScript(() => {
+    localStorage.setItem("get_me_job_onboarding_completed", "true");
+  });
+  await page.goto(path);
+  await page.waitForLoadState("networkidle");
+}
+
+async function ensureSidebarOpen(page: Parameters<typeof test.beforeEach>[0]["page"]) {
+  const openMenuButton = page.getByRole("button", { name: /open menu/i });
+  if (await openMenuButton.isVisible()) {
+    await openMenuButton.click();
+  }
+
+  await expect(page.locator("aside")).toBeVisible();
+}
+
 test.describe("Navigation", () => {
   test.beforeEach(async ({ page }) => {
-    // Skip onboarding for navigation tests
-    await page.goto("/dashboard");
-    await page.evaluate(() => {
-      localStorage.setItem("get_me_job_onboarding_completed", "true");
-    });
+    await preparePage(page);
   });
 
   test("should display sidebar with navigation items", async ({ page }) => {
-    await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
+    await preparePage(page);
+    await ensureSidebarOpen(page);
 
     // Get sidebar navigation
     const sidebar = page.locator("aside");
@@ -26,64 +39,64 @@ test.describe("Navigation", () => {
   });
 
   test("should navigate to Dashboard", async ({ page }) => {
-    await page.goto("/bank");
-    await page.waitForLoadState("networkidle");
+    await preparePage(page, "/bank");
+    await ensureSidebarOpen(page);
     const sidebar = page.locator("aside");
     await sidebar.getByRole("link", { name: /Dashboard/i }).click();
     await expect(page).toHaveURL("/dashboard");
   });
 
   test("should navigate to Documents (Bank) page", async ({ page }) => {
-    await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
+    await preparePage(page);
+    await ensureSidebarOpen(page);
     const sidebar = page.locator("aside");
     await sidebar.getByRole("link", { name: /Documents/i }).click();
     await expect(page).toHaveURL("/bank");
   });
 
   test("should navigate to Resume Builder page", async ({ page }) => {
-    await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
+    await preparePage(page);
+    await ensureSidebarOpen(page);
     const sidebar = page.locator("aside");
     await sidebar.getByRole("link", { name: /Resume Builder/i }).click();
     await expect(page).toHaveURL("/builder");
   });
 
   test("should navigate to Settings page", async ({ page }) => {
-    await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
+    await preparePage(page);
+    await ensureSidebarOpen(page);
     const sidebar = page.locator("aside");
     await sidebar.getByRole("link", { name: /Settings/i }).click();
     await expect(page).toHaveURL("/settings");
   });
 
   test("should navigate to Interview Prep page", async ({ page }) => {
-    await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
+    await preparePage(page);
+    await ensureSidebarOpen(page);
     const sidebar = page.locator("aside");
     await sidebar.getByRole("link", { name: /Interview Prep/i }).click();
     await expect(page).toHaveURL("/interview");
   });
 
   test("should navigate to Analytics page", async ({ page }) => {
-    await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
+    await preparePage(page);
+    await ensureSidebarOpen(page);
     const sidebar = page.locator("aside");
     await sidebar.getByRole("link", { name: /Analytics/i }).click();
     await expect(page).toHaveURL("/analytics");
   });
 
   test("should highlight active navigation item", async ({ page }) => {
-    await page.goto("/bank");
-    await page.waitForLoadState("networkidle");
+    await preparePage(page, "/bank");
+    await ensureSidebarOpen(page);
     const sidebar = page.locator("aside");
     const activeLink = sidebar.getByRole("link", { name: /Documents/i });
     await expect(activeLink).toHaveClass(/gradient-bg/);
   });
 
   test("should show app logo in sidebar", async ({ page }) => {
-    await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
+    await preparePage(page);
+    await ensureSidebarOpen(page);
     const sidebar = page.locator("aside");
     await expect(sidebar.getByText("Taida")).toBeVisible();
   });
@@ -91,23 +104,18 @@ test.describe("Navigation", () => {
 
 test.describe("Keyboard Shortcuts", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/dashboard");
-    await page.evaluate(() => {
-      localStorage.setItem("get_me_job_onboarding_completed", "true");
-    });
+    await preparePage(page);
   });
 
   test("should open keyboard shortcuts help with ?", async ({ page }) => {
-    await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
+    await preparePage(page);
     await page.keyboard.press("Shift+?");
     // Use heading specifically
     await expect(page.getByRole("heading", { name: "Keyboard Shortcuts" })).toBeVisible();
   });
 
   test("should navigate with keyboard shortcuts", async ({ page }) => {
-    await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
+    await preparePage(page);
 
     // Press 's' to go to Settings
     await page.keyboard.press("s");
@@ -115,8 +123,7 @@ test.describe("Keyboard Shortcuts", () => {
   });
 
   test("should close keyboard shortcuts dialog with Escape", async ({ page }) => {
-    await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
+    await preparePage(page);
     await page.keyboard.press("Shift+?");
     await expect(page.getByRole("heading", { name: "Keyboard Shortcuts" })).toBeVisible();
 

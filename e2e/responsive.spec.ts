@@ -17,10 +17,10 @@ const APP_PAGES = [
 ];
 
 async function preparePage(page: Page) {
-  await page.goto("/");
-  await page.evaluate(() => {
+  await page.addInitScript(() => {
     localStorage.setItem("get_me_job_onboarding_completed", "true");
   });
+  await page.goto("/");
 }
 
 test.describe("Responsive - Mobile (375px)", () => {
@@ -43,8 +43,12 @@ test.describe("Responsive - Mobile (375px)", () => {
 
     await page.getByRole("button", { name: "Toggle menu" }).click();
 
-    await expect(page.getByRole("link", { name: "Features" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "How It Works" })).toBeVisible();
+    await expect(
+      page.getByRole("banner").getByRole("link", { name: "Features" })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("banner").getByRole("link", { name: "How It Works" })
+    ).toBeVisible();
   });
 
   test("landing page content does not overflow horizontally", async ({ page }) => {
@@ -136,7 +140,12 @@ test.describe("Responsive - Tablet (768px)", () => {
     await preparePage(page);
   });
 
-  test("landing page layout adapts for tablet", async ({ page }) => {
+  test("landing page layout adapts for tablet", async ({ page }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== "chromium",
+      "Responsive visual baselines are only maintained for the desktop Chromium project."
+    );
+
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
@@ -169,8 +178,12 @@ test.describe("Responsive - Desktop (1280px)", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    await expect(page.getByRole("link", { name: "Features" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Get Started" })).toBeVisible();
+    await expect(
+      page.getByRole("banner").getByRole("link", { name: "Features" })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("banner").getByRole("link", { name: "Get Started" })
+    ).toBeVisible();
   });
 
   test("landing page uses available width without stretching excessively", async ({
@@ -224,7 +237,12 @@ test.describe("Responsive - Wide Screen (1920px)", () => {
     expect(box?.x ?? 0).toBeGreaterThan(100);
   });
 
-  test("wide layout remains visually stable", async ({ page }) => {
+  test("wide layout remains visually stable", async ({ page }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== "chromium",
+      "Responsive visual baselines are only maintained for the desktop Chromium project."
+    );
+
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 

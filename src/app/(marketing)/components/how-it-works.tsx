@@ -33,7 +33,7 @@ export function HowItWorks() {
       <div className="max-w-6xl mx-auto px-6">
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-sm font-medium text-foreground mb-4">
             How It Works
           </div>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
@@ -56,7 +56,7 @@ export function HowItWorks() {
 
               <div className="relative z-10 flex flex-col items-center text-center">
                 {/* Number badge */}
-                <div className="text-4xl font-bold text-muted-foreground/20 mb-2">
+                <div className="text-4xl font-bold text-muted-foreground/80 mb-2">
                   {step.number}
                 </div>
 

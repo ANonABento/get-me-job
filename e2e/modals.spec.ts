@@ -7,27 +7,26 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Modals - Onboarding", () => {
   test("onboarding modal appears on first visit", async ({ page }) => {
-    // Clear localStorage to trigger onboarding
-    await page.goto("/");
+    await page.goto("/dashboard");
     await page.evaluate(() => {
       localStorage.removeItem("get_me_job_onboarding_completed");
     });
     await page.reload();
 
     const dialog = page.getByRole("dialog");
-    await expect(dialog).toBeVisible();
-    await expect(page.getByText(/welcome to taida/i)).toBeVisible();
+    await expect(dialog).toBeVisible({ timeout: 5000 });
+    await expect(dialog.locator("h2.text-2xl")).toHaveText(/welcome to taida/i);
   });
 
   test("onboarding modal can be navigated through all steps", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/dashboard");
     await page.evaluate(() => {
       localStorage.removeItem("get_me_job_onboarding_completed");
     });
     await page.reload();
 
     const dialog = page.getByRole("dialog");
-    await expect(dialog).toBeVisible();
+    await expect(dialog).toBeVisible({ timeout: 5000 });
 
     // Step through onboarding using Continue button
     const continueButton = page.getByRole("button", { name: /continue/i });
@@ -48,15 +47,22 @@ test.describe("Modals - Onboarding", () => {
     await expect(dialog).not.toBeVisible({ timeout: 2000 });
   });
 
-  test("onboarding modal renders correctly at each step", async ({ page }) => {
-    await page.goto("/");
+  test("onboarding modal renders correctly at each step", async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== "chromium",
+      "Visual onboarding baselines are only maintained for the desktop Chromium project."
+    );
+    
+    await page.goto("/dashboard");
     await page.evaluate(() => {
       localStorage.removeItem("get_me_job_onboarding_completed");
     });
     await page.reload();
 
     const dialog = page.getByRole("dialog");
-    await expect(dialog).toBeVisible();
+    await expect(dialog).toBeVisible({ timeout: 5000 });
 
     // Take screenshot of each step
     let step = 1;
@@ -74,7 +80,7 @@ test.describe("Modals - Onboarding", () => {
   });
 
   test("onboarding has skip button", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/dashboard");
     await page.evaluate(() => {
       localStorage.removeItem("get_me_job_onboarding_completed");
     });

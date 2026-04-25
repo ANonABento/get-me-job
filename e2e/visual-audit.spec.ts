@@ -16,10 +16,10 @@ const APP_PAGES = [
 ];
 
 async function preparePage(page: Page) {
-  await page.goto("/");
-  await page.evaluate(() => {
+  await page.addInitScript(() => {
     localStorage.setItem("get_me_job_onboarding_completed", "true");
   });
+  await page.goto("/");
 }
 
 test.describe("Visual Audit - Public Pages", () => {
@@ -28,7 +28,12 @@ test.describe("Visual Audit - Public Pages", () => {
   });
 
   for (const { path, name } of PUBLIC_PAGES) {
-    test(`${name} page renders correctly`, async ({ page }) => {
+    test(`${name} page renders correctly`, async ({ page }, testInfo) => {
+      test.skip(
+        testInfo.project.name !== "chromium",
+        "Visual baselines are only maintained for the desktop Chromium project."
+      );
+
       const errors: string[] = [];
 
       page.on("console", (message) => {
@@ -74,7 +79,12 @@ test.describe("Visual Audit - Landing Page States", () => {
     await preparePage(page);
   });
 
-  test("landing page light theme", async ({ page }) => {
+  test("landing page light theme", async ({ page }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== "chromium",
+      "Visual baselines are only maintained for the desktop Chromium project."
+    );
+
     await page.goto("/");
     await page.evaluate(() => {
       document.documentElement.classList.remove("dark");
@@ -88,7 +98,12 @@ test.describe("Visual Audit - Landing Page States", () => {
     });
   });
 
-  test("landing page dark theme", async ({ page }) => {
+  test("landing page dark theme", async ({ page }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== "chromium",
+      "Visual baselines are only maintained for the desktop Chromium project."
+    );
+
     await page.goto("/");
     await page.evaluate(() => {
       document.documentElement.classList.remove("light");
@@ -102,7 +117,12 @@ test.describe("Visual Audit - Landing Page States", () => {
     });
   });
 
-  test("mobile navigation state renders correctly", async ({ page }) => {
+  test("mobile navigation state renders correctly", async ({ page }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== "chromium",
+      "Visual baselines are only maintained for the desktop Chromium project."
+    );
+
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto("/");
     await page.waitForLoadState("networkidle");

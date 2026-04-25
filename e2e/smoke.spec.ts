@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Smoke Tests", () => {
   test("homepage loads successfully", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveTitle(/Get Me Job/i);
+    await expect(page).toHaveTitle(/Taida/i);
   });
 
   test("protected pages are accessible with auth bypass (no Clerk keys)", async ({ page }) => {
@@ -25,18 +25,19 @@ test.describe("Smoke Tests", () => {
 
   test("landing page navigation is responsive on mobile", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto("/");
-    await page.evaluate(() => {
+    await page.addInitScript(() => {
       localStorage.setItem("get_me_job_onboarding_completed", "true");
     });
-    await page.reload();
+    await page.goto("/");
     await page.waitForLoadState("networkidle");
 
     const menuButton = page.getByRole("button", { name: "Toggle menu" });
     await expect(menuButton).toBeVisible();
 
     await menuButton.click();
-    await expect(page.getByRole("link", { name: "Features" })).toBeVisible();
+    await expect(
+      page.getByRole("banner").getByRole("link", { name: "Features" })
+    ).toBeVisible();
   });
 
   test("landing page renders without crash states", async ({ page }) => {

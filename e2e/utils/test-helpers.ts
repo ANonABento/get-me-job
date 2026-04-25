@@ -157,7 +157,7 @@ export async function resetAppState(page: Page): Promise<void> {
  * Sets up the app state to skip onboarding (marks it as completed).
  */
 export async function skipOnboardingSetup(page: Page): Promise<void> {
-  await page.evaluate(() => {
+  await page.addInitScript(() => {
     localStorage.setItem("get_me_job_onboarding_completed", "true");
   });
 }
@@ -166,8 +166,7 @@ export async function skipOnboardingSetup(page: Page): Promise<void> {
  * Navigates to the bank (documents) page and waits for it to load.
  */
 export async function navigateToBank(page: Page): Promise<void> {
-  await page.goto("/");
-  await page.evaluate(() => {
+  await page.addInitScript(() => {
     localStorage.setItem("get_me_job_onboarding_completed", "true");
   });
   await page.goto("/bank");
