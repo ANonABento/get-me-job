@@ -9,10 +9,22 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-const db = new Database(PATHS.DATABASE);
+const db = new Database(PATHS.DATABASE, { timeout: 5000 });
 
-// Enable WAL mode for better performance
-db.pragma("journal_mode = WAL");
+// Give parallel test workers a chance to wait on short-lived locks.
+db.pragma("busy_timeout = 5000");
+
+// Enable WAL mode for better performance. When another worker is already
+// initializing the same file-backed database, continue instead of failing
+// the whole module import on a transient lock.
+try {
+  db.pragma("journal_mode = WAL");
+} catch (error) {
+  if ((error as NodeJS.ErrnoException).code !== "SQLITE_BUSY") {
+    throw error;
+  }
+  console.warn("[db] Database was busy while enabling WAL mode; continuing");
+}
 
 // Load sqlite-vec extension for vector search (optional — fails gracefully if not available)
 try {
