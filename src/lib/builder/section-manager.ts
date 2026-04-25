@@ -5,9 +5,20 @@ export interface SectionState {
   visible: boolean;
 }
 
-/**
- * Default section ordering for the resume builder.
- */
+export type BuilderPanel = "edit" | "preview";
+
+export const BUILDER_PANELS: readonly BuilderPanel[] = ["edit", "preview"];
+
+export const DEFAULT_BUILDER_PANEL: BuilderPanel = "edit";
+
+// Uses `block` (not `flex`) so the child panel fills width without reflowing as a row flex item.
+export function getMobilePanelClasses(
+  activeView: BuilderPanel,
+  panel: BuilderPanel
+): string {
+  return activeView === panel ? "block md:block" : "hidden md:block";
+}
+
 export const DEFAULT_SECTION_ORDER: BankCategory[] = [
   "experience",
   "education",
@@ -17,19 +28,12 @@ export const DEFAULT_SECTION_ORDER: BankCategory[] = [
   "certification",
 ];
 
-/**
- * Create the initial section state from categories, all visible by default.
- */
 export function createInitialSections(
   categories: BankCategory[] = DEFAULT_SECTION_ORDER
 ): SectionState[] {
   return categories.map((id) => ({ id, visible: true }));
 }
 
-/**
- * Toggle visibility of a section by its category ID.
- * Returns a new array (immutable).
- */
 export function toggleSectionVisibility(
   sections: SectionState[],
   categoryId: BankCategory
@@ -39,10 +43,6 @@ export function toggleSectionVisibility(
   );
 }
 
-/**
- * Reorder sections by moving a section from one index to another.
- * Returns a new array (immutable).
- */
 export function reorderSections(
   sections: SectionState[],
   fromIndex: number,
@@ -63,9 +63,6 @@ export function reorderSections(
   return result;
 }
 
-/**
- * Filter to only visible section IDs, preserving order.
- */
 export function getVisibleSectionIds(sections: SectionState[]): BankCategory[] {
   return sections.filter((s) => s.visible).map((s) => s.id);
 }

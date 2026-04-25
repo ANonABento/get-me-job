@@ -4,7 +4,10 @@ import {
   toggleSectionVisibility,
   reorderSections,
   getVisibleSectionIds,
+  getMobilePanelClasses,
   DEFAULT_SECTION_ORDER,
+  DEFAULT_BUILDER_PANEL,
+  BUILDER_PANELS,
 } from "./section-manager";
 import type { SectionState } from "./section-manager";
 
@@ -146,5 +149,35 @@ describe("getVisibleSectionIds", () => {
 
   it("returns empty array for empty input", () => {
     expect(getVisibleSectionIds([])).toEqual([]);
+  });
+});
+
+describe("getMobilePanelClasses", () => {
+  it("shows the edit panel on mobile and desktop when edit is active", () => {
+    expect(getMobilePanelClasses("edit", "edit")).toBe("block md:block");
+  });
+
+  it("shows the preview panel on mobile and desktop when preview is active", () => {
+    expect(getMobilePanelClasses("preview", "preview")).toBe("block md:block");
+  });
+
+  it("hides the preview panel on mobile but shows it on desktop when edit is active", () => {
+    expect(getMobilePanelClasses("edit", "preview")).toBe("hidden md:block");
+  });
+
+  it("hides the edit panel on mobile but shows it on desktop when preview is active", () => {
+    expect(getMobilePanelClasses("preview", "edit")).toBe("hidden md:block");
+  });
+});
+
+describe("BUILDER_PANELS", () => {
+  it("includes both edit and preview", () => {
+    expect(BUILDER_PANELS).toEqual(["edit", "preview"]);
+  });
+});
+
+describe("DEFAULT_BUILDER_PANEL", () => {
+  it("defaults to edit so users land on the section list first", () => {
+    expect(DEFAULT_BUILDER_PANEL).toBe("edit");
   });
 });

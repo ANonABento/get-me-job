@@ -84,6 +84,49 @@ test.describe("Responsive - Mobile (375px)", () => {
       expect(page.url()).not.toContain("/sign-in");
     }
   });
+
+  test.describe("Builder mobile layout", () => {
+    test("shows the tab switcher and defaults to Edit", async ({ page }) => {
+      await page.goto("/builder");
+      await page.waitForLoadState("networkidle");
+
+      const tablist = page.getByRole("tablist", { name: "Builder view" });
+      await expect(tablist).toBeVisible();
+
+      const editTab = page.getByRole("tab", { name: /edit/i });
+      const previewTab = page.getByRole("tab", { name: /preview/i });
+
+      await expect(editTab).toHaveAttribute("aria-selected", "true");
+      await expect(previewTab).toHaveAttribute("aria-selected", "false");
+
+      await expect(page.locator("#builder-edit-panel")).toBeVisible();
+      await expect(page.locator("#builder-preview-panel")).toBeHidden();
+    });
+
+    test("Preview tab swaps which panel is visible", async ({ page }) => {
+      await page.goto("/builder");
+      await page.waitForLoadState("networkidle");
+      await page.getByRole("tab", { name: /preview/i }).click();
+
+      await expect(page.locator("#builder-preview-panel")).toBeVisible();
+      await expect(page.locator("#builder-edit-panel")).toBeHidden();
+      await expect(page.getByRole("tab", { name: /preview/i })).toHaveAttribute(
+        "aria-selected",
+        "true"
+      );
+    });
+
+    test("does not introduce horizontal scroll", async ({ page }) => {
+      await page.goto("/builder");
+      await page.waitForLoadState("networkidle");
+      const overflow = await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth >
+          document.documentElement.clientWidth
+      );
+      expect(overflow).toBe(false);
+    });
+  });
 });
 
 test.describe("Responsive - Tablet (768px)", () => {
@@ -149,6 +192,18 @@ test.describe("Responsive - Desktop (1280px)", () => {
 
     // With auth bypass, should NOT redirect to sign-in
     expect(page.url()).not.toContain("/sign-in");
+  });
+
+  test("builder shows both panels and no tab strip on desktop", async ({ page }) => {
+    await page.goto("/builder");
+    await page.waitForLoadState("networkidle");
+
+    // Tab strip is in the DOM but hidden by md:hidden
+    const tablist = page.getByRole("tablist", { name: "Builder view" });
+    await expect(tablist).toBeHidden();
+
+    await expect(page.locator("#builder-edit-panel")).toBeVisible();
+    await expect(page.locator("#builder-preview-panel")).toBeVisible();
   });
 });
 

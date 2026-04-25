@@ -11,8 +11,11 @@ import {
   toggleSectionVisibility,
   reorderSections,
   getVisibleSectionIds,
+  getMobilePanelClasses,
+  DEFAULT_BUILDER_PANEL,
 } from "@/lib/builder/section-manager";
-import type { SectionState } from "@/lib/builder/section-manager";
+import type { SectionState, BuilderPanel } from "@/lib/builder/section-manager";
+import { cn } from "@/lib/utils";
 import type { BankEntry, BankCategory } from "@/types";
 import type { TailoredResume } from "@/lib/resume/generator";
 import {
@@ -22,6 +25,8 @@ import {
   Loader2,
   ChevronDown,
   Check,
+  Pencil,
+  Eye,
 } from "lucide-react";
 
 export default function BuilderPage() {
@@ -33,8 +38,10 @@ export default function BuilderPage() {
   const [loading, setLoading] = useState(true);
   const [html, setHtml] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [mobileView, setMobileView] = useState<BuilderPanel>(
+    DEFAULT_BUILDER_PANEL
+  );
 
-  // Fetch bank entries
   useEffect(() => {
     async function fetchEntries() {
       try {
@@ -67,7 +74,6 @@ export default function BuilderPage() {
     [entries, selectedIds, visibleCategoryIds]
   );
 
-  // Order entries by section order
   const orderedEntries = useMemo(() => {
     const categoryOrder = new Map(
       visibleCategoryIds.map((id, i) => [id, i])
@@ -84,7 +90,6 @@ export default function BuilderPage() {
     [orderedEntries]
   );
 
-  // Generate HTML whenever selection, visibility, order, or template changes
   useEffect(() => {
     if (orderedEntries.length === 0) {
       setHtml("");
@@ -170,14 +175,12 @@ export default function BuilderPage() {
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
-      {/* Header with template switcher */}
-      <div className="flex items-center justify-between border-b px-6 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 md:px-6">
         <div className="flex items-center gap-3">
           <FileText className="h-5 w-5 text-primary" />
           <h1 className="text-lg font-semibold">Resume Builder</h1>
 
-          {/* Inline template switcher */}
-          <div className="relative ml-4">
+          <div className="relative md:ml-4">
             <button
               onClick={() => setTemplateOpen((prev) => !prev)}
               className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-muted transition-colors"
@@ -236,20 +239,65 @@ export default function BuilderPage() {
             onClick={handleCopyHtml}
             disabled={!html}
           >
-            <Copy className="h-4 w-4 mr-1.5" />
-            Copy HTML
+            <Copy className="h-4 w-4 md:mr-1.5" />
+            <span className="hidden md:inline">Copy HTML</span>
           </Button>
           <Button size="sm" onClick={handleDownloadPdf} disabled={!html}>
-            <Download className="h-4 w-4 mr-1.5" />
-            Download PDF
+            <Download className="h-4 w-4 md:mr-1.5" />
+            <span className="hidden md:inline">Download PDF</span>
           </Button>
         </div>
       </div>
 
-      {/* Two-panel layout */}
+      <div
+        role="tablist"
+        aria-label="Builder view"
+        className="flex border-b md:hidden"
+      >
+        <button
+          id="builder-edit-tab"
+          role="tab"
+          aria-selected={mobileView === "edit"}
+          aria-controls="builder-edit-panel"
+          onClick={() => setMobileView("edit")}
+          className={cn(
+            "flex flex-1 items-center justify-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors",
+            mobileView === "edit"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Pencil className="h-4 w-4" />
+          Edit
+        </button>
+        <button
+          id="builder-preview-tab"
+          role="tab"
+          aria-selected={mobileView === "preview"}
+          aria-controls="builder-preview-panel"
+          onClick={() => setMobileView("preview")}
+          className={cn(
+            "flex flex-1 items-center justify-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors",
+            mobileView === "preview"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Eye className="h-4 w-4" />
+          Preview
+        </button>
+      </div>
+
       <div className="flex flex-1 overflow-hidden">
-        {/* Left: Section list with drag-and-drop */}
-        <div className="w-80 shrink-0 border-r overflow-hidden">
+        <div
+          id="builder-edit-panel"
+          role="tabpanel"
+          aria-labelledby="builder-edit-tab"
+          className={cn(
+            "w-full flex-1 overflow-hidden md:w-80 md:flex-none md:shrink-0 md:border-r",
+            getMobilePanelClasses(mobileView, "edit")
+          )}
+        >
           <SectionList
             sections={sections}
             entries={entries}
@@ -260,8 +308,15 @@ export default function BuilderPage() {
           />
         </div>
 
-        {/* Right: Live preview */}
-        <div className="flex-1 relative overflow-hidden">
+        <div
+          id="builder-preview-panel"
+          role="tabpanel"
+          aria-labelledby="builder-preview-tab"
+          className={cn(
+            "relative w-full flex-1 overflow-hidden",
+            getMobilePanelClasses(mobileView, "preview")
+          )}
+        >
           {generating && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
