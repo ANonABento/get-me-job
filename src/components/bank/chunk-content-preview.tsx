@@ -1,0 +1,105 @@
+import type { BankEntry } from "@/types";
+import { cn } from "@/lib/utils";
+import { SKILL_CATEGORY_COLORS } from "./chunk-card-config";
+import { getDateRange, getHighlights, getTechnologies } from "./chunk-card-utils";
+
+export function ChunkContentPreview({ entry }: { entry: BankEntry }) {
+  const c = entry.content;
+
+  switch (entry.category) {
+    case "experience": {
+      const dateRange = getDateRange(c);
+      const highlights = getHighlights(c, 2);
+      return (
+        <div className="mt-1 space-y-1">
+          {(c.location || dateRange) && (
+            <p className="text-xs text-muted-foreground">
+              {[c.location, dateRange].filter(Boolean).join(" · ")}
+            </p>
+          )}
+          {c.description ? (
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {String(c.description)}
+            </p>
+          ) : null}
+          {highlights.length > 0 && (
+            <ul className="text-xs text-muted-foreground list-disc list-inside">
+              {highlights.map((h, i) => (
+                <li key={i} className="truncate">{h}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      );
+    }
+    case "education": {
+      const dateRange = getDateRange(c);
+      return (
+        <div className="mt-1 space-y-0.5">
+          {c.field ? (
+            <p className="text-sm text-muted-foreground">{String(c.field)}</p>
+          ) : null}
+          <p className="text-xs text-muted-foreground">
+            {[dateRange, c.gpa ? `GPA: ${c.gpa}` : ""].filter(Boolean).join(" · ")}
+          </p>
+        </div>
+      );
+    }
+    case "skill": {
+      const cat = c.category ? String(c.category) : "";
+      const prof = c.proficiency ? String(c.proficiency) : "";
+      return (
+        <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+          {cat && (
+            <span className={cn("text-2xs px-1.5 py-0.5 rounded-full font-medium", SKILL_CATEGORY_COLORS[cat] || SKILL_CATEGORY_COLORS.other)}>
+              {cat}
+            </span>
+          )}
+          {prof && (
+            <span className="text-xs text-muted-foreground">{prof}</span>
+          )}
+        </div>
+      );
+    }
+    case "project": {
+      const techs = getTechnologies(c);
+      return (
+        <div className="mt-1 space-y-1">
+          {c.description ? (
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {String(c.description)}
+            </p>
+          ) : null}
+          {techs.length > 0 && (
+            <div className="flex gap-1 flex-wrap">
+              {techs.slice(0, 5).map((t, i) => (
+                <span key={i} className="text-2xs px-1.5 py-0.5 rounded-full bg-accent/10 text-accent font-medium">
+                  {t}
+                </span>
+              ))}
+              {techs.length > 5 && (
+                <span className="text-2xs text-muted-foreground">+{techs.length - 5} more</span>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+    case "certification":
+      return (
+        <div className="mt-1">
+          <p className="text-xs text-muted-foreground">
+            {[c.issuer, c.date].filter(Boolean).map(String).join(" · ")}
+          </p>
+        </div>
+      );
+    case "achievement":
+      return c.description ? (
+        <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+          {String(c.description)}
+        </p>
+      ) : null;
+    default:
+      return null;
+  }
+}
