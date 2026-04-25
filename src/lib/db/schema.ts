@@ -346,6 +346,9 @@ db.exec(`
     FOREIGN KEY (source_document_id) REFERENCES documents(id) ON DELETE SET NULL
   );
 
+  CREATE INDEX IF NOT EXISTS idx_custom_templates_user ON custom_templates(user_id);
+  CREATE INDEX IF NOT EXISTS idx_custom_templates_source ON custom_templates(source_document_id);
+
   -- Profile bank table for aggregated resume data
   CREATE TABLE IF NOT EXISTS profile_bank (
     id TEXT PRIMARY KEY,
