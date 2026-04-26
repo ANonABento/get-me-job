@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
 import { PATHS } from "@/lib/constants";
+import { runLocalDevCleanSlateMigration } from "./local-clean-slate";
 
 // Ensure data directory exists
 const dataDir = path.dirname(PATHS.DATABASE);
@@ -404,8 +405,6 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_chunks_user_section ON chunks(user_id, section_type);
   CREATE UNIQUE INDEX IF NOT EXISTS idx_chunks_user_hash ON chunks(user_id, hash);
 
-  -- Create default profile if not exists
-  INSERT OR IGNORE INTO profile (id) VALUES ('default');
 `);
 
 // Create vec0 virtual table for vector search (requires sqlite-vec extension)
@@ -703,6 +702,12 @@ try {
   `);
 } catch (error) {
   console.error("Resume A/B tracking migration error:", error);
+}
+
+try {
+  runLocalDevCleanSlateMigration(db);
+} catch (error) {
+  console.error("Local dev clean slate migration error:", error);
 }
 
 export default db;
