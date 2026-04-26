@@ -58,7 +58,7 @@ test.describe("Bank Page - Layout & Empty State", () => {
 
   test("displays category filter chips", async ({ page }) => {
     // Anchored patterns avoid matching chunk card buttons whose accessible
-    // names also contain category words (e.g. "Uploaded Resume at Kevin Experience…").
+    // names can also contain category words from parsed document content.
     await expect(page.getByRole("tab", { name: /^all/i })).toBeVisible();
     await expect(
       page.getByRole("tab", { name: /^experience/i })

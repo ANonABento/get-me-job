@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -36,7 +36,12 @@ export function SourceDocuments({
   const [documents, setDocuments] = useState<SourceDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<SourceDocument | null>(null);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<Set<string>>(
+    new Set()
+  );
   const [deleting, setDeleting] = useState(false);
+  const selectAllRef = useRef<HTMLInputElement>(null);
   const showErrorToast = useErrorToast();
 
   const fetchDocuments = useCallback(async () => {
@@ -58,6 +63,42 @@ export function SourceDocuments({
   useEffect(() => {
     fetchDocuments();
   }, [fetchDocuments, refreshKey]);
+
+  useEffect(() => {
+    const documentIds = new Set(documents.map((doc) => doc.id));
+    setSelectedDocumentIds((prev) => {
+      const next = new Set([...prev].filter((id) => documentIds.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [documents]);
+
+  const selectedCount = selectedDocumentIds.size;
+  const allSelected = documents.length > 0 && selectedCount === documents.length;
+  const someSelected = selectedCount > 0 && !allSelected;
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someSelected;
+    }
+  }, [someSelected]);
+
+  function toggleDocument(documentId: string) {
+    setSelectedDocumentIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(documentId)) {
+        next.delete(documentId);
+      } else {
+        next.add(documentId);
+      }
+      return next;
+    });
+  }
+
+  function toggleAllDocuments() {
+    setSelectedDocumentIds(
+      allSelected ? new Set() : new Set(documents.map((doc) => doc.id))
+    );
+  }
 
   async function handleDelete() {
     if (!deleteTarget) return;
@@ -83,12 +124,68 @@ export function SourceDocuments({
     }
   }
 
+  async function handleBulkDelete() {
+    if (selectedDocumentIds.size === 0) return;
+    setDeleting(true);
+    const ids = [...selectedDocumentIds];
+    const idsToDelete = new Set(ids);
+    try {
+      const res = await fetch("/api/bank/documents", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentIds: ids }),
+      });
+      if (!res.ok) throw new Error("Bulk delete failed");
+      setDocuments((prev) => prev.filter((doc) => !idsToDelete.has(doc.id)));
+      if (activeDocumentId && idsToDelete.has(activeDocumentId)) {
+        onFilterByDocument(null);
+      }
+      setSelectedDocumentIds(new Set());
+      onDelete?.();
+    } catch (err) {
+      showErrorToast(err, {
+        title: "Could not delete source files",
+        fallbackDescription: "Please try deleting the selected files again.",
+      });
+    } finally {
+      setDeleting(false);
+      setBulkDeleteDialogOpen(false);
+    }
+  }
+
   if (loading) return null;
   if (documents.length === 0) return null;
 
   return (
     <div>
-      <h2 className="text-lg font-semibold mb-3">Source Files</h2>
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <label className="flex items-center gap-2 text-lg font-semibold">
+          <input
+            ref={selectAllRef}
+            type="checkbox"
+            checked={allSelected}
+            onChange={toggleAllDocuments}
+            className="h-4 w-4 rounded border-input accent-primary"
+            aria-label="Select all source files"
+          />
+          Source Files
+        </label>
+        {selectedCount > 0 && (
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">
+              {selectedCount} selected
+            </span>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setBulkDeleteDialogOpen(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Selected
+            </Button>
+          </div>
+        )}
+      </div>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {documents.map((doc) => (
           <div
@@ -102,6 +199,17 @@ export function SourceDocuments({
               onFilterByDocument(activeDocumentId === doc.id ? null : doc.id)
             }
           >
+            <input
+              type="checkbox"
+              checked={selectedDocumentIds.has(doc.id)}
+              onChange={(e) => {
+                e.stopPropagation();
+                toggleDocument(doc.id);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="h-4 w-4 shrink-0 rounded border-input accent-primary"
+              aria-label={`Select ${doc.filename}`}
+            />
             <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium truncate">{doc.filename}</p>
@@ -157,6 +265,39 @@ export function SourceDocuments({
             >
               {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={bulkDeleteDialogOpen}
+        onOpenChange={(open) => !open && setBulkDeleteDialogOpen(false)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete selected source files?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete {selectedCount} source file
+              {selectedCount !== 1 ? "s" : ""} and all associated chunks. This
+              action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setBulkDeleteDialogOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleBulkDelete}
+              disabled={deleting || selectedCount === 0}
+            >
+              {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Delete Selected
             </Button>
           </DialogFooter>
         </DialogContent>

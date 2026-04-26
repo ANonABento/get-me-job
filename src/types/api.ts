@@ -235,14 +235,16 @@ export interface BankDocumentsResponse {
   documents: Array<{
     id: string;
     filename: string;
-    type: DocumentType;
+    size: number;
     uploadedAt: string;
+    chunkCount: number;
   }>;
 }
 
 export interface BankDocumentDeleteResponse {
   success: true;
   chunksDeleted: number;
+  documentsDeleted?: number;
 }
 
 // ---------------------------------------------------------------------------

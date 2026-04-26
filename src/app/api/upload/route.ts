@@ -171,22 +171,12 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // If no structured entries (basic parser), store the raw text as a single entry
-        if (entries.length === 0 && extractedText) {
-          const contact = profile.contact as Record<string, unknown> | undefined;
-          const name = (contact?.name as string) || file.name;
-          entries.push({
-            category: "experience",
-            content: { title: "Uploaded Resume", company: name, description: extractedText.slice(0, 2000) },
-            sourceDocumentId: id,
-          });
-          console.log("[upload] No structured sections found — stored as raw entry");
-        }
-
         if (entries.length > 0) {
           insertBankEntries(entries, authResult.userId);
           entriesCreated = entries.length;
           console.log(`[upload] Ingested ${entries.length} entries into bank`);
+        } else {
+          console.log("[upload] No structured bank entries found");
         }
       } catch (err) {
         console.error("[upload] Bank ingest failed:", err instanceof Error ? err.stack : err);

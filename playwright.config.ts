@@ -1,5 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const playwrightPort = process.env.PORT || "8888";
+const baseURL =
+  process.env.PLAYWRIGHT_BASE_URL || `http://localhost:${playwrightPort}`;
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
@@ -11,7 +15,7 @@ export default defineConfig({
     ["html", { outputFolder: "playwright-report" }],
   ],
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://localhost:8888",
+    baseURL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -48,7 +52,7 @@ export default defineConfig({
   ],
   webServer: {
     command: "node e2e/playwright-web-server.cjs",
-    url: "http://localhost:8888",
+    url: baseURL,
     reuseExistingServer: false,
     timeout: 180 * 1000,
   },

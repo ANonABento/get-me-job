@@ -27,6 +27,7 @@ import {
   updateBankEntry,
   getSourceDocuments,
   deleteSourceDocument,
+  deleteSourceDocuments,
 } from "./profile-bank";
 
 describe("Profile Bank DB Functions", () => {
@@ -311,7 +312,7 @@ describe("Profile Bank DB Functions", () => {
 
       getSourceDocuments("user-123");
 
-      expect(mockAll).toHaveBeenCalledWith("user-123", "user-123");
+      expect(mockAll).toHaveBeenCalledWith("user-123");
     });
   });
 
@@ -338,6 +339,40 @@ describe("Profile Bank DB Functions", () => {
       deleteSourceDocument("doc-1", "user-123");
 
       expect(mockRun).toHaveBeenCalledWith("doc-1", "user-123");
+    });
+  });
+
+  describe("deleteSourceDocuments", () => {
+    it("should return zero counts when no document ids are provided", () => {
+      const result = deleteSourceDocuments([]);
+
+      expect(result).toEqual({ documentsDeleted: 0, chunksDeleted: 0 });
+      expect(db.prepare).not.toHaveBeenCalled();
+    });
+
+    it("should delete unique documents and bank entries in a transaction", () => {
+      const entryRun = vi
+        .fn()
+        .mockReturnValueOnce({ changes: 3 })
+        .mockReturnValueOnce({ changes: 2 });
+      const docRun = vi
+        .fn()
+        .mockReturnValueOnce({ changes: 1 })
+        .mockReturnValueOnce({ changes: 1 });
+      (db.prepare as Mock)
+        .mockReturnValueOnce({ run: entryRun })
+        .mockReturnValueOnce({ run: docRun });
+      (db.transaction as Mock).mockImplementation((fn) => fn);
+
+      const result = deleteSourceDocuments(["doc-1", "doc-2", "doc-1"], "user-123");
+
+      expect(result).toEqual({ documentsDeleted: 2, chunksDeleted: 5 });
+      expect(entryRun).toHaveBeenCalledTimes(2);
+      expect(docRun).toHaveBeenCalledTimes(2);
+      expect(entryRun).toHaveBeenNthCalledWith(1, "doc-1", "user-123");
+      expect(entryRun).toHaveBeenNthCalledWith(2, "doc-2", "user-123");
+      expect(docRun).toHaveBeenNthCalledWith(1, "doc-1", "user-123");
+      expect(docRun).toHaveBeenNthCalledWith(2, "doc-2", "user-123");
     });
   });
 });

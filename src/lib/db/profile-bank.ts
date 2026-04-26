@@ -170,16 +170,36 @@ export function getSourceDocuments(userId: string = "default"): SourceDocument[]
       `SELECT d.id, d.filename, d.size, d.uploaded_at,
               COUNT(pb.id) AS chunk_count
        FROM documents d
-       INNER JOIN profile_bank pb ON pb.source_document_id = d.id AND pb.user_id = ?
+       LEFT JOIN profile_bank pb ON pb.source_document_id = d.id AND pb.user_id = d.user_id
        WHERE d.user_id = ?
        GROUP BY d.id
        ORDER BY d.uploaded_at DESC`
     )
-    .all(userId, userId) as SourceDocumentRow[];
+    .all(userId) as SourceDocumentRow[];
   return rows.map(rowToSourceDocument);
 }
 
-export function deleteSourceDocument(documentId: string, userId: string = "default"): number {
+export interface DeleteSourceDocumentsResult {
+  documentsDeleted: number;
+  chunksDeleted: number;
+}
+
+export function deleteSourceDocument(
+  documentId: string,
+  userId: string = "default"
+): number {
+  return deleteSourceDocuments([documentId], userId).chunksDeleted;
+}
+
+export function deleteSourceDocuments(
+  documentIds: string[],
+  userId: string = "default"
+): DeleteSourceDocumentsResult {
+  if (documentIds.length === 0) {
+    return { documentsDeleted: 0, chunksDeleted: 0 };
+  }
+
+  const uniqueDocumentIds = Array.from(new Set(documentIds));
   const deleteEntries = db.prepare(
     "DELETE FROM profile_bank WHERE source_document_id = ? AND user_id = ?"
   );
@@ -188,9 +208,15 @@ export function deleteSourceDocument(documentId: string, userId: string = "defau
   );
 
   const transaction = db.transaction(() => {
-    const result = deleteEntries.run(documentId, userId);
-    deleteDoc.run(documentId, userId);
-    return result.changes;
+    let chunksDeleted = 0;
+    let documentsDeleted = 0;
+
+    for (const documentId of uniqueDocumentIds) {
+      chunksDeleted += deleteEntries.run(documentId, userId).changes;
+      documentsDeleted += deleteDoc.run(documentId, userId).changes;
+    }
+
+    return { documentsDeleted, chunksDeleted };
   });
 
   return transaction();
