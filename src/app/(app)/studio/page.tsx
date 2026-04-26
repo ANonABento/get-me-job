@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import {
@@ -35,6 +43,8 @@ import {
 import type { SectionState } from "@/lib/builder/section-manager";
 import { TEMPLATES } from "@/lib/resume/template-data";
 import {
+  getStudioModeFromSearchParam,
+  getStudioModeHref,
   getDefaultStudioContent,
   getStudioDocumentTitle,
   shouldShowJobDescription,
@@ -53,9 +63,22 @@ const DOCUMENT_MODE_OPTIONS: Array<{
   { mode: "tailored", label: "Tailored", icon: Sparkles },
 ];
 
-export default function StudioPage() {
+function StudioLoading() {
+  return (
+    <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
+
+function StudioPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialDocumentMode = getStudioModeFromSearchParam(
+    searchParams.get("mode")
+  );
   const [documentMode, setDocumentMode] =
-    useState<StudioDocumentMode>("resume");
+    useState<StudioDocumentMode>(initialDocumentMode);
   const [jobDescription, setJobDescription] = useState("");
   const [entries, setEntries] = useState<BankEntry[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -65,8 +88,10 @@ export default function StudioPage() {
   const [assistantOpen, setAssistantOpen] = useState(true);
   const [loadingEntries, setLoadingEntries] = useState(true);
   const [editorHtml, setEditorHtml] = useState(
-    getDefaultStudioContent("resume")
+    getDefaultStudioContent(initialDocumentMode)
   );
+  const modeParam = searchParams.get("mode");
+  const previousModeParamRef = useRef(modeParam);
 
   const selectedTemplate = useMemo(
     () => TEMPLATES.find((template) => template.id === templateId) ?? TEMPLATES[0],
@@ -131,7 +156,7 @@ export default function StudioPage() {
     };
   }, []);
 
-  const handleDocumentModeChange = useCallback(
+  const applyDocumentMode = useCallback(
     (mode: StudioDocumentMode) => {
       setDocumentMode(mode);
       const nextContent = getDefaultStudioContent(mode);
@@ -139,6 +164,23 @@ export default function StudioPage() {
       editor?.commands.setContent(nextContent);
     },
     [editor]
+  );
+
+  useEffect(() => {
+    if (previousModeParamRef.current === modeParam) return;
+    previousModeParamRef.current = modeParam;
+
+    const nextMode = getStudioModeFromSearchParam(modeParam);
+    applyDocumentMode(nextMode);
+  }, [applyDocumentMode, modeParam]);
+
+  const handleDocumentModeChange = useCallback(
+    (mode: StudioDocumentMode) => {
+      if (mode === documentMode) return;
+      applyDocumentMode(mode);
+      router.replace(getStudioModeHref(mode), { scroll: false });
+    },
+    [applyDocumentMode, documentMode, router]
   );
 
   const handleToggleEntry = useCallback((id: string) => {
@@ -362,5 +404,13 @@ export default function StudioPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function StudioPage() {
+  return (
+    <Suspense fallback={<StudioLoading />}>
+      <StudioPageContent />
+    </Suspense>
   );
 }

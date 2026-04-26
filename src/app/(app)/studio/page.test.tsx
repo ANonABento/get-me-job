@@ -4,6 +4,21 @@ import StudioPage from "./page";
 import type { BankEntry } from "@/types";
 
 const editorSetContent = vi.hoisted(() => vi.fn());
+const navigationMock = vi.hoisted(() => ({
+  replace: vi.fn(),
+  searchParams: new URLSearchParams(),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: navigationMock.replace,
+    prefetch: vi.fn(),
+    back: vi.fn(),
+  }),
+  usePathname: () => "/studio",
+  useSearchParams: () => navigationMock.searchParams,
+}));
 
 vi.mock("@tiptap/react", () => ({
   useEditor: () => ({
@@ -55,6 +70,8 @@ function createDataTransfer() {
 describe("StudioPage", () => {
   beforeEach(() => {
     editorSetContent.mockClear();
+    navigationMock.replace.mockClear();
+    navigationMock.searchParams = new URLSearchParams();
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -94,6 +111,24 @@ describe("StudioPage", () => {
     fireEvent.click(screen.getByRole("tab", { name: /^resume$/i }));
 
     expect(screen.queryByLabelText("Job Description")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(navigationMock.replace).toHaveBeenCalledWith("/studio", {
+        scroll: false,
+      });
+    });
+  });
+
+  it("opens directly to the mode from the studio search param", async () => {
+    navigationMock.searchParams = new URLSearchParams("mode=tailored");
+
+    render(<StudioPage />);
+
+    await screen.findByText("Experience");
+    expect(screen.getByRole("tab", { name: /tailored/i })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+    expect(screen.getByLabelText("Job Description")).toBeInTheDocument();
   });
 
   it("opens the entry picker modal from Add from bank", async () => {

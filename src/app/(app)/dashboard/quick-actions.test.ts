@@ -19,15 +19,15 @@ describe("buildQuickActions", () => {
     expect(editProfile.href).toBe("/profile");
   });
 
-  it("routes 'Build a Resume' to /builder when no resumes exist", () => {
+  it("routes 'Build a Resume' to /studio when no resumes exist", () => {
     const [, , build] = buildQuickActions({ documentsCount: 1, resumesGenerated: 0 });
     expect(build.title).toBe("Build a Resume");
-    expect(build.href).toBe("/builder");
+    expect(build.href).toBe("/studio");
   });
 
-  it("routes the third action to /builder even when resumes already exist", () => {
+  it("routes the third action to /studio even when resumes already exist", () => {
     const [, , build] = buildQuickActions({ documentsCount: 1, resumesGenerated: 3 });
-    expect(build.href).toBe("/builder");
+    expect(build.href).toBe("/studio");
     expect(build.title).toBe("3 Resumes Built");
   });
 

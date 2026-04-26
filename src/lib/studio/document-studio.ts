@@ -2,8 +2,22 @@ export const STUDIO_DOCUMENT_MODES = ["resume", "cover-letter", "tailored"] as c
 
 export type StudioDocumentMode = (typeof STUDIO_DOCUMENT_MODES)[number];
 
+export const DEFAULT_STUDIO_DOCUMENT_MODE: StudioDocumentMode = "resume";
+
 export function isStudioDocumentMode(value: string): value is StudioDocumentMode {
   return STUDIO_DOCUMENT_MODES.includes(value as StudioDocumentMode);
+}
+
+export function getStudioModeFromSearchParam(
+  value: string | null
+): StudioDocumentMode {
+  return value && isStudioDocumentMode(value)
+    ? value
+    : DEFAULT_STUDIO_DOCUMENT_MODE;
+}
+
+export function getStudioModeHref(mode: StudioDocumentMode): string {
+  return mode === DEFAULT_STUDIO_DOCUMENT_MODE ? "/studio" : `/studio?mode=${mode}`;
 }
 
 export function shouldShowJobDescription(mode: StudioDocumentMode): boolean {

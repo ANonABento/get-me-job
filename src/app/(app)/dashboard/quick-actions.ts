@@ -39,7 +39,7 @@ export function buildQuickActions(stats: QuickActionStats): QuickActionItem[] {
       description: hasResumes
         ? "Generate more tailored resumes"
         : "Add a job to generate your first tailored resume",
-      href: "/builder",
+      href: "/studio",
       icon: FileText,
       gradient: "from-blue-500 to-indigo-400",
     },

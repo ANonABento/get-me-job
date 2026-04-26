@@ -64,7 +64,7 @@ export function KeyboardShortcutsProvider({ children }: { children: React.ReactN
     // Navigation
     { key: "h", description: "Go to Dashboard", action: () => router.push("/dashboard"), category: "navigation" },
     { key: "b", description: "Go to Documents", action: () => router.push("/bank"), category: "navigation" },
-    { key: "t", description: "Go to Tailor Resume", action: () => router.push("/tailor"), category: "navigation" },
+    { key: "t", description: "Go to Document Studio", action: () => router.push("/studio"), category: "navigation" },
     { key: "s", description: "Go to Settings", action: () => router.push("/settings"), category: "navigation" },
     // General
     { key: "?", shift: true, description: "Show keyboard shortcuts", action: () => setShowHelp(true), category: "general" },

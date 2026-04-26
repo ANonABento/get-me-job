@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   getDefaultStudioContent,
+  getStudioModeFromSearchParam,
+  getStudioModeHref,
   getStudioDocumentTitle,
   isStudioDocumentMode,
   shouldShowJobDescription,
@@ -12,6 +14,19 @@ describe("document studio helpers", () => {
     expect(isStudioDocumentMode("cover-letter")).toBe(true);
     expect(isStudioDocumentMode("tailored")).toBe(true);
     expect(isStudioDocumentMode("portfolio")).toBe(false);
+  });
+
+  it("reads the studio mode from the URL search param", () => {
+    expect(getStudioModeFromSearchParam("cover-letter")).toBe("cover-letter");
+    expect(getStudioModeFromSearchParam("tailored")).toBe("tailored");
+    expect(getStudioModeFromSearchParam("portfolio")).toBe("resume");
+    expect(getStudioModeFromSearchParam(null)).toBe("resume");
+  });
+
+  it("builds studio mode hrefs", () => {
+    expect(getStudioModeHref("resume")).toBe("/studio");
+    expect(getStudioModeHref("cover-letter")).toBe("/studio?mode=cover-letter");
+    expect(getStudioModeHref("tailored")).toBe("/studio?mode=tailored");
   });
 
   it("shows the job description input only for job-specific modes", () => {

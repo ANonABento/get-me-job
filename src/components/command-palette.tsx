@@ -34,8 +34,7 @@ import {
 const COMMAND_ICONS: Record<string, LucideIcon> = {
   "nav-dashboard": Home,
   "nav-documents": Database,
-  "nav-builder": FileText,
-  "nav-tailor": Sparkles,
+  "nav-studio": Sparkles,
   "nav-settings": Settings,
   "act-upload": Upload,
   "act-build": FileText,

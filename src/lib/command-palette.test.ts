@@ -116,8 +116,12 @@ describe("getNavigationCommands", () => {
     expect(ids).toContain("nav-settings");
   });
 
-  it("does not include a separate Cover Letter route", () => {
+  it("routes document work through Document Studio", () => {
     const commands = getNavigationCommands();
+    const studio = commands.find((cmd) => cmd.id === "nav-studio");
+    expect(studio?.href).toBe("/studio");
+    expect(commands.map((c) => c.href)).not.toContain("/builder");
+    expect(commands.map((c) => c.href)).not.toContain("/tailor");
     expect(commands.map((c) => c.href)).not.toContain("/cover-letter");
   });
 });
@@ -131,11 +135,15 @@ describe("getActionCommands", () => {
     }
   });
 
-  it("links cover letter generation to builder cover letter mode", () => {
+  it("links document actions to the matching studio mode", () => {
     const commands = getActionCommands();
+    const buildResume = commands.find((cmd) => cmd.id === "act-build");
     const coverLetter = commands.find((cmd) => cmd.id === "act-cover-letter");
+    const tailor = commands.find((cmd) => cmd.id === "act-tailor");
+    expect(buildResume?.href).toBe("/studio");
     expect(coverLetter).toBeDefined();
-    expect(coverLetter?.href).toBe("/builder?mode=cover-letter");
+    expect(coverLetter?.href).toBe("/studio?mode=cover-letter");
+    expect(tailor?.href).toBe("/studio?mode=tailored");
   });
 });
 

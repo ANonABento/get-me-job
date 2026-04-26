@@ -53,19 +53,22 @@ describe("navigationGroups", () => {
     expect(names).toContain("Dashboard");
   });
 
-  it("should have Documents and Resume Builder in Resume group", () => {
+  it("should have Documents and Document Studio in Resume group", () => {
     const resume = navigationGroups.find((g) => g.label === "Resume");
     expect(resume).toBeDefined();
     const names = resume!.items.map((i) => i.name);
     expect(names).toContain("Documents");
-    expect(names).toContain("Resume Builder");
+    expect(names).toContain("Document Studio");
   });
 
-  it("should show Tailor Resume without a separate Cover Letter route", () => {
+  it("should use Document Studio instead of separate builder, tailor, or cover letter routes", () => {
     const resume = navigationGroups.find((g) => g.label === "Resume");
     expect(resume).toBeDefined();
     const names = resume!.items.map((i) => i.name);
-    expect(names).toContain("Tailor Resume");
+    const hrefs = resume!.items.map((i) => i.href);
+    expect(names).toContain("Document Studio");
+    expect(hrefs).not.toContain("/builder");
+    expect(hrefs).not.toContain("/tailor");
     expect(names).not.toContain("Cover Letter");
   });
 
@@ -91,13 +94,13 @@ describe("navigationGroups", () => {
     const allItems = navigationGroups.flatMap((g) => g.items);
     const dashboard = allItems.find((i) => i.name === "Dashboard");
     const documents = allItems.find((i) => i.name === "Documents");
-    const builder = allItems.find((i) => i.name === "Resume Builder");
+    const studio = allItems.find((i) => i.name === "Document Studio");
     const interviewPrep = allItems.find((i) => i.name === "Interview Prep");
     const analytics = allItems.find((i) => i.name === "Analytics");
 
     expect(dashboard?.href).toBe("/dashboard");
     expect(documents?.href).toBe("/bank");
-    expect(builder?.href).toBe("/builder");
+    expect(studio?.href).toBe("/studio");
     expect(interviewPrep?.href).toBe("/interview");
     expect(analytics?.href).toBe("/analytics");
   });
