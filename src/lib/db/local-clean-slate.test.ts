@@ -1,10 +1,32 @@
-import { describe, expect, it, vi, afterEach } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   LOCAL_DEV_CLEAN_SLATE_SETTING,
   buildLocalDevCleanSlateStatements,
+  type CleanSlateDatabase,
   runLocalDevCleanSlateMigration,
   shouldRunLocalDevCleanSlate,
 } from "./local-clean-slate";
+
+function stubLocalCleanSlateEnv(): void {
+  vi.stubEnv("NODE_ENV", "development");
+  vi.stubEnv("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", "");
+  vi.stubEnv("CLERK_SECRET_KEY", "");
+}
+
+function createCleanSlateDbMock(
+  getResultFor: (sql: string, params: readonly string[]) => unknown = () => undefined
+) {
+  const run = vi.fn((sql: string, ...params: string[]) => ({ sql, params }));
+  const db = {
+    prepare: vi.fn((sql: string) => ({
+      get: vi.fn((...params: string[]) => getResultFor(sql, params)),
+      run: vi.fn((...params: string[]) => run(sql, ...params)),
+    })),
+    transaction: vi.fn((fn: () => void) => fn),
+  } satisfies CleanSlateDatabase;
+
+  return { db, run };
+}
 
 describe("shouldRunLocalDevCleanSlate", () => {
   it("runs only in localhost mode without Clerk", () => {
@@ -74,22 +96,10 @@ describe("runLocalDevCleanSlateMigration", () => {
   });
 
   it("does not run when the migration setting already exists", () => {
-    vi.stubEnv("NODE_ENV", "development");
-    vi.stubEnv("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", "");
-    vi.stubEnv("CLERK_SECRET_KEY", "");
-
-    const run = vi.fn();
-    const db = {
-      prepare: vi.fn((sql: string) => ({
-        get: vi.fn().mockReturnValue(
-          sql.includes("SELECT value FROM settings")
-            ? { value: "true" }
-            : undefined
-        ),
-        run,
-      })),
-      transaction: vi.fn((fn) => fn),
-    };
+    stubLocalCleanSlateEnv();
+    const { db, run } = createCleanSlateDbMock((sql) =>
+      sql.includes("SELECT value FROM settings") ? { value: "true" } : undefined
+    );
 
     runLocalDevCleanSlateMigration(db);
 
@@ -98,18 +108,8 @@ describe("runLocalDevCleanSlateMigration", () => {
   });
 
   it("clears data and records completion once", () => {
-    vi.stubEnv("NODE_ENV", "development");
-    vi.stubEnv("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", "");
-    vi.stubEnv("CLERK_SECRET_KEY", "");
-
-    const run = vi.fn();
-    const db = {
-      prepare: vi.fn((sql: string) => ({
-        get: vi.fn().mockReturnValue(undefined),
-        run: (...args: unknown[]) => run(sql, ...args),
-      })),
-      transaction: vi.fn((fn) => fn),
-    };
+    stubLocalCleanSlateEnv();
+    const { db, run } = createCleanSlateDbMock();
 
     runLocalDevCleanSlateMigration(db);
 
@@ -125,25 +125,17 @@ describe("runLocalDevCleanSlateMigration", () => {
     );
   });
 
-  it("deletes optional knowledge tables when they exist", () => {
-    vi.stubEnv("NODE_ENV", "development");
-    vi.stubEnv("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", "");
-    vi.stubEnv("CLERK_SECRET_KEY", "");
+  it("deletes optional tables only when they exist", () => {
+    stubLocalCleanSlateEnv();
+    const { db, run } = createCleanSlateDbMock((sql, params) => {
+      const [tableName] = params;
 
-    const run = vi.fn();
-    const db = {
-      prepare: vi.fn((sql: string) => ({
-        get: vi.fn((tableName: string) => {
-          if (sql.includes("SELECT value FROM settings")) return undefined;
-          if (sql.includes("sqlite_master") && tableName === "knowledge_chunks") {
-            return { name: "knowledge_chunks" };
-          }
-          return undefined;
-        }),
-        run: (...args: unknown[]) => run(sql, ...args),
-      })),
-      transaction: vi.fn((fn) => fn),
-    };
+      if (sql.includes("sqlite_master") && tableName === "knowledge_chunks") {
+        return { name: "knowledge_chunks" };
+      }
+
+      return undefined;
+    });
 
     runLocalDevCleanSlateMigration(db);
 

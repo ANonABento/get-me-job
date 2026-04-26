@@ -5,13 +5,13 @@ type EnvSource = Record<string, string | undefined>;
 
 export interface SqlStatement {
   sql: string;
-  params?: string[];
-  table?: string;
+  params: readonly string[];
+  requiredTable?: string;
 }
 
 interface StatementRunner {
-  get?: (...params: string[]) => unknown;
-  run?: (...params: string[]) => unknown;
+  get(...params: string[]): unknown;
+  run(...params: string[]): unknown;
 }
 
 export interface CleanSlateDatabase {
@@ -31,7 +31,7 @@ export function shouldRunLocalDevCleanSlate(env: EnvSource = process.env): boole
 export function buildLocalDevCleanSlateStatements(
   userId: string = LOCAL_DEV_USER_ID
 ): SqlStatement[] {
-  const userParam = [userId];
+  const userParam = [userId] as const;
 
   return [
     { sql: "DELETE FROM resume_ab_tracking WHERE user_id = ?", params: userParam },
@@ -49,12 +49,12 @@ export function buildLocalDevCleanSlateStatements(
     {
       sql: "DELETE FROM knowledge_chunks WHERE user_id = ?",
       params: userParam,
-      table: "knowledge_chunks",
+      requiredTable: "knowledge_chunks",
     },
     {
       sql: "DELETE FROM chunks_vec WHERE rowid IN (SELECT rowid FROM chunks WHERE user_id = ?)",
       params: userParam,
-      table: "chunks_vec",
+      requiredTable: "chunks_vec",
     },
     { sql: "DELETE FROM chunks WHERE user_id = ?", params: userParam },
     { sql: "DELETE FROM company_research WHERE user_id = ?", params: userParam },
@@ -83,26 +83,35 @@ export function runLocalDevCleanSlateMigration(db: CleanSlateDatabase): void {
 
   const existing = db
     .prepare("SELECT value FROM settings WHERE key = ?")
-    .get?.(LOCAL_DEV_CLEAN_SLATE_SETTING) as { value: string } | undefined;
+    .get(LOCAL_DEV_CLEAN_SLATE_SETTING);
 
-  if (existing?.value === "true") return;
+  if (isCompletedCleanSlateSetting(existing)) return;
 
   db.transaction(() => {
     for (const statement of buildLocalDevCleanSlateStatements()) {
-      if (statement.table && !tableExists(db, statement.table)) continue;
-      db.prepare(statement.sql).run?.(...(statement.params ?? []));
+      if (statement.requiredTable && !tableExists(db, statement.requiredTable)) continue;
+      db.prepare(statement.sql).run(...statement.params);
     }
 
     db.prepare(
       "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)"
-    ).run?.(LOCAL_DEV_CLEAN_SLATE_SETTING, "true");
+    ).run(LOCAL_DEV_CLEAN_SLATE_SETTING, "true");
   })();
+}
+
+function isCompletedCleanSlateSetting(row: unknown): boolean {
+  return (
+    typeof row === "object" &&
+    row !== null &&
+    "value" in row &&
+    row.value === "true"
+  );
 }
 
 function tableExists(db: CleanSlateDatabase, tableName: string): boolean {
   const row = db
     .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?")
-    .get?.(tableName);
+    .get(tableName);
 
   return Boolean(row);
 }
