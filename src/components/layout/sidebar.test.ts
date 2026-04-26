@@ -61,12 +61,12 @@ describe("navigationGroups", () => {
     expect(names).toContain("Resume Builder");
   });
 
-  it("should show Tailor Resume and Cover Letter when tailorResume flag is on", () => {
+  it("should show Tailor Resume without a separate Cover Letter route", () => {
     const resume = navigationGroups.find((g) => g.label === "Resume");
     expect(resume).toBeDefined();
     const names = resume!.items.map((i) => i.name);
     expect(names).toContain("Tailor Resume");
-    expect(names).toContain("Cover Letter");
+    expect(names).not.toContain("Cover Letter");
   });
 
   it("should have Interview Prep in Interview group", () => {

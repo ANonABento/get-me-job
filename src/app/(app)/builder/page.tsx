@@ -1,7 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { CoverLetterWorkspace } from "@/components/builder/cover-letter-workspace";
 import { SectionList } from "@/components/builder/section-list";
 import { ResumePreview } from "@/components/builder/resume-preview";
 import { TEMPLATES } from "@/lib/resume/template-data";
@@ -15,6 +24,11 @@ import {
   DEFAULT_BUILDER_PANEL,
 } from "@/lib/builder/section-manager";
 import type { SectionState, BuilderPanel } from "@/lib/builder/section-manager";
+import {
+  getBuilderModeFromSearchParam,
+  getBuilderModeHref,
+  type BuilderDocumentMode,
+} from "@/lib/builder/document-mode";
 import { cn } from "@/lib/utils";
 import type { BankEntry, BankCategory } from "@/types";
 import type { TailoredResume } from "@/lib/resume/generator";
@@ -28,9 +42,23 @@ import {
   Check,
   Pencil,
   Eye,
+  PenLine,
 } from "lucide-react";
 
-export default function BuilderPage() {
+function BuilderLoading() {
+  return (
+    <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
+
+function BuilderPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [documentMode, setDocumentMode] = useState<BuilderDocumentMode>(() =>
+    getBuilderModeFromSearchParam(searchParams.get("mode"))
+  );
   const [entries, setEntries] = useState<BankEntry[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sections, setSections] = useState<SectionState[]>(createInitialSections);
@@ -44,6 +72,10 @@ export default function BuilderPage() {
   );
   const showErrorToast = useErrorToast();
   const lastPreviewErrorToastRef = useRef("");
+
+  useEffect(() => {
+    setDocumentMode(getBuilderModeFromSearchParam(searchParams.get("mode")));
+  }, [searchParams]);
 
   useEffect(() => {
     async function fetchEntries() {
@@ -94,6 +126,8 @@ export default function BuilderPage() {
   );
 
   useEffect(() => {
+    if (documentMode !== "resume") return;
+
     if (orderedEntries.length === 0) {
       setHtml("");
       return;
@@ -136,7 +170,13 @@ export default function BuilderPage() {
       .finally(() => setGenerating(false));
 
     return () => controller.abort();
-  }, [orderedEntries, showErrorToast, templateId, visibleCategoryIds]);
+  }, [
+    documentMode,
+    orderedEntries,
+    showErrorToast,
+    templateId,
+    visibleCategoryIds,
+  ]);
 
   const handleToggleEntry = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -173,171 +213,238 @@ export default function BuilderPage() {
     }
   }, [html]);
 
+  const handleDocumentModeChange = useCallback(
+    (mode: BuilderDocumentMode) => {
+      setDocumentMode(mode);
+      router.replace(getBuilderModeHref(mode), { scroll: false });
+    },
+    [router]
+  );
+
   const selectedTemplate = useMemo(
     () => TEMPLATES.find((t) => t.id === templateId),
     [templateId]
   );
 
-  if (loading) {
-    return (
-      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+  if (loading && documentMode === "resume") {
+    return <BuilderLoading />;
   }
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 md:px-6">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <FileText className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-semibold">Resume Builder</h1>
+          <h1 className="text-lg font-semibold">Document Builder</h1>
 
-          <div className="relative md:ml-4">
-            <button
-              onClick={() => setTemplateOpen((prev) => !prev)}
-              className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-muted transition-colors"
-            >
-              <div
-                className="h-3 w-3 rounded-sm"
-                style={{ backgroundColor: selectedTemplate?.styles.accentColor }}
-              />
-              <span>{selectedTemplate?.name ?? "Template"}</span>
-              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
-
-            {templateOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setTemplateOpen(false)}
-                />
-                <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border bg-popover p-1 shadow-lg">
-                  {TEMPLATES.map((template) => {
-                    const isSelected = template.id === templateId;
-                    return (
-                      <button
-                        key={template.id}
-                        onClick={() => {
-                          setTemplateId(template.id);
-                          setTemplateOpen(false);
-                        }}
-                        className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted"
-                      >
-                        <div
-                          className="h-3 w-3 shrink-0 rounded-sm"
-                          style={{
-                            backgroundColor: template.styles.accentColor,
-                          }}
-                        />
-                        <span className="flex-1 text-left">
-                          {template.name}
-                        </span>
-                        {isSelected && (
-                          <Check className="h-3.5 w-3.5 text-primary" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCopyHtml}
-            disabled={!html}
+          <div
+            role="tablist"
+            aria-label="Document type"
+            className="flex rounded-md border bg-muted/30 p-0.5"
           >
-            <Copy className="h-4 w-4 md:mr-1.5" />
-            <span className="hidden md:inline">Copy HTML</span>
-          </Button>
-          <Button size="sm" onClick={handleDownloadPdf} disabled={!html}>
-            <Download className="h-4 w-4 md:mr-1.5" />
-            <span className="hidden md:inline">Download PDF</span>
-          </Button>
-        </div>
-      </div>
+            <button
+              role="tab"
+              aria-selected={documentMode === "resume"}
+              onClick={() => handleDocumentModeChange("resume")}
+              className={cn(
+                "inline-flex h-8 items-center gap-1.5 rounded px-3 text-sm font-medium transition-colors",
+                documentMode === "resume"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <FileText className="h-4 w-4" />
+              Resume
+            </button>
+            <button
+              role="tab"
+              aria-selected={documentMode === "cover-letter"}
+              onClick={() => handleDocumentModeChange("cover-letter")}
+              className={cn(
+                "inline-flex h-8 items-center gap-1.5 rounded px-3 text-sm font-medium transition-colors",
+                documentMode === "cover-letter"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <PenLine className="h-4 w-4" />
+              Cover Letter
+            </button>
+          </div>
 
-      <div
-        role="tablist"
-        aria-label="Builder view"
-        className="flex border-b md:hidden"
-      >
-        <button
-          id="builder-edit-tab"
-          role="tab"
-          aria-selected={mobileView === "edit"}
-          aria-controls="builder-edit-panel"
-          onClick={() => setMobileView("edit")}
-          className={cn(
-            "flex flex-1 items-center justify-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors",
-            mobileView === "edit"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <Pencil className="h-4 w-4" />
-          Edit
-        </button>
-        <button
-          id="builder-preview-tab"
-          role="tab"
-          aria-selected={mobileView === "preview"}
-          aria-controls="builder-preview-panel"
-          onClick={() => setMobileView("preview")}
-          className={cn(
-            "flex flex-1 items-center justify-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors",
-            mobileView === "preview"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <Eye className="h-4 w-4" />
-          Preview
-        </button>
-      </div>
+          {documentMode === "resume" && (
+            <div className="relative md:ml-4">
+              <button
+                onClick={() => setTemplateOpen((prev) => !prev)}
+                className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors hover:bg-muted"
+              >
+                <div
+                  className="h-3 w-3 rounded-sm"
+                  style={{
+                    backgroundColor: selectedTemplate?.styles.accentColor,
+                  }}
+                />
+                <span>{selectedTemplate?.name ?? "Template"}</span>
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
 
-      <div className="flex flex-1 overflow-hidden">
-        <div
-          id="builder-edit-panel"
-          role="tabpanel"
-          aria-labelledby="builder-edit-tab"
-          className={cn(
-            "w-full flex-1 overflow-hidden md:w-80 md:flex-none md:shrink-0 md:border-r",
-            getMobilePanelClasses(mobileView, "edit")
-          )}
-        >
-          <SectionList
-            sections={sections}
-            entries={entries}
-            selectedIds={selectedIds}
-            onReorder={handleReorder}
-            onToggleVisibility={handleToggleVisibility}
-            onToggleEntry={handleToggleEntry}
-          />
-        </div>
-
-        <div
-          id="builder-preview-panel"
-          role="tabpanel"
-          aria-labelledby="builder-preview-tab"
-          className={cn(
-            "relative w-full flex-1 overflow-hidden",
-            getMobilePanelClasses(mobileView, "preview")
-          )}
-        >
-          {generating && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              {templateOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setTemplateOpen(false)}
+                  />
+                  <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border bg-popover p-1 shadow-lg">
+                    {TEMPLATES.map((template) => {
+                      const isSelected = template.id === templateId;
+                      return (
+                        <button
+                          key={template.id}
+                          onClick={() => {
+                            setTemplateId(template.id);
+                            setTemplateOpen(false);
+                          }}
+                          className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted"
+                        >
+                          <div
+                            className="h-3 w-3 shrink-0 rounded-sm"
+                            style={{
+                              backgroundColor: template.styles.accentColor,
+                            }}
+                          />
+                          <span className="flex-1 text-left">
+                            {template.name}
+                          </span>
+                          {isSelected && (
+                            <Check className="h-3.5 w-3.5 text-primary" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           )}
-          <ResumePreview resume={resume} templateId={templateId} html={html} />
         </div>
+
+        {documentMode === "resume" && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopyHtml}
+              disabled={!html}
+            >
+              <Copy className="h-4 w-4 md:mr-1.5" />
+              <span className="hidden md:inline">Copy HTML</span>
+            </Button>
+            <Button size="sm" onClick={handleDownloadPdf} disabled={!html}>
+              <Download className="h-4 w-4 md:mr-1.5" />
+              <span className="hidden md:inline">Download PDF</span>
+            </Button>
+          </div>
+        )}
       </div>
+
+      {documentMode === "resume" && (
+        <>
+          <div
+            role="tablist"
+            aria-label="Builder view"
+            className="flex border-b md:hidden"
+          >
+            <button
+              id="builder-edit-tab"
+              role="tab"
+              aria-selected={mobileView === "edit"}
+              aria-controls="builder-edit-panel"
+              onClick={() => setMobileView("edit")}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors",
+                mobileView === "edit"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Pencil className="h-4 w-4" />
+              Edit
+            </button>
+            <button
+              id="builder-preview-tab"
+              role="tab"
+              aria-selected={mobileView === "preview"}
+              aria-controls="builder-preview-panel"
+              onClick={() => setMobileView("preview")}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors",
+                mobileView === "preview"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Eye className="h-4 w-4" />
+              Preview
+            </button>
+          </div>
+
+          <div className="flex flex-1 overflow-hidden">
+            <div
+              id="builder-edit-panel"
+              role="tabpanel"
+              aria-labelledby="builder-edit-tab"
+              className={cn(
+                "w-full flex-1 overflow-hidden md:w-80 md:flex-none md:shrink-0 md:border-r",
+                getMobilePanelClasses(mobileView, "edit")
+              )}
+            >
+              <SectionList
+                sections={sections}
+                entries={entries}
+                selectedIds={selectedIds}
+                onReorder={handleReorder}
+                onToggleVisibility={handleToggleVisibility}
+                onToggleEntry={handleToggleEntry}
+              />
+            </div>
+
+            <div
+              id="builder-preview-panel"
+              role="tabpanel"
+              aria-labelledby="builder-preview-tab"
+              className={cn(
+                "relative w-full flex-1 overflow-hidden",
+                getMobilePanelClasses(mobileView, "preview")
+              )}
+            >
+              {generating && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              )}
+              <ResumePreview
+                resume={resume}
+                templateId={templateId}
+                html={html}
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {documentMode === "cover-letter" && (
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <CoverLetterWorkspace />
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function BuilderPage() {
+  return (
+    <Suspense fallback={<BuilderLoading />}>
+      <BuilderPageContent />
+    </Suspense>
   );
 }

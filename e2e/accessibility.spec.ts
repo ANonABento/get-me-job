@@ -9,7 +9,6 @@ const APP_PAGES = [
   "/bank",
   "/builder",
   "/tailor",
-  "/cover-letter",
   "/jobs",
   "/settings",
 ];

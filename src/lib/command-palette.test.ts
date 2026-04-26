@@ -115,6 +115,11 @@ describe("getNavigationCommands", () => {
     expect(ids).toContain("nav-dashboard");
     expect(ids).toContain("nav-settings");
   });
+
+  it("does not include a separate Cover Letter route", () => {
+    const commands = getNavigationCommands();
+    expect(commands.map((c) => c.href)).not.toContain("/cover-letter");
+  });
 });
 
 describe("getActionCommands", () => {
@@ -124,6 +129,13 @@ describe("getActionCommands", () => {
     for (const cmd of commands) {
       expect(cmd.category).toBe("actions");
     }
+  });
+
+  it("links cover letter generation to builder cover letter mode", () => {
+    const commands = getActionCommands();
+    const coverLetter = commands.find((cmd) => cmd.id === "act-cover-letter");
+    expect(coverLetter).toBeDefined();
+    expect(coverLetter?.href).toBe("/builder?mode=cover-letter");
   });
 });
 

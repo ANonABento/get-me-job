@@ -18,7 +18,6 @@ import {
   Calendar,
   DollarSign,
   Sparkles,
-  PenLine,
   FileText,
   type LucideIcon,
 } from "lucide-react";
@@ -37,7 +36,7 @@ interface NavGroup {
 
 // Feature flags — set to true to enable sections
 export const FEATURES = {
-  tailorResume: true,   // Tailor Resume, Cover Letter
+  tailorResume: true,   // Tailor Resume
   jobTracker: false,    // Jobs, Calendar, Email Templates
   interview: true,      // Interview Prep
   salary: false,        // Salary Tools
@@ -58,7 +57,6 @@ export const navigationGroups: NavGroup[] = [
       { name: "Resume Builder", href: "/builder", icon: FileText },
       ...(FEATURES.tailorResume ? [
         { name: "Tailor Resume", href: "/tailor", icon: Sparkles },
-        { name: "Cover Letter", href: "/cover-letter", icon: PenLine },
       ] : []),
     ],
   },
