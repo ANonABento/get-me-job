@@ -36,10 +36,10 @@ const COMMAND_ICONS: Record<string, LucideIcon> = {
   "nav-documents": Database,
   "nav-builder": FileText,
   "nav-tailor": Sparkles,
-  "nav-cover-letter": PenLine,
   "nav-settings": Settings,
   "act-upload": Upload,
   "act-build": FileText,
+  "act-cover-letter": PenLine,
   "act-tailor": Sparkles,
 };
 

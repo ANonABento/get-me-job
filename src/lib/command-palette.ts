@@ -96,7 +96,6 @@ export function getNavigationCommands(): CommandItem[] {
     { id: "nav-documents", label: "Documents", category: "navigate", href: "/bank", shortcut: "B", keywords: ["bank", "files"] },
     { id: "nav-builder", label: "Resume Builder", category: "navigate", href: "/builder", keywords: ["create", "build", "resume"] },
     { id: "nav-tailor", label: "Tailor Resume", category: "navigate", href: "/tailor", shortcut: "T", keywords: ["customize", "job"] },
-    { id: "nav-cover-letter", label: "Cover Letter", category: "navigate", href: "/cover-letter", keywords: ["letter", "write"] },
     { id: "nav-settings", label: "Settings", category: "navigate", href: "/settings", shortcut: "S", keywords: ["config", "preferences", "llm"] },
   ];
 }
@@ -108,6 +107,7 @@ export function getActionCommands(): CommandItem[] {
   return [
     { id: "act-upload", label: "Upload Resume", category: "actions", href: "/bank", shortcut: "Ctrl+U", keywords: ["import", "file", "pdf"] },
     { id: "act-build", label: "Build Resume", category: "actions", href: "/builder", keywords: ["create", "new", "generate"] },
+    { id: "act-cover-letter", label: "Write Cover Letter", category: "actions", href: "/builder?mode=cover-letter", keywords: ["letter", "write"] },
     { id: "act-tailor", label: "Tailor to Job", category: "actions", href: "/tailor", keywords: ["customize", "match", "job"] },
   ];
 }

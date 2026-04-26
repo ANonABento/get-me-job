@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { readCoverLetterApiResult } from "@/lib/cover-letter/api-response";
 import { cn } from "@/lib/utils";
 import {
   Send,
@@ -61,14 +62,17 @@ export function ChatEditor({ jobDescription, jobTitle, company, initialContent }
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Failed to generate cover letter");
+      const result = await readCoverLetterApiResult(
+        res,
+        "Failed to generate cover letter"
+      );
+      if (!result.ok) {
+        setError(result.error);
         return;
       }
 
       const newVersion: Version = {
-        content: data.content,
+        content: result.content,
         instruction: "Initial generation",
         createdAt: new Date().toISOString(),
       };
@@ -101,14 +105,17 @@ export function ChatEditor({ jobDescription, jobTitle, company, initialContent }
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Failed to revise cover letter");
+      const result = await readCoverLetterApiResult(
+        res,
+        "Failed to revise cover letter"
+      );
+      if (!result.ok) {
+        setError(result.error);
         return;
       }
 
       const newVersion: Version = {
-        content: data.content,
+        content: result.content,
         instruction: instruction.trim(),
         createdAt: new Date().toISOString(),
       };
