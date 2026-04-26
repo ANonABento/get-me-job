@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Try to use LLM if configured
-    const llmConfig = getLLMConfig();
+    const llmConfig = getLLMConfig(authResult.userId);
     if (llmConfig) {
       try {
         const client = new LLMClient(llmConfig);

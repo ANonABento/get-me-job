@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Try LLM-enhanced generation first
-    const llmConfig = getLLMConfig();
+    const llmConfig = getLLMConfig(authResult.userId);
     if (useLLM && llmConfig) {
       try {
         const client = new LLMClient(llmConfig);

@@ -4,24 +4,30 @@ import { createProfileSnapshot } from "./profile-versions";
 import type { Profile, Experience, Education, Skill, Project, Document, Settings, LLMConfig } from "@/types";
 
 // Settings
-export function getSetting(key: string): string | null {
-  const row = db.prepare("SELECT value FROM settings WHERE key = ?").get(key) as { value: string } | undefined;
+export function getSetting(key: string, userId: string = "default"): string | null {
+  const row = db
+    .prepare("SELECT value FROM settings WHERE key = ? AND user_id = ?")
+    .get(key, userId) as { value: string } | undefined;
   return row?.value || null;
 }
 
-export function setSetting(key: string, value: string): void {
+export function setSetting(key: string, value: string, userId: string = "default"): void {
   db.prepare(
-    "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)"
-  ).run(key, value);
+    `INSERT INTO settings (key, user_id, value, updated_at)
+     VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+     ON CONFLICT(key, user_id) DO UPDATE SET
+       value = excluded.value,
+       updated_at = CURRENT_TIMESTAMP`
+  ).run(key, userId, value);
 }
 
-export function getLLMConfig(): LLMConfig | null {
-  const config = getSetting("llm_config");
+export function getLLMConfig(userId: string = "default"): LLMConfig | null {
+  const config = getSetting("llm_config", userId);
   return config ? JSON.parse(config) : null;
 }
 
-export function setLLMConfig(config: LLMConfig): void {
-  setSetting("llm_config", JSON.stringify(config));
+export function setLLMConfig(config: LLMConfig, userId: string = "default"): void {
+  setSetting("llm_config", JSON.stringify(config), userId);
 }
 
 // Documents

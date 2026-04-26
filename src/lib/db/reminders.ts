@@ -37,12 +37,13 @@ export function createReminder(
   }
 
   const stmt = db.prepare(`
-    INSERT INTO reminders (id, job_id, type, title, description, due_date, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO reminders (id, user_id, job_id, type, title, description, due_date, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   stmt.run(
     id,
+    userId,
     reminder.jobId,
     reminder.type,
     reminder.title,
@@ -82,7 +83,8 @@ export function getReminders(options?: {
     SELECT r.*, j.title as job_title, j.company as job_company
     FROM reminders r
     LEFT JOIN jobs j ON r.job_id = j.id
-    WHERE j.user_id = ?
+    WHERE r.user_id = ?
+      AND (j.id IS NULL OR j.user_id = r.user_id)
   `;
   const params: (string | number)[] = [userId];
 
@@ -145,7 +147,8 @@ export function getUpcomingReminders(
     SELECT r.*, j.title as job_title, j.company as job_company
     FROM reminders r
     LEFT JOIN jobs j ON r.job_id = j.id
-    WHERE j.user_id = ?
+    WHERE r.user_id = ?
+      AND (j.id IS NULL OR j.user_id = r.user_id)
       AND r.completed = 0
       AND r.dismissed = 0
       AND r.due_date <= ?
@@ -191,7 +194,8 @@ export function getOverdueReminders(userId: string = "default"): ReminderWithJob
     SELECT r.*, j.title as job_title, j.company as job_company
     FROM reminders r
     LEFT JOIN jobs j ON r.job_id = j.id
-    WHERE j.user_id = ?
+    WHERE r.user_id = ?
+      AND (j.id IS NULL OR j.user_id = r.user_id)
       AND r.completed = 0
       AND r.dismissed = 0
       AND r.due_date < ?
@@ -237,7 +241,7 @@ export function completeReminder(id: string, userId: string = "default"): void {
     UPDATE reminders
     SET completed = 1, completed_at = ?
     WHERE id = ?
-      AND job_id IN (SELECT id FROM jobs WHERE user_id = ?)
+      AND user_id = ?
   `);
 
   stmt.run(now, id, userId);
@@ -249,7 +253,7 @@ export function dismissReminder(id: string, userId: string = "default"): void {
     UPDATE reminders
     SET dismissed = 1
     WHERE id = ?
-      AND job_id IN (SELECT id FROM jobs WHERE user_id = ?)
+      AND user_id = ?
   `);
 
   stmt.run(id, userId);
@@ -260,7 +264,7 @@ export function deleteReminder(id: string, userId: string = "default"): void {
   const stmt = db.prepare(`
     DELETE FROM reminders
     WHERE id = ?
-      AND job_id IN (SELECT id FROM jobs WHERE user_id = ?)
+      AND user_id = ?
   `);
   stmt.run(id, userId);
 }
@@ -299,7 +303,7 @@ export function updateReminder(
     UPDATE reminders
     SET ${fields.join(", ")}
     WHERE id = ?
-      AND job_id IN (SELECT id FROM jobs WHERE user_id = ?)
+      AND user_id = ?
   `);
 
   stmt.run(...values);
@@ -339,7 +343,7 @@ export function getReminderCounts(userId: string = "default"): {
       SELECT COUNT(*) as count
       FROM reminders r
       JOIN jobs j ON r.job_id = j.id
-      WHERE j.user_id = ? AND r.completed = 0 AND r.dismissed = 0
+      WHERE r.user_id = ? AND j.user_id = r.user_id AND r.completed = 0 AND r.dismissed = 0
     `
   );
   const overdueStmt = db.prepare(
@@ -347,7 +351,7 @@ export function getReminderCounts(userId: string = "default"): {
       SELECT COUNT(*) as count
       FROM reminders r
       JOIN jobs j ON r.job_id = j.id
-      WHERE j.user_id = ? AND r.completed = 0 AND r.dismissed = 0 AND r.due_date < ?
+      WHERE r.user_id = ? AND j.user_id = r.user_id AND r.completed = 0 AND r.dismissed = 0 AND r.due_date < ?
     `
   );
   const upcomingStmt = db.prepare(
@@ -355,7 +359,7 @@ export function getReminderCounts(userId: string = "default"): {
       SELECT COUNT(*) as count
       FROM reminders r
       JOIN jobs j ON r.job_id = j.id
-      WHERE j.user_id = ? AND r.completed = 0 AND r.dismissed = 0 AND r.due_date >= ? AND r.due_date <= ?
+      WHERE r.user_id = ? AND j.user_id = r.user_id AND r.completed = 0 AND r.dismissed = 0 AND r.due_date >= ? AND r.due_date <= ?
     `
   );
   const completedStmt = db.prepare(
@@ -363,7 +367,7 @@ export function getReminderCounts(userId: string = "default"): {
       SELECT COUNT(*) as count
       FROM reminders r
       JOIN jobs j ON r.job_id = j.id
-      WHERE j.user_id = ? AND r.completed = 1
+      WHERE r.user_id = ? AND j.user_id = r.user_id AND r.completed = 1
     `
   );
 

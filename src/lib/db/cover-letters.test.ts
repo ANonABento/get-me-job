@@ -49,11 +49,14 @@ describe("Cover Letter Database Functions", () => {
       });
       expect(mockRun).toHaveBeenCalledWith(
         "test-cover-letter-id",
+        "user-1",
         "job-1",
         "user-1",
         "Dear hiring manager...",
         JSON.stringify(["skill1"]),
-        3
+        3,
+        "job-1",
+        "user-1"
       );
     });
 
@@ -67,6 +70,16 @@ describe("Cover Letter Database Functions", () => {
       const result = saveCoverLetter("job-1", "Content");
 
       expect(result.version).toBe(1);
+    });
+
+    it("should reject cover letters for jobs outside the provided user", () => {
+      const mockRun = vi.fn().mockReturnValue({ changes: 0 });
+      const mockGet = vi.fn().mockReturnValue({ max_version: null });
+      (db.prepare as Mock)
+        .mockReturnValueOnce({ get: mockGet })
+        .mockReturnValueOnce({ run: mockRun });
+
+      expect(() => saveCoverLetter("job-1", "Content", [], "user-1")).toThrow("Job not found");
     });
   });
 
@@ -213,7 +226,7 @@ describe("Cover Letter Database Functions", () => {
       const result = getAllCoverLetters();
 
       expect(db.prepare).toHaveBeenCalledWith(
-        "SELECT * FROM cover_letters WHERE profile_id = ? ORDER BY created_at DESC"
+        "SELECT * FROM cover_letters WHERE user_id = ? ORDER BY created_at DESC"
       );
       expect(mockAll).toHaveBeenCalledWith("default");
       expect(result).toHaveLength(2);

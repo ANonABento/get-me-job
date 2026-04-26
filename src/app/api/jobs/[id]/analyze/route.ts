@@ -32,7 +32,7 @@ export async function POST(
       );
     }
 
-    const llmConfig = getLLMConfig();
+    const llmConfig = getLLMConfig(authResult.userId);
 
     let analysis: JobMatch;
 

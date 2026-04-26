@@ -122,8 +122,8 @@ import { getLLMConfig } from "@/lib/db";
 
 const OPENAI_EMBEDDINGS_URL = "https://api.openai.com/v1/embeddings";
 const EMBEDDING_MODEL = "text-embedding-3-small";
-function getOpenAIKey(): string | null {
-  const config = getLLMConfig();
+function getOpenAIKey(userId: string = "default"): string | null {
+  const config = getLLMConfig(userId);
   if (config?.provider === "openai" && config.apiKey) {
     return config.apiKey;
   }
@@ -138,10 +138,10 @@ function arrayToFloat32Array(arr: number[]): Float32Array {
   return new Float32Array(arr);
 }
 
-export async function embedBatch(texts: string[]): Promise<Float32Array[] | null> {
+export async function embedBatch(texts: string[], userId: string = "default"): Promise<Float32Array[] | null> {
   if (texts.length === 0) return [];
 
-  const apiKey = getOpenAIKey();
+  const apiKey = getOpenAIKey(userId);
   if (!apiKey) {
     console.warn("[embedder] No OpenAI API key configured, skipping embeddings");
     return null;
@@ -198,4 +198,3 @@ export function cosineSimilarity(a: Float32Array, b: Float32Array): number {
   if (denom === 0) return 0;
   return dot / denom;
 }
-

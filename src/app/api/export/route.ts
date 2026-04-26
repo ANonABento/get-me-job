@@ -38,7 +38,7 @@ export async function GET() {
         generatedResumes,
         coverLetters,
         bankEntries,
-        llmConfig: getLLMConfig(),
+        llmConfig: getLLMConfig(authResult.userId),
       },
       stats: {
         totalJobs: jobs.length,

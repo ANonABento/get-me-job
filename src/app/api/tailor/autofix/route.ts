@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const llmConfig = getLLMConfig();
+    const llmConfig = getLLMConfig(authResult.userId);
     if (!llmConfig) {
       return NextResponse.json(
         { error: "No LLM provider configured. Visit Settings to set one up." },

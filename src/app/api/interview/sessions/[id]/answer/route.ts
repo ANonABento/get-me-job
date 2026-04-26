@@ -53,7 +53,7 @@ export async function POST(
 
     // Generate feedback using LLM if available
     let feedback = "";
-    const llmConfig = getLLMConfig();
+    const llmConfig = getLLMConfig(authResult.userId);
 
     if (llmConfig) {
       try {

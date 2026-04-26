@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     }
 
     const profile = getProfile(authResult.userId);
-    const llmConfig = getLLMConfig();
+    const llmConfig = getLLMConfig(authResult.userId);
     const companyResearch = getCompanyResearch(job.company, authResult.userId);
 
     const guide = await generatePrepGuide(job, profile, companyResearch, llmConfig);

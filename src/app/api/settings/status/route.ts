@@ -12,7 +12,7 @@ export async function GET() {
   if (isAuthError(authResult)) return authResult;
 
   try {
-    const config = getLLMConfig();
+    const config = getLLMConfig(authResult.userId);
     const configured = isLLMConfigured(config);
 
     return NextResponse.json({

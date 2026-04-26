@@ -69,9 +69,23 @@ describe("Resume Database Functions", () => {
 
       expect(result.matchScore).toBeUndefined();
       const runArgs = mockRun.mock.calls[0];
-      expect(runArgs[4]).toBe("/path/to/resume.html");
-      expect(runArgs[5]).toBeNull();
-      expect(runArgs[6]).toEqual(expect.any(String));
+      expect(runArgs[1]).toBe("default");
+      expect(runArgs[2]).toBe("job-123");
+      expect(runArgs[4]).toBe(JSON.stringify({}));
+      expect(runArgs[5]).toBe("/path/to/resume.html");
+      expect(runArgs[6]).toBeNull();
+      expect(runArgs[7]).toEqual(expect.any(String));
+      expect(runArgs[8]).toBe("job-123");
+      expect(runArgs[9]).toBe("default");
+    });
+
+    it("should reject resumes for jobs outside the provided user", () => {
+      const mockRun = vi.fn().mockReturnValue({ changes: 0 });
+      (db.prepare as Mock).mockReturnValue({ run: mockRun });
+
+      expect(() =>
+        saveGeneratedResume("job-123", "modern", {}, "/path/to/resume.html", undefined, "user-123")
+      ).toThrow("Job not found");
     });
   });
 
@@ -162,7 +176,7 @@ describe("Resume Database Functions", () => {
 
       const result = getGeneratedResume("resume-1");
 
-      expect((db.prepare as Mock)).toHaveBeenCalledWith(expect.stringContaining("WHERE id = ? AND profile_id = ?"));
+      expect((db.prepare as Mock)).toHaveBeenCalledWith(expect.stringContaining("WHERE id = ? AND user_id = ?"));
       expect(result).toEqual({
         id: "resume-1",
         jobId: "job-123",
@@ -192,7 +206,7 @@ describe("Resume Database Functions", () => {
       deleteGeneratedResume("resume-1");
 
       expect(db.prepare).toHaveBeenCalledWith(
-        "DELETE FROM generated_resumes WHERE id = ? AND profile_id = ?"
+        "DELETE FROM generated_resumes WHERE id = ? AND user_id = ?"
       );
       expect(mockRun).toHaveBeenCalledWith("resume-1", "default");
     });
@@ -248,7 +262,7 @@ describe("Resume Database Functions", () => {
       const result = getGeneratedResumeCount();
 
       expect((db.prepare as Mock)).toHaveBeenCalledWith(
-        "SELECT COUNT(*) as count FROM generated_resumes WHERE profile_id = ?"
+        "SELECT COUNT(*) as count FROM generated_resumes WHERE user_id = ?"
       );
       expect(result).toBe(42);
     });
@@ -261,7 +275,7 @@ describe("Resume Database Functions", () => {
       const result = getGeneratedResumeCount();
 
       expect((db.prepare as Mock)).toHaveBeenCalledWith(
-        "SELECT COUNT(*) as count FROM generated_resumes WHERE profile_id = ?"
+        "SELECT COUNT(*) as count FROM generated_resumes WHERE user_id = ?"
       );
       expect(result).toBe(0);
     });

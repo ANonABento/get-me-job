@@ -38,14 +38,14 @@ export async function GET(request: NextRequest) {
     const expiresAt = new Date(session.expires_at);
     if (expiresAt < new Date()) {
       // Delete expired session
-      db.prepare(`DELETE FROM extension_sessions WHERE id = ?`).run(session.id);
+      db.prepare(`DELETE FROM extension_sessions WHERE id = ? AND user_id = ?`).run(session.id, session.user_id);
       return NextResponse.json({ error: "Token expired" }, { status: 401 });
     }
 
     // Update last used timestamp
     db.prepare(`
-      UPDATE extension_sessions SET last_used_at = ? WHERE id = ?
-    `).run(new Date().toISOString(), session.id);
+      UPDATE extension_sessions SET last_used_at = ? WHERE id = ? AND user_id = ?
+    `).run(new Date().toISOString(), session.id, session.user_id);
 
     return NextResponse.json({
       valid: true,

@@ -26,11 +26,27 @@ export function saveGeneratedResume(
   const contentJson = JSON.stringify(content);
 
   const stmt = db.prepare(`
-    INSERT INTO generated_resumes (id, job_id, profile_id, content_json, pdf_path, match_score, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO generated_resumes (id, user_id, job_id, profile_id, content_json, pdf_path, match_score, created_at)
+    SELECT ?, ?, ?, ?, ?, ?, ?, ?
+    WHERE EXISTS (SELECT 1 FROM jobs WHERE id = ? AND user_id = ?)
   `);
 
-  stmt.run(id, jobId, userId, contentJson, htmlPath, matchScore || null, now);
+  const result = stmt.run(
+    id,
+    userId,
+    jobId,
+    userId,
+    contentJson,
+    htmlPath,
+    matchScore || null,
+    now,
+    jobId,
+    userId
+  ) as { changes?: number } | undefined;
+
+  if (result?.changes === 0) {
+    throw new Error("Job not found");
+  }
 
   return {
     id,
@@ -49,7 +65,7 @@ export function getGeneratedResumes(jobId: string, userId: string = "default"): 
   const stmt = db.prepare(`
     SELECT id, job_id, profile_id, content_json, pdf_path, match_score, created_at
     FROM generated_resumes
-    WHERE job_id = ? AND profile_id = ?
+    WHERE job_id = ? AND user_id = ?
     ORDER BY created_at DESC
   `);
 
@@ -80,7 +96,7 @@ export function getGeneratedResume(id: string, userId: string = "default"): Gene
   const stmt = db.prepare(`
     SELECT id, job_id, profile_id, content_json, pdf_path, match_score, created_at
     FROM generated_resumes
-    WHERE id = ? AND profile_id = ?
+    WHERE id = ? AND user_id = ?
   `);
 
   const row = stmt.get(id, userId) as {
@@ -109,7 +125,7 @@ export function getGeneratedResume(id: string, userId: string = "default"): Gene
 
 // Delete a generated resume
 export function deleteGeneratedResume(id: string, userId: string = "default"): void {
-  const stmt = db.prepare("DELETE FROM generated_resumes WHERE id = ? AND profile_id = ?");
+  const stmt = db.prepare("DELETE FROM generated_resumes WHERE id = ? AND user_id = ?");
   stmt.run(id, userId);
 }
 
@@ -118,7 +134,7 @@ export function getAllGeneratedResumes(userId: string = "default"): GeneratedRes
   const stmt = db.prepare(`
     SELECT id, job_id, profile_id, content_json, pdf_path, match_score, created_at
     FROM generated_resumes
-    WHERE profile_id = ?
+    WHERE user_id = ?
     ORDER BY created_at DESC
   `);
 
@@ -146,7 +162,7 @@ export function getAllGeneratedResumes(userId: string = "default"): GeneratedRes
 
 // Get count of generated resumes
 export function getGeneratedResumeCount(userId: string = "default"): number {
-  const stmt = db.prepare("SELECT COUNT(*) as count FROM generated_resumes WHERE profile_id = ?");
+  const stmt = db.prepare("SELECT COUNT(*) as count FROM generated_resumes WHERE user_id = ?");
   const row = stmt.get(userId) as { count: number };
   return row.count;
 }

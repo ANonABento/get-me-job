@@ -70,7 +70,7 @@ export async function ingestDocument(
 
   // Step 4: Embed new chunks
   const textsToEmbed = newChunksWithHashes.map((c) => c.content);
-  const embeddings = await embedBatch(textsToEmbed);
+  const embeddings = await embedBatch(textsToEmbed, userId);
   const embeddingsGenerated = embeddings !== null;
 
   // Step 5: Semantic dedup

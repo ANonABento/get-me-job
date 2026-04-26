@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 
     // Optionally enhance with LLM for better resource suggestions
     if (enhance) {
-      const llmConfig = getLLMConfig();
+      const llmConfig = getLLMConfig(authResult.userId);
       if (llmConfig && result.paths.length > 0) {
         result = {
           ...result,

@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       return ApiErrors.badRequest("Resume text is too short to analyze");
     }
 
-    const llmConfig = getLLMConfig();
+    const llmConfig = getLLMConfig(authResult.userId);
     const llmClient = llmConfig ? new LLMClient(llmConfig) : null;
 
     const analyzed = await analyzeTemplateWithLLM(body.text, llmClient);

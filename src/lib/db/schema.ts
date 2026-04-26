@@ -39,9 +39,11 @@ try {
 db.exec(`
   -- Settings table
   CREATE TABLE IF NOT EXISTS settings (
-    key TEXT PRIMARY KEY,
+    key TEXT NOT NULL,
+    user_id TEXT NOT NULL DEFAULT 'default',
     value TEXT NOT NULL,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (key, user_id)
   );
 
   -- Documents table
@@ -160,6 +162,7 @@ db.exec(`
   -- Generated resumes table
   CREATE TABLE IF NOT EXISTS generated_resumes (
     id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL DEFAULT 'default',
     job_id TEXT NOT NULL,
     profile_id TEXT NOT NULL DEFAULT 'default',
     content_json TEXT NOT NULL,
@@ -173,6 +176,7 @@ db.exec(`
   -- Interview sessions table
   CREATE TABLE IF NOT EXISTS interview_sessions (
     id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL DEFAULT 'default',
     job_id TEXT NOT NULL,
     profile_id TEXT NOT NULL DEFAULT 'default',
     mode TEXT DEFAULT 'text',
@@ -199,6 +203,7 @@ db.exec(`
   -- Reminders table
   CREATE TABLE IF NOT EXISTS reminders (
     id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL DEFAULT 'default',
     job_id TEXT NOT NULL,
     type TEXT NOT NULL DEFAULT 'follow_up',
     title TEXT NOT NULL,
@@ -240,6 +245,7 @@ db.exec(`
   -- Cover letters table
   CREATE TABLE IF NOT EXISTS cover_letters (
     id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL DEFAULT 'default',
     job_id TEXT NOT NULL,
     profile_id TEXT NOT NULL DEFAULT 'default',
     content TEXT NOT NULL,
@@ -370,6 +376,7 @@ db.exec(`
   -- Profile versions table for version history with rollback
   CREATE TABLE IF NOT EXISTS profile_versions (
     id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL DEFAULT 'default',
     profile_id TEXT NOT NULL DEFAULT 'default',
     version INTEGER NOT NULL,
     snapshot_json TEXT NOT NULL,
@@ -408,11 +415,83 @@ try {
   console.warn("[db] Could not create chunks_vec table — sqlite-vec not loaded");
 }
 
+function getColumnNames(table: string): string[] {
+  const tableInfo = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  return tableInfo.map((col) => col.name);
+}
+
+// Migration: Make settings user-scoped instead of globally keyed.
+try {
+  const settingsColumns = getColumnNames("settings");
+
+  if (!settingsColumns.includes("user_id")) {
+    db.transaction(() => {
+      db.exec(`
+        ALTER TABLE settings RENAME TO settings_old;
+        CREATE TABLE settings (
+          key TEXT NOT NULL,
+          user_id TEXT NOT NULL DEFAULT 'default',
+          value TEXT NOT NULL,
+          updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (key, user_id)
+        );
+        INSERT INTO settings (key, user_id, value, updated_at)
+        SELECT key, 'default', value, updated_at
+        FROM settings_old;
+        DROP TABLE settings_old;
+      `);
+    })();
+  }
+} catch (error) {
+  console.error("Settings migration error:", error);
+}
+
+// Migration: Add explicit user_id ownership columns to tables that previously
+// used profile_id or joined through jobs for isolation.
+try {
+  const ownershipMigrations: Array<{ table: string; backfill: string }> = [
+    {
+      table: "generated_resumes",
+      backfill: "UPDATE generated_resumes SET user_id = profile_id WHERE user_id = 'default'",
+    },
+    {
+      table: "interview_sessions",
+      backfill: "UPDATE interview_sessions SET user_id = profile_id WHERE user_id = 'default'",
+    },
+    {
+      table: "reminders",
+      backfill: `
+        UPDATE reminders
+        SET user_id = COALESCE((SELECT user_id FROM jobs WHERE jobs.id = reminders.job_id), 'default')
+        WHERE user_id = 'default'
+      `,
+    },
+    {
+      table: "cover_letters",
+      backfill: "UPDATE cover_letters SET user_id = profile_id WHERE user_id = 'default'",
+    },
+    {
+      table: "profile_versions",
+      backfill: "UPDATE profile_versions SET user_id = profile_id WHERE user_id = 'default'",
+    },
+  ];
+
+  for (const migration of ownershipMigrations) {
+    const columnNames = getColumnNames(migration.table);
+    if (!columnNames.includes("user_id")) {
+      db.exec(`ALTER TABLE ${migration.table} ADD COLUMN user_id TEXT NOT NULL DEFAULT 'default'`);
+      db.exec(migration.backfill);
+    }
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_${migration.table}_user_id ON ${migration.table}(user_id)`);
+  }
+} catch (error) {
+  console.error("Ownership migration error:", error);
+}
+
 // Migration: Add new columns to jobs table if they don't exist
 try {
   // Check if status column exists
-  const tableInfo = db.prepare("PRAGMA table_info(jobs)").all() as Array<{ name: string }>;
-  const columnNames = tableInfo.map((col) => col.name);
+  const columnNames = getColumnNames("jobs");
 
   if (!columnNames.includes("status")) {
     db.exec("ALTER TABLE jobs ADD COLUMN status TEXT DEFAULT 'saved'");
