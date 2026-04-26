@@ -14,7 +14,6 @@ import { CoverLetterWorkspace } from "@/components/builder/cover-letter-workspac
 import { SectionList } from "@/components/builder/section-list";
 import { ResumePreview } from "@/components/builder/resume-preview";
 import { TEMPLATES } from "@/lib/resume/template-data";
-import { bankEntriesToResume } from "@/lib/resume/bank-to-resume";
 import {
   createInitialSections,
   toggleSectionVisibility,
@@ -25,13 +24,29 @@ import {
 } from "@/lib/builder/section-manager";
 import type { SectionState, BuilderPanel } from "@/lib/builder/section-manager";
 import {
+  canRedoEditorHistory,
+  canUndoEditorHistory,
+  createEditorHistory,
+  pushEditorHistory,
+  redoEditorHistory,
+  undoEditorHistory,
+} from "@/lib/builder/editor-history";
+import {
+  createEditableResumeDocument,
+  reorderEditableDocumentSections,
+  updateEditableEntryBullet,
+  updateEditableEntryField,
+  updateEditableSectionTitle,
+  type EditableEntryField,
+  type EditableResumeDocument,
+} from "@/lib/builder/editor-document";
+import {
   getBuilderModeFromSearchParam,
   getBuilderModeHref,
   type BuilderDocumentMode,
 } from "@/lib/builder/document-mode";
 import { cn } from "@/lib/utils";
 import type { BankEntry, BankCategory } from "@/types";
-import type { TailoredResume } from "@/lib/resume/generator";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import {
   Download,
@@ -44,6 +59,46 @@ import {
   Eye,
   PenLine,
 } from "lucide-react";
+
+interface BuilderEditorState {
+  sections: SectionState[];
+  selectedIds: string[];
+  document: EditableResumeDocument;
+}
+
+function buildEditorState(
+  entries: BankEntry[],
+  sections: SectionState[],
+  selectedIds: string[]
+): BuilderEditorState {
+  const visibleCategoryIds = getVisibleSectionIds(sections);
+  const selectedIdSet = new Set(selectedIds);
+  const categoryOrder = new Map(
+    visibleCategoryIds.map((id, index) => [id, index])
+  );
+  const orderedEntries = entries
+    .filter(
+      (entry) =>
+        selectedIdSet.has(entry.id) && visibleCategoryIds.includes(entry.category)
+    )
+    .sort(
+      (a, b) =>
+        (categoryOrder.get(a.category) ?? 999) -
+        (categoryOrder.get(b.category) ?? 999)
+    );
+
+  return {
+    sections,
+    selectedIds,
+    document: createEditableResumeDocument(orderedEntries, visibleCategoryIds),
+  };
+}
+
+function toggleSelectedId(selectedIds: string[], id: string): string[] {
+  return selectedIds.includes(id)
+    ? selectedIds.filter((selectedId) => selectedId !== id)
+    : [...selectedIds, id];
+}
 
 function BuilderLoading() {
   return (
@@ -59,13 +114,16 @@ function BuilderPageContent() {
   const initialDocumentMode = getBuilderModeFromSearchParam(
     searchParams.get("mode")
   );
+  const initialSections = useMemo(() => createInitialSections(), []);
   const [documentMode, setDocumentMode] =
     useState<BuilderDocumentMode>(initialDocumentMode);
   const [entries, setEntries] = useState<BankEntry[]>([]);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [sections, setSections] = useState<SectionState[]>(createInitialSections);
+  const [editorHistory, setEditorHistory] = useState(() =>
+    createEditorHistory(buildEditorState([], initialSections, []))
+  );
   const [templateId, setTemplateId] = useState("classic");
   const [templateOpen, setTemplateOpen] = useState(false);
+  const [entryPickerOpen, setEntryPickerOpen] = useState(false);
   const [loading, setLoading] = useState(initialDocumentMode === "resume");
   const [hasLoadedEntries, setHasLoadedEntries] = useState(false);
   const [html, setHtml] = useState("");
@@ -75,6 +133,12 @@ function BuilderPageContent() {
   );
   const showErrorToast = useErrorToast();
   const lastPreviewErrorToastRef = useRef("");
+  const editorState = editorHistory.present;
+  const sections = editorState.sections;
+  const selectedIds = useMemo(
+    () => new Set(editorState.selectedIds),
+    [editorState.selectedIds]
+  );
 
   useEffect(() => {
     setDocumentMode(getBuilderModeFromSearchParam(searchParams.get("mode")));
@@ -98,8 +162,17 @@ function BuilderPageContent() {
         const data = await res.json();
         const bankEntries: BankEntry[] = data.entries || [];
         if (cancelled) return;
+        const nextSections = createInitialSections();
         setEntries(bankEntries);
-        setSelectedIds(new Set(bankEntries.map((e) => e.id)));
+        setEditorHistory(
+          createEditorHistory(
+            buildEditorState(
+              bankEntries,
+              nextSections,
+              bankEntries.map((e) => e.id)
+            )
+          )
+        );
       } catch {
         if (cancelled) return;
         // Entries stay empty
@@ -142,11 +215,6 @@ function BuilderPageContent() {
         (categoryOrder.get(b.category) ?? 999)
     );
   }, [selectedEntries, visibleCategoryIds]);
-
-  const resume: TailoredResume = useMemo(
-    () => bankEntriesToResume(orderedEntries),
-    [orderedEntries]
-  );
 
   useEffect(() => {
     if (documentMode !== "resume") return;
@@ -201,25 +269,111 @@ function BuilderPageContent() {
     visibleCategoryIds,
   ]);
 
-  const handleToggleEntry = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const handleReorder = useCallback(
-    (fromIndex: number, toIndex: number) => {
-      setSections((prev) => reorderSections(prev, fromIndex, toIndex));
+  const commitEditorState = useCallback(
+    (updater: (state: BuilderEditorState) => BuilderEditorState) => {
+      setEditorHistory((prev) => {
+        const next = updater(prev.present);
+        return pushEditorHistory(prev, next);
+      });
     },
     []
   );
 
-  const handleToggleVisibility = useCallback((categoryId: BankCategory) => {
-    setSections((prev) => toggleSectionVisibility(prev, categoryId));
-  }, []);
+  const handleToggleEntry = useCallback(
+    (id: string) => {
+      commitEditorState((prev) =>
+        buildEditorState(
+          entries,
+          prev.sections,
+          toggleSelectedId(prev.selectedIds, id)
+        )
+      );
+    },
+    [commitEditorState, entries]
+  );
+
+  const handleReorder = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      commitEditorState((prev) => {
+        const sections = reorderSections(prev.sections, fromIndex, toIndex);
+        const document = reorderEditableDocumentSections(
+          prev.document,
+          fromIndex,
+          toIndex
+        );
+        if (sections === prev.sections && document === prev.document) {
+          return prev;
+        }
+        return { ...prev, sections, document };
+      });
+    },
+    [commitEditorState]
+  );
+
+  const handleToggleVisibility = useCallback(
+    (categoryId: BankCategory) => {
+      commitEditorState((prev) =>
+        buildEditorState(
+          entries,
+          toggleSectionVisibility(prev.sections, categoryId),
+          prev.selectedIds
+        )
+      );
+    },
+    [commitEditorState, entries]
+  );
+
+  const handleSectionTitleChange = useCallback(
+    (sectionId: BankCategory, value: string) => {
+      commitEditorState((prev) => ({
+        ...prev,
+        document: updateEditableSectionTitle(prev.document, sectionId, value),
+      }));
+    },
+    [commitEditorState]
+  );
+
+  const handleEntryFieldChange = useCallback(
+    (
+      sectionId: BankCategory,
+      entryId: string,
+      field: EditableEntryField,
+      value: string
+    ) => {
+      commitEditorState((prev) => ({
+        ...prev,
+        document: updateEditableEntryField(
+          prev.document,
+          sectionId,
+          entryId,
+          field,
+          value
+        ),
+      }));
+    },
+    [commitEditorState]
+  );
+
+  const handleEntryBulletChange = useCallback(
+    (
+      sectionId: BankCategory,
+      entryId: string,
+      bulletIndex: number,
+      value: string
+    ) => {
+      commitEditorState((prev) => ({
+        ...prev,
+        document: updateEditableEntryBullet(
+          prev.document,
+          sectionId,
+          entryId,
+          bulletIndex,
+          value
+        ),
+      }));
+    },
+    [commitEditorState]
+  );
 
   const handleCopyHtml = useCallback(async () => {
     if (!html) return;
@@ -437,6 +591,8 @@ function BuilderPageContent() {
                 onReorder={handleReorder}
                 onToggleVisibility={handleToggleVisibility}
                 onToggleEntry={handleToggleEntry}
+                pickerOpen={entryPickerOpen}
+                onPickerOpenChange={setEntryPickerOpen}
               />
             </div>
 
@@ -455,9 +611,19 @@ function BuilderPageContent() {
                 </div>
               )}
               <ResumePreview
-                resume={resume}
-                templateId={templateId}
-                html={html}
+                document={editorState.document}
+                canUndo={canUndoEditorHistory(editorHistory)}
+                canRedo={canRedoEditorHistory(editorHistory)}
+                onUndo={() => setEditorHistory(undoEditorHistory)}
+                onRedo={() => setEditorHistory(redoEditorHistory)}
+                onAddSection={() => {
+                  setEntryPickerOpen(true);
+                  setMobileView("edit");
+                }}
+                onSectionReorder={handleReorder}
+                onSectionTitleChange={handleSectionTitleChange}
+                onEntryFieldChange={handleEntryFieldChange}
+                onEntryBulletChange={handleEntryBulletChange}
               />
             </div>
           </div>

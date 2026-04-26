@@ -21,6 +21,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const SECTION_META: Record<BankCategory, { label: string; icon: LucideIcon }> = {
   experience: { label: "Experience", icon: Briefcase },
@@ -39,6 +46,8 @@ interface SectionListProps {
   onToggleVisibility: (categoryId: BankCategory) => void;
   onToggleEntry: (entryId: string) => void;
   onAiRewrite?: (categoryId: BankCategory) => void;
+  pickerOpen?: boolean;
+  onPickerOpenChange?: (open: boolean) => void;
 }
 
 export function SectionList({
@@ -49,6 +58,8 @@ export function SectionList({
   onToggleVisibility,
   onToggleEntry,
   onAiRewrite,
+  pickerOpen = false,
+  onPickerOpenChange,
 }: SectionListProps) {
   const [expandedSections, setExpandedSections] = useState<Set<BankCategory>>(
     new Set()
@@ -119,6 +130,77 @@ export function SectionList({
 
   return (
     <div className="flex flex-col h-full">
+      <Dialog open={pickerOpen} onOpenChange={onPickerOpenChange}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Bank Entry Picker</DialogTitle>
+            <DialogDescription>
+              Select entries to add them to the document.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {sections.map((section) => {
+              const meta = SECTION_META[section.id];
+              const Icon = meta.icon;
+              const sectionEntries = entriesByCategory.get(section.id) || [];
+              if (sectionEntries.length === 0) return null;
+
+              return (
+                <div key={section.id} className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    {meta.label}
+                  </div>
+                  <div className="space-y-1">
+                    {sectionEntries.map((entry) => {
+                      const selected = selectedIds.has(entry.id);
+                      return (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          onClick={() => onToggleEntry(entry.id)}
+                          className={cn(
+                            "flex w-full items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition-colors",
+                            selected
+                              ? "border-primary bg-primary/10 text-foreground"
+                              : "border-border text-muted-foreground hover:bg-muted"
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+                              selected
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border"
+                            )}
+                          >
+                            {selected && (
+                              <svg
+                                className="h-3 w-3"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={3}
+                              >
+                                <path d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                          <span className="min-w-0 flex-1 truncate">
+                            {getEntryTitle(entry)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex items-center justify-between px-4 py-3 border-b">
         <h3 className="text-sm font-semibold">Sections</h3>
         <span className="text-xs text-muted-foreground">Drag to reorder</span>
