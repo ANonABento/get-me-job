@@ -8,6 +8,7 @@ const APP_PAGES = [
   "/dashboard",
   "/bank",
   "/builder",
+  "/builder?mode=cover-letter",
   "/tailor",
   "/jobs",
   "/settings",

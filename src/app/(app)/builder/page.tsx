@@ -243,8 +243,10 @@ function BuilderPageContent() {
             className="flex rounded-md border bg-muted/30 p-0.5"
           >
             <button
+              id="document-mode-resume-tab"
               role="tab"
               aria-selected={documentMode === "resume"}
+              aria-controls="document-mode-resume-panel"
               onClick={() => handleDocumentModeChange("resume")}
               className={cn(
                 "inline-flex h-8 items-center gap-1.5 rounded px-3 text-sm font-medium transition-colors",
@@ -257,8 +259,10 @@ function BuilderPageContent() {
               Resume
             </button>
             <button
+              id="document-mode-cover-letter-tab"
               role="tab"
               aria-selected={documentMode === "cover-letter"}
+              aria-controls="document-mode-cover-letter-panel"
               onClick={() => handleDocumentModeChange("cover-letter")}
               className={cn(
                 "inline-flex h-8 items-center gap-1.5 rounded px-3 text-sm font-medium transition-colors",
@@ -348,7 +352,12 @@ function BuilderPageContent() {
       </div>
 
       {documentMode === "resume" && (
-        <>
+        <div
+          id="document-mode-resume-panel"
+          role="tabpanel"
+          aria-labelledby="document-mode-resume-tab"
+          className="flex min-h-0 flex-1 flex-col"
+        >
           <div
             role="tablist"
             aria-label="Builder view"
@@ -429,11 +438,16 @@ function BuilderPageContent() {
               />
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {documentMode === "cover-letter" && (
-        <div className="min-h-0 flex-1 overflow-hidden">
+        <div
+          id="document-mode-cover-letter-panel"
+          role="tabpanel"
+          aria-labelledby="document-mode-cover-letter-tab"
+          className="min-h-0 flex-1 overflow-hidden"
+        >
           <CoverLetterWorkspace />
         </div>
       )}
