@@ -13,7 +13,7 @@ Your personal job application command center. Upload your resume, match with job
 ## Tech Stack
 
 - **Framework**: Next.js 14 with App Router
-- **Database**: SQLite (local storage)
+- **Database**: Neon PostgreSQL with Drizzle schema management
 - **AI**: Supports Ollama (free/local) or BYOK (OpenAI, Anthropic, OpenRouter)
 - **PDF Parsing**: pdf-parse
 - **UI**: Tailwind CSS + shadcn/ui
@@ -31,6 +31,13 @@ Your personal job application command center. Upload your resume, match with job
 ```bash
 # Install dependencies
 npm install
+
+# Configure environment
+cp .env.example .env.local
+# Set DATABASE_URL to your Neon PostgreSQL connection string
+
+# Push the Drizzle schema to Neon
+npm run db:push
 
 # Start development server
 npm run dev
@@ -88,7 +95,7 @@ src/
 ├── app/           # Next.js pages and API routes
 ├── components/    # React components
 ├── lib/
-│   ├── db/       # SQLite database
+│   ├── db/       # Database access and Drizzle schema
 │   ├── llm/      # AI client
 │   ├── parser/   # PDF and resume parsing
 │   └── resume/   # Resume generation
@@ -97,8 +104,9 @@ src/
 
 ## Data Storage
 
-All data is stored locally:
-- `data/get-me-job.db` - SQLite database
+Application data is stored in Neon PostgreSQL using the schema in
+`src/lib/db/drizzle/schema.ts`. Uploaded documents and generated resumes are
+stored on disk during local development:
 - `uploads/` - Uploaded documents
 - `public/resumes/` - Generated resume files
 
