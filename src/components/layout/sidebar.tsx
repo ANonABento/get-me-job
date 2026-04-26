@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { STUDIO_ROUTE } from "@/lib/studio/document-studio";
 import {
   Home,
   Database,
@@ -35,7 +36,6 @@ interface NavGroup {
 
 // Feature flags — set to true to enable sections
 export const FEATURES = {
-  tailorResume: true,   // Tailor Resume
   jobTracker: false,    // Jobs, Calendar, Email Templates
   interview: true,      // Interview Prep
   salary: false,        // Salary Tools
@@ -53,7 +53,7 @@ export const navigationGroups: NavGroup[] = [
     label: "Resume",
     items: [
       { name: "Documents", href: "/bank", icon: Database },
-      { name: "Document Studio", href: "/studio", icon: Sparkles },
+      { name: "Document Studio", href: STUDIO_ROUTE, icon: Sparkles },
     ],
   },
   ...(FEATURES.jobTracker ? [{

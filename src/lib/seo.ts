@@ -34,6 +34,12 @@ const pages = {
       "Manage your resume sections, work experiences, and career documents in one place.",
     path: "/bank",
   },
+  studio: {
+    title: "Document Studio",
+    description:
+      "Build resumes, cover letters, and tailored application documents from your career knowledge bank.",
+    path: "/studio",
+  },
   tailor: {
     title: "Tailor Resume",
     description:

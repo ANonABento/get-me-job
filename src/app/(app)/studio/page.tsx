@@ -48,10 +48,13 @@ import {
   getDefaultStudioContent,
   getStudioDocumentTitle,
   shouldShowJobDescription,
+  STUDIO_MODE_SEARCH_PARAM,
   type StudioDocumentMode,
 } from "@/lib/studio/document-studio";
 import { cn } from "@/lib/utils";
-import type { BankCategory, BankEntry } from "@/types";
+import { BANK_CATEGORIES, type BankCategory, type BankEntry } from "@/types";
+
+const BANK_ENTRIES_ENDPOINT = "/api/bank";
 
 const DOCUMENT_MODE_OPTIONS: Array<{
   mode: StudioDocumentMode;
@@ -62,6 +65,27 @@ const DOCUMENT_MODE_OPTIONS: Array<{
   { mode: "cover-letter", label: "Cover Letter", icon: PenLine },
   { mode: "tailored", label: "Tailored", icon: Sparkles },
 ];
+
+function isBankCategory(value: unknown): value is BankCategory {
+  return (
+    typeof value === "string" &&
+    BANK_CATEGORIES.includes(value as BankCategory)
+  );
+}
+
+function isBankEntry(value: unknown): value is BankEntry {
+  if (!value || typeof value !== "object") return false;
+
+  const entry = value as { id?: unknown; category?: unknown };
+  return typeof entry.id === "string" && isBankCategory(entry.category);
+}
+
+function getBankEntriesFromResponse(data: unknown): BankEntry[] {
+  if (!data || typeof data !== "object") return [];
+
+  const entries = (data as { entries?: unknown }).entries;
+  return Array.isArray(entries) ? entries.filter(isBankEntry) : [];
+}
 
 function StudioLoading() {
   return (
@@ -90,7 +114,7 @@ function StudioPageContent() {
   const [editorHtml, setEditorHtml] = useState(
     getDefaultStudioContent(initialDocumentMode)
   );
-  const modeParam = searchParams.get("mode");
+  const modeParam = searchParams.get(STUDIO_MODE_SEARCH_PARAM);
   const previousModeParamRef = useRef(modeParam);
 
   const selectedTemplate = useMemo(
@@ -132,10 +156,10 @@ function StudioPageContent() {
     async function fetchEntries() {
       setLoadingEntries(true);
       try {
-        const res = await fetch("/api/bank");
+        const res = await fetch(BANK_ENTRIES_ENDPOINT);
         if (!res.ok) throw new Error("Failed to fetch bank entries");
         const data = await res.json();
-        const bankEntries: BankEntry[] = data.entries ?? [];
+        const bankEntries = getBankEntriesFromResponse(data);
         if (cancelled) return;
         setEntries(bankEntries);
         setSelectedIds(new Set(bankEntries.map((entry) => entry.id)));

@@ -2,10 +2,6 @@ import { describe, it, expect } from "vitest";
 import { FEATURES, navigationGroups, bottomNavigation } from "./sidebar";
 
 describe("FEATURES", () => {
-  it("should have tailorResume flag enabled", () => {
-    expect(FEATURES.tailorResume).toBe(true);
-  });
-
   it("should have jobTracker flag disabled by default", () => {
     expect(FEATURES.jobTracker).toBe(false);
   });
@@ -23,7 +19,6 @@ describe("FEATURES", () => {
   });
 
   it("should have all feature flags defined", () => {
-    expect(FEATURES).toHaveProperty("tailorResume");
     expect(FEATURES).toHaveProperty("jobTracker");
     expect(FEATURES).toHaveProperty("interview");
     expect(FEATURES).toHaveProperty("salary");

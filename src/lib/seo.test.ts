@@ -74,6 +74,7 @@ describe("getMarketingPageMetadata", () => {
 const ALL_PAGES = [
   "dashboard",
   "bank",
+  "studio",
   "tailor",
   "jobs",
   "interview",
@@ -101,9 +102,11 @@ describe("getPageMetadata", () => {
   });
 
   it("includes twitter card fields", () => {
-    const meta = getPageMetadata("tailor");
+    const meta = getPageMetadata("studio");
     expect(meta.twitter).toBeDefined();
-    expect((meta.twitter as Record<string, unknown>).title).toBe("Tailor Resume");
+    expect((meta.twitter as Record<string, unknown>).title).toBe(
+      "Document Studio"
+    );
     expect((meta.twitter as Record<string, unknown>).card).toBe(
       "summary_large_image"
     );

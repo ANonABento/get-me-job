@@ -2,7 +2,15 @@ export const STUDIO_DOCUMENT_MODES = ["resume", "cover-letter", "tailored"] as c
 
 export type StudioDocumentMode = (typeof STUDIO_DOCUMENT_MODES)[number];
 
+export const STUDIO_ROUTE = "/studio";
+export const STUDIO_MODE_SEARCH_PARAM = "mode";
 export const DEFAULT_STUDIO_DOCUMENT_MODE: StudioDocumentMode = "resume";
+
+const STUDIO_DOCUMENT_TITLES: Record<StudioDocumentMode, string> = {
+  resume: "Resume",
+  "cover-letter": "Cover Letter",
+  tailored: "Tailored Resume",
+};
 
 export function isStudioDocumentMode(value: string): value is StudioDocumentMode {
   return STUDIO_DOCUMENT_MODES.includes(value as StudioDocumentMode);
@@ -17,7 +25,9 @@ export function getStudioModeFromSearchParam(
 }
 
 export function getStudioModeHref(mode: StudioDocumentMode): string {
-  return mode === DEFAULT_STUDIO_DOCUMENT_MODE ? "/studio" : `/studio?mode=${mode}`;
+  return mode === DEFAULT_STUDIO_DOCUMENT_MODE
+    ? STUDIO_ROUTE
+    : `${STUDIO_ROUTE}?${STUDIO_MODE_SEARCH_PARAM}=${mode}`;
 }
 
 export function shouldShowJobDescription(mode: StudioDocumentMode): boolean {
@@ -25,14 +35,7 @@ export function shouldShowJobDescription(mode: StudioDocumentMode): boolean {
 }
 
 export function getStudioDocumentTitle(mode: StudioDocumentMode): string {
-  switch (mode) {
-    case "cover-letter":
-      return "Cover Letter";
-    case "tailored":
-      return "Tailored Resume";
-    case "resume":
-      return "Resume";
-  }
+  return STUDIO_DOCUMENT_TITLES[mode];
 }
 
 export function getDefaultStudioContent(mode: StudioDocumentMode): string {

@@ -3,6 +3,11 @@
  * Separated from React components for testability.
  */
 
+import {
+  getStudioModeHref,
+  STUDIO_ROUTE,
+} from "@/lib/studio/document-studio";
+
 export interface CommandItem {
   id: string;
   label: string;
@@ -94,7 +99,7 @@ export function getNavigationCommands(): CommandItem[] {
   return [
     { id: "nav-dashboard", label: "Dashboard", category: "navigate", href: "/dashboard", shortcut: "H", keywords: ["home", "overview"] },
     { id: "nav-documents", label: "Documents", category: "navigate", href: "/bank", shortcut: "B", keywords: ["bank", "files"] },
-    { id: "nav-studio", label: "Document Studio", category: "navigate", href: "/studio", shortcut: "T", keywords: ["create", "build", "resume", "tailor", "cover letter"] },
+    { id: "nav-studio", label: "Document Studio", category: "navigate", href: STUDIO_ROUTE, shortcut: "T", keywords: ["create", "build", "resume", "tailor", "cover letter"] },
     { id: "nav-settings", label: "Settings", category: "navigate", href: "/settings", shortcut: "S", keywords: ["config", "preferences", "llm"] },
   ];
 }
@@ -105,9 +110,9 @@ export function getNavigationCommands(): CommandItem[] {
 export function getActionCommands(): CommandItem[] {
   return [
     { id: "act-upload", label: "Upload Resume", category: "actions", href: "/bank", shortcut: "Ctrl+U", keywords: ["import", "file", "pdf"] },
-    { id: "act-build", label: "Build Resume", category: "actions", href: "/studio", keywords: ["create", "new", "generate"] },
-    { id: "act-cover-letter", label: "Write Cover Letter", category: "actions", href: "/studio?mode=cover-letter", keywords: ["letter", "write"] },
-    { id: "act-tailor", label: "Tailor to Job", category: "actions", href: "/studio?mode=tailored", keywords: ["customize", "match", "job"] },
+    { id: "act-build", label: "Build Resume", category: "actions", href: getStudioModeHref("resume"), keywords: ["create", "new", "generate"] },
+    { id: "act-cover-letter", label: "Write Cover Letter", category: "actions", href: getStudioModeHref("cover-letter"), keywords: ["letter", "write"] },
+    { id: "act-tailor", label: "Tailor to Job", category: "actions", href: getStudioModeHref("tailored"), keywords: ["customize", "match", "job"] },
   ];
 }
 

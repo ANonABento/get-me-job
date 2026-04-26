@@ -1,4 +1,5 @@
 import { FileText, Upload, type LucideIcon } from "lucide-react";
+import { STUDIO_ROUTE } from "@/lib/studio/document-studio";
 
 export interface QuickActionItem {
   title: string;
@@ -39,7 +40,7 @@ export function buildQuickActions(stats: QuickActionStats): QuickActionItem[] {
       description: hasResumes
         ? "Generate more tailored resumes"
         : "Add a job to generate your first tailored resume",
-      href: "/studio",
+      href: STUDIO_ROUTE,
       icon: FileText,
       gradient: "from-blue-500 to-indigo-400",
     },
