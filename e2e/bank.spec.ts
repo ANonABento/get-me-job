@@ -7,7 +7,7 @@ const TEST_PDF = path.join(__dirname, "fixtures", "test-resume.pdf");
 const TEST_FILENAME = path.basename(TEST_PDF);
 
 const bankApiResponse = (resp: { url: () => string; status: () => number }) =>
-  resp.url().includes("/api/bank") && resp.status() === 200;
+  new URL(resp.url()).pathname === "/api/bank" && resp.status() === 200;
 
 async function uploadFixture(page: Page): Promise<void> {
   const fileInput = page.locator("input[type='file']");
@@ -135,14 +135,18 @@ test.describe("Bank Page - Search & Filter", () => {
   test("search filters entries by query", async ({ page }) => {
     const searchInput = page.getByPlaceholder(/search your knowledge bank/i);
 
-    await searchInput.fill("zzz_nonexistent_term_zzz");
-    await page.waitForResponse(bankApiResponse);
+    await Promise.all([
+      page.waitForResponse(bankApiResponse),
+      searchInput.fill("zzz_nonexistent_term_zzz"),
+    ]);
     await expect(page.getByText("No matching entries")).toBeVisible({
       timeout: 5000,
     });
 
-    await searchInput.fill("");
-    await page.waitForResponse(bankApiResponse);
+    await Promise.all([
+      page.waitForResponse(bankApiResponse),
+      searchInput.fill(""),
+    ]);
     await expect(page.getByText("No matching entries")).not.toBeVisible({
       timeout: 5000,
     });
