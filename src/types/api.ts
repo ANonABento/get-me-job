@@ -235,8 +235,9 @@ export interface BankDocumentsResponse {
   documents: Array<{
     id: string;
     filename: string;
-    type: DocumentType;
+    size: number;
     uploadedAt: string;
+    chunkCount: number;
   }>;
 }
 

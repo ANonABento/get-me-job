@@ -29,13 +29,25 @@ export async function DELETE(request: NextRequest) {
   if (isAuthError(authResult)) return authResult;
 
   try {
-    const body = await request.json() as { documentIds?: unknown };
-    const { documentIds } = body;
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Request body must be valid JSON" },
+        { status: 400 }
+      );
+    }
+
+    const documentIds =
+      typeof body === "object" && body !== null
+        ? (body as { documentIds?: unknown }).documentIds
+        : undefined;
 
     if (
       !Array.isArray(documentIds) ||
       documentIds.length === 0 ||
-      !documentIds.every((id) => typeof id === "string" && id.length > 0)
+      !documentIds.every((id) => typeof id === "string" && id.trim().length > 0)
     ) {
       return NextResponse.json(
         { error: "documentIds must be a non-empty array of document ids" },

@@ -105,4 +105,38 @@ describe("SourceDocuments", () => {
     expect(onDelete).toHaveBeenCalled();
     expect(screen.queryByText("resume.pdf")).not.toBeInTheDocument();
   });
+
+  it("removes only the documents included in the confirmed bulk delete request", async () => {
+    let resolveDelete: (value: Response) => void = () => {};
+    const deletePromise = new Promise<Response>((resolve) => {
+      resolveDelete = resolve;
+    });
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ documents }))
+      .mockReturnValueOnce(deletePromise);
+
+    render(
+      <SourceDocuments
+        refreshKey={0}
+        onFilterByDocument={vi.fn()}
+        activeDocumentId={null}
+      />
+    );
+
+    await screen.findByText("resume.pdf");
+    fireEvent.click(screen.getByLabelText("Select resume.pdf"));
+    fireEvent.click(screen.getByRole("button", { name: "Delete Selected" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Delete Selected" }).at(-1)!);
+
+    fireEvent.click(screen.getByLabelText("Select portfolio.pdf"));
+    resolveDelete(
+      jsonResponse({ success: true, documentsDeleted: 1, chunksDeleted: 3 })
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByText("resume.pdf")).not.toBeInTheDocument();
+    });
+    expect(screen.getByText("portfolio.pdf")).toBeInTheDocument();
+  });
 });

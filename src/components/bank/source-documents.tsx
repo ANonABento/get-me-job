@@ -129,16 +129,17 @@ export function SourceDocuments({
   async function handleBulkDelete() {
     if (selectedDocumentIds.size === 0) return;
     setDeleting(true);
+    const ids = [...selectedDocumentIds];
+    const idsToDelete = new Set(ids);
     try {
-      const ids = [...selectedDocumentIds];
       const res = await fetch("/api/bank/documents", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ documentIds: ids }),
       });
       if (!res.ok) throw new Error("Bulk delete failed");
-      setDocuments((prev) => prev.filter((doc) => !selectedDocumentIds.has(doc.id)));
-      if (activeDocumentId && selectedDocumentIds.has(activeDocumentId)) {
+      setDocuments((prev) => prev.filter((doc) => !idsToDelete.has(doc.id)));
+      if (activeDocumentId && idsToDelete.has(activeDocumentId)) {
         onFilterByDocument(null);
       }
       setSelectedDocumentIds(new Set());

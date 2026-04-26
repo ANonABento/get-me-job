@@ -11,6 +11,7 @@ import type {
   JobResponse,
   JobDeleteResponse,
   BankEntriesResponse,
+  BankDocumentsResponse,
   BankEntryUpdateResponse,
   BankDocumentDeleteResponse,
   UploadResponse,
@@ -164,6 +165,21 @@ describe("API Types", () => {
     it("BankEntryUpdateResponse should have success", () => {
       const response: BankEntryUpdateResponse = { success: true };
       expect(response.success).toBe(true);
+    });
+
+    it("BankDocumentsResponse should have source document metadata", () => {
+      const response: BankDocumentsResponse = {
+        documents: [
+          {
+            id: "doc-1",
+            filename: "resume.pdf",
+            size: 1024,
+            uploadedAt: "2024-01-15T10:00:00.000Z",
+            chunkCount: 2,
+          },
+        ],
+      };
+      expect(response.documents[0].chunkCount).toBe(2);
     });
 
     it("BankDocumentDeleteResponse should have chunksDeleted", () => {
