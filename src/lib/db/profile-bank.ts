@@ -112,6 +112,22 @@ export function searchBankEntries(
   return rows.map(rowToEntry);
 }
 
+export function searchBankEntriesByCategory(
+  query: string,
+  category: BankCategory,
+  userId: string = "default"
+): BankEntry[] {
+  const pattern = `%${query}%`;
+  const rows = db
+    .prepare(
+      `SELECT * FROM profile_bank
+       WHERE user_id = ? AND category = ? AND content LIKE ?
+       ORDER BY confidence_score DESC, created_at DESC`
+    )
+    .all(userId, category, pattern) as BankEntryRow[];
+  return rows.map(rowToEntry);
+}
+
 export function deleteBankEntriesBySource(
   sourceDocumentId: string,
   userId: string = "default"
@@ -244,6 +260,22 @@ export function updateBankEntry(
   db.prepare(
     "UPDATE profile_bank SET content = ?, confidence_score = ? WHERE id = ?"
   ).run(JSON.stringify(content), confidenceScore, id);
+}
+
+export function updateBankEntryForUser(
+  id: string,
+  userId: string,
+  content: Record<string, unknown>,
+  confidenceScore: number
+): boolean {
+  const result = db
+    .prepare(
+      `UPDATE profile_bank
+       SET content = ?, confidence_score = ?
+       WHERE id = ? AND user_id = ?`
+    )
+    .run(JSON.stringify(content), confidenceScore, id, userId);
+  return result.changes > 0;
 }
 
 /**

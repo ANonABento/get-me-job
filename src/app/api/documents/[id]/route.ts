@@ -5,9 +5,9 @@
  * @response DocumentDeleteResponse from @/types/api
  */
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
 import { unlink } from "fs/promises";
 import { requireAuth, isAuthError } from "@/lib/auth";
+import { deleteDocument } from "@/lib/db";
 
 export async function DELETE(
   request: NextRequest,
@@ -17,21 +17,14 @@ export async function DELETE(
   if (isAuthError(authResult)) return authResult;
 
   try {
-    // Get document path before deleting
-    const doc = db
-      .prepare("SELECT path FROM documents WHERE id = ? AND user_id = ?")
-      .get(params.id, authResult.userId) as { path: string } | undefined;
-
-    if (!doc) {
+    const path = deleteDocument(params.id, authResult.userId);
+    if (!path) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
 
-    // Delete from database
-    db.prepare("DELETE FROM documents WHERE id = ? AND user_id = ?").run(params.id, authResult.userId);
-
     // Try to delete file (don't fail if file doesn't exist)
     try {
-      await unlink(doc.path);
+      await unlink(path);
     } catch {
       // File may not exist
     }

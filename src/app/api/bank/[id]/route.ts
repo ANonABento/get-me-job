@@ -8,7 +8,10 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/auth";
-import { db, profileBank, eq, and } from "@/lib/db/drizzle";
+import {
+  deleteBankEntry,
+  updateBankEntryForUser as updateStoredBankEntryForUser,
+} from "@/lib/db/profile-bank";
 
 interface BankEntryUpdateBody {
   content?: unknown;
@@ -23,7 +26,7 @@ function isBankEntryContent(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-async function updateBankEntryForUser(
+async function handleUpdateBankEntryForUser(
   entryId: string,
   userId: string,
   body: BankEntryUpdateBody
@@ -32,16 +35,14 @@ async function updateBankEntryForUser(
     return NextResponse.json({ error: "Content is required" }, { status: 400 });
   }
 
-  const updated = await db
-    .update(profileBank)
-    .set({
-      content: JSON.stringify(body.content),
-      confidenceScore: typeof body.confidenceScore === "number" ? body.confidenceScore : 0.8,
-    })
-    .where(and(eq(profileBank.id, entryId), eq(profileBank.userId, userId)))
-    .returning({ id: profileBank.id });
+  const updated = updateStoredBankEntryForUser(
+    entryId,
+    userId,
+    body.content,
+    typeof body.confidenceScore === "number" ? body.confidenceScore : 0.8
+  );
 
-  if (updated.length === 0) {
+  if (!updated) {
     return NextResponse.json({ error: "Entry not found" }, { status: 404 });
   }
 
@@ -57,7 +58,7 @@ export async function PUT(
 
   try {
     const body = await request.json() as BankEntryUpdateBody;
-    return updateBankEntryForUser(params.id, authResult.userId, body);
+    return handleUpdateBankEntryForUser(params.id, authResult.userId, body);
   } catch (error) {
     console.error("Update bank entry error:", error);
     return NextResponse.json(
@@ -76,7 +77,7 @@ export async function PATCH(
 
   try {
     const body = await request.json() as BankEntryUpdateBody;
-    return updateBankEntryForUser(params.id, authResult.userId, body);
+    return handleUpdateBankEntryForUser(params.id, authResult.userId, body);
   } catch (error) {
     console.error("Update bank entry error:", error);
     return NextResponse.json(
@@ -94,12 +95,7 @@ export async function DELETE(
   if (isAuthError(authResult)) return authResult;
 
   try {
-    const deleted = await db
-      .delete(profileBank)
-      .where(and(eq(profileBank.id, params.id), eq(profileBank.userId, authResult.userId)))
-      .returning({ id: profileBank.id });
-
-    if (deleted.length === 0) {
+    if (!deleteBankEntry(params.id, authResult.userId)) {
       return NextResponse.json({ error: "Entry not found" }, { status: 404 });
     }
     return NextResponse.json({ success: true });

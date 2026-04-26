@@ -6,7 +6,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/auth";
-import { db, documents, profileBank, eq, and } from "@/lib/db/drizzle";
+import { deleteSourceDocument } from "@/lib/db/profile-bank";
 
 export async function DELETE(
   _request: NextRequest,
@@ -16,19 +16,7 @@ export async function DELETE(
   if (isAuthError(authResult)) return authResult;
 
   try {
-    const deletedChunks = await db
-      .delete(profileBank)
-      .where(and(
-        eq(profileBank.sourceDocumentId, params.id),
-        eq(profileBank.userId, authResult.userId)
-      ))
-      .returning({ id: profileBank.id });
-
-    await db
-      .delete(documents)
-      .where(and(eq(documents.id, params.id), eq(documents.userId, authResult.userId)));
-
-    const chunksDeleted = deletedChunks.length;
+    const chunksDeleted = deleteSourceDocument(params.id, authResult.userId);
     return NextResponse.json({ success: true, chunksDeleted });
   } catch (error) {
     console.error("Delete source document error:", error);

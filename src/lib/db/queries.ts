@@ -59,6 +59,16 @@ export function getDocuments(userId: string = "default"): Document[] {
   }));
 }
 
+export function deleteDocument(id: string, userId: string = "default"): string | null {
+  const row = db
+    .prepare("SELECT path FROM documents WHERE id = ? AND user_id = ?")
+    .get(id, userId) as { path: string } | undefined;
+  if (!row) return null;
+
+  db.prepare("DELETE FROM documents WHERE id = ? AND user_id = ?").run(id, userId);
+  return row.path;
+}
+
 // Profile
 export function getProfile(userId: string = "default"): Profile | null {
   const profileRow = db.prepare("SELECT * FROM profile WHERE id = ?").get(userId) as any;
