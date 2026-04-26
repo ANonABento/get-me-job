@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { getTableName } from "drizzle-orm";
-import { getTableConfig } from "drizzle-orm/pg-core";
+import { getTableConfig, type AnyPgTable } from "drizzle-orm/pg-core";
 import { companyResearch, knowledgeChunks } from "./schema";
 
-function indexColumnNames(indexName: string, table: typeof knowledgeChunks | typeof companyResearch): string[] {
+function indexColumnNames(indexName: string, table: AnyPgTable): string[] {
   const config = getTableConfig(table);
   const index = config.indexes.find((candidate) => candidate.config.name === indexName);
   return index?.config.columns.map((column) => (column as { name: string }).name) ?? [];

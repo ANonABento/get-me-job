@@ -1,5 +1,8 @@
 import { pgTable, text, timestamp, integer, real, boolean, index, uniqueIndex, customType } from 'drizzle-orm/pg-core';
 
+export const DEFAULT_USER_ID = 'default';
+export const DEFAULT_PROFILE_ID = DEFAULT_USER_ID;
+
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
   dataType() {
     return 'bytea';
@@ -236,7 +239,7 @@ export const llmSettings = pgTable('llm_settings', {
 // Email drafts table
 export const emailDrafts = pgTable('email_drafts', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().default('default'),
+  userId: text('user_id').notNull().default(DEFAULT_USER_ID),
   type: text('type').notNull(),
   jobId: text('job_id'),
   subject: text('subject').notNull(),
@@ -249,7 +252,7 @@ export const emailDrafts = pgTable('email_drafts', {
 // Analytics snapshots table for historical tracking
 export const analyticsSnapshots = pgTable('analytics_snapshots', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().default('default'),
+  userId: text('user_id').notNull().default(DEFAULT_USER_ID),
   snapshotDate: text('snapshot_date').notNull(),
   totalJobs: integer('total_jobs').default(0),
   jobsSaved: integer('jobs_saved').default(0),
@@ -280,7 +283,7 @@ export const jobStatusHistory = pgTable('job_status_history', {
 // Salary offers table
 export const salaryOffers = pgTable('salary_offers', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().default('default'),
+  userId: text('user_id').notNull().default(DEFAULT_USER_ID),
   jobId: text('job_id'),
   company: text('company').notNull(),
   role: text('role').notNull(),
@@ -302,7 +305,7 @@ export const salaryOffers = pgTable('salary_offers', {
 // ATS scan history table
 export const atsScanHistory = pgTable('ats_scan_history', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().default('default'),
+  userId: text('user_id').notNull().default(DEFAULT_USER_ID),
   jobId: text('job_id'),
   overallScore: integer('overall_score').notNull(),
   letterGrade: text('letter_grade').notNull(),
@@ -322,7 +325,7 @@ export const atsScanHistory = pgTable('ats_scan_history', {
 // Custom resume templates table
 export const customTemplates = pgTable('custom_templates', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().default('default'),
+  userId: text('user_id').notNull().default(DEFAULT_USER_ID),
   name: text('name').notNull(),
   sourceDocumentId: text('source_document_id'),
   analyzedStyles: text('analyzed_styles').notNull(),
@@ -334,7 +337,7 @@ export const customTemplates = pgTable('custom_templates', {
 // Profile bank table for aggregated resume data
 export const profileBank = pgTable('profile_bank', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().default('default'),
+  userId: text('user_id').notNull().default(DEFAULT_USER_ID),
   category: text('category').notNull(),
   content: text('content').notNull(),
   sourceDocumentId: text('source_document_id'),
@@ -348,7 +351,7 @@ export const profileBank = pgTable('profile_bank', {
 // Profile versions table for version history with rollback
 export const profileVersions = pgTable('profile_versions', {
   id: text('id').primaryKey(),
-  profileId: text('profile_id').notNull().default('default'),
+  profileId: text('profile_id').notNull().default(DEFAULT_PROFILE_ID),
   version: integer('version').notNull(),
   snapshotJson: text('snapshot_json').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
@@ -359,7 +362,7 @@ export const profileVersions = pgTable('profile_versions', {
 // Knowledge bank chunks table
 export const chunks = pgTable('chunks', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().default('default'),
+  userId: text('user_id').notNull().default(DEFAULT_USER_ID),
   content: text('content').notNull(),
   sectionType: text('section_type').notNull(),
   sourceFile: text('source_file'),
@@ -377,7 +380,7 @@ export const chunks = pgTable('chunks', {
 // Tailored resume knowledge chunks with optional embeddings
 export const knowledgeChunks = pgTable('knowledge_chunks', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().default('default'),
+  userId: text('user_id').notNull().default(DEFAULT_USER_ID),
   documentId: text('document_id').notNull(),
   sectionType: text('section_type').notNull(),
   content: text('content').notNull(),
@@ -395,7 +398,7 @@ export const knowledgeChunks = pgTable('knowledge_chunks', {
 // Extension session tokens for API authentication
 export const extensionSessions = pgTable('extension_sessions', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().default('default'),
+  userId: text('user_id').notNull().default(DEFAULT_USER_ID),
   token: text('token').notNull().unique(),
   deviceInfo: text('device_info'),
   createdAt: timestamp('created_at').defaultNow(),
@@ -409,7 +412,7 @@ export const extensionSessions = pgTable('extension_sessions', {
 // Learned answers from job applications
 export const learnedAnswers = pgTable('learned_answers', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().default('default'),
+  userId: text('user_id').notNull().default(DEFAULT_USER_ID),
   question: text('question').notNull(),
   questionNormalized: text('question_normalized').notNull(),
   answer: text('answer').notNull(),
@@ -427,7 +430,7 @@ export const learnedAnswers = pgTable('learned_answers', {
 // Custom field mappings for specific sites
 export const fieldMappings = pgTable('field_mappings', {
   id: text('id').primaryKey(),
-  userId: text('user_id').notNull().default('default'),
+  userId: text('user_id').notNull().default(DEFAULT_USER_ID),
   sitePattern: text('site_pattern').notNull(),
   fieldSelector: text('field_selector').notNull(),
   fieldType: text('field_type').notNull(),
@@ -441,7 +444,7 @@ export const resumeAbTracking = pgTable('resume_ab_tracking', {
   id: text('id').primaryKey(),
   resumeId: text('resume_id').notNull(),
   jobId: text('job_id').notNull(),
-  userId: text('user_id').notNull().default('default'),
+  userId: text('user_id').notNull().default(DEFAULT_USER_ID),
   outcome: text('outcome').notNull().default('applied'),
   sentAt: timestamp('sent_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
