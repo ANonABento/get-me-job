@@ -107,10 +107,11 @@ export function createEmailDraft(
 
   const stmt = db.prepare(`
     INSERT INTO email_drafts (id, user_id, type, job_id, subject, body, context_json, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ${input.jobId ? "WHERE EXISTS (SELECT 1 FROM jobs WHERE id = ? AND user_id = ?)" : ""}
   `);
 
-  stmt.run(
+  const args: Array<string | null> = [
     id,
     userId,
     input.type,
@@ -119,8 +120,18 @@ export function createEmailDraft(
     input.body,
     input.context ? JSON.stringify(input.context) : null,
     now,
-    now
-  );
+    now,
+  ];
+
+  if (input.jobId) {
+    args.push(input.jobId, userId);
+  }
+
+  const result = stmt.run(...args);
+
+  if (result.changes === 0) {
+    throw new Error("Job not found");
+  }
 
   return {
     id,

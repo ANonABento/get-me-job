@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     // Get job details if provided
     const job = jobId ? getJob(jobId, authResult.userId) : null;
-    const llmConfig = getLLMConfig();
+    const llmConfig = getLLMConfig(authResult.userId);
 
     let researchData;
     if (llmConfig) {

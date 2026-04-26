@@ -45,6 +45,7 @@ describe("Interview Database Functions", () => {
       expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining("WHERE EXISTS"));
       expect(mockRun).toHaveBeenCalledWith(
         "test-session-id",
+        "default",
         "job-123",
         "default",
         "text",
@@ -73,6 +74,7 @@ describe("Interview Database Functions", () => {
       );
       expect(mockRun).toHaveBeenCalledWith(
         "test-session-id",
+        "user-123",
         "job-123",
         "user-123",
         "text",
@@ -138,7 +140,7 @@ describe("Interview Database Functions", () => {
 
       const result = getInterviewSession("session-1");
 
-      expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining("WHERE id = ? AND profile_id = ?"));
+      expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining("WHERE id = ? AND user_id = ?"));
       expect(result).toEqual({
         id: "session-1",
         jobId: "job-123",
@@ -227,7 +229,7 @@ describe("Interview Database Functions", () => {
 
       const result = getInterviewSessions();
 
-      expect((db.prepare as Mock)).toHaveBeenCalledWith(expect.stringContaining("WHERE profile_id = ?"));
+      expect((db.prepare as Mock)).toHaveBeenCalledWith(expect.stringContaining("WHERE user_id = ?"));
       expect(result).toHaveLength(2);
       expect(result[0].id).toBe("session-2");
       expect(result[1].id).toBe("session-1");
@@ -247,7 +249,7 @@ describe("Interview Database Functions", () => {
 
       const result = getInterviewSessions();
 
-      expect((db.prepare as Mock)).toHaveBeenCalledWith(expect.stringContaining("WHERE profile_id = ?"));
+      expect((db.prepare as Mock)).toHaveBeenCalledWith(expect.stringContaining("WHERE user_id = ?"));
       expect(result).toEqual([]);
     });
   });

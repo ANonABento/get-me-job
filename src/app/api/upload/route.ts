@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Classify document type using LLM with filename fallback
-    const llmConfig = getLLMConfig();
+    const llmConfig = getLLMConfig(authResult.userId);
     const docType = await classifyDocument(extractedText, file.name, llmConfig);
 
     // Parse document content — smart parser (deterministic first, LLM fallback)

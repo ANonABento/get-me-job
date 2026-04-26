@@ -12,6 +12,7 @@ import {
   createSalaryOffer,
   getSalaryStats,
 } from "@/lib/db/salary";
+import { getJob } from "@/lib/db/jobs";
 import { requireAuth, isAuthError } from "@/lib/auth";
 
 // GET - List all salary offers
@@ -56,6 +57,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "company, role, and baseSalary are required" },
         { status: 400 }
+      );
+    }
+
+    if (jobId && !getJob(jobId, authResult.userId)) {
+      return NextResponse.json(
+        { error: "Job not found" },
+        { status: 404 }
       );
     }
 

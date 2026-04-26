@@ -44,11 +44,14 @@ export function saveScanResult(
   const id = generateId();
   const reportWithFixes = { ...report, fixes };
 
-  db.prepare(
+  const stmt = db.prepare(
     `INSERT INTO ats_scan_history
      (id, user_id, job_id, overall_score, letter_grade, formatting_score, structure_score, content_score, keywords_score, issue_count, fix_count, report_json, scanned_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+     ${jobId ? "WHERE EXISTS (SELECT 1 FROM jobs WHERE id = ? AND user_id = ?)" : ""}`
+  );
+
+  const args: Array<string | number | null> = [
     id,
     userId,
     jobId || null,
@@ -61,8 +64,18 @@ export function saveScanResult(
     report.issues.length,
     fixes.length,
     JSON.stringify(reportWithFixes),
-    report.scannedAt
-  );
+    report.scannedAt,
+  ];
+
+  if (jobId) {
+    args.push(jobId, userId);
+  }
+
+  const result = stmt.run(...args);
+
+  if (result.changes === 0) {
+    throw new Error("Job not found");
+  }
 
   return id;
 }

@@ -66,6 +66,7 @@ describe("Profile Versions", () => {
       expect(mockRun).toHaveBeenCalledWith(
         "test-version-id",
         "default",
+        "default",
         3,
         snapshotJson
       );
@@ -158,14 +159,14 @@ describe("Profile Versions", () => {
       expect(result).toBeNull();
     });
 
-    it("should require the profile id when fetching by version id", () => {
+    it("should require the user id when fetching by version id", () => {
       const mockGet = vi.fn().mockReturnValue(undefined);
       (db.prepare as Mock).mockReturnValue({ get: mockGet });
 
       getProfileVersion("v1", "user-123");
 
       expect(db.prepare).toHaveBeenCalledWith(
-        "SELECT * FROM profile_versions WHERE id = ? AND profile_id = ?"
+        "SELECT * FROM profile_versions WHERE id = ? AND user_id = ?"
       );
       expect(mockGet).toHaveBeenCalledWith("v1", "user-123");
     });

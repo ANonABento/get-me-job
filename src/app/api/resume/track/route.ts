@@ -26,6 +26,7 @@ import {
   getTrackingEntries,
 } from "@/lib/db/resume-tracking";
 import { getGeneratedResume } from "@/lib/db/resumes";
+import { getJob } from "@/lib/db/jobs";
 
 // POST /api/resume/track — log which version sent to which job
 export async function POST(request: NextRequest) {
@@ -45,6 +46,14 @@ export async function POST(request: NextRequest) {
     if (!resume) {
       return NextResponse.json(
         { error: "Resume not found" },
+        { status: 404 }
+      );
+    }
+
+    const job = getJob(jobId, authResult.userId);
+    if (!job) {
+      return NextResponse.json(
+        { error: "Job not found" },
         { status: 404 }
       );
     }

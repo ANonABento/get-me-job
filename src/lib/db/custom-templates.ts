@@ -42,10 +42,19 @@ export function saveCustomTemplate(
 
   const stmt = db.prepare(`
     INSERT INTO custom_templates (id, user_id, name, source_document_id, analyzed_styles, created_at)
-    VALUES (?, ?, ?, ?, ?, ?)
+    SELECT ?, ?, ?, ?, ?, ?
+    ${sourceDocumentId ? "WHERE EXISTS (SELECT 1 FROM documents WHERE id = ? AND user_id = ?)" : ""}
   `);
 
-  stmt.run(id, userId, name, sourceDocumentId || null, JSON.stringify(analyzedStyles), now);
+  const args = [id, userId, name, sourceDocumentId || null, JSON.stringify(analyzedStyles), now];
+  if (sourceDocumentId) {
+    args.push(sourceDocumentId, userId);
+  }
+
+  const result = stmt.run(...args);
+  if (result.changes === 0) {
+    throw new Error("Source document not found");
+  }
 
   return {
     id,

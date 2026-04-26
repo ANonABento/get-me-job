@@ -17,7 +17,7 @@ export async function GET() {
   if (isAuthError(authResult)) return authResult;
 
   try {
-    const llmConfig = getLLMConfig();
+    const llmConfig = getLLMConfig(authResult.userId);
     return NextResponse.json({ llm: llmConfig });
   } catch (error) {
     console.error("Get settings error:", error);
@@ -50,7 +50,7 @@ export async function PUT(request: NextRequest) {
 
     const data = parseResult.data;
     if (data.llm) {
-      setLLMConfig(data.llm);
+      setLLMConfig(data.llm, authResult.userId);
     }
 
     return NextResponse.json({ success: true });

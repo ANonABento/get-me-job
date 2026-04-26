@@ -30,6 +30,13 @@ export async function POST(request: NextRequest) {
 
     const { generateScanReport } = await import("@/lib/ats/analyzer");
     const job = jobId ? getJob(jobId, authResult.userId) : undefined;
+    if (jobId && !job) {
+      return NextResponse.json(
+        { error: "Job not found" },
+        { status: 404 }
+      );
+    }
+
     const report = generateScanReport(profile, job || undefined);
     const fixes = generateFixSuggestions(profile, report.issues, report.keywords);
 

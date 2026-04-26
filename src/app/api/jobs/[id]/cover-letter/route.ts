@@ -36,7 +36,7 @@ export async function POST(
       );
     }
 
-    const llmConfig = getLLMConfig();
+    const llmConfig = getLLMConfig(authResult.userId);
 
     let coverLetter: string;
     let highlights: string[] = [];

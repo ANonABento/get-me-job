@@ -39,7 +39,7 @@ export async function GET() {
           matchScore: r.matchScore,
           createdAt: r.createdAt,
         })),
-        llmConfig: getLLMConfig(),
+        llmConfig: getLLMConfig(authResult.userId),
       },
       stats: {
         totalJobs: getJobs(authResult.userId).length,
@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
           apiKey: config.apiKey,
           baseUrl: config.baseUrl,
           model: config.model,
-        });
+        }, authResult.userId);
         results.llmConfig = true;
       }
     }

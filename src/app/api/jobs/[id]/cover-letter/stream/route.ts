@@ -34,7 +34,7 @@ export async function POST(
       );
     }
 
-    const llmConfig = getLLMConfig();
+    const llmConfig = getLLMConfig(authResult.userId);
     if (!llmConfig) {
       // Return basic cover letter for non-LLM case
       const basicLetter = generateBasicCoverLetter(profile, job);

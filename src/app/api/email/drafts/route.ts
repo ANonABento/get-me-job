@@ -11,6 +11,7 @@ import {
   getEmailDrafts,
   createEmailDraft,
 } from "@/lib/db/email-drafts";
+import { getJob } from "@/lib/db/jobs";
 import { requireAuth, isAuthError } from "@/lib/auth";
 
 // GET - List all email drafts
@@ -43,6 +44,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "type, subject, and body are required" },
         { status: 400 }
+      );
+    }
+
+    if (jobId && !getJob(jobId, authResult.userId)) {
+      return NextResponse.json(
+        { error: "Job not found" },
+        { status: 404 }
       );
     }
 

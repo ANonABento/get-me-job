@@ -31,7 +31,7 @@ describe("Resume A/B Tracking Database Functions", () => {
 
   describe("trackResumeSent", () => {
     it("should insert a new tracking entry with applied outcome", () => {
-      const mockRun = vi.fn();
+      const mockRun = vi.fn().mockReturnValue({ changes: 1 });
       (db.prepare as Mock).mockReturnValue({ run: mockRun });
 
       const result = trackResumeSent("resume-123", "job-456");
@@ -47,7 +47,7 @@ describe("Resume A/B Tracking Database Functions", () => {
     });
 
     it("should include notes when provided", () => {
-      const mockRun = vi.fn();
+      const mockRun = vi.fn().mockReturnValue({ changes: 1 });
       (db.prepare as Mock).mockReturnValue({ run: mockRun });
 
       const result = trackResumeSent("resume-123", "job-456", "default", "Tailored for role");
@@ -56,13 +56,35 @@ describe("Resume A/B Tracking Database Functions", () => {
     });
 
     it("should default to 'default' user", () => {
-      const mockRun = vi.fn();
+      const mockRun = vi.fn().mockReturnValue({ changes: 1 });
       (db.prepare as Mock).mockReturnValue({ run: mockRun });
 
       trackResumeSent("resume-123", "job-456");
 
       const args = mockRun.mock.calls[0];
       expect(args[3]).toBe("default"); // userId is 4th arg
+    });
+
+    it("should reject tracking when the resume or job is outside the user", () => {
+      const mockRun = vi.fn().mockReturnValue({ changes: 0 });
+      (db.prepare as Mock).mockReturnValue({ run: mockRun });
+
+      expect(() => trackResumeSent("resume-123", "job-456", "user-1")).toThrow(
+        "Resume or job not found"
+      );
+      expect(mockRun).toHaveBeenCalledWith(
+        "test-tracking-id",
+        "resume-123",
+        "job-456",
+        "user-1",
+        expect.any(String),
+        expect.any(String),
+        null,
+        "resume-123",
+        "user-1",
+        "job-456",
+        "user-1"
+      );
     });
   });
 

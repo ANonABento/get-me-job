@@ -36,10 +36,28 @@ export function trackResumeSent(
 
   const stmt = db.prepare(`
     INSERT INTO resume_ab_tracking (id, resume_id, job_id, user_id, outcome, sent_at, updated_at, notes)
-    VALUES (?, ?, ?, ?, 'applied', ?, ?, ?)
+    SELECT ?, ?, ?, ?, 'applied', ?, ?, ?
+    WHERE EXISTS (SELECT 1 FROM generated_resumes WHERE id = ? AND user_id = ?)
+      AND EXISTS (SELECT 1 FROM jobs WHERE id = ? AND user_id = ?)
   `);
 
-  stmt.run(id, resumeId, jobId, userId, now, now, notes || null);
+  const result = stmt.run(
+    id,
+    resumeId,
+    jobId,
+    userId,
+    now,
+    now,
+    notes || null,
+    resumeId,
+    userId,
+    jobId,
+    userId
+  );
+
+  if (result.changes === 0) {
+    throw new Error("Resume or job not found");
+  }
 
   return {
     id,

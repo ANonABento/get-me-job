@@ -60,7 +60,7 @@ export async function POST(
       );
     }
 
-    const llmConfig = getLLMConfig();
+    const llmConfig = getLLMConfig(authResult.userId);
 
     // Generate tailored resume content
     const tailoredResume = await generateTailoredResume(profile, job, llmConfig);

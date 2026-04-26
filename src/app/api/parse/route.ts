@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get LLM config and parse resume
-    const llmConfig = getLLMConfig();
+    const llmConfig = getLLMConfig(authResult.userId);
     console.log(`[parse] LLM config: ${llmConfig ? llmConfig.provider : "none"}`);
 
     const { parsedProfile, parsingMethod, llmFallback } = await parseResumeText(

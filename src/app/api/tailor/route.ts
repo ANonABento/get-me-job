@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
       location: "",
     };
 
-    const llmConfig = getLLMConfig();
+    const llmConfig = getLLMConfig(authResult.userId);
 
     const tailoredResume = await generateFromBank(
       {

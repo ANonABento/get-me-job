@@ -93,7 +93,10 @@ export async function POST(request: NextRequest) {
           updatedAt: now,
           lastUsedAt: now,
         })
-        .where(eq(learnedAnswers.id, existing.id));
+        .where(and(
+          eq(learnedAnswers.id, existing.id),
+          eq(learnedAnswers.userId, authResult.userId)
+        ));
 
       return NextResponse.json({
         id: existing.id,

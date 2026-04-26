@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     const profile = getProfile(authResult.userId);
-    const llmConfig = getLLMConfig();
+    const llmConfig = getLLMConfig(authResult.userId);
 
     let feedback = "";
 

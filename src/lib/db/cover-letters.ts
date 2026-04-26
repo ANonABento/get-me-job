@@ -44,16 +44,23 @@ export function saveCoverLetter(
   // Get next version number for this job
   const existing = db
     .prepare(
-      "SELECT MAX(version) as max_version FROM cover_letters WHERE job_id = ? AND profile_id = ?"
+      "SELECT MAX(version) as max_version FROM cover_letters WHERE job_id = ? AND user_id = ?"
     )
     .get(jobId, userId) as { max_version: number | null } | undefined;
 
   const version = (existing?.max_version || 0) + 1;
 
-  db.prepare(
-    `INSERT INTO cover_letters (id, job_id, profile_id, content, highlights_json, version)
-     VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(id, jobId, userId, content, JSON.stringify(highlights), version);
+  const result = db.prepare(
+    `INSERT INTO cover_letters (id, user_id, job_id, profile_id, content, highlights_json, version)
+     SELECT ?, ?, ?, ?, ?, ?, ?
+     WHERE EXISTS (SELECT 1 FROM jobs WHERE id = ? AND user_id = ?)`
+  ).run(id, userId, jobId, userId, content, JSON.stringify(highlights), version, jobId, userId) as
+    | { changes?: number }
+    | undefined;
+
+  if (result?.changes === 0) {
+    throw new Error("Job not found");
+  }
 
   return {
     id,
@@ -72,7 +79,7 @@ export function getCoverLettersByJob(
 ): CoverLetter[] {
   const rows = db
     .prepare(
-      "SELECT * FROM cover_letters WHERE job_id = ? AND profile_id = ? ORDER BY version DESC"
+      "SELECT * FROM cover_letters WHERE job_id = ? AND user_id = ? ORDER BY version DESC"
     )
     .all(jobId, userId) as CoverLetterRow[];
 
@@ -85,7 +92,7 @@ export function getLatestCoverLetter(
 ): CoverLetter | null {
   const row = db
     .prepare(
-      "SELECT * FROM cover_letters WHERE job_id = ? AND profile_id = ? ORDER BY version DESC LIMIT 1"
+      "SELECT * FROM cover_letters WHERE job_id = ? AND user_id = ? ORDER BY version DESC LIMIT 1"
     )
     .get(jobId, userId) as CoverLetterRow | undefined;
 
@@ -97,7 +104,7 @@ export function getCoverLetter(
   userId: string = "default"
 ): CoverLetter | null {
   const row = db
-    .prepare("SELECT * FROM cover_letters WHERE id = ? AND profile_id = ?")
+    .prepare("SELECT * FROM cover_letters WHERE id = ? AND user_id = ?")
     .get(id, userId) as CoverLetterRow | undefined;
 
   return row ? rowToCoverLetter(row) : null;
@@ -108,7 +115,7 @@ export function deleteCoverLetter(
   userId: string = "default"
 ): boolean {
   const result = db
-    .prepare("DELETE FROM cover_letters WHERE id = ? AND profile_id = ?")
+    .prepare("DELETE FROM cover_letters WHERE id = ? AND user_id = ?")
     .run(id, userId);
   return result.changes > 0;
 }
@@ -118,7 +125,7 @@ export function getCoverLetterCount(
   userId: string = "default"
 ): number {
   const result = db
-    .prepare("SELECT COUNT(*) as count FROM cover_letters WHERE job_id = ? AND profile_id = ?")
+    .prepare("SELECT COUNT(*) as count FROM cover_letters WHERE job_id = ? AND user_id = ?")
     .get(jobId, userId) as { count: number };
   return result.count;
 }
@@ -128,7 +135,7 @@ export function getAllCoverLetters(
 ): CoverLetter[] {
   const rows = db
     .prepare(
-      "SELECT * FROM cover_letters WHERE profile_id = ? ORDER BY created_at DESC"
+      "SELECT * FROM cover_letters WHERE user_id = ? ORDER BY created_at DESC"
     )
     .all(userId) as CoverLetterRow[];
 

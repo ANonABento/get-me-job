@@ -27,6 +27,7 @@ import {
   getLLMConfig,
   setLLMConfig,
   saveDocument,
+  getDocument,
   getDocuments,
   getProfile,
   updateProfile,
@@ -46,10 +47,20 @@ describe("Settings Functions", () => {
       const result = getSetting("test-key");
 
       expect(db.prepare).toHaveBeenCalledWith(
-        "SELECT value FROM settings WHERE key = ?"
+        "SELECT value FROM settings WHERE key = ? AND user_id = ?"
       );
-      expect(mockGet).toHaveBeenCalledWith("test-key");
+      expect(mockGet).toHaveBeenCalledWith("test-key", "default");
       expect(result).toBe("test-value");
+    });
+
+    it("should scope setting lookup to the provided user", () => {
+      const mockGet = vi.fn().mockReturnValue({ value: "user-value" });
+      (db.prepare as Mock).mockReturnValue({ get: mockGet });
+
+      const result = getSetting("test-key", "user-123");
+
+      expect(mockGet).toHaveBeenCalledWith("test-key", "user-123");
+      expect(result).toBe("user-value");
     });
 
     it("should return null for non-existent setting", () => {
@@ -70,10 +81,8 @@ describe("Settings Functions", () => {
 
       setSetting("my-key", "my-value");
 
-      expect(db.prepare).toHaveBeenCalledWith(
-        "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)"
-      );
-      expect(mockRun).toHaveBeenCalledWith("my-key", "my-value");
+      expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining("ON CONFLICT(key, user_id)"));
+      expect(mockRun).toHaveBeenCalledWith("my-key", "default", "my-value");
     });
   });
 
@@ -108,7 +117,7 @@ describe("Settings Functions", () => {
       const config = { provider: "anthropic" as const, model: "claude-3", apiKey: "sk-ant-xxx" };
       setLLMConfig(config);
 
-      expect(mockRun).toHaveBeenCalledWith("llm_config", JSON.stringify(config));
+      expect(mockRun).toHaveBeenCalledWith("llm_config", "default", JSON.stringify(config));
     });
   });
 });
@@ -178,6 +187,7 @@ describe("Document Functions", () => {
           size: 1024,
           path: "/uploads/resume.pdf",
           extractedText: "Text content",
+          parsedData: undefined,
           uploadedAt: "2024-01-15T10:00:00.000Z",
         },
       ]);
@@ -192,6 +202,41 @@ describe("Document Functions", () => {
         "SELECT * FROM documents WHERE user_id = ? ORDER BY uploaded_at DESC"
       );
       expect(result).toEqual([]);
+    });
+  });
+
+  describe("getDocument", () => {
+    it("should return one document scoped to the provided user", () => {
+      const mockGet = vi.fn().mockReturnValue({
+        id: "doc-1",
+        filename: "resume.pdf",
+        type: "resume",
+        mime_type: "application/pdf",
+        size: 1024,
+        path: "/uploads/resume.pdf",
+        extracted_text: null,
+        parsed_data: null,
+        uploaded_at: "2024-01-15T10:00:00.000Z",
+      });
+      (db.prepare as Mock).mockReturnValue({ get: mockGet });
+
+      const result = getDocument("doc-1", "user-123");
+
+      expect(db.prepare).toHaveBeenCalledWith(
+        "SELECT * FROM documents WHERE id = ? AND user_id = ?"
+      );
+      expect(mockGet).toHaveBeenCalledWith("doc-1", "user-123");
+      expect(result).toEqual({
+        id: "doc-1",
+        filename: "resume.pdf",
+        type: "resume",
+        mimeType: "application/pdf",
+        size: 1024,
+        path: "/uploads/resume.pdf",
+        extractedText: undefined,
+        parsedData: undefined,
+        uploadedAt: "2024-01-15T10:00:00.000Z",
+      });
     });
   });
 });

@@ -16,6 +16,7 @@ import {
   deleteCustomTemplate,
   updateCustomTemplateName,
 } from "@/lib/db/custom-templates";
+import { getDocument } from "@/lib/db/queries";
 import { TEMPLATES } from "@/lib/resume/templates";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import {
@@ -101,6 +102,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { name, analyzedStyles, sourceDocumentId } = parseResult.data;
+
+    if (sourceDocumentId && !getDocument(sourceDocumentId, authResult.userId)) {
+      return ApiErrors.notFound("Source document");
+    }
 
     const template = saveCustomTemplate(
       name,

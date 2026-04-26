@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     // Try to extract keywords using LLM
     let keywords: string[] = [];
-    const llmConfig = getLLMConfig();
+    const llmConfig = getLLMConfig(authResult.userId);
 
     if (llmConfig) {
       try {

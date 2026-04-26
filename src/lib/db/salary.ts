@@ -172,10 +172,11 @@ export function createSalaryOffer(
       annual_bonus, equity_value, vesting_years, location, status, notes,
       created_at, updated_at
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)
+    SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?
+    ${input.jobId ? "WHERE EXISTS (SELECT 1 FROM jobs WHERE id = ? AND user_id = ?)" : ""}
   `);
 
-  stmt.run(
+  const args: Array<string | number | null> = [
     id,
     userId,
     input.jobId || null,
@@ -189,8 +190,18 @@ export function createSalaryOffer(
     input.location || null,
     input.notes || null,
     now,
-    now
-  );
+    now,
+  ];
+
+  if (input.jobId) {
+    args.push(input.jobId, userId);
+  }
+
+  const result = stmt.run(...args);
+
+  if (result.changes === 0) {
+    throw new Error("Job not found");
+  }
 
   return {
     id,

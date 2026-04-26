@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
           apiKey: config.apiKey,
           baseUrl: config.baseUrl,
           model: config.model,
-        });
+        }, authResult.userId);
         results.llmConfig = true;
       }
     }
