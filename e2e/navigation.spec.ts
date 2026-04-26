@@ -32,7 +32,7 @@ test.describe("Navigation", () => {
     // Check main navigation items visible in sidebar
     await expect(sidebar.getByRole("link", { name: /Dashboard/i })).toBeVisible();
     await expect(sidebar.getByRole("link", { name: /Documents/i })).toBeVisible();
-    await expect(sidebar.getByRole("link", { name: /Resume Builder/i })).toBeVisible();
+    await expect(sidebar.getByRole("link", { name: /Document Studio/i })).toBeVisible();
     await expect(sidebar.getByRole("link", { name: /Interview Prep/i })).toBeVisible();
     await expect(sidebar.getByRole("link", { name: /Analytics/i })).toBeVisible();
     await expect(sidebar.getByRole("link", { name: /Settings/i })).toBeVisible();
@@ -54,12 +54,12 @@ test.describe("Navigation", () => {
     await expect(page).toHaveURL("/bank");
   });
 
-  test("should navigate to Resume Builder page", async ({ page }) => {
+  test("should navigate to Document Studio page", async ({ page }) => {
     await preparePage(page);
     await ensureSidebarOpen(page);
     const sidebar = page.locator("aside");
-    await sidebar.getByRole("link", { name: /Resume Builder/i }).click();
-    await expect(page).toHaveURL("/builder");
+    await sidebar.getByRole("link", { name: /Document Studio/i }).click();
+    await expect(page).toHaveURL("/studio");
   });
 
   test("should navigate to Settings page", async ({ page }) => {
