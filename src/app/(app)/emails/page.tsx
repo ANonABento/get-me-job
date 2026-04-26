@@ -463,7 +463,7 @@ export default function EmailTemplatesPage() {
             Back to Dashboard
           </Link>
 
-          <div className="space-y-4 animate-in">
+          <div className="space-y-4 animate-enter">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
               <Mail className="h-4 w-4" />
               Communication

@@ -186,7 +186,7 @@ export default function Dashboard() {
         <div className="hero-gradient border-b">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12 lg:py-16 grain">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
-              <div className="space-y-4 animate-in">
+              <div className="space-y-4 animate-enter">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
                   <Sparkles className="h-4 w-4" />
                   AI-Powered Job Assistant

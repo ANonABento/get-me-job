@@ -328,7 +328,7 @@ export default function CalendarPage() {
           </Link>
 
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-            <div className="space-y-4 animate-in">
+            <div className="space-y-4 animate-enter">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
                 <CalendarIcon className="h-4 w-4" />
                 Schedule

@@ -274,11 +274,11 @@
 
 @layer utilities {
   /* Animation utilities */
-  .animate-in {
-    animation: animate-in 0.3s ease-out;
+  .animate-enter {
+    animation: animate-enter 0.3s ease-out;
   }
 
-  @keyframes animate-in {
+  @keyframes animate-enter {
     from {
       opacity: 0;
       transform: translateY(10px);
@@ -321,7 +321,7 @@
 
   /* Stagger children animation */
   .stagger-children > * {
-    animation: animate-in 0.3s ease-out backwards;
+    animation: animate-enter 0.3s ease-out backwards;
   }
 
   .stagger-children > *:nth-child(1) { animation-delay: 0ms; }

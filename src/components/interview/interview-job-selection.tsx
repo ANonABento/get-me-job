@@ -110,7 +110,7 @@ export function InterviewJobSelection({
   }
 
   return (
-    <div className="space-y-6 animate-in">
+    <div className="space-y-6 animate-enter">
       <PastSessionsList
         pastSessions={pastSessions}
         jobs={jobs}
@@ -209,7 +209,7 @@ export function InterviewJobSelection({
             </div>
 
             {showPrepGuide === job.id && (
-              <div className="animate-in">
+              <div className="animate-enter">
                 <PrepGuideCard jobId={job.id} />
               </div>
             )}

@@ -46,7 +46,7 @@ export function InterviewSummary({
         : "brief";
 
   return (
-    <div className="space-y-6 animate-in">
+    <div className="space-y-6 animate-enter">
       <div className="border-success/50 bg-success/5 rounded-2xl border p-8 text-center">
         <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-success/20 text-success">
           <Trophy className="h-10 w-10" />

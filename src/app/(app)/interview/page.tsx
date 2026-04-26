@@ -72,7 +72,7 @@ export default function InterviewPage() {
             Back to Dashboard
           </Link>
 
-          <div className="space-y-4 animate-in">
+          <div className="space-y-4 animate-enter">
             <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
               <Sparkles className="h-4 w-4" />
               AI Interview Coach

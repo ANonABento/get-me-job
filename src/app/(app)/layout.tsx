@@ -17,7 +17,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         >
           Skip to main content
         </a>
-        <div className="flex min-h-screen">
+        <div className="flex h-screen">
           <Sidebar />
           <main
             id="main-content"
