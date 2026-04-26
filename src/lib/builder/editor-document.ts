@@ -32,9 +32,10 @@ export const EDITABLE_SECTION_TITLES: Record<BankCategory, string> = {
 
 export function createEditableResumeDocument(
   entries: BankEntry[],
-  sectionOrder: BankCategory[]
+  sectionOrder: BankCategory[],
+  previousDocument?: EditableResumeDocument
 ): EditableResumeDocument {
-  return {
+  const nextDocument: EditableResumeDocument = {
     sections: sectionOrder.map((category) => ({
       id: category,
       title: EDITABLE_SECTION_TITLES[category],
@@ -42,6 +43,33 @@ export function createEditableResumeDocument(
         .filter((entry) => entry.category === category)
         .map(createEditableEntry),
     })),
+  };
+
+  if (!previousDocument) {
+    return nextDocument;
+  }
+
+  const previousSections = new Map(
+    previousDocument.sections.map((section) => [section.id, section])
+  );
+
+  return {
+    sections: nextDocument.sections.map((section) => {
+      const previousSection = previousSections.get(section.id);
+      if (!previousSection) return section;
+
+      const previousEntries = new Map(
+        previousSection.entries.map((entry) => [entry.id, entry])
+      );
+
+      return {
+        ...section,
+        title: previousSection.title,
+        entries: section.entries.map(
+          (entry) => previousEntries.get(entry.id) ?? entry
+        ),
+      };
+    }),
   };
 }
 

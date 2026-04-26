@@ -18,6 +18,7 @@ import {
   createInitialSections,
   toggleSectionVisibility,
   reorderSections,
+  reorderSectionsById,
   getVisibleSectionIds,
   getMobilePanelClasses,
   DEFAULT_BUILDER_PANEL,
@@ -69,7 +70,8 @@ interface BuilderEditorState {
 function buildEditorState(
   entries: BankEntry[],
   sections: SectionState[],
-  selectedIds: string[]
+  selectedIds: string[],
+  previousDocument?: EditableResumeDocument
 ): BuilderEditorState {
   const visibleCategoryIds = getVisibleSectionIds(sections);
   const selectedIdSet = new Set(selectedIds);
@@ -90,7 +92,11 @@ function buildEditorState(
   return {
     sections,
     selectedIds,
-    document: createEditableResumeDocument(orderedEntries, visibleCategoryIds),
+    document: createEditableResumeDocument(
+      orderedEntries,
+      visibleCategoryIds,
+      previousDocument
+    ),
   };
 }
 
@@ -285,7 +291,8 @@ function BuilderPageContent() {
         buildEditorState(
           entries,
           prev.sections,
-          toggleSelectedId(prev.selectedIds, id)
+          toggleSelectedId(prev.selectedIds, id),
+          prev.document
         )
       );
     },
@@ -316,11 +323,42 @@ function BuilderPageContent() {
         buildEditorState(
           entries,
           toggleSectionVisibility(prev.sections, categoryId),
-          prev.selectedIds
+          prev.selectedIds,
+          prev.document
         )
       );
     },
     [commitEditorState, entries]
+  );
+
+  const handlePreviewSectionReorder = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      commitEditorState((prev) => {
+        const fromSection = prev.document.sections[fromIndex];
+        const toSection = prev.document.sections[toIndex];
+        if (!fromSection || !toSection || fromSection.id === toSection.id) {
+          return prev;
+        }
+
+        const sections = reorderSectionsById(
+          prev.sections,
+          fromSection.id,
+          toSection.id
+        );
+        const document = reorderEditableDocumentSections(
+          prev.document,
+          fromIndex,
+          toIndex
+        );
+
+        if (sections === prev.sections && document === prev.document) {
+          return prev;
+        }
+
+        return { ...prev, sections, document };
+      });
+    },
+    [commitEditorState]
   );
 
   const handleSectionTitleChange = useCallback(
@@ -620,7 +658,7 @@ function BuilderPageContent() {
                   setEntryPickerOpen(true);
                   setMobileView("edit");
                 }}
-                onSectionReorder={handleReorder}
+                onSectionReorder={handlePreviewSectionReorder}
                 onSectionTitleChange={handleSectionTitleChange}
                 onEntryFieldChange={handleEntryFieldChange}
                 onEntryBulletChange={handleEntryBulletChange}

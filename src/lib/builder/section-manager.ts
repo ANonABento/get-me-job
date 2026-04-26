@@ -63,6 +63,16 @@ export function reorderSections(
   return result;
 }
 
+export function reorderSectionsById(
+  sections: SectionState[],
+  fromId: BankCategory,
+  toId: BankCategory
+): SectionState[] {
+  const fromIndex = sections.findIndex((section) => section.id === fromId);
+  const toIndex = sections.findIndex((section) => section.id === toId);
+  return reorderSections(sections, fromIndex, toIndex);
+}
+
 export function getVisibleSectionIds(sections: SectionState[]): BankCategory[] {
   return sections.filter((s) => s.visible).map((s) => s.id);
 }

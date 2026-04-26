@@ -3,6 +3,7 @@ import {
   createInitialSections,
   toggleSectionVisibility,
   reorderSections,
+  reorderSectionsById,
   getVisibleSectionIds,
   getMobilePanelClasses,
   DEFAULT_SECTION_ORDER,
@@ -118,6 +119,35 @@ describe("reorderSections", () => {
   it("returns a new array (immutable)", () => {
     const result = reorderSections(sections, 0, 1);
     expect(result).not.toBe(sections);
+  });
+});
+
+describe("reorderSectionsById", () => {
+  const sections: SectionState[] = [
+    { id: "experience", visible: true },
+    { id: "education", visible: false },
+    { id: "skill", visible: true },
+    { id: "project", visible: true },
+  ];
+
+  it("moves the intended visible section even when hidden sections are between visible ones", () => {
+    const result = reorderSectionsById(sections, "skill", "experience");
+
+    expect(result.map((s) => s.id)).toEqual([
+      "skill",
+      "experience",
+      "education",
+      "project",
+    ]);
+    expect(result.find((section) => section.id === "education")?.visible).toBe(
+      false
+    );
+  });
+
+  it("returns the same array when either section id is missing", () => {
+    expect(reorderSectionsById(sections, "skill", "certification")).toBe(
+      sections
+    );
   });
 });
 

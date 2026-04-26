@@ -60,6 +60,50 @@ describe("createEditableResumeDocument", () => {
     });
     expect(document.sections[2].entries).toEqual([]);
   });
+
+  it("preserves edited text for existing sections and entries when rebuilt", () => {
+    const document = createEditableResumeDocument(entries, [
+      "experience",
+      "skill",
+    ]);
+    const edited = updateEditableEntryField(
+      updateEditableSectionTitle(document, "experience", "Selected Work"),
+      "experience",
+      "exp-1",
+      "heading",
+      "Staff Engineer"
+    );
+
+    const rebuilt = createEditableResumeDocument(
+      entries,
+      ["experience", "skill"],
+      edited
+    );
+
+    expect(rebuilt.sections[0].title).toBe("Selected Work");
+    expect(rebuilt.sections[0].entries[0].heading).toBe("Staff Engineer");
+    expect(rebuilt.sections[1].entries[0].heading).toBe("TypeScript");
+  });
+
+  it("uses bank text for newly added entries when preserving prior edits", () => {
+    const document = createEditableResumeDocument(entries, ["experience"]);
+    const edited = updateEditableEntryField(
+      document,
+      "experience",
+      "exp-1",
+      "heading",
+      "Staff Engineer"
+    );
+
+    const rebuilt = createEditableResumeDocument(
+      entries,
+      ["experience", "skill"],
+      edited
+    );
+
+    expect(rebuilt.sections[0].entries[0].heading).toBe("Staff Engineer");
+    expect(rebuilt.sections[1].entries[0].heading).toBe("TypeScript");
+  });
 });
 
 describe("editable document updates", () => {
