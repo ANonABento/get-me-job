@@ -65,18 +65,7 @@ jobs:
         run: npm ci
 
       - name: Validate Vercel secrets
-        run: |
-          missing=()
-          for name in VERCEL_ORG_ID VERCEL_PROJECT_ID VERCEL_TOKEN; do
-            if [ -z "${!name}" ]; then
-              missing+=("$name")
-            fi
-          done
-
-          if [ "${#missing[@]}" -gt 0 ]; then
-            printf 'Missing required GitHub secret(s): %s\n' "${missing[*]}"
-            exit 1
-          fi
+        run: bash .github/scripts/validate-vercel-env.sh
 
       - name: Pull Vercel preview environment
         run: npx --yes vercel@latest pull --yes --environment=preview --token="$VERCEL_TOKEN"
@@ -148,18 +137,7 @@ jobs:
         run: npm ci
 
       - name: Validate Vercel secrets
-        run: |
-          missing=()
-          for name in VERCEL_ORG_ID VERCEL_PROJECT_ID VERCEL_TOKEN; do
-            if [ -z "${!name}" ]; then
-              missing+=("$name")
-            fi
-          done
-
-          if [ "${#missing[@]}" -gt 0 ]; then
-            printf 'Missing required GitHub secret(s): %s\n' "${missing[*]}"
-            exit 1
-          fi
+        run: bash .github/scripts/validate-vercel-env.sh
 
       - name: Pull Vercel production environment
         run: npx --yes vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
