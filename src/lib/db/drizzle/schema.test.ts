@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getTableName } from "drizzle-orm";
 import { getTableConfig, type AnyPgTable } from "drizzle-orm/pg-core";
-import { companyResearch, knowledgeChunks } from "./schema";
+import { companyResearch, jobStatusHistory, knowledgeChunks } from "./schema";
 
 function indexColumnNames(indexName: string, table: AnyPgTable): string[] {
   const config = getTableConfig(table);
@@ -44,6 +44,16 @@ describe("Drizzle schema", () => {
     expect(indexColumnNames("idx_company_research_user_company", companyResearch)).toEqual([
       "user_id",
       "company_name",
+    ]);
+  });
+
+  it("scopes job status history by user in the Neon schema", () => {
+    const columns = getTableConfig(jobStatusHistory).columns.map((column) => column.name);
+    expect(columns).toContain("user_id");
+    expect(indexColumnNames("idx_job_status_history_user_job", jobStatusHistory)).toEqual([
+      "user_id",
+      "job_id",
+      "changed_at",
     ]);
   });
 });

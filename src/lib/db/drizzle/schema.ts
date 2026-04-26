@@ -273,12 +273,15 @@ export const analyticsSnapshots = pgTable('analytics_snapshots', {
 // Job status history table
 export const jobStatusHistory = pgTable('job_status_history', {
   id: text('id').primaryKey(),
+  userId: text('user_id').notNull().default(DEFAULT_USER_ID),
   jobId: text('job_id').notNull(),
   fromStatus: text('from_status'),
   toStatus: text('to_status').notNull(),
   changedAt: timestamp('changed_at').defaultNow(),
   notes: text('notes'),
-});
+}, (table) => [
+  index('idx_job_status_history_user_job').on(table.userId, table.jobId, table.changedAt),
+]);
 
 // Salary offers table
 export const salaryOffers = pgTable('salary_offers', {

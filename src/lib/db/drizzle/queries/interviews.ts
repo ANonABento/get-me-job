@@ -1,4 +1,4 @@
-import { db, interviewSessions, interviewAnswers, eq, and, desc } from '../index';
+import { db, interviewSessions, interviewAnswers, jobs, eq, and, desc } from '../index';
 import { generateId } from '@/lib/utils';
 
 interface InterviewQuestion {
@@ -41,6 +41,13 @@ export async function createInterviewSession(
 ): Promise<InterviewSession> {
   const id = generateId();
   const now = new Date();
+  const jobRows = await db.select({ id: jobs.id }).from(jobs)
+    .where(and(eq(jobs.id, jobId), eq(jobs.userId, userId)))
+    .limit(1);
+
+  if (jobRows.length === 0) {
+    throw new Error('Job not found');
+  }
 
   await db.insert(interviewSessions).values({
     id,
@@ -137,6 +144,13 @@ export async function addInterviewAnswer(
 ): Promise<InterviewAnswer> {
   const id = generateId();
   const now = new Date();
+  const sessionRows = await db.select({ id: interviewSessions.id }).from(interviewSessions)
+    .where(and(eq(interviewSessions.id, sessionId), eq(interviewSessions.userId, userId)))
+    .limit(1);
+
+  if (sessionRows.length === 0) {
+    throw new Error('Session not found');
+  }
 
   await db.insert(interviewAnswers).values({
     id,

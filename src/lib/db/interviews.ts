@@ -43,10 +43,24 @@ export function createInterviewSession(
 
   const stmt = db.prepare(`
     INSERT INTO interview_sessions (id, job_id, profile_id, mode, questions_json, status, started_at)
-    VALUES (?, ?, ?, ?, ?, 'in_progress', ?)
+    SELECT ?, ?, ?, ?, ?, 'in_progress', ?
+    WHERE EXISTS (SELECT 1 FROM jobs WHERE id = ? AND user_id = ?)
   `);
 
-  stmt.run(id, jobId, userId, mode, JSON.stringify(questions), now);
+  const result = stmt.run(
+    id,
+    jobId,
+    userId,
+    mode,
+    JSON.stringify(questions),
+    now,
+    jobId,
+    userId
+  ) as { changes?: number } | undefined;
+
+  if (result?.changes === 0) {
+    throw new Error("Job not found");
+  }
 
   return {
     id,
@@ -176,10 +190,28 @@ export function addInterviewAnswer(
 
   const stmt = db.prepare(`
     INSERT INTO interview_answers (id, user_id, session_id, question_index, answer, feedback, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    SELECT ?, ?, ?, ?, ?, ?, ?
+    WHERE EXISTS (
+      SELECT 1 FROM interview_sessions
+      WHERE id = ? AND profile_id = ?
+    )
   `);
 
-  stmt.run(id, userId, sessionId, questionIndex, answer, feedback || null, now);
+  const result = stmt.run(
+    id,
+    userId,
+    sessionId,
+    questionIndex,
+    answer,
+    feedback || null,
+    now,
+    sessionId,
+    userId
+  ) as { changes?: number } | undefined;
+
+  if (result?.changes === 0) {
+    throw new Error("Session not found");
+  }
 
   return {
     id,

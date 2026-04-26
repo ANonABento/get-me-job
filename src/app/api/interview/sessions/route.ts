@@ -15,6 +15,7 @@ import {
   getInterviewSessions,
   createInterviewSession,
 } from "@/lib/db/interviews";
+import { getJob } from "@/lib/db/jobs";
 import { createInterviewSessionSchema } from "@/lib/constants";
 import { requireAuth, isAuthError } from "@/lib/auth";
 
@@ -61,6 +62,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { jobId, questions, mode } = parseResult.data;
+
+    const job = getJob(jobId, authResult.userId);
+    if (!job) {
+      return NextResponse.json({ error: "Job not found" }, { status: 404 });
+    }
 
     const session = createInterviewSession(jobId, questions, mode, authResult.userId);
 

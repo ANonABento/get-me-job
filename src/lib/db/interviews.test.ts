@@ -42,13 +42,16 @@ describe("Interview Database Functions", () => {
 
       const result = createInterviewSession("job-123", questions, "text");
 
+      expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining("WHERE EXISTS"));
       expect(mockRun).toHaveBeenCalledWith(
         "test-session-id",
         "job-123",
         "default",
         "text",
         JSON.stringify(questions),
-        expect.any(String)
+        expect.any(String),
+        "job-123",
+        "default"
       );
       expect(result).toEqual({
         id: "test-session-id",
@@ -59,6 +62,25 @@ describe("Interview Database Functions", () => {
         status: "in_progress",
         startedAt: expect.any(String),
       });
+    });
+
+    it("should reject sessions for jobs outside the provided user", () => {
+      const mockRun = vi.fn().mockReturnValue({ changes: 0 });
+      (db.prepare as Mock).mockReturnValue({ run: mockRun });
+
+      expect(() => createInterviewSession("job-123", [], "text", "user-123")).toThrow(
+        "Job not found"
+      );
+      expect(mockRun).toHaveBeenCalledWith(
+        "test-session-id",
+        "job-123",
+        "user-123",
+        "text",
+        JSON.stringify([]),
+        expect.any(String),
+        "job-123",
+        "user-123"
+      );
     });
 
     it("should default to text mode", () => {
@@ -244,7 +266,9 @@ describe("Interview Database Functions", () => {
         0,
         "My answer",
         "Good!",
-        expect.any(String)
+        expect.any(String),
+        "session-1",
+        "default"
       );
       expect(result).toEqual({
         id: "test-session-id",
@@ -254,6 +278,26 @@ describe("Interview Database Functions", () => {
         feedback: "Good!",
         createdAt: expect.any(String),
       });
+    });
+
+    it("should reject answers for sessions outside the provided user", () => {
+      const mockRun = vi.fn().mockReturnValue({ changes: 0 });
+      (db.prepare as Mock).mockReturnValue({ run: mockRun });
+
+      expect(() =>
+        addInterviewAnswer("session-1", 0, "My answer", undefined, "user-123")
+      ).toThrow("Session not found");
+      expect(mockRun).toHaveBeenCalledWith(
+        "test-session-id",
+        "user-123",
+        "session-1",
+        0,
+        "My answer",
+        null,
+        expect.any(String),
+        "session-1",
+        "user-123"
+      );
     });
 
     it("should handle answers without feedback", () => {
