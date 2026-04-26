@@ -6,6 +6,7 @@ type EnvSource = Record<string, string | undefined>;
 export interface SqlStatement {
   sql: string;
   params?: string[];
+  table?: string;
 }
 
 interface StatementRunner {
@@ -20,7 +21,7 @@ export interface CleanSlateDatabase {
 
 export function shouldRunLocalDevCleanSlate(env: EnvSource = process.env): boolean {
   return (
-    env.NODE_ENV !== "test" &&
+    env.NODE_ENV === "development" &&
     env.GET_ME_JOB_SKIP_LOCAL_CLEAN_SLATE !== "true" &&
     !env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
     !env.CLERK_SECRET_KEY
@@ -45,6 +46,16 @@ export function buildLocalDevCleanSlateStatements(
     { sql: "DELETE FROM field_mappings WHERE user_id = ?", params: userParam },
     { sql: "DELETE FROM custom_templates WHERE user_id = ?", params: userParam },
     { sql: "DELETE FROM profile_bank WHERE user_id = ?", params: userParam },
+    {
+      sql: "DELETE FROM knowledge_chunks WHERE user_id = ?",
+      params: userParam,
+      table: "knowledge_chunks",
+    },
+    {
+      sql: "DELETE FROM chunks_vec WHERE rowid IN (SELECT rowid FROM chunks WHERE user_id = ?)",
+      params: userParam,
+      table: "chunks_vec",
+    },
     { sql: "DELETE FROM chunks WHERE user_id = ?", params: userParam },
     { sql: "DELETE FROM company_research WHERE user_id = ?", params: userParam },
     { sql: "DELETE FROM salary_offers WHERE user_id = ?", params: userParam },
@@ -78,6 +89,7 @@ export function runLocalDevCleanSlateMigration(db: CleanSlateDatabase): void {
 
   db.transaction(() => {
     for (const statement of buildLocalDevCleanSlateStatements()) {
+      if (statement.table && !tableExists(db, statement.table)) continue;
       db.prepare(statement.sql).run?.(...(statement.params ?? []));
     }
 
@@ -85,4 +97,12 @@ export function runLocalDevCleanSlateMigration(db: CleanSlateDatabase): void {
       "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)"
     ).run?.(LOCAL_DEV_CLEAN_SLATE_SETTING, "true");
   })();
+}
+
+function tableExists(db: CleanSlateDatabase, tableName: string): boolean {
+  const row = db
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?")
+    .get?.(tableName);
+
+  return Boolean(row);
 }

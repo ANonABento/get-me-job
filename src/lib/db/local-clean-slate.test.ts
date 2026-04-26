@@ -15,6 +15,11 @@ describe("shouldRunLocalDevCleanSlate", () => {
     expect(shouldRunLocalDevCleanSlate({ NODE_ENV: "test" })).toBe(false);
   });
 
+  it("does not run outside development", () => {
+    expect(shouldRunLocalDevCleanSlate({ NODE_ENV: "production" })).toBe(false);
+    expect(shouldRunLocalDevCleanSlate({})).toBe(false);
+  });
+
   it("does not run when Clerk is configured", () => {
     expect(
       shouldRunLocalDevCleanSlate({
@@ -43,6 +48,7 @@ describe("buildLocalDevCleanSlateStatements", () => {
     expect(sql).toContain("DELETE FROM documents WHERE user_id = ?");
     expect(sql).toContain("DELETE FROM jobs WHERE user_id = ?");
     expect(sql).toContain("DELETE FROM profile WHERE id = ?");
+    expect(sql).toContain("DELETE FROM knowledge_chunks WHERE user_id = ?");
     expect(sql).not.toContain("DELETE FROM settings");
     expect(statements.every((statement) => statement.params?.[0] === "default")).toBe(true);
   });
@@ -56,6 +62,9 @@ describe("buildLocalDevCleanSlateStatements", () => {
     expect(
       sql.indexOf("DELETE FROM reminders WHERE job_id IN (SELECT id FROM jobs WHERE user_id = ?)")
     ).toBeLessThan(sql.indexOf("DELETE FROM jobs WHERE user_id = ?"));
+    expect(
+      sql.indexOf("DELETE FROM chunks_vec WHERE rowid IN (SELECT rowid FROM chunks WHERE user_id = ?)")
+    ).toBeLessThan(sql.indexOf("DELETE FROM chunks WHERE user_id = ?"));
   });
 });
 
@@ -113,6 +122,38 @@ describe("runLocalDevCleanSlateMigration", () => {
       expect.stringContaining("INSERT OR REPLACE INTO settings"),
       LOCAL_DEV_CLEAN_SLATE_SETTING,
       "true"
+    );
+  });
+
+  it("deletes optional knowledge tables when they exist", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", "");
+    vi.stubEnv("CLERK_SECRET_KEY", "");
+
+    const run = vi.fn();
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        get: vi.fn((tableName: string) => {
+          if (sql.includes("SELECT value FROM settings")) return undefined;
+          if (sql.includes("sqlite_master") && tableName === "knowledge_chunks") {
+            return { name: "knowledge_chunks" };
+          }
+          return undefined;
+        }),
+        run: (...args: unknown[]) => run(sql, ...args),
+      })),
+      transaction: vi.fn((fn) => fn),
+    };
+
+    runLocalDevCleanSlateMigration(db);
+
+    expect(run).toHaveBeenCalledWith(
+      "DELETE FROM knowledge_chunks WHERE user_id = ?",
+      "default"
+    );
+    expect(run).not.toHaveBeenCalledWith(
+      expect.stringContaining("DELETE FROM chunks_vec"),
+      "default"
     );
   });
 });
