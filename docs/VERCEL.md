@@ -31,9 +31,10 @@ Production environments:
 
 ## Deployment flow
 
-- Pull requests to `main` run type-checks, unit tests, lint, and then create a
-  Vercel Preview deployment. The workflow posts or updates a PR comment with
-  the preview URL.
+- Same-repository pull requests to `main` run type-checks, unit tests, lint, and
+  then create a Vercel Preview deployment. The workflow posts or updates a PR
+  comment with the preview URL. Forked pull requests still run CI, but do not
+  deploy because GitHub does not expose repository secrets to those runs.
 - Pushes to `main` run the same verification and then create a Vercel
   Production deployment.
 - `workflow_dispatch` is available for manual verification runs. It does not
