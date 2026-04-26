@@ -93,7 +93,7 @@ Be encouraging but also point out areas for improvement.`,
     }
 
     // Save the answer
-    const savedAnswer = addInterviewAnswer(params.id, questionIndex, answer, feedback);
+    const savedAnswer = addInterviewAnswer(params.id, questionIndex, answer, feedback, authResult.userId);
 
     // Check if interview is complete
     const isComplete = questionIndex >= session.questions.length - 1;

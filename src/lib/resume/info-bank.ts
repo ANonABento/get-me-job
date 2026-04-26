@@ -163,7 +163,7 @@ export function populateBankFromProfile(
       const newConfidence = entry.confidenceScore ?? 0.8;
       if (newConfidence > existing.confidenceScore) {
         // Merge: update with higher confidence content
-        updateBankEntry(existing.id, entry.content, newConfidence);
+        updateBankEntry(existing.id, entry.content, newConfidence, userId);
         updated++;
       } else {
         skipped++;

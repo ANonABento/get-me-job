@@ -249,7 +249,25 @@ describe("Profile Bank DB Functions", () => {
       expect(mockRun).toHaveBeenCalledWith(
         JSON.stringify({ name: "React", proficiency: "expert" }),
         0.95,
-        "entry-1"
+        "entry-1",
+        "default"
+      );
+    });
+
+    it("should scope updates to the provided user", () => {
+      const mockRun = vi.fn();
+      (db.prepare as Mock).mockReturnValue({ run: mockRun });
+
+      updateBankEntry("entry-1", { name: "React" }, 0.95, "user-123");
+
+      expect(db.prepare).toHaveBeenCalledWith(
+        "UPDATE profile_bank SET content = ?, confidence_score = ? WHERE id = ? AND user_id = ?"
+      );
+      expect(mockRun).toHaveBeenCalledWith(
+        JSON.stringify({ name: "React" }),
+        0.95,
+        "entry-1",
+        "user-123"
       );
     });
   });

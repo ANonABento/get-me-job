@@ -21,6 +21,7 @@ export interface AnalyticsSnapshot {
 
 export interface JobStatusChange {
   id: string;
+  userId: string;
   jobId: string;
   fromStatus: string | null;
   toStatus: string;
@@ -199,20 +200,23 @@ export function recordJobStatusChange(
   jobId: string,
   fromStatus: string | null,
   toStatus: string,
-  notes?: string
+  notes?: string,
+  userId: string = "default"
 ): JobStatusChange {
   const id = generateId();
   const now = new Date().toISOString();
 
   const stmt = db.prepare(`
-    INSERT INTO job_status_history (id, job_id, from_status, to_status, changed_at, notes)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO job_status_history (id, user_id, job_id, from_status, to_status, changed_at, notes)
+    SELECT ?, ?, ?, ?, ?, ?, ?
+    WHERE EXISTS (SELECT 1 FROM jobs WHERE id = ? AND user_id = ?)
   `);
 
-  stmt.run(id, jobId, fromStatus, toStatus, now, notes || null);
+  stmt.run(id, userId, jobId, fromStatus, toStatus, now, notes || null, jobId, userId);
 
   return {
     id,
+    userId,
     jobId,
     fromStatus,
     toStatus,
@@ -222,16 +226,20 @@ export function recordJobStatusChange(
 }
 
 // Get status history for a job
-export function getJobStatusHistory(jobId: string): JobStatusChange[] {
+export function getJobStatusHistory(
+  jobId: string,
+  userId: string = "default"
+): JobStatusChange[] {
   const stmt = db.prepare(`
-    SELECT id, job_id, from_status, to_status, changed_at, notes
+    SELECT id, user_id, job_id, from_status, to_status, changed_at, notes
     FROM job_status_history
-    WHERE job_id = ?
+    WHERE job_id = ? AND user_id = ?
     ORDER BY changed_at ASC
   `);
 
-  const rows = stmt.all(jobId) as Array<{
+  const rows = stmt.all(jobId, userId) as Array<{
     id: string;
+    user_id: string;
     job_id: string;
     from_status: string | null;
     to_status: string;
@@ -241,6 +249,7 @@ export function getJobStatusHistory(jobId: string): JobStatusChange[] {
 
   return rows.map((row) => ({
     id: row.id,
+    userId: row.user_id,
     jobId: row.job_id,
     fromStatus: row.from_status,
     toStatus: row.to_status,

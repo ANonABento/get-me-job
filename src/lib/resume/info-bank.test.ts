@@ -277,7 +277,8 @@ describe("Info Bank", () => {
       expect(updateBankEntry).toHaveBeenCalledWith(
         "existing-1",
         { name: "React", category: "technical", proficiency: "expert" },
-        0.85
+        0.85,
+        "default"
       );
     });
 

@@ -73,7 +73,13 @@ export async function PUT(
     // Record status change if status was updated
     if (data.status && data.status !== oldStatus) {
       try {
-        recordJobStatusChange(params.id, oldStatus, data.status);
+        recordJobStatusChange(
+          params.id,
+          oldStatus,
+          data.status,
+          undefined,
+          authResult.userId
+        );
       } catch (statusError) {
         console.error("Failed to record status change:", statusError);
         // Don't fail the request if recording fails
@@ -111,7 +117,13 @@ export async function PATCH(
     // Record status change if status was updated
     if (data.status && data.status !== oldStatus) {
       try {
-        recordJobStatusChange(params.id, oldStatus, data.status);
+        recordJobStatusChange(
+          params.id,
+          oldStatus,
+          data.status,
+          undefined,
+          authResult.userId
+        );
       } catch (statusError) {
         console.error("Failed to record status change:", statusError);
         // Don't fail the request if recording fails

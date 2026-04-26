@@ -86,11 +86,11 @@ export function getInterviewSession(
   const answersStmt = db.prepare(`
     SELECT id, session_id, question_index, answer, feedback, created_at
     FROM interview_answers
-    WHERE session_id = ?
+    WHERE session_id = ? AND user_id = ?
     ORDER BY question_index
   `);
 
-  const answerRows = answersStmt.all(id) as Array<{
+  const answerRows = answersStmt.all(id, userId) as Array<{
     id: string;
     session_id: string;
     question_index: number;
@@ -168,17 +168,18 @@ export function addInterviewAnswer(
   sessionId: string,
   questionIndex: number,
   answer: string,
-  feedback?: string
+  feedback?: string,
+  userId: string = "default"
 ): InterviewAnswer {
   const id = generateId();
   const now = new Date().toISOString();
 
   const stmt = db.prepare(`
-    INSERT INTO interview_answers (id, session_id, question_index, answer, feedback, created_at)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO interview_answers (id, user_id, session_id, question_index, answer, feedback, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
-  stmt.run(id, sessionId, questionIndex, answer, feedback || null, now);
+  stmt.run(id, userId, sessionId, questionIndex, answer, feedback || null, now);
 
   return {
     id,
@@ -216,8 +217,8 @@ export function deleteInterviewSession(id: string, userId: string = "default"): 
     return;
   }
 
-  const deleteAnswers = db.prepare("DELETE FROM interview_answers WHERE session_id = ?");
-  deleteAnswers.run(id);
+  const deleteAnswers = db.prepare("DELETE FROM interview_answers WHERE session_id = ? AND user_id = ?");
+  deleteAnswers.run(id, userId);
 
   const deleteSession = db.prepare("DELETE FROM interview_sessions WHERE id = ? AND profile_id = ?");
   deleteSession.run(id, userId);

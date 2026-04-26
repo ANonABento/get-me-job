@@ -19,7 +19,7 @@ import { GET } from "./route";
 describe("extension profile route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.requireExtensionAuth.mockResolvedValue({ success: true, userId: "user-1" });
+    mocks.requireExtensionAuth.mockReturnValue({ success: true, userId: "user-1" });
   });
 
   it("loads the profile from the Drizzle query layer and returns computed autofill values", async () => {

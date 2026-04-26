@@ -187,6 +187,7 @@ db.exec(`
   -- Interview answers table
   CREATE TABLE IF NOT EXISTS interview_answers (
     id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL DEFAULT 'default',
     session_id TEXT NOT NULL,
     question_index INTEGER NOT NULL,
     answer TEXT NOT NULL,
@@ -224,14 +225,16 @@ db.exec(`
   -- Company research cache table
   CREATE TABLE IF NOT EXISTS company_research (
     id TEXT PRIMARY KEY,
-    company_name TEXT NOT NULL UNIQUE,
+    user_id TEXT NOT NULL DEFAULT 'default',
+    company_name TEXT NOT NULL,
     summary TEXT,
     key_facts_json TEXT,
     interview_questions_json TEXT,
     culture_notes TEXT,
     recent_news TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, company_name)
   );
 
   -- Cover letters table
@@ -284,6 +287,7 @@ db.exec(`
   -- Job status history table
   CREATE TABLE IF NOT EXISTS job_status_history (
     id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL DEFAULT 'default',
     job_id TEXT NOT NULL,
     from_status TEXT,
     to_status TEXT NOT NULL,
@@ -452,6 +456,87 @@ try {
   }
 } catch (error) {
   console.error("Notifications migration error:", error);
+}
+
+// Migration: Add per-user ownership to interview answers
+try {
+  const answerTableInfo = db.prepare("PRAGMA table_info(interview_answers)").all() as Array<{ name: string }>;
+  const answerColumnNames = answerTableInfo.map((col) => col.name);
+
+  if (!answerColumnNames.includes("user_id")) {
+    db.exec("ALTER TABLE interview_answers ADD COLUMN user_id TEXT DEFAULT 'default'");
+  }
+} catch (error) {
+  console.error("Interview answers migration error:", error);
+}
+
+// Migration: Add per-user ownership to job status history
+try {
+  const statusTableInfo = db.prepare("PRAGMA table_info(job_status_history)").all() as Array<{ name: string }>;
+  const statusColumnNames = statusTableInfo.map((col) => col.name);
+
+  if (!statusColumnNames.includes("user_id")) {
+    db.exec("ALTER TABLE job_status_history ADD COLUMN user_id TEXT DEFAULT 'default'");
+  }
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_job_status_history_user_job
+      ON job_status_history(user_id, job_id, changed_at)
+  `);
+} catch (error) {
+  console.error("Job status history migration error:", error);
+}
+
+// Migration: company research used to be globally unique by company name.
+// Rebuild the table when needed so each Clerk user can cache the same company.
+try {
+  const companyTableInfo = db.prepare("PRAGMA table_info(company_research)").all() as Array<{ name: string }>;
+  const companyColumnNames = companyTableInfo.map((col) => col.name);
+  const indexes = db.prepare("PRAGMA index_list(company_research)").all() as Array<{
+    name: string;
+    unique: number;
+  }>;
+  const hasGlobalCompanyUnique = indexes.some((index) => {
+    if (!index.unique || index.name === "idx_company_research_user_company") return false;
+    const columns = db.prepare(`PRAGMA index_info(${JSON.stringify(index.name)})`).all() as Array<{ name: string }>;
+    return columns.length === 1 && columns[0]?.name === "company_name";
+  });
+
+  if (!companyColumnNames.includes("user_id") || hasGlobalCompanyUnique) {
+    db.transaction(() => {
+      db.exec(`
+        ALTER TABLE company_research RENAME TO company_research_old;
+        CREATE TABLE company_research (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL DEFAULT 'default',
+          company_name TEXT NOT NULL,
+          summary TEXT,
+          key_facts_json TEXT,
+          interview_questions_json TEXT,
+          culture_notes TEXT,
+          recent_news TEXT,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(user_id, company_name)
+        );
+        INSERT INTO company_research (
+          id, user_id, company_name, summary, key_facts_json,
+          interview_questions_json, culture_notes, recent_news, created_at, updated_at
+        )
+        SELECT id, 'default', company_name, summary, key_facts_json,
+          interview_questions_json, culture_notes, recent_news, created_at, updated_at
+        FROM company_research_old;
+        DROP TABLE company_research_old;
+      `);
+    })();
+  }
+
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_company_research_user_company
+      ON company_research(user_id, company_name)
+  `);
+} catch (error) {
+  console.error("Company research migration error:", error);
 }
 
 // Migration: Add parsed_data column to documents table

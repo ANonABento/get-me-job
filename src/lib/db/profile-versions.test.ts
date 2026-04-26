@@ -137,7 +137,7 @@ describe("Profile Versions", () => {
         get: vi.fn().mockReturnValue(mockRow),
       });
 
-      const result = getProfileVersion("v1");
+      const result = getProfileVersion("v1", "default");
 
       expect(result).toEqual({
         id: "v1",
@@ -153,9 +153,21 @@ describe("Profile Versions", () => {
         get: vi.fn().mockReturnValue(undefined),
       });
 
-      const result = getProfileVersion("nonexistent");
+      const result = getProfileVersion("nonexistent", "default");
 
       expect(result).toBeNull();
+    });
+
+    it("should require the profile id when fetching by version id", () => {
+      const mockGet = vi.fn().mockReturnValue(undefined);
+      (db.prepare as Mock).mockReturnValue({ get: mockGet });
+
+      getProfileVersion("v1", "user-123");
+
+      expect(db.prepare).toHaveBeenCalledWith(
+        "SELECT * FROM profile_versions WHERE id = ? AND profile_id = ?"
+      );
+      expect(mockGet).toHaveBeenCalledWith("v1", "user-123");
     });
   });
 

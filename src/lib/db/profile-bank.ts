@@ -255,11 +255,12 @@ export function findDuplicateEntry(
 export function updateBankEntry(
   id: string,
   content: Record<string, unknown>,
-  confidenceScore: number
+  confidenceScore: number,
+  userId: string = "default"
 ): void {
   db.prepare(
-    "UPDATE profile_bank SET content = ?, confidence_score = ? WHERE id = ?"
-  ).run(JSON.stringify(content), confidenceScore, id);
+    "UPDATE profile_bank SET content = ?, confidence_score = ? WHERE id = ? AND user_id = ?"
+  ).run(JSON.stringify(content), confidenceScore, id, userId);
 }
 
 export function updateBankEntryForUser(

@@ -27,7 +27,7 @@ function jsonRequest(body: unknown) {
 describe("extension jobs route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.requireExtensionAuth.mockResolvedValue({ success: true, userId: "user-1" });
+    mocks.requireExtensionAuth.mockReturnValue({ success: true, userId: "user-1" });
   });
 
   it("creates a single job through the Drizzle query layer", async () => {

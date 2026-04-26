@@ -237,7 +237,15 @@ describe("Interview Database Functions", () => {
 
       const result = addInterviewAnswer("session-1", 0, "My answer", "Good!");
 
-      expect(mockRun).toHaveBeenCalled();
+      expect(mockRun).toHaveBeenCalledWith(
+        "test-session-id",
+        "default",
+        "session-1",
+        0,
+        "My answer",
+        "Good!",
+        expect.any(String)
+      );
       expect(result).toEqual({
         id: "test-session-id",
         sessionId: "session-1",
@@ -256,7 +264,16 @@ describe("Interview Database Functions", () => {
 
       expect(result.feedback).toBeUndefined();
       const runArgs = mockRun.mock.calls[0];
-      expect(runArgs[4]).toBeNull(); // feedback arg should be null
+      expect(runArgs[5]).toBeNull(); // feedback arg should be null
+    });
+
+    it("should save answers for the provided user", () => {
+      const mockRun = vi.fn();
+      (db.prepare as Mock).mockReturnValue({ run: mockRun });
+
+      addInterviewAnswer("session-1", 0, "My answer", undefined, "user-123");
+
+      expect(mockRun.mock.calls[0][1]).toBe("user-123");
     });
   });
 
@@ -291,7 +308,7 @@ describe("Interview Database Functions", () => {
 
       expect(mockGet).toHaveBeenCalledWith("session-1", "default");
       expect(mockRun).toHaveBeenCalledTimes(2);
-      expect(mockRun).toHaveBeenCalledWith("session-1");
+      expect(mockRun).toHaveBeenCalledWith("session-1", "default");
       expect(mockRun).toHaveBeenCalledWith("session-1", "default");
     });
   });

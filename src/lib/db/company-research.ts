@@ -13,13 +13,14 @@ export interface CompanyResearch {
   updatedAt: string;
 }
 
-export function getCompanyResearch(companyName: string): CompanyResearch | null {
+export function getCompanyResearch(companyName: string, userId: string = "default"): CompanyResearch | null {
   const normalized = companyName.toLowerCase().trim();
   const stmt = db.prepare(
-    "SELECT * FROM company_research WHERE LOWER(company_name) = ?"
+    "SELECT * FROM company_research WHERE user_id = ? AND LOWER(company_name) = ?"
   );
-  const row = stmt.get(normalized) as {
+  const row = stmt.get(userId, normalized) as {
     id: string;
+    user_id: string;
     company_name: string;
     summary: string | null;
     key_facts_json: string | null;
@@ -48,17 +49,19 @@ export function getCompanyResearch(companyName: string): CompanyResearch | null 
 }
 
 export function saveCompanyResearch(
-  research: Omit<CompanyResearch, "id" | "createdAt" | "updatedAt">
+  research: Omit<CompanyResearch, "id" | "createdAt" | "updatedAt">,
+  userId: string = "default"
 ): CompanyResearch {
   const id = generateId();
   const now = new Date().toISOString();
+  const normalizedCompanyName = research.companyName.toLowerCase().trim();
 
   const stmt = db.prepare(`
     INSERT INTO company_research (
-      id, company_name, summary, key_facts_json, interview_questions_json,
+      id, user_id, company_name, summary, key_facts_json, interview_questions_json,
       culture_notes, recent_news, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(company_name) DO UPDATE SET
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(user_id, company_name) DO UPDATE SET
       summary = excluded.summary,
       key_facts_json = excluded.key_facts_json,
       interview_questions_json = excluded.interview_questions_json,
@@ -69,7 +72,8 @@ export function saveCompanyResearch(
 
   stmt.run(
     id,
-    research.companyName.toLowerCase().trim(),
+    userId,
+    normalizedCompanyName,
     research.summary || null,
     JSON.stringify(research.keyFacts),
     JSON.stringify(research.interviewQuestions),
@@ -79,22 +83,12 @@ export function saveCompanyResearch(
     now
   );
 
-  return {
-    id,
-    companyName: research.companyName,
-    summary: research.summary,
-    keyFacts: research.keyFacts,
-    interviewQuestions: research.interviewQuestions,
-    cultureNotes: research.cultureNotes,
-    recentNews: research.recentNews,
-    createdAt: now,
-    updatedAt: now,
-  };
+  return getCompanyResearch(normalizedCompanyName, userId)!;
 }
 
-export function deleteCompanyResearch(id: string): void {
-  const stmt = db.prepare("DELETE FROM company_research WHERE id = ?");
-  stmt.run(id);
+export function deleteCompanyResearch(id: string, userId: string = "default"): void {
+  const stmt = db.prepare("DELETE FROM company_research WHERE id = ? AND user_id = ?");
+  stmt.run(id, userId);
 }
 
 export function isResearchStale(research: CompanyResearch, maxAgeDays = 7): boolean {

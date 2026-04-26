@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check cache first
-    const cached = getCompanyResearch(companyName);
+    const cached = getCompanyResearch(companyName, authResult.userId);
     if (cached && !forceRefresh && !isResearchStale(cached)) {
       return NextResponse.json({
         ...cached,
@@ -60,10 +60,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Save to cache
-    const saved = saveCompanyResearch({
-      companyName,
-      ...researchData,
-    });
+    const saved = saveCompanyResearch(
+      {
+        companyName,
+        ...researchData,
+      },
+      authResult.userId
+    );
 
     return NextResponse.json({
       ...saved,

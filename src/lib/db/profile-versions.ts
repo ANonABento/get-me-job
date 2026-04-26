@@ -63,10 +63,13 @@ export function listProfileVersions(userId: string = "default"): ProfileVersionS
 /**
  * Get a specific version by ID.
  */
-export function getProfileVersion(versionId: string): ProfileVersion | null {
+export function getProfileVersion(
+  versionId: string,
+  userId: string = "default"
+): ProfileVersion | null {
   const row = db
-    .prepare("SELECT * FROM profile_versions WHERE id = ?")
-    .get(versionId) as { id: string; profile_id: string; version: number; snapshot_json: string; created_at: string } | undefined;
+    .prepare("SELECT * FROM profile_versions WHERE id = ? AND profile_id = ?")
+    .get(versionId, userId) as { id: string; profile_id: string; version: number; snapshot_json: string; created_at: string } | undefined;
 
   if (!row) return null;
 

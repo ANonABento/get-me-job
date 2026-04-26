@@ -62,7 +62,7 @@ export async function saveCompanyResearch(
         recentNews: research.recentNews ?? null,
         updatedAt: now,
       })
-      .where(eq(companyResearch.id, existing.id));
+      .where(and(eq(companyResearch.id, existing.id), eq(companyResearch.userId, userId)));
 
     return {
       ...existing,
