@@ -47,9 +47,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run dev -- -p 8888",
+    command: "node e2e/playwright-web-server.cjs",
     url: "http://localhost:8888",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    reuseExistingServer: false,
+    timeout: 180 * 1000,
   },
 });
