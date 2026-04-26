@@ -15,6 +15,20 @@ export function generateId(): string {
   return randomBytes(12).toString("hex");
 }
 
+export function toIsoDateString(
+  value: Date | string | null | undefined,
+  fallback = new Date()
+): string {
+  if (!value) return fallback.toISOString();
+  return value instanceof Date ? value.toISOString() : value;
+}
+
+export function toNullableIsoDateString(
+  value: Date | string | null | undefined
+): string | null {
+  return value ? toIsoDateString(value) : null;
+}
+
 export function formatDate(date: string | Date): string {
   const d = new Date(date);
   return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });

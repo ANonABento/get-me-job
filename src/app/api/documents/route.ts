@@ -7,6 +7,24 @@
 import { NextResponse } from "next/server";
 import { db, documents, desc, eq } from "@/lib/db/drizzle";
 import { requireAuth, isAuthError } from "@/lib/auth";
+import { toIsoDateString } from "@/lib/utils";
+import type { Document } from "@/types";
+
+function toDocument(row: typeof documents.$inferSelect): Document {
+  return {
+    id: row.id,
+    filename: row.filename,
+    type: row.type as Document["type"],
+    mimeType: row.mimeType,
+    size: row.size,
+    path: row.path,
+    extractedText: row.extractedText ?? undefined,
+    parsedData: row.parsedData
+      ? (JSON.parse(row.parsedData) as Document["parsedData"])
+      : undefined,
+    uploadedAt: toIsoDateString(row.uploadedAt),
+  };
+}
 
 export async function GET() {
   const authResult = await requireAuth();
@@ -20,17 +38,7 @@ export async function GET() {
       .orderBy(desc(documents.uploadedAt));
 
     return NextResponse.json({
-      documents: rows.map((doc) => ({
-        id: doc.id,
-        filename: doc.filename,
-        type: doc.type,
-        mimeType: doc.mimeType,
-        size: doc.size,
-        path: doc.path,
-        extractedText: doc.extractedText ?? undefined,
-        parsedData: doc.parsedData ? JSON.parse(doc.parsedData) : undefined,
-        uploadedAt: doc.uploadedAt?.toISOString() ?? new Date().toISOString(),
-      })),
+      documents: rows.map(toDocument),
     });
   } catch (error) {
     console.error("Get documents error:", error);

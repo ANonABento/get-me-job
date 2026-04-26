@@ -8,48 +8,35 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { requireExtensionAuth, normalizeQuestion } from "@/lib/extension-auth";
-import db from "@/lib/db/schema";
+import { db, learnedAnswers, eq, and, desc, sqlOp } from "@/lib/db/drizzle";
 import { randomUUID } from "crypto";
-
-interface LearnedAnswerRow {
-  id: string;
-  user_id: string;
-  question: string;
-  question_normalized: string;
-  answer: string;
-  source_url: string | null;
-  source_company: string | null;
-  times_used: number;
-  last_used_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
+import { toNullableIsoDateString } from "@/lib/utils";
 
 // GET - List all learned answers
 export async function GET(request: NextRequest) {
-  const authResult = requireExtensionAuth(request);
+  const authResult = await requireExtensionAuth(request);
   if (!authResult.success) {
     return authResult.response;
   }
 
   try {
-    const rows = db.prepare(`
-      SELECT * FROM learned_answers
-      WHERE user_id = ?
-      ORDER BY times_used DESC, updated_at DESC
-    `).all(authResult.userId) as LearnedAnswerRow[];
+    const rows = await db
+      .select()
+      .from(learnedAnswers)
+      .where(eq(learnedAnswers.userId, authResult.userId))
+      .orderBy(desc(learnedAnswers.timesUsed), desc(learnedAnswers.updatedAt));
 
     const answers = rows.map((row) => ({
       id: row.id,
       question: row.question,
-      questionNormalized: row.question_normalized,
+      questionNormalized: row.questionNormalized,
       answer: row.answer,
-      sourceUrl: row.source_url,
-      sourceCompany: row.source_company,
-      timesUsed: row.times_used,
-      lastUsedAt: row.last_used_at,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      sourceUrl: row.sourceUrl,
+      sourceCompany: row.sourceCompany,
+      timesUsed: row.timesUsed ?? 1,
+      lastUsedAt: toNullableIsoDateString(row.lastUsedAt),
+      createdAt: toNullableIsoDateString(row.createdAt),
+      updatedAt: toNullableIsoDateString(row.updatedAt),
     }));
 
     return NextResponse.json({ answers });
@@ -61,7 +48,7 @@ export async function GET(request: NextRequest) {
 
 // POST - Save a new learned answer
 export async function POST(request: NextRequest) {
-  const authResult = requireExtensionAuth(request);
+  const authResult = await requireExtensionAuth(request);
   if (!authResult.success) {
     return authResult.response;
   }
@@ -85,38 +72,54 @@ export async function POST(request: NextRequest) {
     const questionNormalized = normalizeQuestion(question);
 
     // Check if similar question already exists
-    const existing = db.prepare(`
-      SELECT * FROM learned_answers
-      WHERE user_id = ? AND question_normalized = ?
-    `).get(authResult.userId, questionNormalized) as LearnedAnswerRow | undefined;
+    const existingRows = await db
+      .select()
+      .from(learnedAnswers)
+      .where(and(
+        eq(learnedAnswers.userId, authResult.userId),
+        eq(learnedAnswers.questionNormalized, questionNormalized)
+      ))
+      .limit(1);
+    const existing = existingRows[0];
 
     if (existing) {
       // Update existing answer
-      db.prepare(`
-        UPDATE learned_answers
-        SET answer = ?, times_used = times_used + 1, updated_at = ?, last_used_at = ?
-        WHERE id = ?
-      `).run(answer, new Date().toISOString(), new Date().toISOString(), existing.id);
+      const now = new Date();
+      await db
+        .update(learnedAnswers)
+        .set({
+          answer,
+          timesUsed: sqlOp`coalesce(${learnedAnswers.timesUsed}, 0) + 1`,
+          updatedAt: now,
+          lastUsedAt: now,
+        })
+        .where(eq(learnedAnswers.id, existing.id));
 
       return NextResponse.json({
         id: existing.id,
         question: existing.question,
-        questionNormalized: existing.question_normalized,
+        questionNormalized: existing.questionNormalized,
         answer,
-        timesUsed: existing.times_used + 1,
+        timesUsed: (existing.timesUsed ?? 0) + 1,
         updated: true,
       });
     }
 
     // Create new answer
     const id = randomUUID();
-    const now = new Date().toISOString();
+    const now = new Date();
 
-    db.prepare(`
-      INSERT INTO learned_answers
-      (id, user_id, question, question_normalized, answer, source_url, source_company, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, authResult.userId, question, questionNormalized, answer, sourceUrl || null, sourceCompany || null, now, now);
+    await db.insert(learnedAnswers).values({
+      id,
+      userId: authResult.userId,
+      question,
+      questionNormalized,
+      answer,
+      sourceUrl: sourceUrl || null,
+      sourceCompany: sourceCompany || null,
+      createdAt: now,
+      updatedAt: now,
+    });
 
     return NextResponse.json({
       id,
@@ -126,7 +129,7 @@ export async function POST(request: NextRequest) {
       sourceUrl,
       sourceCompany,
       timesUsed: 1,
-      createdAt: now,
+      createdAt: now.toISOString(),
     });
   } catch (error) {
     console.error("Save answer error:", error);

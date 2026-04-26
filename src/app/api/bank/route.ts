@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { db, profileBank, eq, and, desc, like } from "@/lib/db/drizzle";
-import { generateId } from "@/lib/utils";
+import { generateId, toIsoDateString } from "@/lib/utils";
 import type { BankCategory, BankEntry } from "@/types";
 import { BANK_CATEGORIES } from "@/types";
 
@@ -16,10 +16,10 @@ function toBankEntry(row: typeof profileBank.$inferSelect): BankEntry {
     id: row.id,
     userId: row.userId,
     category: row.category as BankCategory,
-    content: JSON.parse(row.content),
+    content: JSON.parse(row.content) as Record<string, unknown>,
     sourceDocumentId: row.sourceDocumentId ?? undefined,
     confidenceScore: row.confidenceScore ?? 0.8,
-    createdAt: row.createdAt?.toISOString() ?? new Date().toISOString(),
+    createdAt: toIsoDateString(row.createdAt),
   };
 }
 

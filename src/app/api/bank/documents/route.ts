@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { db, documents, profileBank, eq, and, desc, sqlOp } from "@/lib/db/drizzle";
+import { toIsoDateString } from "@/lib/utils";
 
 export async function GET() {
   const authResult = await requireAuth();
@@ -38,7 +39,7 @@ export async function GET() {
         id: row.id,
         filename: row.filename,
         size: row.size,
-        uploadedAt: row.uploadedAt?.toISOString() ?? new Date().toISOString(),
+        uploadedAt: toIsoDateString(row.uploadedAt),
         chunkCount: Number(row.chunkCount),
       })),
     });

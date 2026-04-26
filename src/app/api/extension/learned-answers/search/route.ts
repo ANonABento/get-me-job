@@ -7,19 +7,27 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { requireExtensionAuth, normalizeQuestion, calculateSimilarity } from "@/lib/extension-auth";
-import db from "@/lib/db/schema";
+import { db, learnedAnswers, eq, and, or, desc, like } from "@/lib/db/drizzle";
 
-interface LearnedAnswerRow {
+type LearnedAnswerSearchRow = {
   id: string;
   question: string;
-  question_normalized: string;
+  questionNormalized: string;
   answer: string;
-  times_used: number;
-}
+  timesUsed: number | null;
+};
+
+const learnedAnswerSearchColumns = {
+  id: learnedAnswers.id,
+  question: learnedAnswers.question,
+  questionNormalized: learnedAnswers.questionNormalized,
+  answer: learnedAnswers.answer,
+  timesUsed: learnedAnswers.timesUsed,
+};
 
 // POST - Search for similar questions
 export async function POST(request: NextRequest) {
-  const authResult = requireExtensionAuth(request);
+  const authResult = await requireExtensionAuth(request);
   if (!authResult.success) {
     return authResult.response;
   }
@@ -37,26 +45,30 @@ export async function POST(request: NextRequest) {
 
     // Find potential matches using LIKE queries on key words
     const likePatterns = words.slice(0, 5).map((w) => `%${w}%`);
-    const placeholders = likePatterns.map(() => "question_normalized LIKE ?").join(" OR ");
 
-    let rows: LearnedAnswerRow[];
+    let rows: LearnedAnswerSearchRow[];
     if (likePatterns.length > 0) {
-      rows = db.prepare(`
-        SELECT id, question, question_normalized, answer, times_used
-        FROM learned_answers
-        WHERE user_id = ? AND (${placeholders})
-        ORDER BY times_used DESC
-        LIMIT 20
-      `).all(authResult.userId, ...likePatterns) as LearnedAnswerRow[];
+      const wordConditions = likePatterns.map((pattern) =>
+        like(learnedAnswers.questionNormalized, pattern)
+      );
+      const wordCondition = wordConditions.length === 1
+        ? wordConditions[0]
+        : or(...wordConditions);
+
+      rows = await db
+        .select(learnedAnswerSearchColumns)
+        .from(learnedAnswers)
+        .where(and(eq(learnedAnswers.userId, authResult.userId), wordCondition))
+        .orderBy(desc(learnedAnswers.timesUsed))
+        .limit(20);
     } else {
       // Fallback: get most used answers
-      rows = db.prepare(`
-        SELECT id, question, question_normalized, answer, times_used
-        FROM learned_answers
-        WHERE user_id = ?
-        ORDER BY times_used DESC
-        LIMIT 10
-      `).all(authResult.userId) as LearnedAnswerRow[];
+      rows = await db
+        .select(learnedAnswerSearchColumns)
+        .from(learnedAnswers)
+        .where(eq(learnedAnswers.userId, authResult.userId))
+        .orderBy(desc(learnedAnswers.timesUsed))
+        .limit(10);
     }
 
     // Calculate similarity scores and rank
@@ -65,8 +77,8 @@ export async function POST(request: NextRequest) {
         id: row.id,
         question: row.question,
         answer: row.answer,
-        similarity: calculateSimilarity(normalized, row.question_normalized),
-        timesUsed: row.times_used,
+        similarity: calculateSimilarity(normalized, row.questionNormalized),
+        timesUsed: row.timesUsed ?? 1,
       }))
       .filter((r) => r.similarity > 0.2) // Only return reasonably similar
       .sort((a, b) => b.similarity - a.similarity)

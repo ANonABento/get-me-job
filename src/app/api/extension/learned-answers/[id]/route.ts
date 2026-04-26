@@ -8,22 +8,14 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { requireExtensionAuth } from "@/lib/extension-auth";
-import db from "@/lib/db/schema";
-
-interface LearnedAnswerRow {
-  id: string;
-  user_id: string;
-  question: string;
-  answer: string;
-  times_used: number;
-}
+import { db, learnedAnswers, eq, and } from "@/lib/db/drizzle";
 
 // PATCH - Update a learned answer
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authResult = requireExtensionAuth(request);
+  const authResult = await requireExtensionAuth(request);
   if (!authResult.success) {
     return authResult.response;
   }
@@ -38,26 +30,30 @@ export async function PATCH(
     }
 
     // Verify ownership
-    const existing = db.prepare(`
-      SELECT * FROM learned_answers WHERE id = ? AND user_id = ?
-    `).get(id, authResult.userId) as LearnedAnswerRow | undefined;
+    const existingRows = await db
+      .select()
+      .from(learnedAnswers)
+      .where(and(eq(learnedAnswers.id, id), eq(learnedAnswers.userId, authResult.userId)))
+      .limit(1);
+    const existing = existingRows[0];
 
     if (!existing) {
       return NextResponse.json({ error: "Answer not found" }, { status: 404 });
     }
 
     // Update
-    const now = new Date().toISOString();
-    db.prepare(`
-      UPDATE learned_answers SET answer = ?, updated_at = ? WHERE id = ?
-    `).run(answer, now, id);
+    const now = new Date();
+    await db
+      .update(learnedAnswers)
+      .set({ answer, updatedAt: now })
+      .where(and(eq(learnedAnswers.id, id), eq(learnedAnswers.userId, authResult.userId)));
 
     return NextResponse.json({
       id,
       question: existing.question,
       answer,
-      timesUsed: existing.times_used,
-      updatedAt: now,
+      timesUsed: existing.timesUsed ?? 1,
+      updatedAt: now.toISOString(),
     });
   } catch (error) {
     console.error("Update answer error:", error);
@@ -70,7 +66,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authResult = requireExtensionAuth(request);
+  const authResult = await requireExtensionAuth(request);
   if (!authResult.success) {
     return authResult.response;
   }
@@ -78,12 +74,12 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    // Verify ownership and delete
-    const result = db.prepare(`
-      DELETE FROM learned_answers WHERE id = ? AND user_id = ?
-    `).run(id, authResult.userId);
+    const deleted = await db
+      .delete(learnedAnswers)
+      .where(and(eq(learnedAnswers.id, id), eq(learnedAnswers.userId, authResult.userId)))
+      .returning({ id: learnedAnswers.id });
 
-    if (result.changes === 0) {
+    if (deleted.length === 0) {
       return NextResponse.json({ error: "Answer not found" }, { status: 404 });
     }
 
