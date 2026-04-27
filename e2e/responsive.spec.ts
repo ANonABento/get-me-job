@@ -11,7 +11,7 @@ const VIEWPORTS = {
 const APP_PAGES = [
   "/dashboard",
   "/bank",
-  "/builder",
+  "/studio",
   "/jobs",
   "/settings",
 ];
@@ -89,9 +89,9 @@ test.describe("Responsive - Mobile (375px)", () => {
     }
   });
 
-  test.describe("Builder mobile layout", () => {
+  test.describe("Studio mobile layout", () => {
     test("shows the tab switcher and defaults to Edit", async ({ page }) => {
-      await page.goto("/builder");
+      await page.goto("/studio");
       await page.waitForLoadState("networkidle");
 
       const tablist = page.getByRole("tablist", { name: "Builder view" });
@@ -108,7 +108,7 @@ test.describe("Responsive - Mobile (375px)", () => {
     });
 
     test("Preview tab swaps which panel is visible", async ({ page }) => {
-      await page.goto("/builder");
+      await page.goto("/studio");
       await page.waitForLoadState("networkidle");
       await page.getByRole("tab", { name: /preview/i }).click();
 
@@ -121,7 +121,7 @@ test.describe("Responsive - Mobile (375px)", () => {
     });
 
     test("does not introduce horizontal scroll", async ({ page }) => {
-      await page.goto("/builder");
+      await page.goto("/studio");
       await page.waitForLoadState("networkidle");
       const overflow = await page.evaluate(
         () =>
@@ -207,8 +207,8 @@ test.describe("Responsive - Desktop (1280px)", () => {
     expect(page.url()).not.toContain("/sign-in");
   });
 
-  test("builder shows both panels and no tab strip on desktop", async ({ page }) => {
-    await page.goto("/builder");
+  test("studio shows both resume panels and no tab strip on desktop", async ({ page }) => {
+    await page.goto("/studio");
     await page.waitForLoadState("networkidle");
 
     // Tab strip is in the DOM but hidden by md:hidden

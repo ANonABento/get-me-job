@@ -8,9 +8,13 @@ import {
 } from "./onboarding";
 import { STORAGE_KEYS } from "@/lib/constants";
 
+const navigationMock = vi.hoisted(() => ({
+  push: vi.fn(),
+}));
+
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => navigationMock,
 }));
 
 // localStorage mock
@@ -92,6 +96,7 @@ describe("ProgressDots", () => {
 describe("OnboardingDialog", () => {
   beforeEach(() => {
     localStorageMock.clear();
+    navigationMock.push.mockClear();
     vi.useFakeTimers();
   });
 
@@ -182,6 +187,7 @@ describe("OnboardingDialog", () => {
       STORAGE_KEYS.ONBOARDING_COMPLETED,
       "true"
     );
+    expect(navigationMock.push).toHaveBeenCalledWith("/studio");
   });
 
   it("should render all 5 steps when navigating through", () => {

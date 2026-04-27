@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -122,11 +123,11 @@ const steps = [
     action: "/bank",
   },
   {
-    title: "Track Target Jobs",
-    description: "Paste job descriptions to get match scores and generate tailored resumes for each application.",
+    title: "Create Application Documents",
+    description: "Build resumes, tailor them to job descriptions, and generate cover letters in Document Studio.",
     icon: Briefcase,
     gradient: "from-blue-500 to-indigo-400",
-    action: "/jobs",
+    action: "/studio",
   },
   {
     title: "Ace Your Interviews",
@@ -138,6 +139,7 @@ const steps = [
 ];
 
 export function OnboardingDialog() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [mounted, setMounted] = useState(false);
@@ -161,8 +163,9 @@ export function OnboardingDialog() {
       setCurrentStep((s) => s + 1);
     } else {
       markComplete();
+      router.push("/studio");
     }
-  }, [currentStep, markComplete]);
+  }, [currentStep, markComplete, router]);
 
   if (!mounted) return null;
 

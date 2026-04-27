@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+<<<<<<< HEAD
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import BuilderPage from "./page";
 import { getBuilderVersionStorageKey } from "@/lib/builder/version-history";
@@ -6,23 +7,17 @@ import type {
   BuilderDraftState,
   BuilderVersion,
 } from "@/lib/builder/version-history";
+=======
+import BuilderRedirectPage from "./page";
+>>>>>>> 0e974c5 (Consolidate document routes into studio)
 
-const navigationMock = vi.hoisted(() => ({
-  replace: vi.fn(),
-  searchParams: new URLSearchParams(),
-}));
+const redirectMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-    replace: navigationMock.replace,
-    prefetch: vi.fn(),
-    back: vi.fn(),
-  }),
-  usePathname: () => "/builder",
-  useSearchParams: () => navigationMock.searchParams,
+  redirect: redirectMock,
 }));
 
+<<<<<<< HEAD
 vi.mock("@/components/builder/section-list", () => ({
   SectionList: () => <div>Resume sections</div>,
 }));
@@ -84,42 +79,23 @@ describe("BuilderPage", () => {
         json: async () => ({ entries: [] }),
       })
     );
+=======
+describe("BuilderRedirectPage", () => {
+  beforeEach(() => {
+    redirectMock.mockClear();
+>>>>>>> 0e974c5 (Consolidate document routes into studio)
   });
 
-  it("renders resume builder mode by default", async () => {
-    render(<BuilderPage />);
+  it("redirects to Document Studio", () => {
+    BuilderRedirectPage({});
 
-    expect(await screen.findByText("Resume sections")).toBeInTheDocument();
-    expect(screen.getByText("Resume preview")).toBeInTheDocument();
-    expect(screen.queryByText("Cover letter workspace")).not.toBeInTheDocument();
+    expect(redirectMock).toHaveBeenCalledWith("/studio");
   });
 
-  it("renders cover letter mode from the builder mode search param", () => {
-    navigationMock.searchParams = new URLSearchParams("mode=cover-letter");
+  it("preserves the legacy cover letter builder mode", () => {
+    BuilderRedirectPage({ searchParams: { mode: "cover-letter" } });
 
-    render(<BuilderPage />);
-
-    expect(screen.getByText("Cover letter workspace")).toBeInTheDocument();
-    expect(screen.queryByText("Resume sections")).not.toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /cover letter/i })).toHaveAttribute(
-      "aria-selected",
-      "true"
-    );
-    expect(fetch).not.toHaveBeenCalled();
-  });
-
-  it("updates the URL when switching to cover letter mode", async () => {
-    render(<BuilderPage />);
-
-    fireEvent.click(await screen.findByRole("tab", { name: /cover letter/i }));
-
-    await waitFor(() => {
-      expect(navigationMock.replace).toHaveBeenCalledWith(
-        "/builder?mode=cover-letter",
-        { scroll: false }
-      );
-    });
-    expect(screen.getByText("Cover letter workspace")).toBeInTheDocument();
+    expect(redirectMock).toHaveBeenCalledWith("/studio?mode=cover-letter");
   });
 
   it("persists a restored version as the newest version", async () => {

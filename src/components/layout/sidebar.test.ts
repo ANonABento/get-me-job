@@ -56,6 +56,7 @@ describe("navigationGroups", () => {
     expect(names).toContain("Document Studio");
   });
 
+<<<<<<< HEAD
   it("should use Document Studio instead of separate builder, tailor, or cover letter routes", () => {
     const resume = navigationGroups.find((g) => g.label === "Resume");
     expect(resume).toBeDefined();
@@ -64,6 +65,15 @@ describe("navigationGroups", () => {
     expect(names).toContain("Document Studio");
     expect(hrefs).not.toContain("/builder");
     expect(hrefs).not.toContain("/tailor");
+=======
+  it("should show one Document Studio link instead of separate document routes", () => {
+    const resume = navigationGroups.find((g) => g.label === "Resume");
+    expect(resume).toBeDefined();
+    const names = resume!.items.map((i) => i.name);
+    expect(names).toContain("Document Studio");
+    expect(names).not.toContain("Resume Builder");
+    expect(names).not.toContain("Tailor Resume");
+>>>>>>> 0e974c5 (Consolidate document routes into studio)
     expect(names).not.toContain("Cover Letter");
   });
 

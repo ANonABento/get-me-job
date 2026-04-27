@@ -1,9 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+<<<<<<< HEAD
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import StudioPage from "./page";
 import type { BankEntry } from "@/types";
 
 const editorSetContent = vi.hoisted(() => vi.fn());
+=======
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import StudioPage from "./page";
+
+>>>>>>> 0e974c5 (Consolidate document routes into studio)
 const navigationMock = vi.hoisted(() => ({
   replace: vi.fn(),
   searchParams: new URLSearchParams(),
@@ -20,6 +26,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => navigationMock.searchParams,
 }));
 
+<<<<<<< HEAD
 vi.mock("@tiptap/react", () => ({
   useEditor: () => ({
     commands: {
@@ -70,17 +77,46 @@ function createDataTransfer() {
 describe("StudioPage", () => {
   beforeEach(() => {
     editorSetContent.mockClear();
+=======
+vi.mock("@/components/builder/section-list", () => ({
+  SectionList: () => <div>Resume sections</div>,
+}));
+
+vi.mock("@/components/studio/resume-preview", () => ({
+  ResumePreview: () => <div>Resume preview</div>,
+}));
+
+vi.mock("@/components/builder/cover-letter-workspace", () => ({
+  CoverLetterWorkspace: () => <div>Cover letter workspace</div>,
+}));
+
+vi.mock("@/components/studio/tailor-workspace", () => ({
+  TailorWorkspace: () => <div>Tailor workspace</div>,
+}));
+
+vi.mock("@/hooks/use-error-toast", () => ({
+  useErrorToast: () => vi.fn(),
+}));
+
+describe("StudioPage", () => {
+  beforeEach(() => {
+>>>>>>> 0e974c5 (Consolidate document routes into studio)
     navigationMock.replace.mockClear();
     navigationMock.searchParams = new URLSearchParams();
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
+<<<<<<< HEAD
         json: async () => ({ entries: bankEntries }),
+=======
+        json: async () => ({ entries: [] }),
+>>>>>>> 0e974c5 (Consolidate document routes into studio)
       })
     );
   });
 
+<<<<<<< HEAD
   it("renders the three-panel document studio layout", async () => {
     render(<StudioPage />);
 
@@ -119,15 +155,33 @@ describe("StudioPage", () => {
   });
 
   it("opens directly to the mode from the studio search param", async () => {
+=======
+  it("renders resume builder mode by default", async () => {
+    render(<StudioPage />);
+
+    expect(await screen.findByText("Resume sections")).toBeInTheDocument();
+    expect(screen.getByText("Resume preview")).toBeInTheDocument();
+    expect(screen.queryByText("Tailor workspace")).not.toBeInTheDocument();
+    expect(screen.queryByText("Cover letter workspace")).not.toBeInTheDocument();
+  });
+
+  it("renders tailored mode from the studio mode search param", () => {
+>>>>>>> 0e974c5 (Consolidate document routes into studio)
     navigationMock.searchParams = new URLSearchParams("mode=tailored");
 
     render(<StudioPage />);
 
+<<<<<<< HEAD
     await screen.findByText("Experience");
+=======
+    expect(screen.getByText("Tailor workspace")).toBeInTheDocument();
+    expect(screen.queryByText("Resume sections")).not.toBeInTheDocument();
+>>>>>>> 0e974c5 (Consolidate document routes into studio)
     expect(screen.getByRole("tab", { name: /tailored/i })).toHaveAttribute(
       "aria-selected",
       "true"
     );
+<<<<<<< HEAD
     expect(screen.getByLabelText("Job Description")).toBeInTheDocument();
   });
 
@@ -178,5 +232,50 @@ describe("StudioPage", () => {
     expect(labels.findIndex((text) => text === "Skills")).toBeLessThan(
       labels.findIndex((text) => text === "Experience")
     );
+=======
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("renders cover letter mode from the studio mode search param", () => {
+    navigationMock.searchParams = new URLSearchParams("mode=cover-letter");
+
+    render(<StudioPage />);
+
+    expect(screen.getByText("Cover letter workspace")).toBeInTheDocument();
+    expect(screen.queryByText("Resume sections")).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /cover letter/i })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("updates the URL when switching to cover letter mode", async () => {
+    render(<StudioPage />);
+
+    fireEvent.click(await screen.findByRole("tab", { name: /cover letter/i }));
+
+    await waitFor(() => {
+      expect(navigationMock.replace).toHaveBeenCalledWith(
+        "/studio?mode=cover-letter",
+        { scroll: false }
+      );
+    });
+    expect(screen.getByText("Cover letter workspace")).toBeInTheDocument();
+  });
+
+  it("updates the URL when switching to tailored mode", async () => {
+    render(<StudioPage />);
+
+    fireEvent.click(await screen.findByRole("tab", { name: /tailored/i }));
+
+    await waitFor(() => {
+      expect(navigationMock.replace).toHaveBeenCalledWith(
+        "/studio?mode=tailored",
+        { scroll: false }
+      );
+    });
+    expect(screen.getByText("Tailor workspace")).toBeInTheDocument();
+>>>>>>> 0e974c5 (Consolidate document routes into studio)
   });
 });

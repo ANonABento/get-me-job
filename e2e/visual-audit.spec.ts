@@ -8,9 +8,9 @@ const PUBLIC_PAGES = [
 const APP_PAGES = [
   "/dashboard",
   "/bank",
-  "/builder",
-  "/builder?mode=cover-letter",
-  "/tailor",
+  "/studio",
+  "/studio?mode=cover-letter",
+  "/studio?mode=tailored",
   "/jobs",
   "/settings",
 ];

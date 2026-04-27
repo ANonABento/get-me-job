@@ -46,6 +46,12 @@ const pages = {
       "AI-powered resume tailoring — match your resume to any job description for higher ATS scores.",
     path: "/tailor",
   },
+  studio: {
+    title: "Document Studio",
+    description:
+      "Build resumes, tailor applications, and generate cover letters from one workspace.",
+    path: "/studio",
+  },
   jobs: {
     title: "Job Tracker",
     description:

@@ -10,7 +10,7 @@ test.describe("Smoke Tests", () => {
     const pages = [
       { url: "/dashboard", name: "Dashboard" },
       { url: "/bank", name: "Documents" },
-      { url: "/builder", name: "Resume Builder" },
+      { url: "/studio", name: "Document Studio" },
       { url: "/jobs", name: "Jobs" },
       { url: "/settings", name: "Settings" },
     ];

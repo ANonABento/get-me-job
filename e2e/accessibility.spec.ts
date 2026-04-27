@@ -7,9 +7,9 @@ const LANDING_PAGE = { path: "/", name: "Landing" };
 const APP_PAGES = [
   "/dashboard",
   "/bank",
-  "/builder",
-  "/builder?mode=cover-letter",
-  "/tailor",
+  "/studio",
+  "/studio?mode=cover-letter",
+  "/studio?mode=tailored",
   "/jobs",
   "/settings",
 ];
