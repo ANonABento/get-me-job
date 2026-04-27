@@ -91,28 +91,45 @@ export const ResumeSection = Node.create({
   },
 });
 
+function getFirstTextSelectionPosition(
+  section: { node: ProseMirrorNode; from: number }
+): number | null {
+  let textPosition: number | null = null;
+
+  section.node.descendants((node, pos) => {
+    if (textPosition !== null) return false;
+    if (!node.isTextblock) return true;
+
+    textPosition = section.from + pos + 2;
+    return false;
+  });
+
+  return textPosition;
+}
+
 export function findAdjacentResumeSectionTextPosition(
   doc: ProseMirrorNode,
   selectionFrom: number,
   direction: 1 | -1
 ): number | null {
-  const sections: Array<{ from: number; to: number }> = [];
+  const sections: Array<{ node: ProseMirrorNode; from: number; to: number }> =
+    [];
 
   doc.descendants((node, pos) => {
     if (node.type.name === "resumeSection") {
-      sections.push({ from: pos, to: pos + node.nodeSize });
+      sections.push({ node, from: pos, to: pos + node.nodeSize });
     }
   });
 
   if (sections.length === 0) return null;
 
   const currentIndex = sections.findIndex(
-    (section) => selectionFrom > section.from && selectionFrom <= section.to
+    (section) => selectionFrom >= section.from && selectionFrom < section.to
   );
   if (currentIndex === -1) return null;
 
   const target = sections[currentIndex + direction];
-  return target ? target.from + 1 : null;
+  return target ? getFirstTextSelectionPosition(target) : null;
 }
 
 export const ResumeSectionKeyboardNavigation = Extension.create({
@@ -133,7 +150,7 @@ export const ResumeSectionKeyboardNavigation = Extension.create({
 
         const selection = TextSelection.near(
           state.doc.resolve(targetPosition),
-          direction
+          1
         );
         view.dispatch(state.tr.setSelection(selection).scrollIntoView());
         return true;
@@ -345,6 +362,8 @@ export const resumeEditorExtensions = [
   }),
   Placeholder.configure({
     placeholder: "Click to add your experience...",
+    includeChildren: true,
+    showOnlyCurrent: false,
   }),
   ContactInfoNode,
   ResumeSection,

@@ -51,14 +51,14 @@ describe("resume editor extensions", () => {
         sections[0].from + 2,
         1
       )
-    ).toBe(sections[1].from + 1);
+    ).toBe(sections[1].from + 2);
     expect(
       findAdjacentResumeSectionTextPosition(
         editor.state.doc,
-        sections[1].from + 2,
+        sections[1].from,
         -1
       )
-    ).toBe(sections[0].from + 1);
+    ).toBe(sections[0].from + 2);
     expect(
       findAdjacentResumeSectionTextPosition(
         editor.state.doc,
@@ -66,6 +66,30 @@ describe("resume editor extensions", () => {
         1
       )
     ).toBeNull();
+
+    editor.destroy();
+  });
+
+  it("marks empty section paragraphs with placeholder attributes", () => {
+    const document: TipTapJSONContent = {
+      type: "doc",
+      content: [
+        {
+          type: "resumeSection",
+          attrs: { title: "Experience" },
+          content: [{ type: "paragraph" }],
+        },
+      ],
+    };
+    const editor = new Editor({
+      extensions: resumeEditorExtensions,
+      content: document,
+    });
+
+    expect(editor.view.dom.innerHTML).toContain("is-empty");
+    expect(editor.view.dom.innerHTML).toContain(
+      'data-placeholder="Click to add your experience..."'
+    );
 
     editor.destroy();
   });
