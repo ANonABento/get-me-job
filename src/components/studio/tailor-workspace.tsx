@@ -217,6 +217,8 @@ export function TailorWorkspace() {
   );
   useRegisterShortcuts("studio-tailored", shortcuts);
 
+  const resultAnalysis = result ? analysis ?? result.analysis : null;
+
   function handleSubmit(input: TailorInput) {
     setDraftInput(input);
     setLastInput(input);
@@ -327,7 +329,7 @@ export function TailorWorkspace() {
         )}
 
         {/* Results */}
-        {result && (
+        {result && resultAnalysis && (
           <>
             {/* Step 2: Preview */}
             <div className="rounded-lg border bg-card p-4 sm:p-6">
@@ -344,14 +346,12 @@ export function TailorWorkspace() {
                 resume={result.resume}
                 pdfUrl={result.pdfUrl}
                 resumeId={result.savedResume.id}
-                matchScore={analysis?.matchScore ?? result.analysis.matchScore}
+                matchScore={resultAnalysis.matchScore}
                 templateId={selectedTemplate}
                 templates={templates}
                 onTemplateChange={handleTemplateChange}
-                keywordsFound={analysis?.keywordsFound ?? result.analysis.keywordsFound}
-                keywordsMissing={
-                  analysis?.keywordsMissing ?? result.analysis.keywordsMissing
-                }
+                keywordsFound={resultAnalysis.keywordsFound}
+                keywordsMissing={resultAnalysis.keywordsMissing}
                 jobDescription={lastInput?.jobDescription}
                 onResumeChange={handleResumeChange}
               />
@@ -366,12 +366,10 @@ export function TailorWorkspace() {
                 <h2 className="font-semibold">Gap Analysis</h2>
               </div>
               <GapAnalysis
-                gaps={analysis?.gaps ?? result.analysis.gaps}
-                keywordsFound={analysis?.keywordsFound ?? result.analysis.keywordsFound}
-                keywordsMissing={
-                  analysis?.keywordsMissing ?? result.analysis.keywordsMissing
-                }
-                matchScore={analysis?.matchScore ?? result.analysis.matchScore}
+                gaps={resultAnalysis.gaps}
+                keywordsFound={resultAnalysis.keywordsFound}
+                keywordsMissing={resultAnalysis.keywordsMissing}
+                matchScore={resultAnalysis.matchScore}
               />
             </div>
           </>
