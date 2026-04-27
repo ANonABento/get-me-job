@@ -3,7 +3,3 @@
 import { AppRouteError } from "@/components/ui/app-route-error";
 
 export default AppRouteError;
-<<<<<<< HEAD
-=======
-
->>>>>>> 0e974c5 (Consolidate document routes into studio)

@@ -42,7 +42,7 @@ vi.mock("@/components/tailor/gap-analysis", () => ({
   ),
 }));
 
-vi.mock("@/components/builder/resume-preview", () => ({
+vi.mock("@/components/studio/resume-preview", () => ({
   ResumePreview: ({ html }: { html: string }) => (
     <div data-testid="resume-html">{html}</div>
   ),

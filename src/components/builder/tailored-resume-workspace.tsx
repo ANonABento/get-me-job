@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { Download, Loader2, Settings } from "lucide-react";
 import { JDInput } from "@/components/tailor/jd-input";
 import { GapAnalysis } from "@/components/tailor/gap-analysis";
-import { ResumePreview } from "@/components/builder/resume-preview";
+import { ResumePreview } from "@/components/studio/resume-preview";
 import { Button } from "@/components/ui/button";
 import {
   downloadHtmlAsPdf,

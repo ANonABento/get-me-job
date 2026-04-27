@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { STUDIO_ROUTE } from "@/lib/studio/document-studio";
 import {
   Home,
   Database,
@@ -18,11 +17,7 @@ import {
   Mail,
   Calendar,
   DollarSign,
-<<<<<<< HEAD
-  Sparkles,
-=======
   FileText,
->>>>>>> 0e974c5 (Consolidate document routes into studio)
   type LucideIcon,
 } from "lucide-react";
 import { useLLMStatus } from "@/hooks/useLLMStatus";
@@ -57,11 +52,7 @@ export const navigationGroups: NavGroup[] = [
     label: "Resume",
     items: [
       { name: "Documents", href: "/bank", icon: Database },
-<<<<<<< HEAD
-      { name: "Document Studio", href: STUDIO_ROUTE, icon: Sparkles },
-=======
       { name: "Document Studio", href: "/studio", icon: FileText },
->>>>>>> 0e974c5 (Consolidate document routes into studio)
     ],
   },
   ...(FEATURES.jobTracker ? [{

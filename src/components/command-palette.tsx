@@ -34,11 +34,7 @@ import {
 const COMMAND_ICONS: Record<string, LucideIcon> = {
   "nav-dashboard": Home,
   "nav-documents": Database,
-<<<<<<< HEAD
-  "nav-studio": Sparkles,
-=======
   "nav-studio": FileText,
->>>>>>> 0e974c5 (Consolidate document routes into studio)
   "nav-settings": Settings,
   "act-upload": Upload,
   "act-build": FileText,
