@@ -5,9 +5,13 @@ export interface SectionState {
   visible: boolean;
 }
 
-export type BuilderPanel = "edit" | "preview";
+export type BuilderPanel = "edit" | "preview" | "history";
 
-export const BUILDER_PANELS: readonly BuilderPanel[] = ["edit", "preview"];
+export const BUILDER_PANELS: readonly BuilderPanel[] = [
+  "edit",
+  "preview",
+  "history",
+];
 
 export const DEFAULT_BUILDER_PANEL: BuilderPanel = "edit";
 

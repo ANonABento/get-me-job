@@ -198,11 +198,15 @@ describe("getMobilePanelClasses", () => {
   it("hides the edit panel on mobile but shows it on desktop when preview is active", () => {
     expect(getMobilePanelClasses("preview", "edit")).toBe("hidden md:block");
   });
+
+  it("shows the history panel on mobile and desktop when history is active", () => {
+    expect(getMobilePanelClasses("history", "history")).toBe("block md:block");
+  });
 });
 
 describe("BUILDER_PANELS", () => {
-  it("includes both edit and preview", () => {
-    expect(BUILDER_PANELS).toEqual(["edit", "preview"]);
+  it("includes edit, preview, and history", () => {
+    expect(BUILDER_PANELS).toEqual(["edit", "preview", "history"]);
   });
 });
 
