@@ -3,7 +3,7 @@
  * @route POST /api/tailor
  * @description List tailored resume templates (GET) or analyze a JD / generate a tailored resume from bank (POST)
  * @auth Required
- * @request { action: "analyze" | "generate", jobDescription: string, ...params } (POST)
+ * @request { action: "analyze" | "generate" | "render", jobDescription: string, ...params } (POST)
  * @response TailorAnalysisResponse | TailorGenerateResponse from @/types/api
  */
 import { NextRequest, NextResponse } from "next/server";
@@ -13,10 +13,33 @@ import { createJob } from "@/lib/db/jobs";
 import { analyzeJobFit, extractKeywords } from "@/lib/tailor/analyze";
 import { generateFromBank } from "@/lib/tailor/generate";
 import { generateResumeHTML, TEMPLATES } from "@/lib/resume/pdf";
+import type { TailoredResume } from "@/lib/resume/generator";
 import { writeFile, mkdir } from "fs/promises";
 import { generateId } from "@/lib/utils";
 import { PATHS } from "@/lib/constants";
 import { requireAuth, isAuthError } from "@/lib/auth";
+
+type TailorAction = "analyze" | "generate" | "render";
+
+function isTailorAction(value: unknown): value is TailorAction {
+  return value === "analyze" || value === "generate" || value === "render";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isTailoredResume(value: unknown): value is TailoredResume {
+  if (!isRecord(value)) return false;
+  return (
+    isRecord(value.contact) &&
+    typeof value.contact.name === "string" &&
+    typeof value.summary === "string" &&
+    Array.isArray(value.experiences) &&
+    Array.isArray(value.skills) &&
+    Array.isArray(value.education)
+  );
+}
 
 /**
  * GET /api/tailor — returns available templates
@@ -39,7 +62,8 @@ export async function GET() {
  *   jobTitle?: string;
  *   company?: string;
  *   templateId?: string;
- *   action: "analyze" | "generate";
+ *   action: "analyze" | "generate" | "render";
+ *   resume?: TailoredResume; // required for "render"
  * }
  */
 export async function POST(request: NextRequest) {
@@ -48,18 +72,39 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
+    const action = isTailorAction(body.action) ? body.action : "analyze";
+    const templateId =
+      typeof body.templateId === "string" ? body.templateId : "classic";
+
+    if (body.action !== undefined && !isTailorAction(body.action)) {
+      return NextResponse.json(
+        { error: "Unsupported tailor action." },
+        { status: 400 }
+      );
+    }
+
+    if (action === "render") {
+      if (!isTailoredResume(body.resume)) {
+        return NextResponse.json(
+          { error: "A generated resume is required for template rendering." },
+          { status: 400 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        html: generateResumeHTML(body.resume, templateId, authResult.userId),
+      });
+    }
+
     const {
       jobDescription,
       jobTitle = "Unknown Position",
       company = "Unknown Company",
-      templateId = "classic",
-      action = "analyze",
     } = body as {
       jobDescription?: string;
       jobTitle?: string;
       company?: string;
-      templateId?: string;
-      action?: "analyze" | "generate";
     };
 
     if (!jobDescription || jobDescription.trim().length < 20) {

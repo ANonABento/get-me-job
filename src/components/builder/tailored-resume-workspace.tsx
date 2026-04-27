@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Download, Loader2, Settings } from "lucide-react";
 import { JDInput } from "@/components/tailor/jd-input";
 import { GapAnalysis } from "@/components/tailor/gap-analysis";
@@ -29,26 +29,151 @@ interface GenerateResult {
   analysis: AnalysisResult;
 }
 
+interface RenderResult {
+  success: boolean;
+  html: string;
+}
+
 interface LastInput {
   jobDescription: string;
   jobTitle: string;
   company: string;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isAnalysisResult(value: unknown): value is AnalysisResult {
+  return (
+    isRecord(value) &&
+    typeof value.matchScore === "number" &&
+    Array.isArray(value.keywordsFound) &&
+    Array.isArray(value.keywordsMissing) &&
+    Array.isArray(value.gaps) &&
+    typeof value.matchedEntriesCount === "number"
+  );
+}
+
+function isTailoredResume(value: unknown): value is TailoredResume {
+  return (
+    isRecord(value) &&
+    isRecord(value.contact) &&
+    typeof value.contact.name === "string" &&
+    typeof value.summary === "string" &&
+    Array.isArray(value.experiences) &&
+    Array.isArray(value.skills) &&
+    Array.isArray(value.education)
+  );
+}
+
+function isGenerateResult(value: unknown): value is GenerateResult {
+  return (
+    isRecord(value) &&
+    value.success === true &&
+    typeof value.html === "string" &&
+    isTailoredResume(value.resume) &&
+    isAnalysisResult(value.analysis)
+  );
+}
+
+function isRenderResult(value: unknown): value is RenderResult {
+  return (
+    isRecord(value) && value.success === true && typeof value.html === "string"
+  );
+}
+
+async function readJson(response: Response): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
 export function TailoredResumeWorkspace() {
   const [templateId, setTemplateId] = useState("classic");
+  const [renderedTemplateId, setRenderedTemplateId] = useState("classic");
   const [lastInput, setLastInput] = useState<LastInput | null>(null);
   const [result, setResult] = useState<GenerateResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
+  const templateIdRef = useRef(templateId);
 
   const selectedTemplate = useMemo(
     () => TEMPLATES.find((template) => template.id === templateId),
     [templateId]
   );
 
-  async function generate(input: LastInput, nextTemplateId = templateId) {
+  function selectTemplate(nextTemplateId: string) {
+    templateIdRef.current = nextTemplateId;
+    setTemplateId(nextTemplateId);
+  }
+
+  function isCurrentRequest(requestId: number) {
+    return requestId === requestIdRef.current;
+  }
+
+  async function renderResume(
+    resume: TailoredResume,
+    nextTemplateId: string,
+    requestId = ++requestIdRef.current
+  ) {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/tailor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "render",
+          templateId: nextTemplateId,
+          resume,
+        }),
+      });
+      const data = await readJson(response);
+
+      if (!isCurrentRequest(requestId)) return null;
+
+      if (!response.ok) {
+        setError(
+          isRecord(data) && typeof data.error === "string"
+            ? data.error
+            : "Failed to update the resume template."
+        );
+        return null;
+      }
+
+      if (!isRenderResult(data)) {
+        setError("Failed to update the resume template.");
+        return null;
+      }
+
+      setRenderedTemplateId(nextTemplateId);
+      setResult((current) =>
+        current?.resume === resume ? { ...current, html: data.html } : current
+      );
+      return data.html;
+    } catch {
+      if (isCurrentRequest(requestId)) {
+        setError("Network error. Please try again.");
+      }
+      return null;
+    } finally {
+      if (isCurrentRequest(requestId)) {
+        setIsLoading(false);
+      }
+    }
+  }
+
+  async function generate(
+    input: LastInput,
+    nextTemplateId = templateIdRef.current
+  ) {
+    const requestId = ++requestIdRef.current;
     setIsLoading(true);
     setError(null);
 
@@ -62,18 +187,46 @@ export function TailoredResumeWorkspace() {
           action: "generate",
         }),
       });
-      const data = await response.json();
+      const data = await readJson(response);
+
+      if (!isCurrentRequest(requestId)) return;
 
       if (!response.ok) {
-        setError(data.error || "Failed to generate tailored resume.");
+        setError(
+          isRecord(data) && typeof data.error === "string"
+            ? data.error
+            : "Failed to generate tailored resume."
+        );
+        return;
+      }
+
+      if (!isGenerateResult(data)) {
+        setError("Failed to generate tailored resume.");
+        return;
+      }
+
+      if (templateIdRef.current !== nextTemplateId) {
+        const html = await renderResume(
+          data.resume,
+          templateIdRef.current,
+          requestId
+        );
+        if (html && isCurrentRequest(requestId)) {
+          setResult({ ...data, html });
+        }
         return;
       }
 
       setResult(data);
+      setRenderedTemplateId(nextTemplateId);
     } catch {
-      setError("Network error. Please try again.");
+      if (isCurrentRequest(requestId)) {
+        setError("Network error. Please try again.");
+      }
     } finally {
-      setIsLoading(false);
+      if (isCurrentRequest(requestId)) {
+        setIsLoading(false);
+      }
     }
   }
 
@@ -83,9 +236,9 @@ export function TailoredResumeWorkspace() {
   }
 
   function handleTemplateChange(nextTemplateId: string) {
-    setTemplateId(nextTemplateId);
-    if (lastInput) {
-      generate(lastInput, nextTemplateId);
+    selectTemplate(nextTemplateId);
+    if (result?.resume) {
+      renderResume(result.resume, nextTemplateId);
     }
   }
 
@@ -128,6 +281,7 @@ export function TailoredResumeWorkspace() {
             <select
               value={templateId}
               onChange={(event) => handleTemplateChange(event.target.value)}
+              disabled={isLoading}
               className="h-9 rounded-md border bg-background px-3 text-sm"
               aria-label="Resume template"
             >
@@ -146,7 +300,9 @@ export function TailoredResumeWorkspace() {
           <Button
             size="sm"
             onClick={handleDownloadPdf}
-            disabled={!result?.html || isExporting}
+            disabled={
+              !result?.html || isExporting || renderedTemplateId !== templateId
+            }
           >
             {isExporting ? (
               <Loader2 className="h-4 w-4 animate-spin md:mr-1.5" />
