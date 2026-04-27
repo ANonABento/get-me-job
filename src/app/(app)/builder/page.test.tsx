@@ -30,6 +30,10 @@ vi.mock("@/components/builder/cover-letter-workspace", () => ({
   CoverLetterWorkspace: () => <div>Cover letter workspace</div>,
 }));
 
+vi.mock("@/components/builder/tailored-resume-workspace", () => ({
+  TailoredResumeWorkspace: () => <div>Tailored resume workspace</div>,
+}));
+
 vi.mock("@/hooks/use-error-toast", () => ({
   useErrorToast: () => vi.fn(),
 }));
@@ -53,6 +57,23 @@ describe("BuilderPage", () => {
     expect(await screen.findByText("Resume sections")).toBeInTheDocument();
     expect(screen.getByText("Resume preview")).toBeInTheDocument();
     expect(screen.queryByText("Cover letter workspace")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Tailored resume workspace")
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders tailored resume mode from the builder mode search param", () => {
+    navigationMock.searchParams = new URLSearchParams("mode=tailored-resume");
+
+    render(<BuilderPage />);
+
+    expect(screen.getByText("Tailored resume workspace")).toBeInTheDocument();
+    expect(screen.queryByText("Resume sections")).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /tailored/i })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it("renders cover letter mode from the builder mode search param", () => {
@@ -81,5 +102,19 @@ describe("BuilderPage", () => {
       );
     });
     expect(screen.getByText("Cover letter workspace")).toBeInTheDocument();
+  });
+
+  it("updates the URL when switching to tailored resume mode", async () => {
+    render(<BuilderPage />);
+
+    fireEvent.click(await screen.findByRole("tab", { name: /tailored/i }));
+
+    await waitFor(() => {
+      expect(navigationMock.replace).toHaveBeenCalledWith(
+        "/builder?mode=tailored-resume",
+        { scroll: false }
+      );
+    });
+    expect(screen.getByText("Tailored resume workspace")).toBeInTheDocument();
   });
 });

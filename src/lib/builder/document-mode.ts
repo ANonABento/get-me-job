@@ -1,4 +1,8 @@
-export const BUILDER_DOCUMENT_MODES = ["resume", "cover-letter"] as const;
+export const BUILDER_DOCUMENT_MODES = [
+  "resume",
+  "tailored-resume",
+  "cover-letter",
+] as const;
 
 export type BuilderDocumentMode = (typeof BUILDER_DOCUMENT_MODES)[number];
 
@@ -15,5 +19,7 @@ export function getBuilderModeFromSearchParam(
 }
 
 export function getBuilderModeHref(mode: BuilderDocumentMode): string {
-  return mode === "cover-letter" ? "/builder?mode=cover-letter" : "/builder";
+  if (mode === "tailored-resume") return "/builder?mode=tailored-resume";
+  if (mode === "cover-letter") return "/builder?mode=cover-letter";
+  return "/builder";
 }

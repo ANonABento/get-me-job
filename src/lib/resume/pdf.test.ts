@@ -273,28 +273,27 @@ describe("generateResumeHTML - special characters in content", () => {
 
   it("preserves angle brackets in content", () => {
     const html = generateResumeHTML(specialCharsResume, "classic");
-    // Content with angle brackets is included as-is (template uses raw interpolation)
-    expect(html).toContain("Smith & Wesson");
+    expect(html).toContain("Smith &amp; Wesson &lt;Corp&gt;");
+    expect(html).not.toContain("<script>");
   });
 
   it("preserves quotes in content", () => {
     const html = generateResumeHTML(specialCharsResume, "classic");
-    expect(html).toContain('"React"');
-    expect(html).toContain('"Fortune 500"');
+    expect(html).toContain("&quot;React&quot;");
+    expect(html).toContain("&quot;Fortune 500&quot;");
   });
 
   it("renders special character skills", () => {
     const html = generateResumeHTML(specialCharsResume, "classic");
     expect(html).toContain("C++");
     expect(html).toContain("C#");
-    // Template uses raw interpolation, so R&D appears unescaped
-    expect(html).toContain("R&D");
+    expect(html).toContain("R&amp;D");
   });
 
   it("handles special characters in two-column layout", () => {
     const html = generateResumeHTML(specialCharsResume, "two-column");
     expect(html).toContain("two-col-container");
-    expect(html).toContain("Smith & Wesson");
+    expect(html).toContain("Smith &amp; Wesson &lt;Corp&gt;");
     expect(html).toContain("C++");
   });
 });

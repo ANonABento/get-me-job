@@ -3,7 +3,7 @@
  * @route POST /api/tailor
  * @description List tailored resume templates (GET) or analyze a JD / generate a tailored resume from bank (POST)
  * @auth Required
- * @request { action: "analyze" | "generate", jobDescription: string, ...params } (POST)
+ * @request { action: "analyze" | "generate" | "render", jobDescription: string, ...params } (POST)
  * @response TailorAnalysisResponse | TailorGenerateResponse from @/types/api
  */
 import { NextRequest, NextResponse } from "next/server";
@@ -13,6 +13,10 @@ import { createJob } from "@/lib/db/jobs";
 import { analyzeJobFit, extractKeywords } from "@/lib/tailor/analyze";
 import { generateFromBank } from "@/lib/tailor/generate";
 import { generateResumeHTML, TEMPLATES } from "@/lib/resume/pdf";
+import {
+  isTailorAction,
+  isTailoredResume,
+} from "@/lib/builder/tailored-resume-api";
 import { writeFile, mkdir } from "fs/promises";
 import { generateId } from "@/lib/utils";
 import { PATHS } from "@/lib/constants";
@@ -39,7 +43,8 @@ export async function GET() {
  *   jobTitle?: string;
  *   company?: string;
  *   templateId?: string;
- *   action: "analyze" | "generate";
+ *   action: "analyze" | "generate" | "render";
+ *   resume?: TailoredResume; // required for "render"
  * }
  */
 export async function POST(request: NextRequest) {
@@ -48,18 +53,39 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
+    const action = isTailorAction(body.action) ? body.action : "analyze";
+    const templateId =
+      typeof body.templateId === "string" ? body.templateId : "classic";
+
+    if (body.action !== undefined && !isTailorAction(body.action)) {
+      return NextResponse.json(
+        { error: "Unsupported tailor action." },
+        { status: 400 }
+      );
+    }
+
+    if (action === "render") {
+      if (!isTailoredResume(body.resume)) {
+        return NextResponse.json(
+          { error: "A generated resume is required for template rendering." },
+          { status: 400 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        html: generateResumeHTML(body.resume, templateId, authResult.userId),
+      });
+    }
+
     const {
       jobDescription,
       jobTitle = "Unknown Position",
       company = "Unknown Company",
-      templateId = "classic",
-      action = "analyze",
     } = body as {
       jobDescription?: string;
       jobTitle?: string;
       company?: string;
-      templateId?: string;
-      action?: "analyze" | "generate";
     };
 
     if (!jobDescription || jobDescription.trim().length < 20) {
@@ -158,6 +184,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      html,
       pdfUrl,
       resume: tailoredResume,
       savedResume,

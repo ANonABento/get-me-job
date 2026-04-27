@@ -7,6 +7,8 @@
  */
 
 import type { InterviewDifficulty } from "@/lib/constants";
+import type { TailoredResume } from "@/lib/resume/generator";
+import type { GapItem } from "@/lib/tailor/analyze";
 import type { InterviewQuestion } from "@/types/interview";
 import type {
   Profile,
@@ -166,19 +168,27 @@ export interface ResumeTemplatesResponse {
 export interface TailorAnalysisResponse {
   success: true;
   analysis: {
-    score: number;
-    matches: string[];
-    gaps: string[];
-    suggestions: string[];
+    matchScore: number;
+    keywordsFound: string[];
+    keywordsMissing: string[];
+    gaps: GapItem[];
+    matchedEntriesCount: number;
   };
 }
 
 export interface TailorGenerateResponse {
   success: true;
-  pdfUrl?: string;
-  resume: Record<string, unknown>;
+  html: string;
+  pdfUrl: string;
+  resume: TailoredResume;
+  savedResume: { id: string };
   jobId: string;
   analysis: TailorAnalysisResponse["analysis"];
+}
+
+export interface TailorRenderResponse {
+  success: true;
+  html: string;
 }
 
 // ---------------------------------------------------------------------------
