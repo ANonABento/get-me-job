@@ -4,6 +4,7 @@ import {
   buildSelectionRewritePrompt,
   buildSystemPrompt,
   buildRevisionPrompt,
+  buildSelectionRewritePrompt,
   getTotalBankEntries,
 } from "./generate";
 import type { CoverLetterInput } from "./generate";
@@ -203,16 +204,20 @@ describe("buildRevisionPrompt", () => {
 });
 
 describe("buildSelectionRewritePrompt", () => {
-  it("asks for only replacement text with selected text and full context", () => {
-    const prompt = buildSelectionRewritePrompt({
-      selectedText: "I built APIs quickly.",
-      currentContent: "Dear Acme,\n\nI built APIs quickly.\n\nThanks,",
-      instruction: "Make it more specific",
-    });
+  it("includes the selected passage and instruction", () => {
+    const prompt = buildSelectionRewritePrompt(
+      "I built APIs quickly.",
+      "Add reliability impact"
+    );
 
     expect(prompt).toContain("I built APIs quickly.");
-    expect(prompt).toContain("Dear Acme");
-    expect(prompt).toContain("Make it more specific");
-    expect(prompt).toContain("Return ONLY the replacement text");
+    expect(prompt).toContain("Add reliability impact");
+  });
+
+  it("asks for only the rewritten passage", () => {
+    const prompt = buildSelectionRewritePrompt("Old text", "Rewrite");
+
+    expect(prompt).toContain("ONLY the rewritten passage");
+    expect(prompt).not.toContain("full cover letter");
   });
 });

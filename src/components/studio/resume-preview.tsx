@@ -44,7 +44,7 @@ export function ResumePreview({
     if (!wrapperRef.current) return;
     const availableWidth = wrapperRef.current.clientWidth - 48; // minus padding
     if (availableWidth < PAGE_WIDTH_PX) {
-      setFitScale(availableWidth / PAGE_WIDTH_PX);
+      setFitScale(Math.max(availableWidth, 1) / PAGE_WIDTH_PX);
     } else {
       setFitScale(1);
     }

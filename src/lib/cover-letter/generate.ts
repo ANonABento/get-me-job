@@ -112,24 +112,16 @@ export function buildRevisionPrompt(instruction: string): string {
 Apply the requested changes while maintaining professional quality. Output ONLY the revised cover letter text, no additional commentary.`;
 }
 
-export function buildSelectionRewritePrompt({
-  selectedText,
-  currentContent,
-  instruction,
-}: {
-  selectedText: string;
-  currentContent: string;
-  instruction: string;
-}): string {
-  return `Rewrite only the selected cover letter text based on this instruction: "${instruction}"
+export function buildSelectionRewritePrompt(
+  selectedText: string,
+  instruction: string
+): string {
+  return `Rewrite only this selected passage based on the instruction: "${instruction}"
 
-Selected text:
+Selected passage:
 ${selectedText}
 
-Full cover letter context:
-${currentContent}
-
-Return ONLY the replacement text for the selected text. Do not include markdown, labels, quotes, or commentary.`;
+Keep the rewritten passage compatible with the surrounding cover letter. Output ONLY the rewritten passage, no additional commentary.`;
 }
 
 export async function generateCoverLetter(
@@ -195,15 +187,16 @@ export async function rewriteCoverLetterSelection(
       { role: "system", content: systemPrompt },
       {
         role: "user",
-        content: buildSelectionRewritePrompt({
-          selectedText,
-          currentContent,
-          instruction,
-        }),
+        content: `Write a cover letter for this job:\n\n${input.jobDescription}`,
+      },
+      { role: "assistant", content: currentContent },
+      {
+        role: "user",
+        content: buildSelectionRewritePrompt(selectedText, instruction),
       },
     ],
-    temperature: 0.4,
-    maxTokens: 700,
+    temperature: 0.7,
+    maxTokens: 512,
   });
 
   return result.trim();
