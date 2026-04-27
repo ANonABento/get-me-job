@@ -75,7 +75,6 @@ const ALL_PAGES = [
   "dashboard",
   "bank",
   "studio",
-  "tailor",
   "jobs",
   "interview",
   "calendar",
