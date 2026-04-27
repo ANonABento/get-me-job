@@ -56,6 +56,50 @@ describe("CoverLetterWorkspace", () => {
     expect(screen.getByLabelText("Closing")).toHaveValue("Sincerely, Jane");
   });
 
+  it("clears the editor when the selected cover letter has no extracted text", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          documents: [
+            {
+              id: "doc-1",
+              filename: "filled-cover-letter.pdf",
+              type: "cover_letter",
+              mimeType: "application/pdf",
+              size: 1024,
+              path: "/uploads/filled-cover-letter.pdf",
+              extractedText:
+                "Dear Acme team,\n\nI built useful products.\n\nSincerely,\nJane",
+              uploadedAt: "2026-04-01T10:00:00.000Z",
+            },
+            {
+              id: "doc-2",
+              filename: "empty-cover-letter.pdf",
+              type: "cover_letter",
+              mimeType: "application/pdf",
+              size: 256,
+              path: "/uploads/empty-cover-letter.pdf",
+              uploadedAt: "2026-04-02T10:00:00.000Z",
+            },
+          ],
+        }),
+        { status: 200 }
+      )
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<CoverLetterWorkspace />);
+
+    fireEvent.click(await screen.findByText("filled-cover-letter.pdf"));
+    expect(screen.getByLabelText("Opening")).toHaveValue("Dear Acme team,");
+
+    fireEvent.click(screen.getByText("empty-cover-letter.pdf"));
+
+    expect(screen.getByLabelText("Opening")).toHaveValue("");
+    expect(screen.getByLabelText("Body")).toHaveValue("");
+    expect(screen.getByLabelText("Closing")).toHaveValue("");
+  });
+
   it("generates from job description and bank data into opening, body, and closing sections", async () => {
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       if (url === "/api/documents?type=cover_letter") {

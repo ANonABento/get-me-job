@@ -105,9 +105,7 @@ export function CoverLetterWorkspace() {
 
   function handleFileSelect(file: Document) {
     setSelectedFileId(file.id);
-    if (file.extractedText) {
-      setDocument(coverLetterContentToDocument(file.extractedText));
-    }
+    setDocument(coverLetterContentToDocument(file.extractedText ?? ""));
   }
 
   async function handleGenerate() {

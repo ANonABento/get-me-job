@@ -4,6 +4,7 @@ import { z } from "zod";
 export const DOCUMENT_TYPES = [
   "resume",
   "cover_letter",
+  "reference_letter",
   "portfolio",
   "certificate",
   "other",

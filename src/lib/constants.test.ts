@@ -42,6 +42,7 @@ describe("constants barrel", () => {
     ).toBe(true);
 
     expect(DOCUMENT_TYPES).toContain("resume");
+    expect(DOCUMENT_TYPES).toContain("reference_letter");
 
     expect(LLM_PROVIDERS).toContain("openai");
     expect(DEFAULT_MODEL_BY_PROVIDER.openai).toBe("gpt-4o-mini");
