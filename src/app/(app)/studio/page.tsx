@@ -222,13 +222,11 @@ function StudioPageContent() {
   const [templateId, setTemplateId] = useState("classic");
   const [loading, setLoading] = useState(initialDocumentMode === "resume");
   const [hasLoadedEntries, setHasLoadedEntries] = useState(false);
-  const [editor, setEditor] = useState<Editor | null>(null);
-  const [, refreshToolbarState] = useReducer(
-    (version: number) => version + 1,
-    0
-  );
-  const [zoomPercent, setZoomPercent] = useState(100);
-  const [isExporting, setIsExporting] = useState(false);
+  const [loadedResumeDocumentId, setLoadedResumeDocumentId] = useState<
+    string | null
+  >(null);
+  const [html, setHtml] = useState("");
+  const [generating, setGenerating] = useState(false);
   const [mobileView, setMobileView] = useState<BuilderPanel>(
     DEFAULT_BUILDER_PANEL
   );
@@ -286,6 +284,9 @@ function StudioPageContent() {
       );
       setSelectedIds(new Set(activeDocument.selectedEntryIds));
       setHtml(activeDocument.content);
+      setLoadedResumeDocumentId(activeDocument.id);
+    } else {
+      setLoadedResumeDocumentId(null);
     }
   }, [activeDocument]);
 
@@ -365,7 +366,9 @@ function StudioPageContent() {
   );
 
   useEffect(() => {
-    if (!editor) return;
+    if (documentMode !== "resume") return;
+    if (loadedResumeDocumentId !== activeDocument.id) return;
+    if (!hasLoadedEntries) return;
 
     if (orderedEntries.length === 0) {
       setHtml("");
@@ -431,6 +434,8 @@ function StudioPageContent() {
   }, [
     documentMode,
     activeDocument.id,
+    hasLoadedEntries,
+    loadedResumeDocumentId,
     orderedEntries,
     showErrorToast,
     templateId,
@@ -538,16 +543,21 @@ function StudioPageContent() {
   );
 
   const handleCreateDocument = useCallback(() => {
-    const documentCount = getDocumentsForType(documents, documentMode).length;
-    const document = createStudioDocument(documentMode, {
-      name:
-        documentMode === "cover-letter"
-          ? `Cover Letter ${documentCount + 1}`
-          : `Resume ${documentCount + 1}`,
+    setDocuments((prev) => {
+      const documentCount = getDocumentsForType(prev, documentMode).length;
+      const document = createStudioDocument(documentMode, {
+        name:
+          documentMode === "cover-letter"
+            ? `Cover Letter ${documentCount + 1}`
+            : `Resume ${documentCount + 1}`,
+      });
+      setActiveDocumentIds((activeIds) => ({
+        ...activeIds,
+        [documentMode]: document.id,
+      }));
+      return [...prev, document];
     });
-    setDocuments((prev) => [...prev, document]);
-    setActiveDocumentIds((prev) => ({ ...prev, [documentMode]: document.id }));
-  }, [documentMode, documents]);
+  }, [documentMode]);
 
   const handleSelectDocument = useCallback(
     (id: string) => {

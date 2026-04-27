@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import StudioPage from "./page";
 import {
@@ -224,6 +224,63 @@ describe("StudioPage", () => {
     );
     expect(screen.queryByText("Backend Resume")).not.toBeInTheDocument();
     expect(window.confirm).toHaveBeenCalledWith('Delete "Backend Resume"?');
+  });
+
+  it("keeps persisted resume content while bank entries are still loading", async () => {
+    vi.mocked(window.localStorage.getItem).mockReturnValue(
+      JSON.stringify([
+        {
+          id: "resume-1",
+          name: "Saved Resume",
+          type: "resume",
+          templateId: "classic",
+          content: "<p>Saved resume</p>",
+          sections: [],
+          selectedEntryIds: ["entry-1"],
+          createdAt: "2026-04-26T12:00:00.000Z",
+          updatedAt: "2026-04-26T12:00:00.000Z",
+        },
+        {
+          id: "cover-1",
+          name: "Saved Letter",
+          type: "cover-letter",
+          templateId: "classic",
+          content: "",
+          sections: [],
+          selectedEntryIds: [],
+          createdAt: "2026-04-26T12:00:00.000Z",
+          updatedAt: "2026-04-26T12:00:00.000Z",
+        },
+      ])
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise<Response>(() => {}))
+    );
+
+    render(<StudioPage />);
+
+    await waitFor(() => {
+      expect(window.localStorage.setItem).toHaveBeenCalled();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const savedResumes = vi
+      .mocked(window.localStorage.setItem)
+      .mock.calls.flatMap(([, value]) =>
+        (
+          JSON.parse(String(value)) as Array<{ id: string; content: string }>
+        ).filter((document) => document.id === "resume-1")
+      );
+
+    expect(savedResumes.length).toBeGreaterThan(0);
+    expect(
+      savedResumes.every(
+        (document) => document.content === "<p>Saved resume</p>"
+      )
+    ).toBe(true);
   });
 
   it("loads persisted active cover letter content into the editor", () => {
