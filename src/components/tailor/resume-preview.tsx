@@ -33,6 +33,7 @@ interface ResumePreviewProps {
   keywordsFound?: string[];
   keywordsMissing?: string[];
   jobDescription?: string;
+  onResumeChange?: (resume: TailoredResume) => void;
 }
 
 function HighlightedText({
@@ -148,6 +149,7 @@ export function ResumePreview({
   keywordsFound = [],
   keywordsMissing = [],
   jobDescription = "",
+  onResumeChange,
 }: ResumePreviewProps) {
   const [expanded, setExpanded] = useState(true);
   const [autoFixLoading, setAutoFixLoading] = useState(false);
@@ -176,6 +178,7 @@ export function ResumePreview({
       const data = await res.json();
       if (data.resume) {
         setAutoFixResult(data.resume);
+        onResumeChange?.(data.resume);
         setShowDiff(true);
       }
     } catch {
@@ -223,7 +226,7 @@ export function ResumePreview({
               ) : (
                 <Wand2 className="h-4 w-4 mr-1.5" />
               )}
-              Auto-fix
+              Auto-Tailor
             </Button>
           )}
           {autoFixResult && (

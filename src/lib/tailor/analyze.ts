@@ -1,4 +1,5 @@
 import type { BankEntry, GroupedBankEntries } from "@/types";
+import type { TailoredResume } from "@/lib/resume/generator";
 
 export interface JobRequirement {
   text: string;
@@ -20,6 +21,13 @@ export interface BankMatch {
 export interface TailorAnalysis {
   matchScore: number;
   matchedEntries: BankMatch[];
+  gaps: GapItem[];
+  keywordsFound: string[];
+  keywordsMissing: string[];
+}
+
+export interface ResumeFitAnalysis {
+  matchScore: number;
   gaps: GapItem[];
   keywordsFound: string[];
   keywordsMissing: string[];
@@ -115,6 +123,59 @@ export function scoreBankEntry(
   };
 }
 
+export function resumeToKeywordSearchText(resume: TailoredResume): string {
+  const parts: string[] = [
+    resume.contact.name,
+    resume.contact.email,
+    resume.contact.phone,
+    resume.contact.location,
+    resume.summary,
+    resume.skills.join(" "),
+  ].filter((part): part is string => Boolean(part));
+
+  for (const experience of resume.experiences) {
+    parts.push(
+      experience.title,
+      experience.company,
+      experience.dates,
+      experience.highlights.join(" ")
+    );
+  }
+
+  for (const education of resume.education) {
+    parts.push(
+      education.institution,
+      education.degree,
+      education.field,
+      education.date
+    );
+  }
+
+  return parts.join(" ").toLowerCase();
+}
+
+export function analyzeResumeFit(
+  jobDescription: string,
+  resume: TailoredResume,
+  jobKeywords?: string[]
+): ResumeFitAnalysis {
+  const keywords = jobKeywords ?? extractKeywords(jobDescription);
+  const resumeText = resumeToKeywordSearchText(resume);
+  const keywordsFound = keywords.filter((kw) => resumeText.includes(kw));
+  const keywordsMissing = keywords.filter((kw) => !resumeText.includes(kw));
+  const matchScore =
+    keywords.length > 0
+      ? Math.round((keywordsFound.length / keywords.length) * 100)
+      : 0;
+
+  return {
+    matchScore,
+    gaps: buildGapAnalysis(keywordsMissing),
+    keywordsFound,
+    keywordsMissing,
+  };
+}
+
 /**
  * Analyze how well the knowledge bank covers a job description.
  * Returns matched entries, gaps, and an overall match score.
@@ -171,20 +232,20 @@ export function analyzeJobFit(
 /**
  * Categorize missing keywords into actionable gap items.
  */
-function buildGapAnalysis(missingKeywords: string[]): GapItem[] {
+export function buildGapAnalysis(missingKeywords: string[]): GapItem[] {
   return missingKeywords
     .filter((kw) => kw.length > 2)
     .slice(0, 15)
     .map((kw) => {
       let category: GapItem["category"] = "other";
-      let suggestion = `Consider adding "${kw}" to your knowledge bank`;
+      let suggestion = `Add "${kw}" where it fits in your resume summary or experience bullets`;
 
       if (SKILL_INDICATORS.some((s) => kw.includes(s) || s.includes(kw))) {
         category = "skill";
-        suggestion = `Add "${kw}" skill with project examples to your bank`;
+        suggestion = `Add "${kw}" to Skills and support it with a project or experience bullet`;
       } else if (CERT_INDICATORS.some((c) => kw.includes(c))) {
         category = "certification";
-        suggestion = `Consider obtaining "${kw}" certification`;
+        suggestion = `Add "${kw}" to Certifications if you have it, otherwise leave it out`;
       }
 
       return { requirement: kw, category, suggestion };

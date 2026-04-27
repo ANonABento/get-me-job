@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { JDInput } from "@/components/tailor/jd-input";
 import { ResumePreview } from "@/components/tailor/resume-preview";
 import { GapAnalysis } from "@/components/tailor/gap-analysis";
-import { FileText, Sparkles } from "lucide-react";
+import { FileText, Loader2, Sparkles } from "lucide-react";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { ErrorState } from "@/components/ui/error-state";
 import type { TailoredResume } from "@/lib/resume/generator";
+import { analyzeResumeFit } from "@/lib/tailor/analyze";
 import type { GapItem } from "@/lib/tailor/analyze";
 import { useRegisterShortcuts } from "@/components/keyboard-shortcuts";
 import { readJsonResponse } from "@/lib/http";
@@ -41,14 +42,22 @@ interface TailorInput {
   company: string;
 }
 
+interface AnalyzeResult {
+  success: boolean;
+  analysis: AnalysisResult;
+}
+
 export function TailorWorkspace() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState("classic");
   const [result, setResult] = useState<GenerateResult | null>(null);
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Input state kept for re-generation with different template
+  const [draftInput, setDraftInput] = useState<TailorInput | null>(null);
   const [lastInput, setLastInput] = useState<TailorInput | null>(null);
 
   // Refs for keyboard shortcut access to latest state
@@ -73,6 +82,70 @@ export function TailorWorkspace() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const input = draftInput;
+    if (!input || input.jobDescription.trim().length < 20) {
+      setAnalysis(null);
+      setIsAnalyzing(false);
+      return;
+    }
+
+    if (result?.resume) {
+      const resumeAnalysis = analyzeResumeFit(
+        input.jobDescription,
+        result.resume
+      );
+      setAnalysis({
+        ...resumeAnalysis,
+        matchedEntriesCount: result.analysis.matchedEntriesCount,
+      });
+      setIsAnalyzing(false);
+      return;
+    }
+
+    let cancelled = false;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      setIsAnalyzing(true);
+      try {
+        const res = await fetch("/api/tailor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...input,
+            action: "analyze",
+          }),
+          signal: controller.signal,
+        });
+
+        const data = await readJsonResponse<AnalyzeResult>(
+          res,
+          "Failed to analyze job description"
+        );
+
+        if (!cancelled) {
+          setAnalysis(data.analysis);
+        }
+      } catch (err) {
+        const isAbortError =
+          err instanceof DOMException && err.name === "AbortError";
+        if (!cancelled && !isAbortError) {
+          setAnalysis(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsAnalyzing(false);
+        }
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [draftInput, result?.analysis.matchedEntriesCount, result?.resume]);
+
   const generate = useCallback(
     async (input: TailorInput, templateId: string) => {
       setIsLoading(true);
@@ -89,12 +162,12 @@ export function TailorWorkspace() {
           }),
         });
 
-        setResult(
-          await readJsonResponse<GenerateResult>(
-            res,
-            "Failed to generate resume"
-          )
+        const data = await readJsonResponse<GenerateResult>(
+          res,
+          "Failed to generate resume"
         );
+        setResult(data);
+        setAnalysis(data.analysis);
       } catch (err) {
         setError(
           err instanceof Error
@@ -145,8 +218,38 @@ export function TailorWorkspace() {
   useRegisterShortcuts("studio-tailored", shortcuts);
 
   function handleSubmit(input: TailorInput) {
+    setDraftInput(input);
     setLastInput(input);
     generate(input, selectedTemplate);
+  }
+
+  function handleDraftChange(input: TailorInput) {
+    setDraftInput(input);
+    if (result) {
+      setResult(null);
+    }
+  }
+
+  function handleResumeChange(resume: TailoredResume) {
+    if (!lastInput) return;
+
+    const resumeAnalysis = analyzeResumeFit(lastInput.jobDescription, resume);
+    setResult((current) =>
+      current
+        ? {
+            ...current,
+            resume,
+            analysis: {
+              ...resumeAnalysis,
+              matchedEntriesCount: current.analysis.matchedEntriesCount,
+            },
+          }
+        : current
+    );
+    setAnalysis((current) => ({
+      ...resumeAnalysis,
+      matchedEntriesCount: current?.matchedEntriesCount ?? 0,
+    }));
   }
 
   function handleTemplateChange(templateId: string) {
@@ -179,7 +282,35 @@ export function TailorWorkspace() {
             </div>
             <h2 className="font-semibold">Paste Job Description</h2>
           </div>
-          <JDInput onSubmit={handleSubmit} isLoading={isLoading} />
+          <JDInput
+            onSubmit={handleSubmit}
+            onChange={handleDraftChange}
+            isLoading={isLoading}
+            submitLabel="Auto-Tailor"
+            loadingLabel="Auto-tailoring..."
+          />
+
+          {(isAnalyzing || analysis) && (
+            <div className="mt-6 border-t pt-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h3 className="font-semibold">Gap Analysis</h3>
+                {isAnalyzing && (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Updating
+                  </span>
+                )}
+              </div>
+              {analysis && (
+                <GapAnalysis
+                  gaps={analysis.gaps}
+                  keywordsFound={analysis.keywordsFound}
+                  keywordsMissing={analysis.keywordsMissing}
+                  matchScore={analysis.matchScore}
+                />
+              )}
+            </div>
+          )}
         </div>
 
         {/* Error */}
@@ -214,9 +345,12 @@ export function TailorWorkspace() {
                 templateId={selectedTemplate}
                 templates={templates}
                 onTemplateChange={handleTemplateChange}
-                keywordsFound={result.analysis.keywordsFound}
-                keywordsMissing={result.analysis.keywordsMissing}
+                keywordsFound={analysis?.keywordsFound ?? result.analysis.keywordsFound}
+                keywordsMissing={
+                  analysis?.keywordsMissing ?? result.analysis.keywordsMissing
+                }
                 jobDescription={lastInput?.jobDescription}
+                onResumeChange={handleResumeChange}
               />
             </div>
 
@@ -229,10 +363,12 @@ export function TailorWorkspace() {
                 <h2 className="font-semibold">Gap Analysis</h2>
               </div>
               <GapAnalysis
-                gaps={result.analysis.gaps}
-                keywordsFound={result.analysis.keywordsFound}
-                keywordsMissing={result.analysis.keywordsMissing}
-                matchScore={result.analysis.matchScore}
+                gaps={analysis?.gaps ?? result.analysis.gaps}
+                keywordsFound={analysis?.keywordsFound ?? result.analysis.keywordsFound}
+                keywordsMissing={
+                  analysis?.keywordsMissing ?? result.analysis.keywordsMissing
+                }
+                matchScore={analysis?.matchScore ?? result.analysis.matchScore}
               />
             </div>
           </>

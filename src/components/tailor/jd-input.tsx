@@ -12,7 +12,14 @@ interface JDInputProps {
     jobTitle: string;
     company: string;
   }) => void;
+  onChange?: (data: {
+    jobDescription: string;
+    jobTitle: string;
+    company: string;
+  }) => void;
   isLoading: boolean;
+  submitLabel?: string;
+  loadingLabel?: string;
 }
 
 const JD_PLACEHOLDER = `Paste the full job description here...
@@ -22,14 +29,39 @@ We are looking for a Senior Frontend Engineer to join our team.
 You will be responsible for building and maintaining our web application
 using React, TypeScript, and modern web technologies...`;
 
-export function JDInput({ onSubmit, isLoading }: JDInputProps) {
+export function JDInput({
+  onSubmit,
+  onChange,
+  isLoading,
+  submitLabel = "Generate Tailored Resume",
+  loadingLabel = "Generating...",
+}: JDInputProps) {
   const [jobDescription, setJobDescription] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [company, setCompany] = useState("");
 
+  function updateDraft(next: {
+    jobDescription?: string;
+    jobTitle?: string;
+    company?: string;
+  }) {
+    const draft = {
+      jobDescription:
+        next.jobDescription !== undefined ? next.jobDescription : jobDescription,
+      jobTitle: next.jobTitle !== undefined ? next.jobTitle : jobTitle,
+      company: next.company !== undefined ? next.company : company,
+    };
+
+    if (next.jobDescription !== undefined) setJobDescription(next.jobDescription);
+    if (next.jobTitle !== undefined) setJobTitle(next.jobTitle);
+    if (next.company !== undefined) setCompany(next.company);
+
+    onChange?.(draft);
+  }
+
   function handlePasteFromClipboard() {
     navigator.clipboard.readText().then((text) => {
-      setJobDescription(text);
+      updateDraft({ jobDescription: text });
     });
   }
 
@@ -42,24 +74,32 @@ export function JDInput({ onSubmit, isLoading }: JDInputProps) {
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium flex items-center gap-1.5">
+          <label
+            htmlFor="tailor-job-title"
+            className="text-sm font-medium flex items-center gap-1.5"
+          >
             <Briefcase className="h-4 w-4 text-muted-foreground" />
             Job Title
           </label>
           <Input
+            id="tailor-job-title"
             value={jobTitle}
-            onChange={(e) => setJobTitle(e.target.value)}
+            onChange={(e) => updateDraft({ jobTitle: e.target.value })}
             placeholder="e.g. Senior Frontend Engineer"
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium flex items-center gap-1.5">
+          <label
+            htmlFor="tailor-company"
+            className="text-sm font-medium flex items-center gap-1.5"
+          >
             <Building2 className="h-4 w-4 text-muted-foreground" />
             Company
           </label>
           <Input
+            id="tailor-company"
             value={company}
-            onChange={(e) => setCompany(e.target.value)}
+            onChange={(e) => updateDraft({ company: e.target.value })}
             placeholder="e.g. Acme Corp"
           />
         </div>
@@ -67,7 +107,9 @@ export function JDInput({ onSubmit, isLoading }: JDInputProps) {
 
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label className="text-sm font-medium">Job Description</label>
+          <label htmlFor="tailor-job-description" className="text-sm font-medium">
+            Job Description
+          </label>
           <Button
             variant="ghost"
             size="sm"
@@ -79,8 +121,9 @@ export function JDInput({ onSubmit, isLoading }: JDInputProps) {
           </Button>
         </div>
         <Textarea
+          id="tailor-job-description"
           value={jobDescription}
-          onChange={(e) => setJobDescription(e.target.value)}
+          onChange={(e) => updateDraft({ jobDescription: e.target.value })}
           placeholder={JD_PLACEHOLDER}
           className="min-h-[300px] font-mono text-sm"
           aria-describedby="jd-help-text"
@@ -97,9 +140,9 @@ export function JDInput({ onSubmit, isLoading }: JDInputProps) {
         disabled={isLoading || jobDescription.trim().length < 20}
         className="w-full"
         size="lg"
-        title="Generate Tailored Resume (Ctrl+Enter to re-generate)"
+        title={`${submitLabel} (Ctrl+Enter to re-generate)`}
       >
-        {isLoading ? "Generating..." : "Generate Tailored Resume"}
+        {isLoading ? loadingLabel : submitLabel}
       </Button>
     </div>
   );

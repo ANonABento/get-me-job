@@ -4,8 +4,8 @@ import { GapAnalysis, ScoreRing } from "./gap-analysis";
 import type { GapItem } from "@/lib/tailor/analyze";
 
 const mockGaps: GapItem[] = [
-  { requirement: "docker", category: "skill", suggestion: 'Add "docker" skill with project examples to your bank' },
-  { requirement: "kubernetes", category: "skill", suggestion: 'Add "kubernetes" skill with project examples to your bank' },
+  { requirement: "docker", category: "skill", suggestion: 'Add "docker" to Skills and support it with a project or experience bullet' },
+  { requirement: "kubernetes", category: "skill", suggestion: 'Add "kubernetes" to Skills and support it with a project or experience bullet' },
 ];
 
 describe("ScoreRing", () => {
@@ -85,7 +85,7 @@ describe("GapAnalysis", () => {
     );
     expect(screen.getByText("Improvement Suggestions")).toBeInTheDocument();
     expect(screen.getByText("2 tips")).toBeInTheDocument();
-    expect(screen.getByText(/Add "docker" skill/)).toBeInTheDocument();
+    expect(screen.getByText(/Add "docker" to Skills/)).toBeInTheDocument();
   });
 
   it("should show keyword count summary", () => {
