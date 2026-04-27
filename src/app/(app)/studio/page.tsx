@@ -285,9 +285,7 @@ function StudioPageContent() {
   useEffect(() => {
     if (orderedEntries.length === 0) {
       setHtml("");
-      setDocuments((prev) =>
-        updateStudioDocument(prev, activeDocument.id, { content: "" })
-      );
+      setGenerating(false);
       return;
     }
 
@@ -311,12 +309,9 @@ function StudioPageContent() {
           "Failed to update preview"
         );
 
-        if (!cancelled && data.html) {
+        if (!cancelled) {
           lastPreviewErrorToastRef.current = "";
-          setHtml(data.html);
-          setDocuments((prev) =>
-            updateStudioDocument(prev, activeDocument.id, { content: data.html })
-          );
+          setHtml(data.html ?? "");
         }
       } catch (err) {
         const isAbortError =

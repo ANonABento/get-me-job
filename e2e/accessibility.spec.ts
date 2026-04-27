@@ -8,8 +8,9 @@ const APP_PAGES = [
   "/dashboard",
   "/bank",
   "/studio",
-  "/studio?mode=cover-letter",
-  "/studio?mode=tailored",
+  "/builder",
+  "/tailor",
+  "/cover-letter",
   "/jobs",
   "/settings",
 ];

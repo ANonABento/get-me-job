@@ -13,13 +13,13 @@ describe("BuilderRedirectPage", () => {
   });
 
   it("redirects to Document Studio", () => {
-    BuilderRedirectPage();
+    BuilderRedirectPage({});
 
     expect(redirectMock).toHaveBeenCalledWith("/studio");
   });
 
   it("ignores legacy builder mode params", () => {
-    BuilderRedirectPage();
+    BuilderRedirectPage({ searchParams: { mode: "cover-letter" } });
 
     expect(redirectMock).toHaveBeenCalledWith("/studio");
   });
