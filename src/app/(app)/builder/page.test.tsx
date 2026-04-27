@@ -13,14 +13,14 @@ describe("BuilderRedirectPage", () => {
   });
 
   it("redirects to Document Studio", () => {
-    BuilderRedirectPage({});
+    BuilderRedirectPage();
 
     expect(redirectMock).toHaveBeenCalledWith("/studio");
   });
 
-  it("preserves the legacy cover letter builder mode", () => {
-    BuilderRedirectPage({ searchParams: { mode: "cover-letter" } });
+  it("ignores legacy builder mode params", () => {
+    BuilderRedirectPage();
 
-    expect(redirectMock).toHaveBeenCalledWith("/studio?mode=cover-letter");
+    expect(redirectMock).toHaveBeenCalledWith("/studio");
   });
 });

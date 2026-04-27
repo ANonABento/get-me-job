@@ -10,8 +10,8 @@ export function DoneStep() {
       </div>
       <h2 className="text-2xl font-semibold">You&apos;re All Set!</h2>
       <p className="text-base mt-2 text-muted-foreground">
-        Your knowledge bank is ready. Try tailoring a resume to a job
-        description!
+        Your knowledge bank is ready. Open Document Studio to build your next
+        resume.
       </p>
     </div>
   );

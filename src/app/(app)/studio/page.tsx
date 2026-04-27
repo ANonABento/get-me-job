@@ -8,9 +8,7 @@ import {
   useReducer,
   useState,
 } from "react";
-import type { Editor } from "@tiptap/react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { CoverLetterWorkspace } from "@/components/builder/cover-letter-workspace";
+import { Button } from "@/components/ui/button";
 import { SectionList } from "@/components/builder/section-list";
 import { TemplatePicker } from "@/components/builder/template-picker";
 import { ResumePreview } from "@/components/studio/resume-preview";
@@ -25,20 +23,6 @@ import {
   DEFAULT_BUILDER_PANEL,
 } from "@/lib/builder/section-manager";
 import type { SectionState, BuilderPanel } from "@/lib/builder/section-manager";
-import {
-  createStudioDocument,
-  deleteStudioDocument,
-  getActiveStudioDocument,
-  getDocumentsForType,
-  getStudioModeFromSearchParam,
-  getStudioModeHref,
-  loadStudioDocuments,
-  renameStudioDocument,
-  saveStudioDocuments,
-  updateStudioDocument,
-  type StudioDocument,
-  type StudioDocumentMode,
-} from "@/lib/studio/document-studio";
 import { cn } from "@/lib/utils";
 import type { BankEntry, BankCategory } from "@/types";
 import type { TipTapJSONContent } from "@/lib/editor/types";
@@ -48,20 +32,12 @@ import {
   Loader2,
   Pencil,
   Eye,
-  PenLine,
-  Plus,
-  Trash2,
   type LucideIcon,
 } from "lucide-react";
 
-const STUDIO_MODE_TABS: Array<{
-  mode: StudioDocumentMode;
-  label: string;
-  Icon: LucideIcon;
-}> = [
-  { mode: "resume", label: "Resume", Icon: FileText },
-  { mode: "cover-letter", label: "Cover Letter", Icon: PenLine },
-];
+interface BuilderPreviewResponse {
+  html?: string;
+}
 
 const RESUME_MOBILE_TABS: Array<{
   panel: BuilderPanel;
@@ -193,30 +169,13 @@ function StudioFilePanel({
 }
 
 function StudioPageContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const initialDocumentMode = getStudioModeFromSearchParam(
-    searchParams.get("mode")
-  );
-  const [documentMode, setDocumentMode] =
-    useState<StudioDocumentMode>(initialDocumentMode);
-  const [documents, setDocuments] = useState<StudioDocument[]>(() =>
-    loadStudioDocuments(
-      typeof window === "undefined" ? undefined : window.localStorage
-    )
-  );
-  const [activeDocumentIds, setActiveDocumentIds] = useState<
-    Record<StudioDocumentMode, string>
-  >({
-    resume: "",
-    "cover-letter": "",
-  });
   const [entries, setEntries] = useState<BankEntry[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sections, setSections] =
     useState<SectionState[]>(createInitialSections);
   const [templateId, setTemplateId] = useState("classic");
-  const [loading, setLoading] = useState(initialDocumentMode === "resume");
+  const [templateOpen, setTemplateOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [hasLoadedEntries, setHasLoadedEntries] = useState(false);
   const [loadedResumeDocumentId, setLoadedResumeDocumentId] = useState<
     string | null
@@ -253,49 +212,6 @@ function StudioPageContent() {
   );
 
   useEffect(() => {
-    setDocumentMode(getStudioModeFromSearchParam(searchParams.get("mode")));
-  }, [searchParams]);
-
-  useEffect(() => {
-    saveStudioDocuments(
-      typeof window === "undefined" ? undefined : window.localStorage,
-      documents
-    );
-  }, [documents]);
-
-  useEffect(() => {
-    setActiveDocumentIds((prev) =>
-      prev[documentMode] === activeDocument.id
-        ? prev
-        : { ...prev, [documentMode]: activeDocument.id }
-    );
-  }, [activeDocument.id, documentMode]);
-
-  useEffect(() => {
-    if (lastLoadedDocumentIdRef.current === activeDocument.id) return;
-    lastLoadedDocumentIdRef.current = activeDocument.id;
-
-    if (activeDocument.type === "resume") {
-      setTemplateId(activeDocument.templateId || "classic");
-      setSections(
-        activeDocument.sections.length
-          ? activeDocument.sections
-          : createInitialSections()
-      );
-      setSelectedIds(new Set(activeDocument.selectedEntryIds));
-      setHtml(activeDocument.content);
-      setLoadedResumeDocumentId(activeDocument.id);
-    } else {
-      setLoadedResumeDocumentId(null);
-    }
-  }, [activeDocument]);
-
-  useEffect(() => {
-    if (documentMode !== "resume") {
-      setLoading(false);
-      return;
-    }
-
     if (hasLoadedEntries) return;
 
     let cancelled = false;
@@ -325,7 +241,7 @@ function StudioPageContent() {
     return () => {
       cancelled = true;
     };
-  }, [documentMode, hasLoadedEntries]);
+  }, [hasLoadedEntries]);
 
   const visibleCategoryIds = useMemo(
     () => getVisibleSectionIds(sections),
@@ -367,10 +283,6 @@ function StudioPageContent() {
   }, [generatedEditorContent]);
 
   useEffect(() => {
-    if (documentMode !== "resume") return;
-    if (loadedResumeDocumentId !== activeDocument.id) return;
-    if (!hasLoadedEntries) return;
-
     if (orderedEntries.length === 0) {
       setHtml("");
       setDocuments((prev) =>
@@ -433,10 +345,6 @@ function StudioPageContent() {
       editor.off("transaction", handleEditorStateChange);
     };
   }, [
-    documentMode,
-    activeDocument.id,
-    hasLoadedEntries,
-    loadedResumeDocumentId,
     orderedEntries,
     showErrorToast,
     templateId,
@@ -534,77 +442,12 @@ function StudioPageContent() {
     }
   }, [getPrintableHtml, selectedTemplate?.name, showErrorToast]);
 
-  const handleDocumentModeChange = useCallback(
-    (mode: StudioDocumentMode) => {
-      setPreviewVersionId(null);
-      setDocumentMode(mode);
-      router.replace(getStudioModeHref(mode), { scroll: false });
-    },
-    [router]
+  const selectedTemplate = useMemo(
+    () => TEMPLATES.find((t) => t.id === templateId),
+    [templateId]
   );
 
-  const handleCreateDocument = useCallback(() => {
-    setDocuments((prev) => {
-      const documentCount = getDocumentsForType(prev, documentMode).length;
-      const document = createStudioDocument(documentMode, {
-        name:
-          documentMode === "cover-letter"
-            ? `Cover Letter ${documentCount + 1}`
-            : `Resume ${documentCount + 1}`,
-      });
-      setActiveDocumentIds((activeIds) => ({
-        ...activeIds,
-        [documentMode]: document.id,
-      }));
-      return [...prev, document];
-    });
-  }, [documentMode]);
-
-  const handleSelectDocument = useCallback(
-    (id: string) => {
-      setActiveDocumentIds((prev) => ({ ...prev, [documentMode]: id }));
-    },
-    [documentMode]
-  );
-
-  const handleRenameDocument = useCallback((id: string, name: string) => {
-    setDocuments((prev) => renameStudioDocument(prev, id, name));
-  }, []);
-
-  const handleDeleteDocument = useCallback(
-    (id: string) => {
-      const document = documents.find((candidate) => candidate.id === id);
-      if (!document) return;
-
-      if (
-        typeof window !== "undefined" &&
-        !window.confirm(`Delete "${document.name}"?`)
-      ) {
-        return;
-      }
-
-      setDocuments((prev) => {
-        const result = deleteStudioDocument(prev, id);
-        setActiveDocumentIds((activeIds) => ({
-          ...activeIds,
-          [document.type]: result.activeDocument.id,
-        }));
-        return result.documents;
-      });
-    },
-    [documents]
-  );
-
-  const handleCoverLetterContentChange = useCallback(
-    (content: string) => {
-      setDocuments((prev) =>
-        updateStudioDocument(prev, activeDocument.id, { content })
-      );
-    },
-    [activeDocument.id]
-  );
-
-  if (loading && documentMode === "resume") {
+  if (loading) {
     return <StudioLoading />;
   }
 
@@ -627,140 +470,146 @@ function StudioPageContent() {
             </span>
           )}
 
-          <div
-            role="tablist"
-            aria-label="Document type"
-            className="flex rounded-md border bg-muted/30 p-0.5"
-          >
-            {STUDIO_MODE_TABS.map(({ mode, label, Icon }) => (
-              <button
-                key={mode}
-                id={`document-mode-${mode}-tab`}
-                role="tab"
-                aria-selected={documentMode === mode}
-                aria-controls={`document-mode-${mode}-panel`}
-                onClick={() => handleDocumentModeChange(mode)}
-                className={cn(
-                  "inline-flex h-8 items-center gap-1.5 rounded px-3 text-sm font-medium transition-colors",
-                  documentMode === mode
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </button>
-            ))}
+          <div className="relative md:ml-4">
+            <button
+              onClick={() => setTemplateOpen((prev) => !prev)}
+              className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors hover:bg-muted"
+            >
+              <div
+                className="h-3 w-3 rounded-sm"
+                style={{
+                  backgroundColor: selectedTemplate?.styles.accentColor,
+                }}
+              />
+              <span>{selectedTemplate?.name ?? "Template"}</span>
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+
+            {templateOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setTemplateOpen(false)}
+                />
+                <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border bg-popover p-1 shadow-lg">
+                  {TEMPLATES.map((template) => {
+                    const isSelected = template.id === templateId;
+                    return (
+                      <button
+                        key={template.id}
+                        onClick={() => {
+                          setTemplateId(template.id);
+                          setTemplateOpen(false);
+                        }}
+                        className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted"
+                      >
+                        <div
+                          className="h-3 w-3 shrink-0 rounded-sm"
+                          style={{
+                            backgroundColor: template.styles.accentColor,
+                          }}
+                        />
+                        <span className="flex-1 text-left">
+                          {template.name}
+                        </span>
+                        {isSelected && (
+                          <Check className="h-3.5 w-3.5 text-primary" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCopyHtml}
+            disabled={!html}
+          >
+            <Copy className="h-4 w-4 md:mr-1.5" />
+            <span className="hidden md:inline">Copy HTML</span>
+          </Button>
+          <Button size="sm" onClick={handleDownloadPdf} disabled={!html}>
+            <Download className="h-4 w-4 md:mr-1.5" />
+            <span className="hidden md:inline">Download PDF</span>
+          </Button>
         </div>
       </div>
 
-      {documentMode === "resume" && (
+      <div className="flex min-h-0 flex-1 flex-col">
         <div
-          id="document-mode-resume-panel"
-          role="tabpanel"
-          aria-labelledby="document-mode-resume-tab"
-          className="flex min-h-0 flex-1 flex-col"
+          role="tablist"
+          aria-label="Builder view"
+          className="flex border-b md:hidden"
         >
+          {RESUME_MOBILE_TABS.map(({ panel, label, Icon }) => (
+            <button
+              key={panel}
+              id={`builder-${panel}-tab`}
+              role="tab"
+              aria-selected={mobileView === panel}
+              aria-controls={`builder-${panel}-panel`}
+              onClick={() => setMobileView(panel)}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors",
+                mobileView === panel
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-1 overflow-hidden">
           <div
-            role="tablist"
-            aria-label="Builder view"
-            className="flex border-b md:hidden"
+            id="builder-edit-panel"
+            role="tabpanel"
+            aria-labelledby="builder-edit-tab"
+            className={cn(
+              "w-full flex-1 overflow-hidden md:w-80 md:flex-none md:shrink-0 md:border-r",
+              getMobilePanelClasses(mobileView, "edit")
+            )}
           >
-            {RESUME_MOBILE_TABS.map(({ panel, label, Icon }) => (
-              <button
-                key={panel}
-                id={`builder-${panel}-tab`}
-                role="tab"
-                aria-selected={mobileView === panel}
-                aria-controls={`builder-${panel}-panel`}
-                onClick={() => setMobileView(panel)}
-                className={cn(
-                  "flex flex-1 items-center justify-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors",
-                  mobileView === panel
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex flex-1 overflow-hidden">
-            <div
-              id="builder-edit-panel"
-              role="tabpanel"
-              aria-labelledby="builder-edit-tab"
-              className={cn(
-                "w-full flex-1 overflow-hidden md:w-80 md:flex-none md:shrink-0 md:border-r",
-                getMobilePanelClasses(mobileView, "edit")
-              )}
-            >
-              <SectionList
-                sections={sections}
-                entries={entries}
-                selectedIds={selectedIds}
-                onReorder={handleReorder}
-                onToggleVisibility={handleToggleVisibility}
-                onToggleEntry={handleToggleEntry}
-                pickerOpen={entryPickerOpen}
-                onPickerOpenChange={setEntryPickerOpen}
-              />
-            </div>
-
-            <div
-              id="builder-preview-panel"
-              role="tabpanel"
-              aria-labelledby="builder-preview-tab"
-              className={cn(
-                "relative flex w-full flex-1 flex-col overflow-hidden",
-                getMobilePanelClasses(mobileView, "preview")
-              )}
-            >
-              {generating && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              )}
-              <ResumePreview
-                templateId={templateId}
-                content={editorContent}
-                onContentChange={setEditorContent}
-                onAddSection={() => setEntryPickerOpen(true)}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {documentMode === "cover-letter" && (
-        <div
-          id="document-mode-cover-letter-panel"
-          role="tabpanel"
-          aria-labelledby="document-mode-cover-letter-tab"
-          className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row"
-        >
-          <aside className="w-full shrink-0 border-b md:w-80 md:border-b-0 md:border-r">
-            <StudioFilePanel
-              documents={currentDocuments}
-              activeDocumentId={activeDocument.id}
-              onCreate={handleCreateDocument}
-              onSelect={handleSelectDocument}
-              onRename={handleRenameDocument}
-              onDelete={handleDeleteDocument}
+            <SectionList
+              sections={sections}
+              entries={entries}
+              selectedIds={selectedIds}
+              onReorder={handleReorder}
+              onToggleVisibility={handleToggleVisibility}
+              onToggleEntry={handleToggleEntry}
             />
-          </aside>
-          <div className="min-w-0 flex-1">
-            <CoverLetterWorkspace
-              documentName={activeDocument.name}
-              documentContent={activeDocument.content}
-              onDocumentContentChange={handleCoverLetterContentChange}
+          </div>
+
+          <div
+            id="builder-preview-panel"
+            role="tabpanel"
+            aria-labelledby="builder-preview-tab"
+            className={cn(
+              "relative w-full flex-1 overflow-auto",
+              getMobilePanelClasses(mobileView, "preview")
+            )}
+          >
+            {generating && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            )}
+            <ResumePreview
+              resume={resume}
+              templateId={templateId}
+              html={html}
             />
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -387,10 +387,10 @@ export default function Dashboard() {
               />
               <Step
                 number={3}
-                title="Build a tailored resume"
-                description="Add a job description and generate a resume matched to its requirements."
+                title="Build a resume"
+                description="Open Document Studio to select your best details and export an application-ready resume."
                 done={hasResumes}
-                href="/jobs"
+                href="/studio"
               />
             </div>
           </div>

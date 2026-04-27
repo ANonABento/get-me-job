@@ -12,8 +12,6 @@ import {
   Home,
   Database,
   FileText,
-  Sparkles,
-  PenLine,
   Settings,
   Upload,
   ArrowRight,
@@ -37,9 +35,7 @@ const COMMAND_ICONS: Record<string, LucideIcon> = {
   "nav-studio": FileText,
   "nav-settings": Settings,
   "act-upload": Upload,
-  "act-build": FileText,
-  "act-cover-letter": PenLine,
-  "act-tailor": Sparkles,
+  "act-studio": FileText,
 };
 
 export function CommandPalette() {

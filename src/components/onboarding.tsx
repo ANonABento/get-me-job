@@ -124,7 +124,7 @@ const steps = [
   },
   {
     title: "Create Application Documents",
-    description: "Build resumes, tailor them to job descriptions, and generate cover letters in Document Studio.",
+    description: "Build application-ready resumes in Document Studio.",
     icon: Briefcase,
     gradient: "from-blue-500 to-indigo-400",
     action: "/studio",
@@ -225,9 +225,9 @@ export function OnboardingDialog() {
               {[
                 "AI resume parsing",
                 "Job match scoring",
-                "Tailored resumes",
+                "Document Studio",
                 "Mock interviews",
-                "Cover letters",
+                "Resume exports",
                 "Progress tracking",
               ].map((feature) => (
                 <div key={feature} className="flex items-center gap-2 text-muted-foreground">
