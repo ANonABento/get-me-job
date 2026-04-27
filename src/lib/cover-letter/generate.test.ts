@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { GroupedBankEntries, BankEntry } from "@/types";
 import {
+  buildSelectionRewritePrompt,
   buildSystemPrompt,
   buildRevisionPrompt,
   getTotalBankEntries,
@@ -198,5 +199,20 @@ describe("buildRevisionPrompt", () => {
   it("asks for only the revised letter", () => {
     const prompt = buildRevisionPrompt("add more detail");
     expect(prompt).toContain("ONLY the revised cover letter");
+  });
+});
+
+describe("buildSelectionRewritePrompt", () => {
+  it("asks for only replacement text with selected text and full context", () => {
+    const prompt = buildSelectionRewritePrompt({
+      selectedText: "I built APIs quickly.",
+      currentContent: "Dear Acme,\n\nI built APIs quickly.\n\nThanks,",
+      instruction: "Make it more specific",
+    });
+
+    expect(prompt).toContain("I built APIs quickly.");
+    expect(prompt).toContain("Dear Acme");
+    expect(prompt).toContain("Make it more specific");
+    expect(prompt).toContain("Return ONLY the replacement text");
   });
 });

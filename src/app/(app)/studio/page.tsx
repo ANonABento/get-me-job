@@ -33,9 +33,7 @@ import {
 import {
   AUTO_SAVE_INTERVAL_MS,
   addBuilderVersion,
-  areBuilderStatesEqual,
   createBuilderVersion,
-  getLatestBuilderVersion,
   isBuilderStateSaved,
   readBuilderVersions,
   writeBuilderVersions,
@@ -280,12 +278,14 @@ function StudioPageContent() {
 
       setVersions((currentVersions) => {
         const nextVersions = addBuilderVersion(currentVersions, version);
-        versionsRef.current = nextVersions;
-        writeBuilderVersions(
+        const stored = writeBuilderVersions(
           window.localStorage,
           RESUME_DOCUMENT_ID,
           nextVersions
         );
+        if (!stored) return currentVersions;
+
+        versionsRef.current = nextVersions;
         return nextVersions;
       });
       setPreviewVersionId(null);
@@ -299,22 +299,13 @@ function StudioPageContent() {
   useEffect(() => {
     if (documentMode !== "resume" || !hasLoadedEntries) return;
 
-    const latestVersion = getLatestBuilderVersion(versionsRef.current);
-    if (
-      latestVersion &&
-      areBuilderStatesEqual(latestVersion.state, currentDraft)
-    ) {
+    if (isBuilderStateSaved(versionsRef.current, currentDraft)) {
       return;
     }
 
     const timeoutId = window.setTimeout(() => {
-      const latestSavedVersion = getLatestBuilderVersion(versionsRef.current);
       const draft = currentDraftRef.current;
-      if (
-        !draft ||
-        (latestSavedVersion &&
-          areBuilderStatesEqual(latestSavedVersion.state, draft))
-      ) {
+      if (!draft || isBuilderStateSaved(versionsRef.current, draft)) {
         return;
       }
 

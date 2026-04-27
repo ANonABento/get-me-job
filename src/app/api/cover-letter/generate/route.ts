@@ -6,6 +6,7 @@ import { rateLimiters, getClientIdentifier } from "@/lib/rate-limit";
 import {
   generateCoverLetter,
   reviseCoverLetter,
+  rewriteCoverLetterSelection,
   getTotalBankEntries,
 } from "@/lib/cover-letter/generate";
 import type { CoverLetterInput } from "@/lib/cover-letter/generate";
@@ -17,9 +18,10 @@ import type { CoverLetterInput } from "@/lib/cover-letter/generate";
  *   jobDescription: string;
  *   jobTitle?: string;
  *   company?: string;
- *   action: "generate" | "revise";
+ *   action: "generate" | "revise" | "rewrite";
  *   currentContent?: string;   // required for "revise"
  *   instruction?: string;      // required for "revise"
+ *   selectedText?: string;     // required for "rewrite"
  * }
  */
 export async function POST(request: NextRequest) {
@@ -44,18 +46,27 @@ export async function POST(request: NextRequest) {
       action = "generate",
       currentContent,
       instruction,
+      selectedText,
     } = body as {
       jobDescription?: string;
       jobTitle?: string;
       company?: string;
-      action?: "generate" | "revise";
+      action?: string;
       currentContent?: string;
       instruction?: string;
+      selectedText?: string;
     };
 
     if (!jobDescription || jobDescription.trim().length < 20) {
       return NextResponse.json(
         { error: "Job description is too short. Please paste the full JD." },
+        { status: 400 }
+      );
+    }
+
+    if (action !== "generate" && action !== "revise" && action !== "rewrite") {
+      return NextResponse.json(
+        { error: "Unsupported cover letter action." },
         { status: 400 }
       );
     }
@@ -91,7 +102,12 @@ export async function POST(request: NextRequest) {
     };
 
     if (action === "revise") {
-      if (!currentContent || !instruction) {
+      if (
+        typeof currentContent !== "string" ||
+        typeof instruction !== "string" ||
+        currentContent.trim().length === 0 ||
+        instruction.trim().length === 0
+      ) {
         return NextResponse.json(
           { error: "currentContent and instruction are required for revision." },
           { status: 400 }
@@ -106,6 +122,35 @@ export async function POST(request: NextRequest) {
       );
 
       return NextResponse.json({ success: true, content: revised });
+    }
+
+    if (action === "rewrite") {
+      if (
+        typeof currentContent !== "string" ||
+        typeof instruction !== "string" ||
+        typeof selectedText !== "string" ||
+        currentContent.trim().length === 0 ||
+        instruction.trim().length === 0 ||
+        selectedText.trim().length === 0
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "currentContent, selectedText, and instruction are required for selection rewrite.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const rewrittenSelection = await rewriteCoverLetterSelection(
+        currentContent,
+        selectedText,
+        instruction,
+        input,
+        llmConfig
+      );
+
+      return NextResponse.json({ success: true, content: rewrittenSelection });
     }
 
     // action === "generate"
