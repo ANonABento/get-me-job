@@ -64,6 +64,28 @@ import {
 
 const RESUME_BUILDER_DOCUMENT_ID = "resume";
 
+function getOrderedVisibleEntries(
+  entries: BankEntry[],
+  selectedIds: ReadonlySet<string>,
+  sections: SectionState[]
+): BankEntry[] {
+  const visibleCategoryIds = getVisibleSectionIds(sections);
+  const categoryOrder = new Map(
+    visibleCategoryIds.map((id, index) => [id, index])
+  );
+
+  return entries
+    .filter(
+      (entry) =>
+        selectedIds.has(entry.id) && visibleCategoryIds.includes(entry.category)
+    )
+    .sort(
+      (a, b) =>
+        (categoryOrder.get(a.category) ?? 999) -
+        (categoryOrder.get(b.category) ?? 999)
+    );
+}
+
 function BuilderLoading() {
   return (
     <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
@@ -249,30 +271,10 @@ function BuilderPageContent() {
     };
   }, [documentMode, hasLoadedEntries]);
 
-  const visibleCategoryIds = useMemo(
-    () => getVisibleSectionIds(sections),
-    [sections]
+  const orderedEntries = useMemo(
+    () => getOrderedVisibleEntries(entries, selectedIds, sections),
+    [entries, sections, selectedIds]
   );
-
-  const selectedEntries = useMemo(
-    () =>
-      entries.filter(
-        (e) =>
-          selectedIds.has(e.id) && visibleCategoryIds.includes(e.category)
-      ),
-    [entries, selectedIds, visibleCategoryIds]
-  );
-
-  const orderedEntries = useMemo(() => {
-    const categoryOrder = new Map(
-      visibleCategoryIds.map((id, i) => [id, i])
-    );
-    return [...selectedEntries].sort(
-      (a, b) =>
-        (categoryOrder.get(a.category) ?? 999) -
-        (categoryOrder.get(b.category) ?? 999)
-    );
-  }, [selectedEntries, visibleCategoryIds]);
 
   const resume: TailoredResume = useMemo(
     () => bankEntriesToResume(orderedEntries),
@@ -283,41 +285,27 @@ function BuilderPageContent() {
     () => versions.find((version) => version.id === previewVersionId) ?? null,
     [previewVersionId, versions]
   );
-  const displaySections = previewVersion?.state.sections ?? sections;
-  const displaySelectedIds = useMemo(
+  const previewSelectedIds = useMemo(
+    () => new Set(previewVersion?.state.selectedIds ?? []),
+    [previewVersion]
+  );
+  const previewOrderedEntries = useMemo(
     () =>
-      new Set(
-        previewVersion ? previewVersion.state.selectedIds : Array.from(selectedIds)
-      ),
-    [previewVersion, selectedIds]
+      previewVersion
+        ? getOrderedVisibleEntries(
+            entries,
+            previewSelectedIds,
+            previewVersion.state.sections
+          )
+        : [],
+    [entries, previewSelectedIds, previewVersion]
   );
-  const displayVisibleCategoryIds = useMemo(
-    () => getVisibleSectionIds(displaySections),
-    [displaySections]
-  );
-  const displayOrderedEntries = useMemo(() => {
-    const categoryOrder = new Map(
-      displayVisibleCategoryIds.map((id, index) => [id, index])
-    );
-
-    return entries
-      .filter(
-        (entry) =>
-          displaySelectedIds.has(entry.id) &&
-          displayVisibleCategoryIds.includes(entry.category)
-      )
-      .sort(
-        (a, b) =>
-          (categoryOrder.get(a.category) ?? 999) -
-          (categoryOrder.get(b.category) ?? 999)
-      );
-  }, [displaySelectedIds, displayVisibleCategoryIds, entries]);
   const displayResume: TailoredResume = useMemo(
     () =>
       previewVersion
-        ? bankEntriesToResume(displayOrderedEntries)
+        ? bankEntriesToResume(previewOrderedEntries)
         : resume,
-    [displayOrderedEntries, previewVersion, resume]
+    [previewOrderedEntries, previewVersion, resume]
   );
   const displayTemplateId = previewVersion?.state.templateId ?? templateId;
   const displayHtml = previewVersion?.state.html ?? html;
@@ -341,7 +329,7 @@ function BuilderPageContent() {
       body: JSON.stringify({
         entryIds,
         templateId,
-        sectionOrder: visibleCategoryIds,
+        sectionOrder: getVisibleSectionIds(sections),
       }),
       signal: controller.signal,
     })
@@ -370,9 +358,9 @@ function BuilderPageContent() {
   }, [
     documentMode,
     orderedEntries,
+    sections,
     showErrorToast,
     templateId,
-    visibleCategoryIds,
   ]);
 
   const handleToggleEntry = useCallback((id: string) => {
