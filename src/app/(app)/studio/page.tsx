@@ -5,17 +5,23 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
+import type { Editor } from "@tiptap/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { CoverLetterWorkspace } from "@/components/builder/cover-letter-workspace";
 import { SectionList } from "@/components/builder/section-list";
+import { EditorToolbar } from "@/components/studio/editor-toolbar";
 import { ResumePreview } from "@/components/studio/resume-preview";
 import { TailorWorkspace } from "@/components/studio/tailor-workspace";
 import { TEMPLATES } from "@/lib/resume/template-data";
 import { bankEntriesToResume } from "@/lib/resume/bank-to-resume";
+import { bankEntriesToTipTapDocument } from "@/lib/editor/bank-to-tiptap";
+import { createPrintableEditorHtml } from "@/lib/editor/document-html";
+import {
+  createDocumentFilename,
+  downloadHtmlAsPdf,
+} from "@/lib/builder/document-export";
 import {
   createInitialSections,
   toggleSectionVisibility,
@@ -44,14 +50,9 @@ import { cn } from "@/lib/utils";
 import type { BankEntry, BankCategory } from "@/types";
 import type { TailoredResume } from "@/lib/resume/generator";
 import { useErrorToast } from "@/hooks/use-error-toast";
-import { readJsonResponse } from "@/lib/http";
 import {
-  Download,
-  Copy,
   FileText,
   Loader2,
-  ChevronDown,
-  Check,
   Pencil,
   Eye,
   PenLine,
@@ -61,10 +62,6 @@ import {
   RotateCcw,
   type LucideIcon,
 } from "lucide-react";
-
-interface BuilderPreviewResponse {
-  html?: string;
-}
 
 const STUDIO_MODE_TABS: Array<{
   mode: StudioDocumentMode;
@@ -114,13 +111,15 @@ function StudioPageContent() {
     useState<StudioDocumentMode>(initialDocumentMode);
   const [entries, setEntries] = useState<BankEntry[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [sections, setSections] = useState<SectionState[]>(createInitialSections);
+  const [sections, setSections] =
+    useState<SectionState[]>(createInitialSections);
   const [templateId, setTemplateId] = useState("classic");
-  const [templateOpen, setTemplateOpen] = useState(false);
   const [loading, setLoading] = useState(initialDocumentMode === "resume");
   const [hasLoadedEntries, setHasLoadedEntries] = useState(false);
-  const [html, setHtml] = useState("");
-  const [generating, setGenerating] = useState(false);
+  const [editor, setEditor] = useState<Editor | null>(null);
+  const [, setEditorVersion] = useState(0);
+  const [zoomPercent, setZoomPercent] = useState(100);
+  const [isExporting, setIsExporting] = useState(false);
   const [mobileView, setMobileView] = useState<BuilderPanel>(
     DEFAULT_BUILDER_PANEL
   );
@@ -128,9 +127,6 @@ function StudioPageContent() {
   const [manualVersionName, setManualVersionName] = useState("");
   const [previewVersionId, setPreviewVersionId] = useState<string | null>(null);
   const showErrorToast = useErrorToast();
-  const lastPreviewErrorToastRef = useRef("");
-  const versionsRef = useRef<BuilderVersion[]>([]);
-  const currentDraftRef = useRef<BuilderDraftState | null>(null);
 
   useEffect(() => {
     setDocumentMode(getStudioModeFromSearchParam(searchParams.get("mode")));
@@ -221,165 +217,31 @@ function StudioPageContent() {
     [html, sections, selectedIds, templateId]
   );
 
-  useEffect(() => {
-    currentDraftRef.current = currentDraft;
-  }, [currentDraft]);
-
-  useEffect(() => {
-    versionsRef.current = versions;
-  }, [versions]);
-
-  const previewVersion = useMemo(
+  const editorDocument = useMemo(
     () =>
-      previewVersionId
-        ? versions.find((version) => version.id === previewVersionId) ?? null
+      orderedEntries.length > 0
+        ? bankEntriesToTipTapDocument(orderedEntries)
         : null,
-    [previewVersionId, versions]
+    [orderedEntries]
   );
 
-  const displayedDraft = previewVersion?.state ?? currentDraft;
-  const displayedVisibleCategoryIds = useMemo(
-    () => getVisibleSectionIds(displayedDraft.sections),
-    [displayedDraft.sections]
-  );
-  const displayedResume: TailoredResume = useMemo(() => {
-    const selectedIdSet = new Set(displayedDraft.selectedIds);
-    const categoryOrder = new Map(
-      displayedVisibleCategoryIds.map((id, index) => [id, index])
-    );
-    const displayedEntries = entries
-      .filter(
-        (entry) =>
-          selectedIdSet.has(entry.id) &&
-          displayedVisibleCategoryIds.includes(entry.category)
-      )
-      .sort(
-        (a, b) =>
-          (categoryOrder.get(a.category) ?? 999) -
-          (categoryOrder.get(b.category) ?? 999)
-      );
-
-    return bankEntriesToResume(displayedEntries);
-  }, [displayedDraft.selectedIds, displayedVisibleCategoryIds, entries]);
-
-  const draftIsSaved = useMemo(
-    () => isBuilderStateSaved(versions, currentDraft),
-    [currentDraft, versions]
-  );
-
-  const saveCurrentVersion = useCallback(
-    (kind: "auto" | "manual", name: string) => {
-      if (typeof window === "undefined" || !currentDraftRef.current) return;
-
-      const version = createBuilderVersion(currentDraftRef.current, {
-        kind,
-        name,
-      });
-
-      setVersions((currentVersions) => {
-        const nextVersions = addBuilderVersion(currentVersions, version);
-        const stored = writeBuilderVersions(
-          window.localStorage,
-          RESUME_DOCUMENT_ID,
-          nextVersions
-        );
-        if (!stored) return currentVersions;
-
-        versionsRef.current = nextVersions;
-        return nextVersions;
-      });
-      setPreviewVersionId(null);
-      if (kind === "manual") {
-        setManualVersionName("");
-      }
-    },
-    []
+  const selectedTemplate = useMemo(
+    () => TEMPLATES.find((t) => t.id === templateId),
+    [templateId]
   );
 
   useEffect(() => {
-    if (documentMode !== "resume" || !hasLoadedEntries) return;
+    if (!editor) return;
 
-    if (isBuilderStateSaved(versionsRef.current, currentDraft)) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      const draft = currentDraftRef.current;
-      if (!draft || isBuilderStateSaved(versionsRef.current, draft)) {
-        return;
-      }
-
-      saveCurrentVersion("auto", "Auto-save");
-    }, AUTO_SAVE_INTERVAL_MS);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [currentDraft, documentMode, hasLoadedEntries, saveCurrentVersion]);
-
-  useEffect(() => {
-    if (documentMode !== "resume") return;
-
-    if (orderedEntries.length === 0) {
-      setHtml("");
-      return;
-    }
-
-    let cancelled = false;
-    const controller = new AbortController();
-    setGenerating(true);
-
-    async function updatePreview() {
-      try {
-        const data = await readJsonResponse<BuilderPreviewResponse>(
-          await fetch("/api/builder", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              entryIds: orderedEntries.map((entry) => entry.id),
-              templateId,
-              sectionOrder: visibleCategoryIds,
-            }),
-            signal: controller.signal,
-          }),
-          "Failed to update preview"
-        );
-
-        if (!cancelled && data.html) {
-          lastPreviewErrorToastRef.current = "";
-          setHtml(data.html);
-        }
-      } catch (err) {
-        const isAbortError =
-          err instanceof DOMException && err.name === "AbortError";
-        if (!cancelled && !isAbortError) {
-          const message = err instanceof Error ? err.message : "preview";
-          if (lastPreviewErrorToastRef.current !== message) {
-            lastPreviewErrorToastRef.current = message;
-            showErrorToast(err, {
-              title: "Could not update preview",
-              fallbackDescription: "Please try changing the resume content again.",
-            });
-          }
-        }
-      } finally {
-        if (!cancelled) {
-          setGenerating(false);
-        }
-      }
-    }
-
-    updatePreview();
+    const refreshToolbarState = () => setEditorVersion((version) => version + 1);
+    editor.on("selectionUpdate", refreshToolbarState);
+    editor.on("transaction", refreshToolbarState);
 
     return () => {
-      cancelled = true;
-      controller.abort();
+      editor.off("selectionUpdate", refreshToolbarState);
+      editor.off("transaction", refreshToolbarState);
     };
-  }, [
-    documentMode,
-    orderedEntries,
-    showErrorToast,
-    templateId,
-    visibleCategoryIds,
-  ]);
+  }, [editor]);
 
   const handleToggleEntry = useCallback((id: string) => {
     setPreviewVersionId(null);
@@ -404,20 +266,46 @@ function StudioPageContent() {
     setSections((prev) => toggleSectionVisibility(prev, categoryId));
   }, []);
 
-  const handleCopyHtml = useCallback(async () => {
-    if (!html) return;
-    await navigator.clipboard.writeText(html);
-  }, [html]);
+  const getPrintableHtml = useCallback(() => {
+    if (!editor || !selectedTemplate) return "";
+    return createPrintableEditorHtml(
+      editor.getHTML(),
+      selectedTemplate.styles,
+      `${selectedTemplate.name} Resume`
+    );
+  }, [editor, selectedTemplate]);
 
-  const handleDownloadPdf = useCallback(() => {
-    if (!html) return;
+  const handlePrint = useCallback(() => {
+    const printableHtml = getPrintableHtml();
+    if (!printableHtml) return;
+
     const win = window.open("", "_blank");
     if (win) {
-      win.document.write(html);
+      win.document.write(printableHtml);
       win.document.close();
       win.onload = () => win.print();
     }
-  }, [html]);
+  }, [getPrintableHtml]);
+
+  const handleDownloadPdf = useCallback(async () => {
+    const printableHtml = getPrintableHtml();
+    if (!printableHtml) return;
+
+    setIsExporting(true);
+    try {
+      await downloadHtmlAsPdf(
+        printableHtml,
+        createDocumentFilename("resume", selectedTemplate?.name)
+      );
+    } catch (err) {
+      showErrorToast(err, {
+        title: "Could not download PDF",
+        fallbackDescription: "Please try exporting the resume again.",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }, [getPrintableHtml, selectedTemplate?.name, showErrorToast]);
 
   const handleDocumentModeChange = useCallback(
     (mode: StudioDocumentMode) => {
@@ -426,28 +314,6 @@ function StudioPageContent() {
       router.replace(getStudioModeHref(mode), { scroll: false });
     },
     [router]
-  );
-
-  const handleManualSave = useCallback(
-    (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      saveCurrentVersion("manual", manualVersionName);
-    },
-    [manualVersionName, saveCurrentVersion]
-  );
-
-  const handleRestoreVersion = useCallback((version: BuilderVersion) => {
-    setSelectedIds(new Set(version.state.selectedIds));
-    setSections(version.state.sections);
-    setTemplateId(version.state.templateId);
-    setTemplateOpen(false);
-    setHtml(version.state.html);
-    setPreviewVersionId(null);
-  }, []);
-
-  const selectedTemplate = useMemo(
-    () => TEMPLATES.find((t) => t.id === templateId),
-    [templateId]
   );
 
   if (loading && documentMode === "resume") {
@@ -499,80 +365,7 @@ function StudioPageContent() {
             ))}
           </div>
 
-          {documentMode === "resume" && (
-            <div className="relative md:ml-4">
-              <button
-                onClick={() => setTemplateOpen((prev) => !prev)}
-                className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors hover:bg-muted"
-              >
-                <div
-                  className="h-3 w-3 rounded-sm"
-                  style={{
-                    backgroundColor: selectedTemplate?.styles.accentColor,
-                  }}
-                />
-                <span>{selectedTemplate?.name ?? "Template"}</span>
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-
-              {templateOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setTemplateOpen(false)}
-                  />
-                  <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border bg-popover p-1 shadow-lg">
-                    {TEMPLATES.map((template) => {
-                      const isSelected = template.id === templateId;
-                      return (
-                        <button
-                          key={template.id}
-                          onClick={() => {
-                            setPreviewVersionId(null);
-                            setTemplateId(template.id);
-                            setTemplateOpen(false);
-                          }}
-                          className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted"
-                        >
-                          <div
-                            className="h-3 w-3 shrink-0 rounded-sm"
-                            style={{
-                              backgroundColor: template.styles.accentColor,
-                            }}
-                          />
-                          <span className="flex-1 text-left">
-                            {template.name}
-                          </span>
-                          {isSelected && (
-                            <Check className="h-3.5 w-3.5 text-primary" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
         </div>
-
-        {documentMode === "resume" && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCopyHtml}
-              disabled={!html}
-            >
-              <Copy className="h-4 w-4 md:mr-1.5" />
-              <span className="hidden md:inline">Copy HTML</span>
-            </Button>
-            <Button size="sm" onClick={handleDownloadPdf} disabled={!html}>
-              <Download className="h-4 w-4 md:mr-1.5" />
-              <span className="hidden md:inline">Download PDF</span>
-            </Button>
-          </div>
-        )}
       </div>
 
       {documentMode === "resume" && (
@@ -709,33 +502,29 @@ function StudioPageContent() {
               role="tabpanel"
               aria-labelledby="builder-preview-tab"
               className={cn(
-                "relative w-full flex-1 overflow-auto",
+                "relative flex w-full flex-1 flex-col overflow-hidden",
                 getMobilePanelClasses(mobileView, "preview")
               )}
             >
-              {generating && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              )}
-              {previewVersion && (
-                <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b bg-background px-4 py-2 text-sm">
-                  <span className="min-w-0 truncate text-muted-foreground">
-                    Previewing {previewVersion.name}
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleRestoreVersion(previewVersion)}
-                  >
-                    Restore
-                  </Button>
-                </div>
-              )}
+              <EditorToolbar
+                editor={editor}
+                templates={TEMPLATES}
+                templateId={templateId}
+                zoomPercent={zoomPercent}
+                canExport={Boolean(editor && editorDocument)}
+                isExporting={isExporting}
+                onTemplateChange={setTemplateId}
+                onZoomChange={setZoomPercent}
+                onDownloadPdf={handleDownloadPdf}
+                onPrint={handlePrint}
+              />
               <ResumePreview
-                resume={displayedResume}
-                templateId={displayedDraft.templateId}
-                html={displayedDraft.html}
+                resume={resume}
+                templateId={templateId}
+                document={editorDocument}
+                editable
+                zoomPercent={zoomPercent}
+                onEditorReady={setEditor}
               />
             </div>
           </div>
