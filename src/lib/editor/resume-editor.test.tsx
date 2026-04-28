@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { TEMPLATES } from "@/lib/resume/templates";
 import { ResumeEditor } from "./resume-editor";
 import type { TipTapJSONContent } from "./types";
@@ -97,5 +97,36 @@ describe("ResumeEditor", () => {
 
     expect(await screen.findByText("Updated summary")).toBeInTheDocument();
     expect(screen.queryByText("First summary")).not.toBeInTheDocument();
+  });
+
+  it("exposes and cleans up the TipTap editor instance", async () => {
+    const template = TEMPLATES.find((item) => item.id === "classic")!;
+    const onEditorReady = vi.fn();
+    const content: TipTapJSONContent = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "Editable summary" }],
+        },
+      ],
+    };
+
+    const { unmount } = render(
+      <ResumeEditor
+        content={content}
+        templateStyles={template.styles}
+        onEditorReady={onEditorReady}
+      />
+    );
+
+    expect(await screen.findByText("Editable summary")).toBeInTheDocument();
+    expect(onEditorReady).toHaveBeenCalledWith(
+      expect.objectContaining({ commands: expect.any(Object) })
+    );
+
+    unmount();
+
+    expect(onEditorReady).toHaveBeenLastCalledWith(null);
   });
 });

@@ -2,6 +2,7 @@
 
 import { EditorContent, useEditor } from "@tiptap/react";
 import { useEffect } from "react";
+import type { Editor } from "@tiptap/react";
 import type { TemplateStyles } from "@/lib/resume/template-types";
 import { getResumeEditorStyles } from "./styles";
 import { resumeEditorExtensions } from "./extensions";
@@ -13,6 +14,7 @@ interface ResumeEditorProps {
   editable?: boolean;
   className?: string;
   onUpdate?: (content: TipTapJSONContent) => void;
+  onEditorReady?: (editor: Editor | null) => void;
 }
 
 export function ResumeEditor({
@@ -21,6 +23,7 @@ export function ResumeEditor({
   editable = true,
   className,
   onUpdate,
+  onEditorReady,
 }: ResumeEditorProps) {
   const editor = useEditor({
     extensions: resumeEditorExtensions,
@@ -31,6 +34,12 @@ export function ResumeEditor({
       onUpdate?.(currentEditor.getJSON());
     },
   });
+
+  useEffect(() => {
+    onEditorReady?.(editor);
+    return () => onEditorReady?.(null);
+  }, [editor, onEditorReady]);
+
   useEffect(() => {
     if (!editor) return;
     if (JSON.stringify(editor.getJSON()) !== JSON.stringify(content)) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   Check,
   ChevronLeft,
@@ -21,6 +21,21 @@ interface Version {
   content: string;
   instruction: string;
   createdAt: string;
+}
+
+interface EditorSelection {
+  start: number;
+  end: number;
+  text: string;
+  baseContent: string;
+}
+
+interface PendingRewrite {
+  before: string;
+  after: string;
+  start: number;
+  end: number;
+  baseContent: string;
 }
 
 interface ChatEditorProps {
@@ -63,16 +78,14 @@ export function ChatEditor({
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [editorContent, setEditorContent] = useState(initialContent);
-  const [selectedPassage, setSelectedPassage] =
-    useState<SelectedPassage | null>(null);
-  const [assistantRewrite, setAssistantRewrite] =
-    useState<AssistantRewrite | null>(null);
-  const [isRewriting, setIsRewriting] = useState(false);
-  const rewriteRequestRef = useRef(0);
-  const editorContentRef = useRef(initialContent);
+  const [selection, setSelection] = useState<EditorSelection | null>(null);
+  const [rewrite, setRewrite] = useState<PendingRewrite | null>(null);
   const currentVersion =
     currentVersionIndex >= 0 ? versions[currentVersionIndex] : null;
+  const currentContentRef = useRef(currentVersion?.content ?? "");
+  currentContentRef.current = currentVersion?.content ?? "";
+  const currentVersionIndexRef = useRef(currentVersionIndex);
+  currentVersionIndexRef.current = currentVersionIndex;
 
   function updateCurrentVersionContent(content: string) {
     setVersions((currentVersions) =>
@@ -128,7 +141,8 @@ export function ChatEditor({
       };
       setVersions([newVersion]);
       setCurrentVersionIndex(0);
-      replaceEditorContent(result.content);
+      setSelection(null);
+      setRewrite(null);
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -178,6 +192,8 @@ export function ChatEditor({
       setCurrentVersionIndex(newVersions.length - 1);
       replaceEditorContent(result.content);
       setInstruction("");
+      setSelection(null);
+      setRewrite(null);
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -190,6 +206,110 @@ export function ChatEditor({
       e.preventDefault();
       handleRevise();
     }
+  }
+
+  function updateCurrentContent(content: string) {
+    setVersions((current) =>
+      current.map((version, index) =>
+        index === currentVersionIndex ? { ...version, content } : version
+      )
+    );
+  }
+
+  function handleEditorChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    updateCurrentContent(e.target.value);
+    setSelection(null);
+    setRewrite(null);
+  }
+
+  function handleEditorSelect(e: React.SyntheticEvent<HTMLTextAreaElement>) {
+    const target = e.currentTarget;
+    const start = target.selectionStart;
+    const end = target.selectionEnd;
+    const text = target.value.slice(start, end);
+    setSelection(
+      start < end && text.trim()
+        ? { start, end, text, baseContent: target.value }
+        : null
+    );
+  }
+
+  async function handleSelectionRewrite(rewriteInstruction = "Rewrite") {
+    if (!selection || !currentVersion) return;
+    if (selection.baseContent !== currentVersion.content) {
+      setSelection(null);
+      return;
+    }
+
+    const baseSelection = selection;
+    const baseVersionIndex = currentVersionIndex;
+    setIsGenerating(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/cover-letter/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobDescription,
+          jobTitle,
+          company,
+          action: "rewrite",
+          currentContent: baseSelection.baseContent,
+          selectedText: baseSelection.text,
+          instruction: rewriteInstruction,
+        }),
+      });
+
+      const result = await readCoverLetterApiResult(
+        res,
+        "Failed to rewrite selection"
+      );
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+
+      if (
+        currentContentRef.current !== baseSelection.baseContent ||
+        currentVersionIndexRef.current !== baseVersionIndex
+      ) {
+        return;
+      }
+
+      setRewrite({
+        before: baseSelection.text,
+        after: result.content,
+        start: baseSelection.start,
+        end: baseSelection.end,
+        baseContent: baseSelection.baseContent,
+      });
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  function handleAcceptRewrite() {
+    if (!rewrite || currentContentRef.current !== rewrite.baseContent) return;
+    const beforeSelection = rewrite.baseContent.slice(0, rewrite.start);
+    const afterSelection = rewrite.baseContent.slice(rewrite.end);
+    updateCurrentContent(
+      `${beforeSelection}${rewrite.after}${afterSelection}`
+    );
+    setRewrite(null);
+    setSelection(null);
+  }
+
+  function handleRejectRewrite() {
+    setRewrite(null);
+  }
+
+  function handleVersionChange(index: number) {
+    setCurrentVersionIndex(index);
+    setSelection(null);
+    setRewrite(null);
   }
 
   async function handleCopy() {
@@ -212,16 +332,8 @@ export function ChatEditor({
     URL.revokeObjectURL(url);
   }
 
-  function selectVersion(index: number) {
-    setCurrentVersionIndex(index);
-    const version = versions[index];
-    if (version) {
-      replaceEditorContent(version.content);
-    }
-  }
-
   function handleRevert(index: number) {
-    selectVersion(index);
+    handleVersionChange(index);
     setShowHistory(false);
   }
 
@@ -323,7 +435,7 @@ export function ChatEditor({
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  selectVersion(Math.max(0, currentVersionIndex - 1))
+                  handleVersionChange(Math.max(0, currentVersionIndex - 1))
                 }
                 disabled={currentVersionIndex <= 0}
               >
@@ -333,7 +445,7 @@ export function ChatEditor({
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  selectVersion(
+                  handleVersionChange(
                     Math.min(versions.length - 1, currentVersionIndex + 1)
                   )
                 }
@@ -419,102 +531,101 @@ export function ChatEditor({
         </div>
       )}
 
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
-        <Textarea
-          aria-label="Cover letter editor"
-          value={editorContent}
-          onChange={(event) => updateEditorContent(event.target.value)}
-          onSelect={handleEditorSelect}
-          className="min-h-[300px] resize-none text-sm leading-relaxed"
-          disabled={isGenerating || !currentVersion}
-        />
+      <div className="rounded-lg border bg-card p-4">
+        <h3 className="text-sm font-semibold">AI Assistant</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Select text in the editor to rewrite a specific passage.
+        </p>
+        {selection ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => handleSelectionRewrite("Rewrite")}
+              disabled={isGenerating}
+            >
+              Rewrite
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleSelectionRewrite("Make concise")}
+              disabled={isGenerating}
+            >
+              Make concise
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleSelectionRewrite("Add metrics")}
+              disabled={isGenerating}
+            >
+              Add metrics
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleSelectionRewrite("Match JD keywords")}
+              disabled={isGenerating}
+            >
+              Match JD keywords
+            </Button>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">
+            Select relevant experience and match JD keywords.
+          </p>
+        )}
 
-        <aside className="rounded-lg border bg-card p-4">
-          <h3 className="text-sm font-semibold">AI Assistant</h3>
-          {selectedPassage ? (
-            <div className="mt-3 space-y-3">
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => handleAssistantRewrite("Rewrite")}
-                  disabled={isRewriting}
-                >
-                  {isRewriting ? (
-                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                  ) : null}
-                  Rewrite
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleAssistantRewrite("Make concise")}
-                  disabled={isRewriting}
-                >
-                  Make concise
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleAssistantRewrite("Add metrics")}
-                  disabled={isRewriting}
-                >
-                  Add metrics
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleAssistantRewrite("Match JD keywords")}
-                  disabled={isRewriting}
-                >
-                  Match JD keywords
-                </Button>
-              </div>
+        {rewrite && (
+          <div className="mt-3 space-y-3 rounded-md border bg-muted/40 p-3 text-sm">
+            <div>
+              <p className="font-medium">Before</p>
+              <p className="mt-1 text-muted-foreground">{rewrite.before}</p>
+            </div>
+            <div>
+              <p className="font-medium">After</p>
+              <p className="mt-1">{rewrite.after}</p>
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" size="sm" onClick={handleAcceptRewrite}>
+                Accept
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleRejectRewrite}
+              >
+                Reject
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
 
-              {assistantRewrite && (
-                <div className="space-y-3 rounded-md border bg-muted/40 p-3 text-sm">
-                  <div>
-                    <div className="mb-1 text-xs font-medium text-muted-foreground">
-                      Before
-                    </div>
-                    <p>{assistantRewrite.before}</p>
-                  </div>
-                  <div>
-                    <div className="mb-1 text-xs font-medium text-muted-foreground">
-                      After
-                    </div>
-                    <p>{assistantRewrite.after}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={handleAcceptRewrite}
-                    >
-                      Accept
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setAssistantRewrite(null)}
-                    >
-                      Reject
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="mt-3 space-y-2 text-sm text-muted-foreground">
-              <p>Select text in the editor to rewrite a specific passage.</p>
-              <p>Select relevant experience and match JD keywords.</p>
-            </div>
-          )}
-        </aside>
+      <div className="min-h-[300px] flex-1">
+        {isGenerating && !currentVersion ? (
+          <div className="flex h-full items-center justify-center text-muted-foreground">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            Generating cover letter...
+          </div>
+        ) : currentVersion ? (
+          <Textarea
+            aria-label="Cover letter editor"
+            value={currentVersion.content}
+            onChange={handleEditorChange}
+            onSelect={handleEditorSelect}
+            className="h-full min-h-[300px] resize-none whitespace-pre-wrap bg-card p-6 leading-relaxed"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-muted-foreground">
+            No cover letter generated yet.
+          </div>
+        )}
       </div>
 
       <div className="flex items-end gap-2">

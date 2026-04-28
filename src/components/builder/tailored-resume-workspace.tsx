@@ -259,7 +259,6 @@ export function TailoredResumeWorkspace() {
 
         {result ? (
           <ResumePreview
-            resume={result.resume}
             templateId={templateId}
             html={result.html}
           />

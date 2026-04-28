@@ -157,4 +157,33 @@ describe("ChatEditor AI assistant", () => {
 
     expect(screen.getByRole("button", { name: "Rewrite" })).not.toBeDisabled();
   });
+
+  it("clears selected rewrite actions when switching versions", async () => {
+    render(<ChatEditor {...baseProps} />);
+
+    const instruction = screen.getByPlaceholderText(
+      /make it more concise/i,
+    ) as HTMLTextAreaElement;
+    fireEvent.change(instruction, {
+      target: { value: "Emphasize reliability" },
+    });
+    fireEvent.keyDown(instruction, { key: "Enter" });
+
+    expect(await screen.findByText("v2 of 2")).toBeInTheDocument();
+
+    const editor = screen.getByLabelText(
+      "Cover letter editor",
+    ) as HTMLTextAreaElement;
+    editor.setSelectionRange(0, editor.value.length);
+    fireEvent.select(editor);
+
+    expect(screen.getByRole("button", { name: "Rewrite" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "History" }));
+    fireEvent.click(screen.getByRole("button", { name: /v1/i }));
+
+    expect(
+      screen.queryByRole("button", { name: "Rewrite" }),
+    ).not.toBeInTheDocument();
+  });
 });

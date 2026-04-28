@@ -11,6 +11,16 @@ import {
 } from "@/lib/cover-letter/generate";
 import type { CoverLetterInput } from "@/lib/cover-letter/generate";
 
+const COVER_LETTER_ACTIONS = ["generate", "revise", "rewrite"] as const;
+type CoverLetterAction = (typeof COVER_LETTER_ACTIONS)[number];
+
+function isCoverLetterAction(action: unknown): action is CoverLetterAction {
+  return (
+    typeof action === "string" &&
+    COVER_LETTER_ACTIONS.includes(action as CoverLetterAction)
+  );
+}
+
 /**
  * POST /api/cover-letter/generate
  *
@@ -19,8 +29,8 @@ import type { CoverLetterInput } from "@/lib/cover-letter/generate";
  *   jobTitle?: string;
  *   company?: string;
  *   action: "generate" | "revise" | "rewrite";
- *   currentContent?: string;   // required for "revise"
- *   instruction?: string;      // required for "revise"
+ *   currentContent?: string;   // required for "revise" and "rewrite"
+ *   instruction?: string;      // required for "revise" and "rewrite"
  *   selectedText?: string;     // required for "rewrite"
  * }
  */
@@ -45,17 +55,26 @@ export async function POST(request: NextRequest) {
       company,
       action = "generate",
       currentContent,
+      selectedText,
       instruction,
       selectedText,
     } = body as {
       jobDescription?: string;
       jobTitle?: string;
       company?: string;
-      action?: string;
+      action?: unknown;
       currentContent?: string;
+      selectedText?: string;
       instruction?: string;
       selectedText?: string;
     };
+
+    if (!isCoverLetterAction(action)) {
+      return NextResponse.json(
+        { error: "Unsupported cover letter action." },
+        { status: 400 }
+      );
+    }
 
     if (!jobDescription || jobDescription.trim().length < 20) {
       return NextResponse.json(
@@ -102,12 +121,7 @@ export async function POST(request: NextRequest) {
     };
 
     if (action === "revise") {
-      if (
-        typeof currentContent !== "string" ||
-        typeof instruction !== "string" ||
-        currentContent.trim().length === 0 ||
-        instruction.trim().length === 0
-      ) {
+      if (!currentContent?.trim() || !instruction?.trim()) {
         return NextResponse.json(
           { error: "currentContent and instruction are required for revision." },
           { status: 400 }
@@ -116,7 +130,7 @@ export async function POST(request: NextRequest) {
 
       const revised = await reviseCoverLetter(
         currentContent,
-        instruction,
+        instruction.trim(),
         input,
         llmConfig
       );
@@ -126,31 +140,28 @@ export async function POST(request: NextRequest) {
 
     if (action === "rewrite") {
       if (
-        typeof currentContent !== "string" ||
-        typeof instruction !== "string" ||
-        typeof selectedText !== "string" ||
-        currentContent.trim().length === 0 ||
-        instruction.trim().length === 0 ||
-        selectedText.trim().length === 0
+        !currentContent?.trim() ||
+        !selectedText?.trim() ||
+        !instruction?.trim()
       ) {
         return NextResponse.json(
           {
             error:
-              "currentContent, selectedText, and instruction are required for selection rewrite.",
+              "currentContent, selectedText, and instruction are required for rewriting.",
           },
           { status: 400 }
         );
       }
 
-      const rewrittenSelection = await rewriteCoverLetterSelection(
+      const rewritten = await rewriteCoverLetterSelection(
         currentContent,
         selectedText,
-        instruction,
+        instruction.trim(),
         input,
         llmConfig
       );
 
-      return NextResponse.json({ success: true, content: rewrittenSelection });
+      return NextResponse.json({ success: true, content: rewritten });
     }
 
     // action === "generate"
