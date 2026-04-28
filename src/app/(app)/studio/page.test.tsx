@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import StudioPage from "./page";
 import type { BankEntry } from "@/types";
+
+const mockShowErrorToast = vi.hoisted(() => vi.fn());
 
 vi.mock("@/components/builder/section-list", () => ({
   SectionList: ({
@@ -34,7 +36,7 @@ vi.mock("@/components/studio/resume-preview", () => ({
 }));
 
 vi.mock("@/hooks/use-error-toast", () => ({
-  useErrorToast: () => vi.fn(),
+  useErrorToast: () => mockShowErrorToast,
 }));
 
 const bankEntries: BankEntry[] = [
@@ -73,12 +75,22 @@ function mockStorage(initialValues: Record<string, string> = {}) {
   return values;
 }
 
-function mockStudioFetch(entries: BankEntry[] = []) {
+function mockStudioFetch(
+  entries: BankEntry[] = [],
+  createPreviewHtml = () => "<p>Current HTML</p>"
+) {
+  let builderRequestCount = 0;
+
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (url: string) => {
+    vi.fn(async (url: string, init?: RequestInit) => {
       if (url === "/api/builder") {
-        return new Response(JSON.stringify({ html: "<p>Current HTML</p>" }), {
+        builderRequestCount++;
+        if (typeof init?.body === "string") {
+          JSON.parse(init.body);
+        }
+
+        return new Response(JSON.stringify({ html: createPreviewHtml() }), {
           status: 200,
         });
       }
@@ -86,6 +98,10 @@ function mockStudioFetch(entries: BankEntry[] = []) {
       return new Response(JSON.stringify({ entries }), { status: 200 });
     })
   );
+
+  return {
+    getBuilderRequestCount: () => builderRequestCount,
+  };
 }
 
 describe("StudioPage", () => {
@@ -125,5 +141,39 @@ describe("StudioPage", () => {
     fireEvent.click(await screen.findByRole("button", { name: /add from bank/i }));
 
     expect(screen.getByText("Bank Entry Picker")).toBeInTheDocument();
+  });
+
+  it("restores saved version HTML without a live preview overwrite", async () => {
+    let previewCount = 0;
+    const fetchMock = mockStudioFetch(
+      bankEntries,
+      () => `<p>Saved preview ${++previewCount}</p>`
+    );
+
+    render(<StudioPage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Toggle entry" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resume-html")).toHaveTextContent(
+        "Saved preview 1"
+      )
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Toggle entry" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resume-html")).toHaveTextContent(/^$/)
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Saved version" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resume-html")).toHaveTextContent(
+        "Saved preview 1"
+      )
+    );
+    expect(fetchMock.getBuilderRequestCount()).toBe(1);
   });
 });

@@ -41,6 +41,25 @@ interface BuilderPreviewResponse {
   html?: string;
 }
 
+function areSelectedIdsEqual(current: Set<string>, next: string[]): boolean {
+  if (current.size !== next.length) return false;
+  return next.every((id) => current.has(id));
+}
+
+function areSectionsEqual(
+  current: SectionState[],
+  next: SectionState[]
+): boolean {
+  return (
+    current.length === next.length &&
+    current.every(
+      (section, index) =>
+        section.id === next[index]?.id &&
+        section.visible === next[index]?.visible
+    )
+  );
+}
+
 export function useStudioPageState() {
   const [entries, setEntries] = useState<BankEntry[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -67,6 +86,7 @@ export function useStudioPageState() {
   const [isExporting, setIsExporting] = useState(false);
   const showErrorToast = useErrorToast();
   const lastPreviewErrorToastRef = useRef("");
+  const lastActiveDocumentIdRef = useRef<string | null>(null);
 
   const activeDocument = useMemo(
     () =>
@@ -113,10 +133,26 @@ export function useStudioPageState() {
   }, [hasLoadedEntries]);
 
   useEffect(() => {
-    setSelectedIds(new Set(activeDocument.selectedEntryIds ?? []));
-    setSections(activeDocument.sections ?? createInitialSections());
-    setTemplateId(activeDocument.templateId ?? "classic");
-    setPreviewVersionId(null);
+    const nextSelectedEntryIds = activeDocument.selectedEntryIds ?? [];
+    const nextSections = activeDocument.sections ?? createInitialSections();
+    const nextTemplateId = activeDocument.templateId ?? "classic";
+
+    setSelectedIds((current) =>
+      areSelectedIdsEqual(current, nextSelectedEntryIds)
+        ? current
+        : new Set(nextSelectedEntryIds)
+    );
+    setSections((current) =>
+      areSectionsEqual(current, nextSections) ? current : nextSections
+    );
+    setTemplateId((current) =>
+      current === nextTemplateId ? current : nextTemplateId
+    );
+
+    if (lastActiveDocumentIdRef.current !== activeDocument.id) {
+      setPreviewVersionId(null);
+      lastActiveDocumentIdRef.current = activeDocument.id;
+    }
 
     if (typeof window !== "undefined") {
       setVersions(readBuilderVersions(window.localStorage, activeDocument.id));
@@ -165,6 +201,12 @@ export function useStudioPageState() {
   }, [currentDraftState, versions]);
 
   useEffect(() => {
+    if (previewVersionId) setGenerating(false);
+  }, [previewVersionId]);
+
+  useEffect(() => {
+    if (previewVersionId) return;
+
     if (orderedEntries.length === 0) {
       setHtml("");
       setGenerating(false);
@@ -219,7 +261,13 @@ export function useStudioPageState() {
       cancelled = true;
       controller.abort();
     };
-  }, [orderedEntries, showErrorToast, templateId, visibleCategoryIds]);
+  }, [
+    orderedEntries,
+    previewVersionId,
+    showErrorToast,
+    templateId,
+    visibleCategoryIds,
+  ]);
 
   const updateActiveDocument = useCallback(
     (updates: Partial<StudioDocument>) => {
@@ -246,6 +294,7 @@ export function useStudioPageState() {
 
   const handleReorder = useCallback(
     (fromIndex: number, toIndex: number) => {
+      setPreviewVersionId(null);
       setSections((prev) => {
         const next = reorderSections(prev, fromIndex, toIndex);
         updateActiveDocument({ sections: next });
@@ -257,6 +306,7 @@ export function useStudioPageState() {
 
   const handleToggleVisibility = useCallback(
     (categoryId: BankCategory) => {
+      setPreviewVersionId(null);
       setSections((prev) => {
         const next = toggleSectionVisibility(prev, categoryId);
         updateActiveDocument({ sections: next });
@@ -268,6 +318,7 @@ export function useStudioPageState() {
 
   const handleTemplateSelect = useCallback(
     (nextTemplateId: string) => {
+      setPreviewVersionId(null);
       setTemplateId(nextTemplateId);
       updateActiveDocument({ templateId: nextTemplateId });
     },
