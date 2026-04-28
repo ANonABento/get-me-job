@@ -1,7 +1,7 @@
 import db from "./schema";
 import { generateId } from "@/lib/utils";
 import { createProfileSnapshot } from "./profile-versions";
-import type { Profile, Experience, Education, Skill, Project, Document, Settings, LLMConfig } from "@/types";
+import type { Profile, Experience, Education, Skill, Project, Document, Settings, LLMConfig, DocumentType } from "@/types";
 
 interface DocumentRow {
   id: string;
@@ -78,6 +78,18 @@ export function getDocuments(userId: string = "default"): Document[] {
   const rows = db
     .prepare("SELECT * FROM documents WHERE user_id = ? ORDER BY uploaded_at DESC")
     .all(userId) as DocumentRow[];
+  return rows.map(rowToDocument);
+}
+
+export function getDocumentsByType(
+  type: DocumentType,
+  userId: string = "default"
+): Document[] {
+  const rows = db
+    .prepare(
+      "SELECT * FROM documents WHERE type = ? AND user_id = ? ORDER BY uploaded_at DESC"
+    )
+    .all(type, userId) as DocumentRow[];
   return rows.map(rowToDocument);
 }
 

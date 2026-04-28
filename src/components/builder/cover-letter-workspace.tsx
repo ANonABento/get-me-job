@@ -1,52 +1,122 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft,
-  ArrowRight,
+  Download,
   FileText,
   Loader2,
   Settings,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ChatEditor } from "@/components/cover-letter/chat-editor";
+import {
+  COVER_LETTER_TEMPLATES,
+  composeCoverLetterContent,
+  coverLetterContentToDocument,
+  createBlankCoverLetterDocument,
+  generateCoverLetterHTML,
+  type CoverLetterDocument,
+} from "@/lib/builder/cover-letter-document";
+import {
+  createDocumentFilename,
+  downloadHtmlAsPdf,
+} from "@/lib/builder/document-export";
 import { readCoverLetterApiResult } from "@/lib/cover-letter/api-response";
+import { cn } from "@/lib/utils";
+import type { Document } from "@/types";
 
-type Step = "input" | "editor";
-
-interface CoverLetterWorkspaceProps {
-  documentName?: string;
-  documentContent?: string;
-  onDocumentContentChange?: (content: string) => void;
+interface DocumentsResponse {
+  documents?: Document[];
 }
 
-export function CoverLetterWorkspace({
-  documentName,
-  documentContent,
-  onDocumentContentChange,
-}: CoverLetterWorkspaceProps = {}) {
-  const [step, setStep] = useState<Step>("input");
+const COVER_LETTER_DOCUMENT_TYPE = "cover_letter";
+
+export function CoverLetterWorkspace() {
   const [jobDescription, setJobDescription] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [company, setCompany] = useState("");
-  const [initialContent, setInitialContent] = useState("");
-  const [llmError, setLlmError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [candidateName, setCandidateName] = useState("");
+  const [templateId, setTemplateId] = useState(COVER_LETTER_TEMPLATES[0].id);
+  const [document, setDocument] = useState<CoverLetterDocument>(
+    createBlankCoverLetterDocument
+  );
+  const [coverLetterFiles, setCoverLetterFiles] = useState<Document[]>([]);
+  const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const selectedTemplate = useMemo(
+    () =>
+      COVER_LETTER_TEMPLATES.find((template) => template.id === templateId) ??
+      COVER_LETTER_TEMPLATES[0],
+    [templateId]
+  );
+
+  const content = useMemo(
+    () => composeCoverLetterContent(document),
+    [document]
+  );
+
+  const previewHtml = useMemo(
+    () =>
+      generateCoverLetterHTML({
+        content,
+        templateId,
+        candidateName: candidateName.trim() || "Your Name",
+        jobTitle: jobTitle.trim() || undefined,
+        company: company.trim() || undefined,
+      }),
+    [candidateName, company, content, jobTitle, templateId]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchCoverLetterFiles() {
+      setIsLoadingFiles(true);
+      try {
+        const response = await fetch(
+          `/api/documents?type=${COVER_LETTER_DOCUMENT_TYPE}`
+        );
+        if (!response.ok) throw new Error("Failed to load cover letters.");
+        const data = (await response.json()) as DocumentsResponse;
+        if (!cancelled) setCoverLetterFiles(data.documents ?? []);
+      } catch {
+        if (!cancelled) setCoverLetterFiles([]);
+      } finally {
+        if (!cancelled) setIsLoadingFiles(false);
+      }
+    }
+
+    fetchCoverLetterFiles();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function handleDocumentSectionChange(
+    section: keyof CoverLetterDocument,
+    value: string
+  ) {
+    setSelectedFileId(null);
+    setDocument((current) => ({ ...current, [section]: value }));
+  }
+
+  function handleFileSelect(file: Document) {
+    setSelectedFileId(file.id);
+    setDocument(coverLetterContentToDocument(file.extractedText ?? ""));
+  }
 
   async function handleGenerate() {
     if (jobDescription.trim().length < 20) return;
-    setIsLoading(true);
-    setLlmError(null);
+    setIsGenerating(true);
+    setError(null);
 
     try {
       const res = await fetch("/api/cover-letter/generate", {
@@ -66,271 +136,289 @@ export function CoverLetterWorkspace({
       );
 
       if (!result.ok) {
-        setLlmError(result.error);
+        setError(result.error);
         return;
       }
 
-      if (onDocumentContentChange) {
-        onDocumentContentChange(result.content);
-        return;
-      }
-
-      setInitialContent(result.content);
-      setStep("editor");
+      setDocument(coverLetterContentToDocument(result.content));
+      setSelectedFileId(null);
     } catch {
-      setLlmError("Network error. Please check your connection.");
+      setError("Network error. Please check your connection.");
     } finally {
-      setIsLoading(false);
+      setIsGenerating(false);
     }
   }
 
-  if (onDocumentContentChange) {
-    return (
-      <div className="flex h-full flex-col gap-4 p-4 md:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">
-              {documentName || "Cover Letter"}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Draft, generate, and revise the active cover letter.
-            </p>
-          </div>
-          <Button
-            onClick={handleGenerate}
-            disabled={jobDescription.trim().length < 20 || isLoading}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                Generate
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </>
-            )}
-          </Button>
-        </div>
+  async function handleDownloadPdf() {
+    if (!content) return;
+    setIsExporting(true);
+    setError(null);
 
-        {llmError && (
-          <Card className="border-destructive/50 bg-destructive/5">
-            <CardContent className="pt-6">
-              <p className="text-sm text-destructive">{llmError}</p>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <div>
-            <label
-              htmlFor="studioCoverLetterJobTitle"
-              className="mb-1 block text-sm font-medium"
-            >
-              Job Title (optional)
-            </label>
-            <Input
-              id="studioCoverLetterJobTitle"
-              value={jobTitle}
-              onChange={(e) => setJobTitle(e.target.value)}
-              placeholder="e.g. Software Engineer"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="studioCoverLetterCompany"
-              className="mb-1 block text-sm font-medium"
-            >
-              Company (optional)
-            </label>
-            <Input
-              id="studioCoverLetterCompany"
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
-              placeholder="e.g. Acme Corp"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label
-            htmlFor="studioCoverLetterJobDescription"
-            className="mb-1 block text-sm font-medium"
-          >
-            Job Description
-          </label>
-          <Textarea
-            id="studioCoverLetterJobDescription"
-            value={jobDescription}
-            onChange={(e) => setJobDescription(e.target.value)}
-            placeholder="Paste the full job description here..."
-            className="min-h-[120px]"
-          />
-        </div>
-
-        <div className="min-h-0 flex-1">
-          <label
-            htmlFor="studioCoverLetterContent"
-            className="mb-1 block text-sm font-medium"
-          >
-            Cover Letter
-          </label>
-          <Textarea
-            id="studioCoverLetterContent"
-            aria-label="Cover letter editor"
-            value={documentContent ?? ""}
-            onChange={(e) => onDocumentContentChange(e.target.value)}
-            placeholder="Start writing your cover letter..."
-            className="h-[calc(100%-1.75rem)] min-h-[300px] resize-none"
-          />
-        </div>
-      </div>
-    );
-  }
-
-  if (step === "editor") {
-    return (
-      <div className="flex h-full flex-col p-4 md:p-6 lg:p-8">
-        <div className="mb-4">
-          <button
-            onClick={() => setStep("input")}
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to input
-          </button>
-        </div>
-        <ChatEditor
-          jobDescription={jobDescription.trim()}
-          jobTitle={jobTitle.trim() || "the position"}
-          company={company.trim() || "the company"}
-          initialContent={initialContent}
-        />
-      </div>
-    );
+    try {
+      await downloadHtmlAsPdf(
+        previewHtml,
+        createDocumentFilename("cover-letter", company.trim() || jobTitle.trim())
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to export PDF.");
+    } finally {
+      setIsExporting(false);
+    }
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-3xl space-y-6 p-4 md:p-6 lg:p-8">
-        <div>
-          <h2 className="text-2xl font-bold">Cover Letter Generator</h2>
-          <p className="mt-1 text-muted-foreground">
-            Generate a personalized cover letter from your knowledge bank and
-            iterate with chat.
-          </p>
+    <div className="grid h-full min-h-0 grid-cols-1 overflow-hidden lg:grid-cols-[300px_minmax(0,1fr)_340px]">
+      <aside className="min-h-0 overflow-y-auto border-b p-4 lg:border-b-0 lg:border-r">
+        <div className="mb-4 flex items-center gap-2">
+          <FileText className="h-4 w-4 text-primary" />
+          <h2 className="text-base font-semibold">Cover Letters</h2>
         </div>
 
-        {llmError && (
-          <Card className="border-destructive/50 bg-destructive/5">
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-3">
-                <Settings className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-                <div className="space-y-2">
-                  <p className="text-sm text-destructive">{llmError}</p>
-                  {llmError.includes("Settings") && (
-                    <Link href="/settings">
-                      <Button variant="outline" size="sm">
-                        Go to Settings
-                      </Button>
-                    </Link>
-                  )}
-                  {llmError.includes("bank") && (
-                    <Link href="/bank">
-                      <Button variant="outline" size="sm">
-                        Go to Documents
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="space-y-2">
+          {isLoadingFiles && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading files
+            </div>
+          )}
+
+          {!isLoadingFiles && coverLetterFiles.length === 0 && (
+            <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+              No cover letters found.
+            </p>
+          )}
+
+          {coverLetterFiles.map((file) => (
+            <button
+              key={file.id}
+              type="button"
+              onClick={() => handleFileSelect(file)}
+              className={cn(
+                "flex w-full flex-col gap-1 rounded-md border px-3 py-2 text-left text-sm transition-colors hover:bg-muted/60",
+                selectedFileId === file.id
+                  ? "border-primary bg-primary/5"
+                  : "border-border"
+              )}
+            >
+              <span className="font-medium">{file.filename}</span>
+              <span className="text-xs text-muted-foreground">
+                {new Date(file.uploadedAt).toLocaleDateString()}
+              </span>
+            </button>
+          ))}
+        </div>
+      </aside>
+
+      <main className="min-h-0 overflow-y-auto">
+        <div className="border-b px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold">Editor</h2>
+              <p className="text-sm text-muted-foreground">
+                Opening, body, and closing in one letter document.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={templateId}
+                onChange={(event) => setTemplateId(event.target.value)}
+                className="h-9 rounded-md border bg-background px-3 text-sm"
+                aria-label="Cover letter template"
+              >
+                {COVER_LETTER_TEMPLATES.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name}
+                  </option>
+                ))}
+              </select>
+              <Button
+                size="sm"
+                onClick={handleDownloadPdf}
+                disabled={!content || isExporting}
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 animate-spin md:mr-1.5" />
+                ) : (
+                  <Download className="h-4 w-4 md:mr-1.5" />
+                )}
+                <span className="hidden md:inline">Download PDF</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {error && (
+          <div className="border-b border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <div>{error}</div>
+            {error.includes("Settings") && (
+              <Link className="mt-1 inline-block underline" href="/settings">
+                Open Settings
+              </Link>
+            )}
+            {error.includes("bank") && (
+              <Link className="mt-1 inline-block underline" href="/bank">
+                Open Documents
+              </Link>
+            )}
+          </div>
         )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Job Description
-            </CardTitle>
-            <CardDescription>
-              Paste the job description and optionally add the job title and
-              company name.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label
-                  htmlFor="jobTitle"
-                  className="mb-1 block text-sm font-medium"
-                >
-                  Job Title (optional)
-                </label>
-                <Input
-                  id="jobTitle"
-                  value={jobTitle}
-                  onChange={(e) => setJobTitle(e.target.value)}
-                  placeholder="e.g. Software Engineer"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="company"
-                  className="mb-1 block text-sm font-medium"
-                >
-                  Company (optional)
-                </label>
-                <Input
-                  id="company"
-                  value={company}
-                  onChange={(e) => setCompany(e.target.value)}
-                  placeholder="e.g. Acme Corp"
-                />
-              </div>
+        <div className="grid gap-4 p-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+          <section className="space-y-4">
+            <div>
+              <label
+                htmlFor="candidateName"
+                className="mb-1 block text-sm font-medium"
+              >
+                Candidate Name
+              </label>
+              <Input
+                id="candidateName"
+                value={candidateName}
+                onChange={(event) => setCandidateName(event.target.value)}
+                placeholder="Jane Doe"
+              />
             </div>
 
             <div>
               <label
-                htmlFor="jobDescription"
+                htmlFor="coverOpening"
                 className="mb-1 block text-sm font-medium"
               >
-                Job Description
+                Opening
               </label>
               <Textarea
-                id="jobDescription"
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-                placeholder="Paste the full job description here..."
-                className="min-h-[200px]"
+                id="coverOpening"
+                value={document.opening}
+                onChange={(event) =>
+                  handleDocumentSectionChange("opening", event.target.value)
+                }
+                className="min-h-[120px]"
+                placeholder="Dear hiring team..."
               />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Minimum 20 characters required.
-              </p>
             </div>
 
-            <Button
-              onClick={handleGenerate}
-              disabled={jobDescription.trim().length < 20 || isLoading}
-              className="w-full md:w-auto"
+            <div>
+              <label
+                htmlFor="coverBody"
+                className="mb-1 block text-sm font-medium"
+              >
+                Body
+              </label>
+              <Textarea
+                id="coverBody"
+                value={document.body}
+                onChange={(event) =>
+                  handleDocumentSectionChange("body", event.target.value)
+                }
+                className="min-h-[220px]"
+                placeholder="Connect your strongest experience to the role..."
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="coverClosing"
+                className="mb-1 block text-sm font-medium"
+              >
+                Closing
+              </label>
+              <Textarea
+                id="coverClosing"
+                value={document.closing}
+                onChange={(event) =>
+                  handleDocumentSectionChange("closing", event.target.value)
+                }
+                className="min-h-[120px]"
+                placeholder="Thank you for your consideration..."
+              />
+            </div>
+          </section>
+
+          <section className="min-h-[620px] overflow-hidden rounded-md border bg-muted/30">
+            {content ? (
+              <iframe
+                title="Cover letter preview"
+                srcDoc={previewHtml}
+                className="h-full min-h-[620px] w-full bg-white"
+              />
+            ) : (
+              <div className="flex h-full min-h-[620px] items-center justify-center p-6 text-center text-sm text-muted-foreground">
+                Select a cover letter file or generate a draft to preview it.
+              </div>
+            )}
+          </section>
+        </div>
+      </main>
+
+      <aside className="min-h-0 overflow-y-auto border-t p-4 lg:border-l lg:border-t-0">
+        <div className="mb-4 flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <h2 className="text-base font-semibold">AI Panel</h2>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label
+              htmlFor="jobTitle"
+              className="mb-1 block text-sm font-medium"
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  Generate Cover Letter
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+              Job Title
+            </label>
+            <Input
+              id="jobTitle"
+              value={jobTitle}
+              onChange={(event) => setJobTitle(event.target.value)}
+              placeholder="Senior Product Engineer"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="company" className="mb-1 block text-sm font-medium">
+              Company
+            </label>
+            <Input
+              id="company"
+              value={company}
+              onChange={(event) => setCompany(event.target.value)}
+              placeholder="Acme"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="jobDescription"
+              className="mb-1 block text-sm font-medium"
+            >
+              Job Description
+            </label>
+            <Textarea
+              id="jobDescription"
+              value={jobDescription}
+              onChange={(event) => setJobDescription(event.target.value)}
+              className="min-h-[260px]"
+              placeholder="Paste the full job description..."
+            />
+          </div>
+
+          <Button
+            onClick={handleGenerate}
+            disabled={jobDescription.trim().length < 20 || isGenerating}
+            className="w-full"
+          >
+            {isGenerating ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Settings className="mr-2 h-4 w-4" />
+            )}
+            Generate Cover Letter
+          </Button>
+
+          <p className="text-xs text-muted-foreground">
+            {selectedTemplate.description}
+          </p>
+        </div>
+      </aside>
     </div>
   );
 }

@@ -9,41 +9,51 @@ export interface CoverLetterTemplate {
     accentColor: string;
     headerAlign: "left" | "center";
     paragraphSpacing: string;
+    bodyMaxWidth: string;
   };
+}
+
+export interface CoverLetterDocument {
+  opening: string;
+  body: string;
+  closing: string;
 }
 
 export const COVER_LETTER_TEMPLATES: CoverLetterTemplate[] = [
   {
-    id: "classic-letter",
-    name: "Classic Letter",
-    description: "Traditional business letter with a simple header.",
+    id: "formal",
+    name: "Formal",
+    description: "Traditional business letter with a grounded serif style.",
     styles: {
       fontFamily: "Georgia, serif",
       accentColor: "#1f2937",
       headerAlign: "left",
       paragraphSpacing: "14px",
+      bodyMaxWidth: "7.1in",
     },
   },
   {
-    id: "modern-letter",
-    name: "Modern Letter",
-    description: "Clean centered header with tighter body copy.",
+    id: "modern",
+    name: "Modern",
+    description: "Clean centered header with direct, compact spacing.",
     styles: {
       fontFamily: "Arial, sans-serif",
       accentColor: "#2563eb",
       headerAlign: "center",
       paragraphSpacing: "12px",
+      bodyMaxWidth: "7in",
     },
   },
   {
-    id: "executive-letter",
-    name: "Executive Letter",
-    description: "Polished serif layout with a strong rule.",
+    id: "creative",
+    name: "Creative",
+    description: "Warm letter layout with a distinctive accent.",
     styles: {
-      fontFamily: "Cambria, Georgia, serif",
-      accentColor: "#0f766e",
+      fontFamily: "Avenir, Montserrat, Arial, sans-serif",
+      accentColor: "#be123c",
       headerAlign: "left",
-      paragraphSpacing: "16px",
+      paragraphSpacing: "15px",
+      bodyMaxWidth: "7.25in",
     },
   },
 ];
@@ -62,9 +72,58 @@ export function splitCoverLetterParagraphs(content: string): string[] {
     .filter(Boolean);
 }
 
+export function createBlankCoverLetterDocument(): CoverLetterDocument {
+  return {
+    opening: "",
+    body: "",
+    closing: "",
+  };
+}
+
+export function coverLetterContentToDocument(
+  content: string
+): CoverLetterDocument {
+  const paragraphs = splitCoverLetterParagraphs(content);
+
+  if (paragraphs.length === 0) {
+    return createBlankCoverLetterDocument();
+  }
+
+  if (paragraphs.length === 1) {
+    return {
+      opening: paragraphs[0],
+      body: "",
+      closing: "",
+    };
+  }
+
+  if (paragraphs.length === 2) {
+    return {
+      opening: paragraphs[0],
+      body: "",
+      closing: paragraphs[1],
+    };
+  }
+
+  return {
+    opening: paragraphs[0],
+    body: paragraphs.slice(1, -1).join("\n\n"),
+    closing: paragraphs[paragraphs.length - 1],
+  };
+}
+
+export function composeCoverLetterContent(
+  document: CoverLetterDocument
+): string {
+  return [document.opening, document.body, document.closing]
+    .map((section) => section.trim())
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 export function generateCoverLetterHTML({
   content,
-  templateId = "classic-letter",
+  templateId = "formal",
   candidateName = "Your Name",
   jobTitle,
   company,
@@ -120,6 +179,10 @@ export function generateCoverLetterHTML({
     }
     p {
       margin-bottom: ${template.styles.paragraphSpacing};
+    }
+    main {
+      max-width: ${template.styles.bodyMaxWidth};
+      margin: 0 auto;
     }
     @media print {
       @page {

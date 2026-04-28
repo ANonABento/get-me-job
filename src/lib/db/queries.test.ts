@@ -29,6 +29,7 @@ import {
   saveDocument,
   getDocument,
   getDocuments,
+  getDocumentsByType,
   getProfile,
   updateProfile,
   clearProfile,
@@ -202,6 +203,46 @@ describe("Document Functions", () => {
         "SELECT * FROM documents WHERE user_id = ? ORDER BY uploaded_at DESC"
       );
       expect(result).toEqual([]);
+    });
+  });
+
+  describe("getDocumentsByType", () => {
+    it("returns documents filtered by type and user", () => {
+      const mockRows = [
+        {
+          id: "doc-2",
+          filename: "cover-letter.pdf",
+          type: "cover_letter",
+          mime_type: "application/pdf",
+          size: 2048,
+          path: "/uploads/cover-letter.pdf",
+          extracted_text: "Dear team",
+          parsed_data: null,
+          uploaded_at: "2024-01-16T10:00:00.000Z",
+        },
+      ];
+      const mockAll = vi.fn().mockReturnValue(mockRows);
+      (db.prepare as Mock).mockReturnValue({ all: mockAll });
+
+      const result = getDocumentsByType("cover_letter", "user-123");
+
+      expect(db.prepare).toHaveBeenCalledWith(
+        "SELECT * FROM documents WHERE type = ? AND user_id = ? ORDER BY uploaded_at DESC"
+      );
+      expect(mockAll).toHaveBeenCalledWith("cover_letter", "user-123");
+      expect(result).toEqual([
+        {
+          id: "doc-2",
+          filename: "cover-letter.pdf",
+          type: "cover_letter",
+          mimeType: "application/pdf",
+          size: 2048,
+          path: "/uploads/cover-letter.pdf",
+          extractedText: "Dear team",
+          parsedData: undefined,
+          uploadedAt: "2024-01-16T10:00:00.000Z",
+        },
+      ]);
     });
   });
 

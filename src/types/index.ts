@@ -1,4 +1,7 @@
 // Core profile types for Taida
+import type { DocumentType } from "@/lib/constants/documents";
+
+export type { DocumentType };
 
 export interface ContactInfo {
   name: string;
@@ -71,9 +74,6 @@ export interface Profile {
   createdAt: string;
   updatedAt: string;
 }
-
-// Document types
-export type DocumentType = 'resume' | 'cover_letter' | 'reference_letter' | 'portfolio' | 'certificate' | 'other';
 
 export interface CoverLetterData {
   targetCompany?: string;
