@@ -1,42 +1,37 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import type { Editor } from "@tiptap/react";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ResumeEditor } from "@/lib/editor/resume-editor";
-import type { TipTapJSONContent } from "@/lib/editor/types";
 import { TEMPLATES } from "@/lib/resume/template-data";
-import { cn } from "@/lib/utils";
+import type { TipTapJSONContent } from "@/lib/editor/types";
+
+const PAGE_WIDTH_PX = 816; // 8.5in at 96dpi
 
 export interface ResumePreviewProps {
   templateId: string;
   html?: string;
-  document?: TipTapJSONContent | null;
-  editable?: boolean;
-  zoomPercent?: number;
-  onEditorReady?: (editor: Editor | null) => void;
-  onUpdate?: (content: TipTapJSONContent) => void;
+  content?: TipTapJSONContent;
+  onContentChange?: (content: TipTapJSONContent) => void;
+  onAddSection?: () => void;
 }
 
 export function ResumePreview({
   templateId,
-  html = "",
-  document,
-  editable = false,
-  zoomPercent = 100,
-  onEditorReady,
-  onUpdate,
+  html,
+  content,
+  onContentChange,
+  onAddSection,
 }: ResumePreviewProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [fitScale, setFitScale] = useState(1);
 
   const template = TEMPLATES.find((t) => t.id === templateId);
+  const templateStyles = template?.styles ?? TEMPLATES[0].styles;
   const accentColor = template?.styles.accentColor ?? "#333333";
   const fontFamily =
     template?.styles.fontFamily ?? "'Helvetica Neue', Arial, sans-serif";
-
-  const PAGE_WIDTH_PX = 816; // 8.5in at 96dpi
-  const PAGE_HEIGHT_PX = 1056; // 11in at 96dpi
 
   const updateScale = useCallback(() => {
     if (!wrapperRef.current) return;
@@ -68,11 +63,7 @@ export function ResumePreview({
         }}
       >
         <article
-          ref={containerRef}
-          className={cn(
-            "min-h-[11in] bg-white text-slate-950 shadow-lg",
-            !hasDocument && "px-14 py-12"
-          )}
+          className="min-h-[11in] bg-white text-slate-950 shadow-lg"
           style={{
             width: `${PAGE_WIDTH_PX}px`,
             fontFamily,
@@ -81,18 +72,33 @@ export function ResumePreview({
             transform: `scale(${scale})`,
           }}
         >
-          {document && template ? (
-            <ResumeEditor
-              content={document}
-              templateStyles={template.styles}
-              editable={editable}
-              onEditorReady={onEditorReady}
-              onUpdate={onUpdate}
-            />
+          {content ? (
+            <>
+              <ResumeEditor
+                content={content}
+                templateStyles={templateStyles}
+                editable
+                onUpdate={onContentChange}
+              />
+              <div className="px-12 pb-12">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-10 w-full border border-dashed border-slate-300 text-slate-500 hover:border-primary hover:bg-primary/5 hover:text-primary"
+                  onClick={onAddSection}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Section
+                </Button>
+              </div>
+            </>
           ) : html ? (
-            <div dangerouslySetInnerHTML={{ __html: html }} />
+            <div
+              className="px-14 py-12"
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
           ) : (
-            <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+            <div className="flex h-64 items-center justify-center px-14 py-12 text-sm text-muted-foreground">
               Select entries and a template to see a preview.
             </div>
           )}

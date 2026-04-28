@@ -327,9 +327,92 @@ export function getResumeDocumentStyles(
     : singleColumnStyles(styles, rootSelector, includePrintStyles).trim();
 }
 
+function editorInteractionStyles(
+  rootSelector: string,
+  accentColor: string
+): string {
+  const sectionSelector = selector(rootSelector, ".resume-section");
+  const handleSelector = selector(rootSelector, ".resume-section-drag-handle");
+
+  return `
+    ${rootSelector} {
+      caret-color: ${accentColor};
+      cursor: text;
+      min-height: calc(11in - 1in);
+      outline: none;
+      user-select: text;
+    }
+    ${rootSelector} ::selection {
+      background: color-mix(in srgb, ${accentColor} 24%, #dbeafe);
+      color: inherit;
+    }
+    ${selector(rootSelector, ".ProseMirror-selectednode")} {
+      outline: 2px solid color-mix(in srgb, ${accentColor} 48%, transparent);
+      outline-offset: 3px;
+    }
+    ${sectionSelector} {
+      position: relative;
+    }
+    ${handleSelector} {
+      align-items: center;
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      box-shadow: 0 1px 2px rgb(15 23 42 / 0.08);
+      color: #64748b;
+      cursor: grab;
+      display: flex;
+      height: 24px;
+      justify-content: center;
+      left: -34px;
+      opacity: 0;
+      padding: 0;
+      position: absolute;
+      top: 10px;
+      transition: opacity 120ms ease, color 120ms ease, border-color 120ms ease;
+      width: 24px;
+      z-index: 2;
+    }
+    ${handleSelector}:active {
+      cursor: grabbing;
+    }
+    ${handleSelector}::before {
+      background-image: radial-gradient(currentColor 1.4px, transparent 1.6px);
+      background-size: 6px 6px;
+      content: "";
+      display: block;
+      height: 15px;
+      width: 12px;
+    }
+    ${sectionSelector}:hover > .resume-section-drag-handle,
+    ${sectionSelector}:focus-within > .resume-section-drag-handle,
+    ${handleSelector}:focus-visible {
+      opacity: 1;
+    }
+    ${handleSelector}:hover,
+    ${handleSelector}:focus-visible {
+      border-color: ${accentColor};
+      color: ${accentColor};
+      outline: none;
+    }
+    ${selector(rootSelector, "p.is-empty:first-child::before")} {
+      color: #94a3b8;
+      content: attr(data-placeholder);
+      float: left;
+      height: 0;
+      pointer-events: none;
+    }
+  `;
+}
+
 export function getResumeEditorStyles(styles: TemplateStyles): string {
-  return getResumeDocumentStyles(styles, {
-    rootSelector: ".resume-editor .ProseMirror",
+  const rootSelector = ".resume-editor .ProseMirror";
+  const documentStyles = getResumeDocumentStyles(styles, {
+    rootSelector,
     includePrintStyles: false,
   });
+  return `${documentStyles}\n${editorInteractionStyles(
+    rootSelector,
+    styles.accentColor
+  )}`.trim();
 }

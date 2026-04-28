@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { KeyboardEvent, SyntheticEvent } from "react";
 import {
   Check,
   ChevronLeft,
@@ -46,12 +47,16 @@ interface ChatEditorProps {
   initialContent: string;
 }
 
-const CONTEXTUAL_ACTIONS: Array<{ id: AiActionId; label: string }> = [
-  { id: "rewrite", label: "Rewrite" },
-  { id: "concise", label: "Make concise" },
-  { id: "metrics", label: "Add metrics" },
-  { id: "keywords", label: "Match JD keywords" },
-];
+interface SelectionRange {
+  start: number;
+  end: number;
+}
+
+interface AssistantRewrite {
+  before: string;
+  after: string;
+  range: SelectionRange;
+}
 
 export function ChatEditor({
   jobDescription,
@@ -68,128 +73,49 @@ export function ChatEditor({
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [showJobDescription, setShowJobDescription] = useState(false);
-  const [showBankPicker, setShowBankPicker] = useState(false);
-  const [bankEntries, setBankEntries] = useState<BankEntry[]>([]);
-  const [selectedBankEntryIds, setSelectedBankEntryIds] = useState<Set<string>>(
-    new Set(),
+  const [showHistory, setShowHistory] = useState(false);
+  const [draftContent, setDraftContent] = useState(initialContent);
+  const [selectedRange, setSelectedRange] = useState<SelectionRange | null>(
+    null
   );
-  const [hasLoadedBankEntries, setHasLoadedBankEntries] = useState(false);
-  const [isLoadingBankEntries, setIsLoadingBankEntries] = useState(false);
-  const [bankEntriesError, setBankEntriesError] = useState<string | null>(null);
-  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
-  const contentRef = useRef(content);
-  const assistantRequestRef = useRef(0);
-  contentRef.current = content;
-
-  const sections = useMemo(() => getParagraphRanges(content), [content]);
-  const selectedSection = sections[selectedSectionIndex] ?? sections[0] ?? null;
+  const [assistantRewrite, setAssistantRewrite] =
+    useState<AssistantRewrite | null>(null);
+  const draftContentRef = useRef(draftContent);
+  const currentVersion =
+    currentVersionIndex >= 0 ? versions[currentVersionIndex] : null;
 
   useEffect(() => {
-    if (sections.length === 0) {
-      if (selectedSectionIndex !== 0) setSelectedSectionIndex(0);
-      return;
-    }
+    draftContentRef.current = draftContent;
+  }, [draftContent]);
 
-    if (selectedSectionIndex >= sections.length) {
-      setSelectedSectionIndex(sections.length - 1);
-    }
-  }, [sections.length, selectedSectionIndex]);
-
-  useEffect(() => {
-    if (!showBankPicker || hasLoadedBankEntries) return;
-
-    let cancelled = false;
-
-    async function loadBankEntries() {
-      setIsLoadingBankEntries(true);
-      setBankEntriesError(null);
-
-      try {
-        const res = await fetch("/api/bank");
-        if (!res.ok) throw new Error("Failed to load bank entries");
-
-        const data = (await res.json()) as { entries?: BankEntry[] };
-        const entries = data.entries ?? [];
-        if (cancelled) return;
-
-        setBankEntries(entries);
-        setSelectedBankEntryIds(new Set(entries.map((entry) => entry.id)));
-        setHasLoadedBankEntries(true);
-      } catch {
-        if (!cancelled) {
-          setBankEntriesError("Could not load knowledge bank entries.");
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoadingBankEntries(false);
-        }
-      }
-    }
-
-    loadBankEntries();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [hasLoadedBankEntries, showBankPicker]);
-
-  function commitContent(nextContent: string) {
-    const nextVersions = [
-      ...versions.slice(0, currentVersionIndex + 1),
-      nextContent,
-    ];
-    setVersions(nextVersions);
-    setCurrentVersionIndex(nextVersions.length - 1);
-    setContent(nextContent);
+  function clearRewriteState() {
+    setSelectedRange(null);
+    setAssistantRewrite(null);
   }
 
-  function handleVersionNavigation(index: number) {
-    const nextIndex = Math.max(0, Math.min(versions.length - 1, index));
-    const version = versions[nextIndex];
-    if (version === undefined) return;
+  function updateCurrentVersionContent(content: string) {
+    setDraftContent(content);
+    setVersions((prev) =>
+      prev.map((version, index) =>
+        index === currentVersionIndex ? { ...version, content } : version
+      )
+    );
+  }
 
+  function selectVersion(
+    index: number,
+    options: { closeHistory?: boolean } = {}
+  ) {
+    const nextIndex = Math.min(Math.max(index, 0), versions.length - 1);
     setCurrentVersionIndex(nextIndex);
-    setContent(version);
-    setPendingDiff(null);
-    setSelection(null);
-  }
-
-  function updateSelection(element: HTMLTextAreaElement) {
-    const start = element.selectionStart;
-    const end = element.selectionEnd;
-
-    if (end > start) {
-      setSelection({
-        start,
-        end,
-        text: element.value.slice(start, end),
-      });
-      return;
+    setDraftContent(versions[nextIndex]?.content ?? "");
+    clearRewriteState();
+    if (options.closeHistory) {
+      setShowHistory(false);
     }
-
-    setSelection(null);
   }
 
-  function handleContentChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
-    setContent(event.target.value);
-    setPendingDiff(null);
-    updateSelection(event.target);
-  }
-
-  async function generateFromBank() {
-    const requestId = assistantRequestRef.current + 1;
-    assistantRequestRef.current = requestId;
-    const baseContent = contentRef.current;
-    const selectedIds = hasLoadedBankEntries
-      ? Array.from(selectedBankEntryIds)
-      : undefined;
-
-    if (selectedIds && selectedIds.length === 0) {
-      setError("Select at least one bank entry to generate content.");
-      return;
-    }
-
+  const generate = useCallback(async () => {
     setIsGenerating(true);
     setError(null);
 
@@ -214,14 +140,15 @@ export function ChatEditor({
         return;
       }
 
-      if (
-        assistantRequestRef.current !== requestId ||
-        contentRef.current !== baseContent
-      ) {
-        return;
-      }
-
-      commitContent(result.content);
+      const newVersion: Version = {
+        content: result.content,
+        instruction: "Initial generation",
+        createdAt: new Date().toISOString(),
+      };
+      setVersions([newVersion]);
+      setCurrentVersionIndex(0);
+      setDraftContent(result.content);
+      clearRewriteState();
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -262,8 +189,8 @@ export function ChatEditor({
           jobTitle,
           company,
           action: "revise",
-          currentContent: before,
-          instruction,
+          currentContent: draftContent,
+          instruction: instruction.trim(),
         }),
       });
       const result = await readCoverLetterApiResult(
@@ -275,20 +202,20 @@ export function ChatEditor({
         return;
       }
 
-      if (
-        assistantRequestRef.current !== requestId ||
-        contentRef.current !== baseContent
-      ) {
-        return;
-      }
-
-      setPendingDiff({
-        before,
-        after: result.content,
-        baseContent,
-        range: target ? { start: target.start, end: target.end } : null,
-        actionLabel,
-      });
+      const newVersion: Version = {
+        content: result.content,
+        instruction: instruction.trim(),
+        createdAt: new Date().toISOString(),
+      };
+      const newVersions = [
+        ...versions.slice(0, currentVersionIndex + 1),
+        newVersion,
+      ];
+      setVersions(newVersions);
+      setCurrentVersionIndex(newVersions.length - 1);
+      setDraftContent(result.content);
+      clearRewriteState();
+      setInstruction("");
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -298,47 +225,23 @@ export function ChatEditor({
     }
   }
 
-  function handleRewriteSection() {
-    if (!selectedSection) return;
-    runAssistantAction("rewrite-section", "Rewrite section", {
-      start: selectedSection.start,
-      end: selectedSection.end,
-      text: selectedSection.text,
-    });
-  }
-
-  function handleAcceptDiff() {
-    if (!pendingDiff) return;
-    const nextContent = pendingDiff.range
-      ? applyTextReplacement(
-          pendingDiff.baseContent,
-          pendingDiff.after,
-          pendingDiff.range,
-        )
-      : pendingDiff.after;
-
-    commitContent(nextContent);
-    setPendingDiff(null);
-    setSelection(null);
-  }
-
-  function toggleBankEntry(entryId: string) {
-    setSelectedBankEntryIds((currentIds) => {
-      const nextIds = new Set(currentIds);
-      if (nextIds.has(entryId)) nextIds.delete(entryId);
-      else nextIds.add(entryId);
-      return nextIds;
-    });
+  function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleRevise();
+    }
   }
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(content);
+    if (!currentVersion) return;
+    await navigator.clipboard.writeText(draftContent);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
   function handleDownload() {
-    const blob = new Blob([content], { type: "text/plain" });
+    if (!currentVersion) return;
+    const blob = new Blob([draftContent], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -347,6 +250,81 @@ export function ChatEditor({
     a.download = `cover-letter-${safeName}.txt`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function handleEditorSelect(event: SyntheticEvent<HTMLTextAreaElement>) {
+    const target = event.currentTarget;
+    const nextRange = {
+      start: target.selectionStart,
+      end: target.selectionEnd,
+    };
+    setSelectedRange(nextRange.end > nextRange.start ? nextRange : null);
+  }
+
+  async function handleAssistantRewrite(prompt = "Rewrite") {
+    if (!selectedRange || selectedRange.end <= selectedRange.start) return;
+
+    const requestContent = draftContent;
+    const requestRange = selectedRange;
+    const selectedText = requestContent.slice(
+      requestRange.start,
+      requestRange.end
+    );
+
+    setIsGenerating(true);
+    setError(null);
+    setAssistantRewrite(null);
+
+    try {
+      const res = await fetch("/api/cover-letter/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobDescription,
+          jobTitle,
+          company,
+          action: "rewrite-selection",
+          currentContent: requestContent,
+          selectedText,
+          instruction: prompt,
+        }),
+      });
+
+      const result = await readCoverLetterApiResult(
+        res,
+        "Failed to rewrite selection"
+      );
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+
+      if (draftContentRef.current !== requestContent) return;
+
+      setAssistantRewrite({
+        before: selectedText,
+        after: result.content,
+        range: requestRange,
+      });
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  function handleAcceptRewrite() {
+    if (!assistantRewrite) return;
+    const { range, after } = assistantRewrite;
+    const nextContent = `${draftContent.slice(0, range.start)}${after}${draftContent.slice(
+      range.end
+    )}`;
+    updateCurrentVersionContent(nextContent);
+    setAssistantRewrite(null);
+    setSelectedRange({
+      start: range.start,
+      end: range.start + after.length,
+    });
   }
 
   return (
@@ -367,7 +345,8 @@ export function ChatEditor({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleVersionNavigation(currentVersionIndex - 1)}
+                aria-label="Previous version"
+                onClick={() => selectVersion(currentVersionIndex - 1)}
                 disabled={currentVersionIndex <= 0}
                 aria-label="Previous version"
               >
@@ -376,7 +355,8 @@ export function ChatEditor({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleVersionNavigation(currentVersionIndex + 1)}
+                aria-label="Next version"
+                onClick={() => selectVersion(currentVersionIndex + 1)}
                 disabled={currentVersionIndex >= versions.length - 1}
                 aria-label="Next version"
               >
@@ -421,26 +401,163 @@ export function ChatEditor({
         </div>
       </div>
 
+      {showHistory && (
+        <div className="space-y-2 rounded-lg border bg-muted/50 p-3">
+          <h3 className="text-sm font-medium">Version History</h3>
+          {versions.map((version, index) => (
+            <button
+              key={`${version.createdAt}-${index}`}
+              onClick={() => selectVersion(index, { closeHistory: true })}
+              className={cn(
+                "w-full rounded-md px-3 py-2 text-left text-sm transition-colors",
+                index === currentVersionIndex
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-muted"
+              )}
+            >
+              <span className="font-medium">v{index + 1}</span>
+              <span className="ml-2 text-xs opacity-75">
+                {version.instruction}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {error && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
 
-      <div
-        className={cn(
-          "grid min-h-0 flex-1 grid-cols-1 overflow-hidden rounded-lg border bg-card lg:grid-cols-[minmax(0,1fr)_340px]",
-          isPanelCollapsed && "lg:grid-cols-[minmax(0,1fr)_56px]",
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[1fr_18rem]">
+        {isGenerating && !currentVersion ? (
+          <div className="flex min-h-[300px] items-center justify-center rounded-lg border bg-card text-muted-foreground">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            Generating cover letter...
+          </div>
+        ) : currentVersion ? (
+          <Textarea
+            aria-label="Cover letter editor"
+            value={draftContent}
+            onChange={(event) => {
+              updateCurrentVersionContent(event.target.value);
+              clearRewriteState();
+            }}
+            onSelect={handleEditorSelect}
+            className="min-h-[300px] flex-1 resize-none bg-card p-6 text-sm leading-relaxed"
+          />
+        ) : (
+          <div className="flex min-h-[300px] items-center justify-center rounded-lg border bg-card text-muted-foreground">
+            No cover letter generated yet.
+          </div>
         )}
-      >
-        <div className="relative min-h-[420px] border-b lg:border-b-0 lg:border-r">
-          {isGenerating && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60">
-              <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />
-              <span className="text-sm text-muted-foreground">
-                Working with AI...
-              </span>
+
+        <aside className="rounded-lg border bg-muted/30 p-3">
+          <h3 className="text-sm font-semibold">AI Assistant</h3>
+          {selectedRange ? (
+            <div className="mt-3 space-y-3">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => handleAssistantRewrite("Rewrite")}
+                  disabled={isGenerating}
+                >
+                  Rewrite
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleAssistantRewrite("Make concise")}
+                  disabled={isGenerating}
+                >
+                  Make concise
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleAssistantRewrite("Add metrics")}
+                  disabled={isGenerating}
+                >
+                  Add metrics
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleAssistantRewrite("Match JD keywords")}
+                  disabled={isGenerating}
+                >
+                  Match JD keywords
+                </Button>
+              </div>
+
+              {assistantRewrite && (
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <div className="mb-1 text-xs font-medium text-muted-foreground">
+                      Before
+                    </div>
+                    <p className="rounded-md bg-background p-2">
+                      {assistantRewrite.before}
+                    </p>
+                  </div>
+                  <div>
+                    <div className="mb-1 text-xs font-medium text-muted-foreground">
+                      After
+                    </div>
+                    <p className="rounded-md bg-background p-2">
+                      {assistantRewrite.after}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="button" size="sm" onClick={handleAcceptRewrite}>
+                      Accept
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAssistantRewrite(null)}
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
+          ) : (
+            <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <p>Select text in the editor to rewrite a specific passage.</p>
+              <p>Select relevant experience and match JD keywords.</p>
+            </div>
+          )}
+        </aside>
+      </div>
+
+      <div className="flex items-end gap-2">
+        <Textarea
+          value={instruction}
+          onChange={(e) => setInstruction(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder='Refine: "make it more concise", "emphasize leadership", "add more technical details"...'
+          className="max-h-[120px] min-h-[44px] resize-none"
+          disabled={isGenerating || !currentVersion}
+          rows={1}
+        />
+        <Button
+          onClick={handleRevise}
+          disabled={isGenerating || !instruction.trim() || !currentVersion}
+          className="shrink-0"
+          aria-label="Revise cover letter"
+        >
+          {isGenerating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
           )}
           <Textarea
             aria-label="Cover letter editor"

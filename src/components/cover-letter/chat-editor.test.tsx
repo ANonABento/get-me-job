@@ -110,71 +110,28 @@ describe("ChatEditor AI assistant", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("generates from selected bank entries", async () => {
-    const fetchMock = vi.fn(
-      async (...args: [RequestInfo | URL, RequestInit?]) => {
-        const [input] = args;
-        if (String(input) === "/api/bank") {
-          return new Response(
-            JSON.stringify({
-              entries: [
-                {
-                  id: "skill-react",
-                  userId: "default",
-                  category: "skill",
-                  content: { name: "React" },
-                  confidenceScore: 0.9,
-                  createdAt: "2024-01-01",
-                },
-                {
-                  id: "skill-python",
-                  userId: "default",
-                  category: "skill",
-                  content: { name: "Python" },
-                  confidenceScore: 0.9,
-                  createdAt: "2024-01-01",
-                },
-              ],
-            }),
-            { status: 200 },
-          );
-        }
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            content: "Generated from selected React experience.",
-          }),
-          { status: 200 },
-        );
-      },
-    );
-    vi.stubGlobal("fetch", fetchMock);
-
+  it("keeps draft content in sync when navigating versions", async () => {
     render(<ChatEditor {...baseProps} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Generate from Bank" }));
-    await screen.findByText("React");
-
-    fireEvent.click(screen.getByRole("checkbox", { name: "Python" }));
+    const editor = screen.getByLabelText(
+      "Cover letter editor",
+    ) as HTMLTextAreaElement;
+    fireEvent.change(screen.getByPlaceholderText(/Refine:/), {
+      target: { value: "Make it stronger" },
+    });
     fireEvent.click(
-      screen.getByRole("button", { name: "Generate with selected entries" }),
+      screen.getByRole("button", { name: "Revise cover letter" }),
     );
 
     await waitFor(() => {
-      expect(
-        (screen.getByLabelText("Cover letter editor") as HTMLTextAreaElement)
-          .value,
-      ).toBe("Generated from selected React experience.");
+      expect(editor.value).toBe("I built reliable APIs for internal teams.");
     });
 
-    const generateCall = fetchMock.mock.calls.find(
-      ([input]) => String(input) === "/api/cover-letter/generate",
-    );
-    expect(generateCall).toBeDefined();
-    expect(JSON.parse(String(generateCall?.[1]?.body))).toMatchObject({
-      selectedBankEntryIds: ["skill-react"],
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Previous version" }));
+    expect(editor.value).toBe(baseProps.initialContent);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next version" }));
+    expect(editor.value).toBe("I built reliable APIs for internal teams.");
   });
 
   it("ignores assistant rewrites that resolve after the editor changes", async () => {

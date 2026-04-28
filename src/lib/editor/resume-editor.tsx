@@ -2,7 +2,7 @@
 
 import { EditorContent, useEditor } from "@tiptap/react";
 import { useEffect } from "react";
-import type { Editor } from "@tiptap/react";
+import type { MouseEvent } from "react";
 import type { TemplateStyles } from "@/lib/resume/template-types";
 import { getResumeEditorStyles } from "./styles";
 import { resumeEditorExtensions } from "./extensions";
@@ -30,6 +30,12 @@ export function ResumeEditor({
     content,
     editable,
     immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        "aria-label": "Editable document preview",
+        tabindex: "0",
+      },
+    },
     onUpdate: ({ editor: currentEditor }) => {
       onUpdate?.(currentEditor.getJSON());
     },
@@ -53,8 +59,17 @@ export function ResumeEditor({
 
   const editorClassName = ["resume-editor", className].filter(Boolean).join(" ");
 
+  function handleShellClick(event: MouseEvent<HTMLDivElement>) {
+    if (!editable || !editor) return;
+
+    const target = event.target as HTMLElement;
+    if (target.closest("button, a, input, textarea, select")) return;
+
+    editor.commands.focus();
+  }
+
   return (
-    <div className={editorClassName}>
+    <div className={editorClassName} onClick={handleShellClick}>
       <style>{getResumeEditorStyles(templateStyles)}</style>
       <EditorContent editor={editor} />
     </div>

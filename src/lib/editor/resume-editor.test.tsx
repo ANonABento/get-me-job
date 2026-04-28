@@ -99,34 +99,35 @@ describe("ResumeEditor", () => {
     expect(screen.queryByText("First summary")).not.toBeInTheDocument();
   });
 
-  it("exposes and cleans up the TipTap editor instance", async () => {
+  it("renders section drag handles and editor interaction styles", async () => {
     const template = TEMPLATES.find((item) => item.id === "classic")!;
-    const onEditorReady = vi.fn();
     const content: TipTapJSONContent = {
       type: "doc",
       content: [
         {
-          type: "paragraph",
-          content: [{ type: "text", text: "Editable summary" }],
+          type: "resumeSection",
+          attrs: { title: "Experience" },
+          content: [{ type: "paragraph" }],
         },
       ],
     };
 
-    const { unmount } = render(
+    const { container } = render(
       <ResumeEditor
         content={content}
         templateStyles={template.styles}
-        onEditorReady={onEditorReady}
+        editable
       />
     );
 
-    expect(await screen.findByText("Editable summary")).toBeInTheDocument();
-    expect(onEditorReady).toHaveBeenCalledWith(
-      expect.objectContaining({ commands: expect.any(Object) })
+    expect(
+      await screen.findByLabelText("Drag Experience section")
+    ).toBeInTheDocument();
+    expect(container.querySelector("style")?.textContent).toContain(
+      ".resume-section-drag-handle"
     );
-
-    unmount();
-
-    expect(onEditorReady).toHaveBeenLastCalledWith(null);
+    expect(container.querySelector("style")?.textContent).toContain(
+      "caret-color"
+    );
   });
 });

@@ -16,11 +16,6 @@ import { TemplatePicker } from "@/components/builder/template-picker";
 import { ResumePreview } from "@/components/studio/resume-preview";
 import { TEMPLATES } from "@/lib/resume/template-data";
 import { bankEntriesToTipTapDocument } from "@/lib/editor/bank-to-tiptap";
-import { createPrintableEditorHtml } from "@/lib/editor/document-html";
-import {
-  createDocumentFilename,
-  downloadHtmlAsPdf,
-} from "@/lib/builder/document-export";
 import {
   createInitialSections,
   toggleSectionVisibility,
@@ -46,6 +41,7 @@ import {
 } from "@/lib/studio/document-studio";
 import { cn } from "@/lib/utils";
 import type { BankEntry, BankCategory } from "@/types";
+import type { TipTapJSONContent } from "@/lib/editor/types";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import {
   FileText,
@@ -226,6 +222,10 @@ function StudioPageContent() {
     string | null
   >(null);
   const [html, setHtml] = useState("");
+  const [editorContent, setEditorContent] = useState<TipTapJSONContent>(() =>
+    bankEntriesToTipTapDocument([])
+  );
+  const [entryPickerOpen, setEntryPickerOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [mobileView, setMobileView] = useState<BuilderPanel>(
     DEFAULT_BUILDER_PANEL
@@ -352,11 +352,8 @@ function StudioPageContent() {
     );
   }, [selectedEntries, visibleCategoryIds]);
 
-  const editorDocument = useMemo(
-    () =>
-      orderedEntries.length > 0
-        ? bankEntriesToTipTapDocument(orderedEntries)
-        : null,
+  const generatedEditorContent = useMemo(
+    () => bankEntriesToTipTapDocument(orderedEntries),
     [orderedEntries]
   );
 
@@ -364,6 +361,10 @@ function StudioPageContent() {
     () => TEMPLATES.find((t) => t.id === templateId),
     [templateId]
   );
+
+  useEffect(() => {
+    setEditorContent(generatedEditorContent);
+  }, [generatedEditorContent]);
 
   useEffect(() => {
     if (documentMode !== "resume") return;
@@ -697,33 +698,16 @@ function StudioPageContent() {
                 getMobilePanelClasses(mobileView, "edit")
               )}
             >
-              <div className="flex h-full flex-col">
-                <StudioFilePanel
-                  documents={currentDocuments}
-                  activeDocumentId={activeDocument.id}
-                  onCreate={handleCreateDocument}
-                  onSelect={handleSelectDocument}
-                  onRename={handleRenameDocument}
-                  onDelete={handleDeleteDocument}
-                />
-                <div className="border-b p-4">
-                  <TemplatePicker
-                    templates={TEMPLATES}
-                    selectedId={templateId}
-                    onSelect={handleTemplateSelect}
-                  />
-                </div>
-                <div className="min-h-0 flex-1">
-                  <SectionList
-                    sections={sections}
-                    entries={entries}
-                    selectedIds={selectedIds}
-                    onReorder={handleReorder}
-                    onToggleVisibility={handleToggleVisibility}
-                    onToggleEntry={handleToggleEntry}
-                  />
-                </div>
-              </div>
+              <SectionList
+                sections={sections}
+                entries={entries}
+                selectedIds={selectedIds}
+                onReorder={handleReorder}
+                onToggleVisibility={handleToggleVisibility}
+                onToggleEntry={handleToggleEntry}
+                pickerOpen={entryPickerOpen}
+                onPickerOpenChange={setEntryPickerOpen}
+              />
             </div>
 
             <div
@@ -735,24 +719,16 @@ function StudioPageContent() {
                 getMobilePanelClasses(mobileView, "preview")
               )}
             >
-              <EditorToolbar
-                editor={editor}
-                templates={TEMPLATES}
-                templateId={templateId}
-                zoomPercent={zoomPercent}
-                canExport={Boolean(editor && editorDocument)}
-                isExporting={isExporting}
-                onTemplateChange={setTemplateId}
-                onZoomChange={setZoomPercent}
-                onDownloadPdf={handleDownloadPdf}
-                onPrint={handlePrint}
-              />
+              {generating && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              )}
               <ResumePreview
                 templateId={templateId}
-                document={editorDocument}
-                editable
-                zoomPercent={zoomPercent}
-                onEditorReady={setEditor}
+                content={editorContent}
+                onContentChange={setEditorContent}
+                onAddSection={() => setEntryPickerOpen(true)}
               />
             </div>
           </div>

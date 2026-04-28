@@ -5,6 +5,7 @@ import {
   ContactInfoNode,
   ResumeEntry,
   ResumeSection,
+  findAdjacentResumeSectionTextPosition,
   resumeEditorExtensions,
 } from "./extensions";
 import type { TipTapJSONContent } from "./types";
@@ -15,6 +16,82 @@ describe("resume editor extensions", () => {
     expect(ResumeSection.name).toBe("resumeSection");
     expect(ResumeEntry.name).toBe("resumeEntry");
     expect(CoverLetterBlock.name).toBe("coverLetterBlock");
+  });
+
+  it("finds the next and previous resume section text positions", () => {
+    const document: TipTapJSONContent = {
+      type: "doc",
+      content: [
+        {
+          type: "resumeSection",
+          attrs: { title: "Summary" },
+          content: [{ type: "paragraph" }],
+        },
+        {
+          type: "resumeSection",
+          attrs: { title: "Experience" },
+          content: [{ type: "paragraph" }],
+        },
+      ],
+    };
+    const editor = new Editor({
+      extensions: resumeEditorExtensions,
+      content: document,
+    });
+    const sections: Array<{ from: number; to: number }> = [];
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === "resumeSection") {
+        sections.push({ from: pos, to: pos + node.nodeSize });
+      }
+    });
+
+    expect(
+      findAdjacentResumeSectionTextPosition(
+        editor.state.doc,
+        sections[0].from + 2,
+        1
+      )
+    ).toBe(sections[1].from + 2);
+    expect(
+      findAdjacentResumeSectionTextPosition(
+        editor.state.doc,
+        sections[1].from,
+        -1
+      )
+    ).toBe(sections[0].from + 2);
+    expect(
+      findAdjacentResumeSectionTextPosition(
+        editor.state.doc,
+        sections[1].from + 2,
+        1
+      )
+    ).toBeNull();
+
+    editor.destroy();
+  });
+
+  it("marks empty section paragraphs with placeholder attributes", () => {
+    const document: TipTapJSONContent = {
+      type: "doc",
+      content: [
+        {
+          type: "resumeSection",
+          attrs: { title: "Experience" },
+          content: [{ type: "paragraph" }],
+        },
+      ],
+    };
+    const editor = new Editor({
+      extensions: resumeEditorExtensions,
+      content: document,
+    });
+
+    expect(editor.view.dom.innerHTML).toContain("is-empty");
+    expect(editor.view.dom.innerHTML).toContain(
+      'data-placeholder="Click to add your experience..."'
+    );
+
+    editor.destroy();
   });
 
   it("renders custom resume JSON with TipTap", () => {
@@ -66,6 +143,7 @@ describe("resume editor extensions", () => {
     });
 
     expect(editor.getHTML()).toContain('data-type="resume-section"');
+    expect(editor.getHTML()).toContain('class="resume-section-drag-handle"');
     expect(editor.getHTML()).toContain('data-type="resume-entry"');
     expect(editor.getHTML()).toContain("Built APIs");
 

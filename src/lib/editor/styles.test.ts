@@ -10,6 +10,10 @@ describe("resume editor styles", () => {
     expect(css).toContain(".resume-editor .ProseMirror");
     expect(css).toContain(template.styles.fontFamily);
     expect(css).toContain(template.styles.accentColor);
+    expect(css).toContain("caret-color");
+    expect(css).toContain("::selection");
+    expect(css).toContain(".resume-section-drag-handle");
+    expect(css).toContain("content: attr(data-placeholder)");
     expect(css).not.toContain("@media print");
   });
 

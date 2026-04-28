@@ -1,21 +1,52 @@
-import { render, waitFor } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ResumePreview } from "./resume-preview";
+import type { TipTapJSONContent } from "@/lib/editor/types";
+
+const content: TipTapJSONContent = {
+  type: "doc",
+  content: [
+    {
+      type: "resumeSection",
+      attrs: { title: "Summary" },
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "Focused product engineer" }],
+        },
+      ],
+    },
+  ],
+};
 
 describe("ResumePreview", () => {
-  it("keeps fit scaling positive when the panel has no measured width", async () => {
-    const { container } = render(
+  beforeEach(() => {
+    class ResizeObserverMock {
+      observe = vi.fn();
+      unobserve = vi.fn();
+      disconnect = vi.fn();
+    }
+
+    vi.stubGlobal("ResizeObserver", ResizeObserverMock);
+  });
+
+  it("renders editable TipTap content with an add section button", async () => {
+    const handleAddSection = vi.fn();
+
+    render(
       <ResumePreview
         templateId="classic"
-        html="<p>Resume body</p>"
+        content={content}
+        onAddSection={handleAddSection}
       />
     );
 
-    const outer = container.firstElementChild as HTMLElement;
-    const pageWrapper = outer.firstElementChild as HTMLElement;
+    expect(
+      await screen.findByText("Focused product engineer")
+    ).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(pageWrapper).toHaveStyle({ width: "1px" });
-    });
+    fireEvent.click(screen.getByRole("button", { name: /add section/i }));
+
+    expect(handleAddSection).toHaveBeenCalledTimes(1);
   });
 });
