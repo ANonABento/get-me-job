@@ -8,7 +8,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("TailorRedirectPage", () => {
-  it("redirects to Document Studio resume mode", () => {
+  it("redirects to Document Studio", () => {
     TailorRedirectPage();
 
     expect(redirectMock).toHaveBeenCalledWith("/studio");

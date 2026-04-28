@@ -134,15 +134,11 @@ describe("getActionCommands", () => {
     }
   });
 
-  it("links document actions to the matching studio modes", () => {
+  it("links document actions to Document Studio without mode URLs", () => {
     const commands = getActionCommands();
-    const buildResume = commands.find((cmd) => cmd.id === "act-build");
-    const coverLetter = commands.find((cmd) => cmd.id === "act-cover-letter");
-    const tailor = commands.find((cmd) => cmd.id === "act-tailor");
-    expect(buildResume?.href).toBe("/studio");
-    expect(coverLetter).toBeDefined();
-    expect(coverLetter?.href).toBe("/studio?mode=cover-letter");
-    expect(tailor?.href).toBe("/studio");
+    const studio = commands.find((cmd) => cmd.id === "act-studio");
+    expect(studio?.href).toBe("/studio");
+    expect(commands.filter((cmd) => cmd.href?.startsWith("/studio?"))).toEqual([]);
   });
 });
 

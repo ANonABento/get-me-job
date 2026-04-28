@@ -37,7 +37,7 @@ const pages = {
   studio: {
     title: "Document Studio",
     description:
-      "Build resumes, tailor applications, and generate cover letters from one workspace.",
+      "Build application-ready resumes from your best career details in one workspace.",
     path: "/studio",
   },
   jobs: {

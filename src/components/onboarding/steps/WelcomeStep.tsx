@@ -5,9 +5,9 @@ import { Rocket, CheckCircle } from "lucide-react";
 const FEATURES = [
   "AI resume parsing",
   "Job match scoring",
-  "Tailored resumes",
+  "Document Studio",
   "Mock interviews",
-  "Cover letters",
+  "Resume exports",
   "Progress tracking",
 ] as const;
 

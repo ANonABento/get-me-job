@@ -19,9 +19,9 @@ describe("buildQuickActions", () => {
     expect(editProfile.href).toBe("/profile");
   });
 
-  it("routes 'Build a Resume' to /studio when no resumes exist", () => {
+  it("routes 'Open Document Studio' to /studio when no resumes exist", () => {
     const [, , build] = buildQuickActions({ documentsCount: 1, resumesGenerated: 0 });
-    expect(build.title).toBe("Build a Resume");
+    expect(build.title).toBe("Open Document Studio");
     expect(build.href).toBe("/studio");
   });
 

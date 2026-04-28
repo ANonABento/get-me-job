@@ -8,9 +8,9 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("CoverLetterRedirectPage", () => {
-  it("redirects to Document Studio cover letter mode", () => {
+  it("redirects to Document Studio", () => {
     CoverLetterRedirectPage();
 
-    expect(redirectMock).toHaveBeenCalledWith("/studio?mode=cover-letter");
+    expect(redirectMock).toHaveBeenCalledWith("/studio");
   });
 });

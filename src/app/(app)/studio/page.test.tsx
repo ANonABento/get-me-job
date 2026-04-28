@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import StudioPage from "./page";
 import {
   AUTO_SAVE_INTERVAL_MS,
@@ -7,22 +7,6 @@ import {
 } from "@/lib/builder/version-history";
 import { createInitialSections } from "@/lib/builder/section-manager";
 import type { BankEntry } from "@/types";
-
-const navigationMock = vi.hoisted(() => ({
-  replace: vi.fn(),
-  searchParams: new URLSearchParams(),
-}));
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-    replace: navigationMock.replace,
-    prefetch: vi.fn(),
-    back: vi.fn(),
-  }),
-  usePathname: () => "/studio",
-  useSearchParams: () => navigationMock.searchParams,
-}));
 
 vi.mock("@/components/builder/section-list", () => ({
   SectionList: ({
@@ -51,28 +35,6 @@ vi.mock("@/components/studio/resume-preview", () => ({
     <div>
       <div>Resume preview</div>
       <div data-testid="resume-html">{html}</div>
-    </div>
-  ),
-}));
-
-vi.mock("@/components/builder/cover-letter-workspace", () => ({
-  CoverLetterWorkspace: ({
-    documentName,
-    documentContent,
-    onDocumentContentChange,
-  }: {
-    documentName: string;
-    documentContent: string;
-    onDocumentContentChange: (content: string) => void;
-  }) => (
-    <div>
-      <div>Cover letter workspace</div>
-      <div>{documentName}</div>
-      <textarea
-        aria-label="Cover letter editor"
-        value={documentContent}
-        onChange={(event) => onDocumentContentChange(event.target.value)}
-      />
     </div>
   ),
 }));
@@ -136,12 +98,6 @@ function mockStudioFetch(entries: BankEntry[] = []) {
 
 describe("StudioPage", () => {
   beforeEach(() => {
-    vi.useRealTimers();
-    navigationMock.replace.mockClear();
-    navigationMock.searchParams = new URLSearchParams();
-    vi.mocked(window.localStorage.getItem).mockReset();
-    vi.mocked(window.localStorage.setItem).mockReset();
-    vi.stubGlobal("confirm", vi.fn(() => true));
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -156,259 +112,13 @@ describe("StudioPage", () => {
 
     expect(await screen.findByText("Resume sections")).toBeInTheDocument();
     expect(screen.getByText("Resume preview")).toBeInTheDocument();
-    expect(screen.getByText("Template picker")).toBeInTheDocument();
-    expect(screen.getByText("Untitled Resume")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("tab", { name: /tailored/i })
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText("Cover letter workspace")).not.toBeInTheDocument();
   });
 
-  it("defaults the old tailored search param to resume mode", async () => {
-    navigationMock.searchParams = new URLSearchParams("mode=tailored");
-
+  it("does not render legacy document mode tabs", async () => {
     render(<StudioPage />);
 
-    expect(await screen.findByText("Resume sections")).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /^resume$/i })).toHaveAttribute(
-      "aria-selected",
-      "true"
-    );
-  });
-
-  it("renders cover letter mode from the studio mode search param", () => {
-    navigationMock.searchParams = new URLSearchParams("mode=cover-letter");
-
-    render(<StudioPage />);
-
-    expect(screen.getByText("Cover letter workspace")).toBeInTheDocument();
-    expect(screen.getAllByText("Untitled Cover Letter").length).toBeGreaterThan(
-      0
-    );
-    expect(screen.queryByText("Resume sections")).not.toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /cover letter/i })).toHaveAttribute(
-      "aria-selected",
-      "true"
-    );
-    expect(fetch).not.toHaveBeenCalled();
-  });
-
-  it("updates the URL when switching to cover letter mode", async () => {
-    render(<StudioPage />);
-
-    fireEvent.click(await screen.findByRole("tab", { name: /cover letter/i }));
-
-    await waitFor(() => {
-      expect(navigationMock.replace).toHaveBeenCalledWith(
-        "/studio?mode=cover-letter",
-        { scroll: false }
-      );
-    });
-    expect(screen.getByText("Cover letter workspace")).toBeInTheDocument();
-  });
-
-  it("creates, renames, and deletes documents in the active tab", async () => {
-    render(<StudioPage />);
-
-    fireEvent.click(await screen.findByRole("button", { name: /new/i }));
-    expect(screen.getByText("Resume 2")).toBeInTheDocument();
-
-    fireEvent.doubleClick(screen.getByTitle("Resume 2"));
-    const renameInput = screen.getByDisplayValue("Resume 2");
-    fireEvent.change(renameInput, { target: { value: "Backend Resume" } });
-    fireEvent.keyDown(renameInput, { key: "Enter" });
-    expect(screen.getByText("Backend Resume")).toBeInTheDocument();
-
-    fireEvent.click(
-      screen.getByRole("button", { name: /delete backend resume/i })
-    );
-    expect(screen.queryByText("Backend Resume")).not.toBeInTheDocument();
-    expect(window.confirm).toHaveBeenCalledWith('Delete "Backend Resume"?');
-  });
-
-  it("keeps persisted resume content while bank entries are still loading", async () => {
-    vi.mocked(window.localStorage.getItem).mockReturnValue(
-      JSON.stringify([
-        {
-          id: "resume-1",
-          name: "Saved Resume",
-          type: "resume",
-          templateId: "classic",
-          content: "<p>Saved resume</p>",
-          sections: [],
-          selectedEntryIds: ["entry-1"],
-          createdAt: "2026-04-26T12:00:00.000Z",
-          updatedAt: "2026-04-26T12:00:00.000Z",
-        },
-        {
-          id: "cover-1",
-          name: "Saved Letter",
-          type: "cover-letter",
-          templateId: "classic",
-          content: "",
-          sections: [],
-          selectedEntryIds: [],
-          createdAt: "2026-04-26T12:00:00.000Z",
-          updatedAt: "2026-04-26T12:00:00.000Z",
-        },
-      ])
-    );
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() => new Promise<Response>(() => {}))
-    );
-
-    render(<StudioPage />);
-
-    await waitFor(() => {
-      expect(window.localStorage.setItem).toHaveBeenCalled();
-    });
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    const savedResumes = vi
-      .mocked(window.localStorage.setItem)
-      .mock.calls.flatMap(([, value]) =>
-        (
-          JSON.parse(String(value)) as Array<{ id: string; content: string }>
-        ).filter((document) => document.id === "resume-1")
-      );
-
-    expect(savedResumes.length).toBeGreaterThan(0);
-    expect(
-      savedResumes.every(
-        (document) => document.content === "<p>Saved resume</p>"
-      )
-    ).toBe(true);
-  });
-
-  it("loads persisted active cover letter content into the editor", () => {
-    vi.mocked(window.localStorage.getItem).mockReturnValue(
-      JSON.stringify([
-        {
-          id: "cover-1",
-          name: "Acme Letter",
-          type: "cover-letter",
-          templateId: "classic",
-          content: "Dear Acme,",
-          sections: [],
-          selectedEntryIds: [],
-          createdAt: "2026-04-26T12:00:00.000Z",
-          updatedAt: "2026-04-26T12:00:00.000Z",
-        },
-        {
-          id: "resume-1",
-          name: "Main Resume",
-          type: "resume",
-          templateId: "classic",
-          content: "",
-          sections: [],
-          selectedEntryIds: [],
-          createdAt: "2026-04-26T12:00:00.000Z",
-          updatedAt: "2026-04-26T12:00:00.000Z",
-        },
-      ])
-    );
-    navigationMock.searchParams = new URLSearchParams("mode=cover-letter");
-
-    render(<StudioPage />);
-
-    expect(screen.getAllByText("Acme Letter").length).toBeGreaterThan(0);
-    expect(screen.getByLabelText("Cover letter editor")).toHaveValue(
-      "Dear Acme,"
-    );
-  });
-
-  it("saves a manual version with an optional custom name", async () => {
-    mockStudioFetch(bankEntries);
-    render(<StudioPage />);
-
-    expect(await screen.findByText("Resume sections")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Version name"), {
-      target: { value: "Recruiter draft" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /save version/i }));
-
-    await waitFor(() => {
-      const saved = JSON.parse(
-        vi.mocked(window.localStorage.setItem).mock.calls.at(-1)?.[1] ?? "[]"
-      ) as Array<{ kind: string; name: string }>;
-      expect(saved[0]).toMatchObject({
-        kind: "manual",
-        name: "Recruiter draft",
-      });
-    });
-    expect(window.localStorage.setItem).toHaveBeenCalledWith(
-      storageKey,
-      expect.any(String)
-    );
-    expect(screen.getByText("Saved")).toBeInTheDocument();
-  });
-
-  it("previews a saved version without changing the current draft and restores it on demand", async () => {
-    mockStudioFetch(bankEntries);
-    mockStorage({
-      [storageKey]: JSON.stringify([
-        {
-          id: "manual-saved",
-          kind: "manual",
-          name: "Saved Draft",
-          savedAt: "2026-01-01T00:00:00.000Z",
-          state: {
-            documentMode: "resume",
-            selectedIds: ["entry-1"],
-            sections: createInitialSections(),
-            templateId: "classic",
-            html: "<p>Saved Preview</p>",
-          },
-        },
-      ]),
-    });
-
-    render(<StudioPage />);
-
-    expect(await screen.findByText("Selected 2")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Preview Saved Draft" }));
-
-    expect(screen.getByText("Previewing Saved Draft")).toBeInTheDocument();
-    expect(screen.getByTestId("resume-html")).toHaveTextContent(
-      "Saved Preview"
-    );
-    expect(screen.getByText("Selected 2")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Restore Saved Draft" }));
-
-    expect(await screen.findByText("Selected 1")).toBeInTheDocument();
-    expect(screen.queryByText("Previewing Saved Draft")).not.toBeInTheDocument();
-  });
-
-  it("auto-saves a changed draft after the 30 second debounce", async () => {
-    mockStudioFetch([bankEntries[0]]);
-    render(<StudioPage />);
-
-    expect(await screen.findByText("Resume sections")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /save version/i }));
-    await waitFor(() => expect(window.localStorage.setItem).toHaveBeenCalled());
-
-    vi.useFakeTimers();
-    fireEvent.click(screen.getByRole("button", { name: /toggle entry/i }));
-
-    act(() => {
-      vi.advanceTimersByTime(AUTO_SAVE_INTERVAL_MS - 1);
-    });
-    expect(window.localStorage.setItem).toHaveBeenCalledTimes(1);
-
-    act(() => {
-      vi.advanceTimersByTime(1);
-    });
-
-    const saved = JSON.parse(
-      vi.mocked(window.localStorage.setItem).mock.calls.at(-1)?.[1] ?? "[]"
-    ) as Array<{ kind: string; name: string }>;
-    expect(saved[0]).toMatchObject({
-      kind: "auto",
-      name: "Auto-save",
-    });
+    expect(await screen.findByText("Document Studio")).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /tailored/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /cover letter/i })).not.toBeInTheDocument();
   });
 });

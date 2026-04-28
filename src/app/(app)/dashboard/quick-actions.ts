@@ -35,10 +35,10 @@ export function buildQuickActions(stats: QuickActionStats): QuickActionItem[] {
     {
       title: hasResumes
         ? `${resumesGenerated} Resume${resumesGenerated !== 1 ? "s" : ""} Built`
-        : "Build a Resume",
+        : "Open Document Studio",
       description: hasResumes
-        ? "Generate more tailored resumes"
-        : "Add a job to generate your first tailored resume",
+        ? "Build and export another resume"
+        : "Build and export your first resume",
       href: "/studio",
       icon: FileText,
       gradient: "from-blue-500 to-indigo-400",
