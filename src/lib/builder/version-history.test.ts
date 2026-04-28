@@ -7,6 +7,7 @@ import {
   createBuilderVersion,
   getBuilderVersionStorageKey,
   getLatestBuilderVersion,
+  isBuilderStateSaved,
   parseBuilderDraftState,
   readBuilderVersions,
   writeBuilderVersions,
@@ -180,5 +181,27 @@ describe("builder version history", () => {
       ])
     ).toBe(latest);
     expect(getLatestBuilderVersion([])).toBeNull();
+  });
+
+  it("reports whether the current draft matches any saved version", () => {
+    expect(
+      isBuilderStateSaved(
+        [
+          version("old", "2026-01-01T00:00:00.000Z"),
+          {
+            ...version("new", "2026-01-02T00:00:00.000Z"),
+            state: { ...draftState, templateId: "modern" },
+          },
+        ],
+        { ...draftState, selectedIds: ["entry-1", "entry-2", "entry-2"] }
+      )
+    ).toBe(true);
+
+    expect(
+      isBuilderStateSaved([version("old", "2026-01-01T00:00:00.000Z")], {
+        ...draftState,
+        html: "<main>Changed</main>",
+      })
+    ).toBe(false);
   });
 });

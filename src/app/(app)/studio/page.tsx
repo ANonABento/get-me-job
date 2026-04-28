@@ -30,6 +30,16 @@ import {
   getStudioModeHref,
   type StudioDocumentMode,
 } from "@/lib/studio/document-mode";
+import {
+  AUTO_SAVE_INTERVAL_MS,
+  addBuilderVersion,
+  createBuilderVersion,
+  isBuilderStateSaved,
+  readBuilderVersions,
+  writeBuilderVersions,
+  type BuilderDraftState,
+  type BuilderVersion,
+} from "@/lib/builder/version-history";
 import { cn } from "@/lib/utils";
 import type { BankEntry, BankCategory } from "@/types";
 import type { TailoredResume } from "@/lib/resume/generator";
@@ -46,6 +56,9 @@ import {
   Eye,
   PenLine,
   Sparkles,
+  Save,
+  History,
+  RotateCcw,
   type LucideIcon,
 } from "lucide-react";
 
@@ -71,6 +84,17 @@ const RESUME_MOBILE_TABS: Array<{
   { panel: "edit", label: "Edit", Icon: Pencil },
   { panel: "preview", label: "Preview", Icon: Eye },
 ];
+
+const RESUME_DOCUMENT_ID = "resume";
+
+function formatVersionTimestamp(savedAt: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(savedAt));
+}
 
 function StudioLoading() {
   return (
@@ -100,12 +124,28 @@ function StudioPageContent() {
   const [mobileView, setMobileView] = useState<BuilderPanel>(
     DEFAULT_BUILDER_PANEL
   );
+  const [versions, setVersions] = useState<BuilderVersion[]>([]);
+  const [manualVersionName, setManualVersionName] = useState("");
+  const [previewVersionId, setPreviewVersionId] = useState<string | null>(null);
   const showErrorToast = useErrorToast();
   const lastPreviewErrorToastRef = useRef("");
+  const versionsRef = useRef<BuilderVersion[]>([]);
+  const currentDraftRef = useRef<BuilderDraftState | null>(null);
 
   useEffect(() => {
     setDocumentMode(getStudioModeFromSearchParam(searchParams.get("mode")));
   }, [searchParams]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const storedVersions = readBuilderVersions(
+      window.localStorage,
+      RESUME_DOCUMENT_ID
+    );
+    versionsRef.current = storedVersions;
+    setVersions(storedVersions);
+  }, []);
 
   useEffect(() => {
     if (documentMode !== "resume") {
@@ -170,10 +210,110 @@ function StudioPageContent() {
     );
   }, [selectedEntries, visibleCategoryIds]);
 
-  const resume: TailoredResume = useMemo(
-    () => bankEntriesToResume(orderedEntries),
-    [orderedEntries]
+  const currentDraft: BuilderDraftState = useMemo(
+    () => ({
+      documentMode: "resume",
+      selectedIds: Array.from(selectedIds),
+      sections,
+      templateId,
+      html,
+    }),
+    [html, sections, selectedIds, templateId]
   );
+
+  useEffect(() => {
+    currentDraftRef.current = currentDraft;
+  }, [currentDraft]);
+
+  useEffect(() => {
+    versionsRef.current = versions;
+  }, [versions]);
+
+  const previewVersion = useMemo(
+    () =>
+      previewVersionId
+        ? versions.find((version) => version.id === previewVersionId) ?? null
+        : null,
+    [previewVersionId, versions]
+  );
+
+  const displayedDraft = previewVersion?.state ?? currentDraft;
+  const displayedVisibleCategoryIds = useMemo(
+    () => getVisibleSectionIds(displayedDraft.sections),
+    [displayedDraft.sections]
+  );
+  const displayedResume: TailoredResume = useMemo(() => {
+    const selectedIdSet = new Set(displayedDraft.selectedIds);
+    const categoryOrder = new Map(
+      displayedVisibleCategoryIds.map((id, index) => [id, index])
+    );
+    const displayedEntries = entries
+      .filter(
+        (entry) =>
+          selectedIdSet.has(entry.id) &&
+          displayedVisibleCategoryIds.includes(entry.category)
+      )
+      .sort(
+        (a, b) =>
+          (categoryOrder.get(a.category) ?? 999) -
+          (categoryOrder.get(b.category) ?? 999)
+      );
+
+    return bankEntriesToResume(displayedEntries);
+  }, [displayedDraft.selectedIds, displayedVisibleCategoryIds, entries]);
+
+  const draftIsSaved = useMemo(
+    () => isBuilderStateSaved(versions, currentDraft),
+    [currentDraft, versions]
+  );
+
+  const saveCurrentVersion = useCallback(
+    (kind: "auto" | "manual", name: string) => {
+      if (typeof window === "undefined" || !currentDraftRef.current) return;
+
+      const version = createBuilderVersion(currentDraftRef.current, {
+        kind,
+        name,
+      });
+
+      setVersions((currentVersions) => {
+        const nextVersions = addBuilderVersion(currentVersions, version);
+        const stored = writeBuilderVersions(
+          window.localStorage,
+          RESUME_DOCUMENT_ID,
+          nextVersions
+        );
+        if (!stored) return currentVersions;
+
+        versionsRef.current = nextVersions;
+        return nextVersions;
+      });
+      setPreviewVersionId(null);
+      if (kind === "manual") {
+        setManualVersionName("");
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (documentMode !== "resume" || !hasLoadedEntries) return;
+
+    if (isBuilderStateSaved(versionsRef.current, currentDraft)) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      const draft = currentDraftRef.current;
+      if (!draft || isBuilderStateSaved(versionsRef.current, draft)) {
+        return;
+      }
+
+      saveCurrentVersion("auto", "Auto-save");
+    }, AUTO_SAVE_INTERVAL_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [currentDraft, documentMode, hasLoadedEntries, saveCurrentVersion]);
 
   useEffect(() => {
     if (documentMode !== "resume") return;
@@ -242,6 +382,7 @@ function StudioPageContent() {
   ]);
 
   const handleToggleEntry = useCallback((id: string) => {
+    setPreviewVersionId(null);
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -252,12 +393,14 @@ function StudioPageContent() {
 
   const handleReorder = useCallback(
     (fromIndex: number, toIndex: number) => {
+      setPreviewVersionId(null);
       setSections((prev) => reorderSections(prev, fromIndex, toIndex));
     },
     []
   );
 
   const handleToggleVisibility = useCallback((categoryId: BankCategory) => {
+    setPreviewVersionId(null);
     setSections((prev) => toggleSectionVisibility(prev, categoryId));
   }, []);
 
@@ -278,11 +421,29 @@ function StudioPageContent() {
 
   const handleDocumentModeChange = useCallback(
     (mode: StudioDocumentMode) => {
+      setPreviewVersionId(null);
       setDocumentMode(mode);
       router.replace(getStudioModeHref(mode), { scroll: false });
     },
     [router]
   );
+
+  const handleManualSave = useCallback(
+    (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      saveCurrentVersion("manual", manualVersionName);
+    },
+    [manualVersionName, saveCurrentVersion]
+  );
+
+  const handleRestoreVersion = useCallback((version: BuilderVersion) => {
+    setSelectedIds(new Set(version.state.selectedIds));
+    setSections(version.state.sections);
+    setTemplateId(version.state.templateId);
+    setTemplateOpen(false);
+    setHtml(version.state.html);
+    setPreviewVersionId(null);
+  }, []);
 
   const selectedTemplate = useMemo(
     () => TEMPLATES.find((t) => t.id === templateId),
@@ -299,6 +460,18 @@ function StudioPageContent() {
         <div className="flex flex-wrap items-center gap-3">
           <FileText className="h-5 w-5 text-primary" />
           <h1 className="text-lg font-semibold">Document Studio</h1>
+          {documentMode === "resume" && (
+            <span
+              className={cn(
+                "rounded-full border px-2 py-0.5 text-xs font-medium",
+                draftIsSaved
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : "border-amber-200 bg-amber-50 text-amber-700"
+              )}
+            >
+              {draftIsSaved ? "Saved" : "Unsaved"}
+            </span>
+          )}
 
           <div
             role="tablist"
@@ -355,6 +528,7 @@ function StudioPageContent() {
                         <button
                           key={template.id}
                           onClick={() => {
+                            setPreviewVersionId(null);
                             setTemplateId(template.id);
                             setTemplateOpen(false);
                           }}
@@ -444,14 +618,90 @@ function StudioPageContent() {
                 getMobilePanelClasses(mobileView, "edit")
               )}
             >
-              <SectionList
-                sections={sections}
-                entries={entries}
-                selectedIds={selectedIds}
-                onReorder={handleReorder}
-                onToggleVisibility={handleToggleVisibility}
-                onToggleEntry={handleToggleEntry}
-              />
+              <div className="flex h-full flex-col">
+                <div className="min-h-0 flex-1">
+                  <SectionList
+                    sections={sections}
+                    entries={entries}
+                    selectedIds={selectedIds}
+                    onReorder={handleReorder}
+                    onToggleVisibility={handleToggleVisibility}
+                    onToggleEntry={handleToggleEntry}
+                  />
+                </div>
+
+                <section className="border-t bg-background p-3">
+                  <div className="mb-3 flex items-center gap-2">
+                    <History className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="text-sm font-semibold">Version History</h2>
+                  </div>
+
+                  <form onSubmit={handleManualSave} className="mb-3 space-y-2">
+                    <input
+                      value={manualVersionName}
+                      onChange={(event) =>
+                        setManualVersionName(event.target.value)
+                      }
+                      placeholder="Version name (optional)"
+                      aria-label="Version name"
+                      className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+                    />
+                    <Button
+                      type="submit"
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <Save className="mr-1.5 h-4 w-4" />
+                      Save Version
+                    </Button>
+                  </form>
+
+                  <div className="max-h-48 space-y-2 overflow-y-auto">
+                    {versions.length === 0 ? (
+                      <p className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+                        No versions saved yet.
+                      </p>
+                    ) : (
+                      versions.map((version) => (
+                        <div
+                          key={version.id}
+                          className={cn(
+                            "rounded-md border p-2",
+                            previewVersionId === version.id &&
+                              "border-primary bg-primary/5"
+                          )}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setPreviewVersionId(version.id)}
+                            aria-label={`Preview ${version.name}`}
+                            className="w-full text-left"
+                          >
+                            <span className="block truncate text-sm font-medium">
+                              {version.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {formatVersionTimestamp(version.savedAt)}
+                            </span>
+                          </button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="mt-2 h-7 w-full justify-start px-2 text-xs"
+                            onClick={() => handleRestoreVersion(version)}
+                            aria-label={`Restore ${version.name}`}
+                          >
+                            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                            Restore
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </section>
+              </div>
             </div>
 
             <div
@@ -468,10 +718,24 @@ function StudioPageContent() {
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
               )}
+              {previewVersion && (
+                <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b bg-background px-4 py-2 text-sm">
+                  <span className="min-w-0 truncate text-muted-foreground">
+                    Previewing {previewVersion.name}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleRestoreVersion(previewVersion)}
+                  >
+                    Restore
+                  </Button>
+                </div>
+              )}
               <ResumePreview
-                resume={resume}
-                templateId={templateId}
-                html={html}
+                resume={displayedResume}
+                templateId={displayedDraft.templateId}
+                html={displayedDraft.html}
               />
             </div>
           </div>

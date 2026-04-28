@@ -70,6 +70,16 @@ describe("ChatEditor AI assistant", () => {
         screen.getByText("I built reliable APIs for internal teams."),
       ).toBeInTheDocument();
     });
+    const rewriteRequest = vi.mocked(fetch).mock.calls[0];
+    expect(rewriteRequest[0]).toBe("/api/cover-letter/generate");
+    expect(
+      JSON.parse((rewriteRequest[1] as RequestInit).body as string),
+    ).toMatchObject({
+      action: "rewrite",
+      currentContent: baseProps.initialContent,
+      selectedText: baseProps.initialContent,
+      instruction: "Rewrite",
+    });
     expect(screen.getByText("Before")).toBeInTheDocument();
     expect(screen.getByText("After")).toBeInTheDocument();
 
@@ -141,5 +151,10 @@ describe("ChatEditor AI assistant", () => {
     expect(
       screen.queryByText("This stale rewrite should not appear."),
     ).not.toBeInTheDocument();
+
+    editor.setSelectionRange(0, editor.value.length);
+    fireEvent.select(editor);
+
+    expect(screen.getByRole("button", { name: "Rewrite" })).not.toBeDisabled();
   });
 });

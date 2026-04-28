@@ -112,6 +112,26 @@ export function buildRevisionPrompt(instruction: string): string {
 Apply the requested changes while maintaining professional quality. Output ONLY the revised cover letter text, no additional commentary.`;
 }
 
+export function buildSelectionRewritePrompt({
+  selectedText,
+  currentContent,
+  instruction,
+}: {
+  selectedText: string;
+  currentContent: string;
+  instruction: string;
+}): string {
+  return `Rewrite only the selected cover letter text based on this instruction: "${instruction}"
+
+Selected text:
+${selectedText}
+
+Full cover letter context:
+${currentContent}
+
+Return ONLY the replacement text for the selected text. Do not include markdown, labels, quotes, or commentary.`;
+}
+
 export async function generateCoverLetter(
   input: CoverLetterInput,
   llmConfig: LLMConfig
@@ -155,6 +175,35 @@ export async function reviseCoverLetter(
     ],
     temperature: 0.7,
     maxTokens: 2048,
+  });
+
+  return result.trim();
+}
+
+export async function rewriteCoverLetterSelection(
+  currentContent: string,
+  selectedText: string,
+  instruction: string,
+  input: CoverLetterInput,
+  llmConfig: LLMConfig
+): Promise<string> {
+  const client = new LLMClient(llmConfig);
+  const systemPrompt = buildSystemPrompt(input);
+
+  const result = await client.complete({
+    messages: [
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content: buildSelectionRewritePrompt({
+          selectedText,
+          currentContent,
+          instruction,
+        }),
+      },
+    ],
+    temperature: 0.4,
+    maxTokens: 700,
   });
 
   return result.trim();

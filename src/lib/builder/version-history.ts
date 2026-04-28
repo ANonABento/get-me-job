@@ -171,6 +171,13 @@ export function getLatestBuilderVersion(
   return versions[0] ?? null;
 }
 
+export function isBuilderStateSaved(
+  versions: BuilderVersion[],
+  state: BuilderDraftState
+): boolean {
+  return versions.some((version) => areBuilderStatesEqual(version.state, state));
+}
+
 export function areBuilderStatesEqual(
   first: BuilderDraftState,
   second: BuilderDraftState
