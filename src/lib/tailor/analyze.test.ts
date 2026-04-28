@@ -1,6 +1,13 @@
 import { describe, it, expect } from "vitest";
 import type { BankEntry, GroupedBankEntries } from "@/types";
-import { extractKeywords, scoreBankEntry, analyzeJobFit } from "./analyze";
+import type { TailoredResume } from "@/lib/resume/generator";
+import {
+  analyzeJobFit,
+  analyzeResumeFit,
+  extractKeywords,
+  resumeToKeywordSearchText,
+  scoreBankEntry,
+} from "./analyze";
 
 function makeBankEntry(overrides: Partial<BankEntry> = {}): BankEntry {
   return {
@@ -22,6 +29,36 @@ function makeEmptyBank(): GroupedBankEntries {
     education: [],
     achievement: [],
     certification: [],
+  };
+}
+
+function makeResume(overrides: Partial<TailoredResume> = {}): TailoredResume {
+  return {
+    contact: {
+      name: "Ada Lovelace",
+      email: "ada@example.com",
+      phone: "555-0100",
+      location: "London",
+    },
+    summary: "Frontend engineer building React applications.",
+    experiences: [
+      {
+        company: "Acme",
+        title: "Senior Engineer",
+        dates: "2020 - Present",
+        highlights: ["Built TypeScript design systems for customer portals."],
+      },
+    ],
+    skills: ["React", "TypeScript"],
+    education: [
+      {
+        institution: "Example University",
+        degree: "BS",
+        field: "Computer Science",
+        date: "2018",
+      },
+    ],
+    ...overrides,
   };
 }
 
@@ -196,5 +233,48 @@ describe("analyzeJobFit", () => {
 
     const skillGaps = result.gaps.filter((g) => g.category === "skill");
     expect(skillGaps.length).toBeGreaterThan(0);
+    expect(skillGaps[0].suggestion).toMatch(/Skills|experience bullet/);
+  });
+});
+
+describe("resumeToKeywordSearchText", () => {
+  it("should include searchable resume fields", () => {
+    const text = resumeToKeywordSearchText(makeResume());
+
+    expect(text).toContain("frontend engineer");
+    expect(text).toContain("typescript design systems");
+    expect(text).toContain("computer science");
+  });
+});
+
+describe("analyzeResumeFit", () => {
+  it("should score a generated resume against a job description", () => {
+    const result = analyzeResumeFit(
+      "Need React, TypeScript, GraphQL, and Kubernetes experience",
+      makeResume(),
+      ["react", "typescript", "graphql", "kubernetes"]
+    );
+
+    expect(result.matchScore).toBe(50);
+    expect(result.keywordsFound).toEqual(["react", "typescript"]);
+    expect(result.keywordsMissing).toEqual(["graphql", "kubernetes"]);
+    expect(result.gaps.map((gap) => gap.requirement)).toEqual([
+      "graphql",
+      "kubernetes",
+    ]);
+  });
+
+  it("should update the score when resume content changes", () => {
+    const keywords = ["react", "typescript", "graphql"];
+    const first = analyzeResumeFit("some jd", makeResume(), keywords);
+    const improved = analyzeResumeFit(
+      "some jd",
+      makeResume({ skills: ["React", "TypeScript", "GraphQL"] }),
+      keywords
+    );
+
+    expect(first.matchScore).toBe(67);
+    expect(improved.matchScore).toBe(100);
+    expect(improved.keywordsMissing).toEqual([]);
   });
 });

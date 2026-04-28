@@ -430,7 +430,10 @@ export function ChatEditor({
         </div>
       )}
 
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[1fr_18rem]">
+      <div
+        aria-label="Cover letter content"
+        className="min-h-[300px] flex-1 overflow-y-auto whitespace-pre-wrap rounded-lg border bg-card p-6 text-sm leading-relaxed"
+      >
         {isGenerating && !currentVersion ? (
           <div className="flex min-h-[300px] items-center justify-center rounded-lg border bg-card text-muted-foreground">
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -540,6 +543,7 @@ export function ChatEditor({
 
       <div className="flex items-end gap-2">
         <Textarea
+          aria-label="Revision instructions"
           value={instruction}
           onChange={(e) => setInstruction(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -549,6 +553,7 @@ export function ChatEditor({
           rows={1}
         />
         <Button
+          aria-label="Revise cover letter"
           onClick={handleRevise}
           disabled={isGenerating || !instruction.trim() || !currentVersion}
           className="shrink-0"

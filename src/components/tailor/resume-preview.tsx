@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -33,6 +33,11 @@ interface ResumePreviewProps {
   keywordsFound?: string[];
   keywordsMissing?: string[];
   jobDescription?: string;
+  onResumeChange?: (resume: TailoredResume) => void;
+}
+
+interface AutoTailorResponse {
+  resume?: TailoredResume;
 }
 
 function HighlightedText({
@@ -148,24 +153,50 @@ export function ResumePreview({
   keywordsFound = [],
   keywordsMissing = [],
   jobDescription = "",
+  onResumeChange,
 }: ResumePreviewProps) {
   const [expanded, setExpanded] = useState(true);
-  const [autoFixLoading, setAutoFixLoading] = useState(false);
-  const [autoFixResult, setAutoFixResult] = useState<TailoredResume | null>(null);
+  const [autoTailorLoading, setAutoTailorLoading] = useState(false);
+  const [autoTailorResult, setAutoTailorResult] =
+    useState<TailoredResume | null>(null);
+  const [resumeBeforeAutoTailor, setResumeBeforeAutoTailor] =
+    useState<TailoredResume | null>(null);
   const [showDiff, setShowDiff] = useState(false);
+  const pendingAutoTailorResumeRef = useRef<TailoredResume | null>(null);
 
-  const displayResume = autoFixResult ?? resume;
+  const displayResume = autoTailorResult ?? resume;
 
-  async function handleAutoFix() {
+  useEffect(() => {
+    if (!autoTailorResult) return;
+
+    if (resume === autoTailorResult) {
+      pendingAutoTailorResumeRef.current = null;
+      return;
+    }
+
+    if (
+      pendingAutoTailorResumeRef.current === autoTailorResult ||
+      resume === resumeBeforeAutoTailor
+    ) {
+      return;
+    }
+
+    pendingAutoTailorResumeRef.current = null;
+    setAutoTailorResult(null);
+    setResumeBeforeAutoTailor(null);
+    setShowDiff(false);
+  }, [autoTailorResult, resume, resumeBeforeAutoTailor]);
+
+  async function handleAutoTailor() {
     if (keywordsMissing.length === 0 || !jobDescription) return;
 
-    setAutoFixLoading(true);
+    setAutoTailorLoading(true);
     try {
       const res = await fetch("/api/tailor/autofix", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          resume,
+          resume: displayResume,
           keywordsMissing,
           jobDescription,
         }),
@@ -173,20 +204,28 @@ export function ResumePreview({
 
       if (!res.ok) return;
 
-      const data = await res.json();
+      const data = (await res.json()) as AutoTailorResponse;
       if (data.resume) {
-        setAutoFixResult(data.resume);
+        pendingAutoTailorResumeRef.current = data.resume;
+        setResumeBeforeAutoTailor((current) => current ?? displayResume);
+        setAutoTailorResult(data.resume);
+        onResumeChange?.(data.resume);
         setShowDiff(true);
       }
     } catch {
       // silently fail
     } finally {
-      setAutoFixLoading(false);
+      setAutoTailorLoading(false);
     }
   }
 
   function handleRevert() {
-    setAutoFixResult(null);
+    if (resumeBeforeAutoTailor) {
+      onResumeChange?.(resumeBeforeAutoTailor);
+    }
+    pendingAutoTailorResumeRef.current = null;
+    setAutoTailorResult(null);
+    setResumeBeforeAutoTailor(null);
     setShowDiff(false);
   }
 
@@ -215,18 +254,18 @@ export function ResumePreview({
             <Button
               variant="outline"
               size="sm"
-              onClick={handleAutoFix}
-              disabled={autoFixLoading}
+              onClick={handleAutoTailor}
+              disabled={autoTailorLoading}
             >
-              {autoFixLoading ? (
+              {autoTailorLoading ? (
                 <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
               ) : (
                 <Wand2 className="h-4 w-4 mr-1.5" />
               )}
-              Auto-fix
+              Auto-Tailor
             </Button>
           )}
-          {autoFixResult && (
+          {autoTailorResult && (
             <Button variant="ghost" size="sm" onClick={handleRevert}>
               <Undo2 className="h-4 w-4 mr-1.5" />
               Revert
@@ -271,19 +310,19 @@ export function ResumePreview({
         ))}
       </div>
 
-      {/* Diff view when auto-fix was applied */}
-      {showDiff && autoFixResult && (
+      {/* Diff view when Auto-Tailor was applied */}
+      {showDiff && autoTailorResult && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Wand2 className="h-4 w-4 text-primary" />
-              Auto-fix Changes
+              Auto-Tailor Changes
             </CardTitle>
           </CardHeader>
           <CardContent>
             <DiffView
-              original={resumeToText(resume)}
-              improved={resumeToText(autoFixResult)}
+              original={resumeToText(resumeBeforeAutoTailor ?? resume)}
+              improved={resumeToText(autoTailorResult)}
             />
           </CardContent>
         </Card>
