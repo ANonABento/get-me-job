@@ -2,17 +2,28 @@ import { z } from "zod";
 import { jobTypeSchema } from "@/lib/constants";
 import type { JobDescription } from "@/types";
 
-const optionalString = z.string().trim().optional();
-const optionalUrl = z.string().trim().url().optional().or(z.literal(""));
+const optionalString = z.string().trim().max(500).optional();
+const optionalStringArray = z
+  .array(z.string().trim().max(1000))
+  .max(100)
+  .optional()
+  .default([])
+  .transform((items) => items.filter(Boolean));
+const optionalUrl = z
+  .preprocess(
+    (value) => (typeof value === "string" ? value.trim() : value),
+    z.string().url("Invalid URL").optional().or(z.literal(""))
+  )
+  .transform((value) => value || undefined);
 
 export const extensionOpportunitySchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(200),
   company: z.string().trim().min(1, "Company is required").max(200),
   location: optionalString,
-  description: z.string().trim().optional().default(""),
-  requirements: z.array(z.string()).optional().default([]),
-  responsibilities: z.array(z.string()).optional().default([]),
-  keywords: z.array(z.string()).optional().default([]),
+  description: z.string().trim().max(50000).optional().default(""),
+  requirements: optionalStringArray,
+  responsibilities: optionalStringArray,
+  keywords: optionalStringArray,
   type: jobTypeSchema.optional(),
   remote: z.boolean().optional(),
   salary: optionalString,

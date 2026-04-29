@@ -38,6 +38,29 @@ describe("parseExtensionOpportunityPayload", () => {
     }
   });
 
+  it("normalizes scraper whitespace in optional URL and list fields", () => {
+    const result = parseExtensionOpportunityPayload({
+      title: " Frontend Engineer ",
+      company: " Acme ",
+      url: "   ",
+      requirements: [" React ", "", " TypeScript "],
+      responsibilities: [" Build UI "],
+      keywords: [" frontend "],
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.opportunities[0]).toMatchObject({
+        title: "Frontend Engineer",
+        company: "Acme",
+        url: undefined,
+        requirements: ["React", "TypeScript"],
+        responsibilities: ["Build UI"],
+        keywords: ["frontend"],
+      });
+    }
+  });
+
   it("reports validation errors for missing required fields", () => {
     const result = parseExtensionOpportunityPayload({ title: "No Company" });
 

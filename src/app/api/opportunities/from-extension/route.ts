@@ -19,7 +19,16 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const rawData = await request.json();
+    let rawData: unknown;
+    try {
+      rawData = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON payload" },
+        { status: 400 }
+      );
+    }
+
     const parseResult = parseExtensionOpportunityPayload(rawData);
 
     if (!parseResult.success) {

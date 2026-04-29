@@ -31,6 +31,14 @@ function jsonRequest(body: unknown, headers?: Record<string, string>) {
   });
 }
 
+function rawRequest(body: string) {
+  return new NextRequest("http://localhost/api/opportunities/from-extension", {
+    method: "POST",
+    body,
+    headers: { "content-type": "application/json" },
+  });
+}
+
 describe("opportunities from-extension route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -121,6 +129,15 @@ describe("opportunities from-extension route", () => {
     expect(response.status).toBe(400);
     const body = await response.json();
     expect(body.error).toBe("Validation failed");
+    expect(mocks.createJob).not.toHaveBeenCalled();
+    expect(mocks.createNotification).not.toHaveBeenCalled();
+  });
+
+  it("returns a client error for malformed JSON", async () => {
+    const response = await POST(rawRequest("{not-json"));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid JSON payload" });
     expect(mocks.createJob).not.toHaveBeenCalled();
     expect(mocks.createNotification).not.toHaveBeenCalled();
   });
