@@ -2,6 +2,19 @@
 import type { DocumentType } from "@/lib/constants/documents";
 
 export type { DocumentType };
+export type {
+  CreateOpportunityInput,
+  Opportunity,
+  OpportunityFilters,
+  OpportunityJobType,
+  OpportunityLevel,
+  OpportunityRemoteType,
+  OpportunitySource,
+  OpportunityStatus,
+  OpportunityStatusChangeInput,
+  OpportunityType,
+  UpdateOpportunityInput,
+} from "./opportunity";
 
 export interface ContactInfo {
   name: string;
