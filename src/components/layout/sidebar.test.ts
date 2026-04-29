@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { navigationGroups, bottomNavigation, type NavGroup, type NavItem } from "./sidebar";
+import {
+  navigationGroups,
+  bottomNavigation,
+  getSidebarNavItemClassName,
+  getSidebarNavItemState,
+  type NavGroup,
+  type NavItem,
+} from "./sidebar";
 
 const getGroup = (label: string): NavGroup => {
   const group = navigationGroups.find((g) => g.label === label);
@@ -131,5 +138,46 @@ describe("bottomNavigation", () => {
     expect(names).not.toContain("Collapse");
     expect(names).not.toContain("Sign in");
     expect(names).not.toContain("Sign In");
+  });
+});
+
+describe("sidebar nav item styling", () => {
+  it("uses primary theme tokens for active items", () => {
+    const className = getSidebarNavItemClassName({
+      isActive: true,
+      collapsed: false,
+    });
+
+    expect(className).toContain("app-sidebar-nav-item");
+    expect(className).toContain("bg-primary");
+    expect(className).toContain("text-primary-foreground");
+    expect(className).toContain("border-l-primary");
+    expect(className).toContain("shadow-button");
+    expect(className).not.toContain("gradient-bg");
+    expect(getSidebarNavItemState(true)).toEqual({ "data-active": "true" });
+  });
+
+  it("uses muted hover tokens for inactive items", () => {
+    const className = getSidebarNavItemClassName({
+      isActive: false,
+      collapsed: false,
+    });
+
+    expect(className).toContain("border-l-transparent");
+    expect(className).toContain("text-muted-foreground");
+    expect(className).toContain("hover:bg-muted");
+    expect(className).toContain("hover:text-foreground");
+    expect(getSidebarNavItemState(false)).toEqual({ "data-active": "false" });
+  });
+
+  it("centers collapsed items without changing active theme tokens", () => {
+    const className = getSidebarNavItemClassName({
+      isActive: true,
+      collapsed: true,
+    });
+
+    expect(className).toContain("justify-center");
+    expect(className).toContain("px-2");
+    expect(className).toContain("bg-primary");
   });
 });
