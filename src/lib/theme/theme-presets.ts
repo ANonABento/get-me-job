@@ -1,8 +1,10 @@
 import {
+  THEME_PRESET_STORAGE_KEY as THEME_CONFIG_PRESET_STORAGE_KEY,
   clearThemeVariables,
   getThemePreset,
   getThemeVariables,
   isThemePresetName,
+  themePresetNames,
   type ResolvedThemeMode,
   type ThemePresetName,
 } from "./theme-config";
@@ -13,7 +15,7 @@ export type ThemePresetId = ThemePresetName | "custom";
 
 export type ThemeColors = Record<ThemeColorKey, string>;
 
-export interface ThemePreset {
+export interface ThemePresetOption {
   id: Exclude<ThemePresetId, "custom">;
   label: string;
   description: string;
@@ -31,7 +33,7 @@ interface ParsedHsl {
   lightness: number;
 }
 
-export const THEME_PRESET_STORAGE_KEY = "get_me_job_theme_preset";
+export const THEME_PRESET_STORAGE_KEY = THEME_CONFIG_PRESET_STORAGE_KEY;
 export const CUSTOM_THEME_STORAGE_KEY = "get_me_job_custom_theme";
 export const THEME_CHANGE_EVENT = "get-me-job-theme-change";
 
@@ -41,78 +43,25 @@ export const DEFAULT_CUSTOM_THEME: ThemeColors = {
   card: "0 0% 100%",
 };
 
-export const THEME_PRESETS: ThemePreset[] = [
-  {
-    id: "default",
-    label: getThemePreset("default").label,
-    description: getThemePreset("default").description,
+export const THEME_PRESETS: ThemePresetOption[] = themePresetNames.map(
+  createThemePresetOption
+);
+
+function createThemePresetOption(presetName: ThemePresetName): ThemePresetOption {
+  const preset = getThemePreset(presetName);
+  const variables = getThemeVariables(presetName, "light");
+
+  return {
+    id: preset.name,
+    label: preset.label,
+    description: preset.description,
     colors: {
-      primary: "258 65% 58%",
-      background: "30 25% 99%",
-      card: "30 20% 99.5%",
+      primary: variables["--primary"],
+      background: variables["--background"],
+      card: variables["--card"],
     },
-  },
-  {
-    id: "ocean",
-    label: getThemePreset("ocean").label,
-    description: getThemePreset("ocean").description,
-    colors: {
-      primary: "190 86% 38%",
-      background: "205 45% 98%",
-      card: "0 0% 100%",
-    },
-  },
-  {
-    id: "forest",
-    label: getThemePreset("forest").label,
-    description: getThemePreset("forest").description,
-    colors: {
-      primary: "145 55% 34%",
-      background: "42 24% 98%",
-      card: "0 0% 100%",
-    },
-  },
-  {
-    id: "sunset",
-    label: getThemePreset("sunset").label,
-    description: getThemePreset("sunset").description,
-    colors: {
-      primary: "347 86% 58%",
-      background: "24 32% 98%",
-      card: "0 0% 100%",
-    },
-  },
-  {
-    id: "bold",
-    label: getThemePreset("bold").label,
-    description: getThemePreset("bold").description,
-    colors: {
-      primary: "246 100% 45%",
-      background: "0 0% 100%",
-      card: "0 0% 100%",
-    },
-  },
-  {
-    id: "glassmorphism",
-    label: getThemePreset("glassmorphism").label,
-    description: getThemePreset("glassmorphism").description,
-    colors: {
-      primary: "199 89% 48%",
-      background: "210 60% 98%",
-      card: "0 0% 100%",
-    },
-  },
-  {
-    id: "minimal",
-    label: getThemePreset("minimal").label,
-    description: getThemePreset("minimal").description,
-    colors: {
-      primary: "220 16% 20%",
-      background: "0 0% 100%",
-      card: "0 0% 100%",
-    },
-  },
-];
+  };
+}
 
 export function hexToHslString(hex: string): string {
   const normalized = normalizeHex(hex);

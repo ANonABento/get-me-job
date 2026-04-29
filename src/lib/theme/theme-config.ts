@@ -517,10 +517,6 @@ const themeVariableNames = Object.keys(defaultLight).map(
   (name) => `--${name}` as const
 );
 
-export function getThemeVariableNames(): readonly `--${string}`[] {
-  return themeVariableNames;
-}
-
 export function isThemeMode(value: unknown): value is ThemeMode {
   return value === "light" || value === "dark" || value === "system";
 }

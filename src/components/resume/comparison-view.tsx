@@ -270,7 +270,7 @@ export function ComparisonView({ beforeId, afterId, onClose }: ComparisonViewPro
           <p className="text-2xl font-bold text-warning">
             {comparison.summary.modifications}
           </p>
-          <p className="text-xs text-warning dark:text-warning">Changes</p>
+          <p className="text-xs text-warning">Changes</p>
         </div>
       </div>
 

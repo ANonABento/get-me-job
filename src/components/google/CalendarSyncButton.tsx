@@ -198,8 +198,8 @@ export function CalendarSyncButton({
         <div
           className={`rounded-lg border p-4 ${
             result.success
-              ? "bg-success/10 border-success/30 dark:bg-success/10 dark:border-success/30"
-              : "bg-warning/10 border-warning/30 dark:bg-warning/10 dark:border-warning/30"
+              ? "bg-success/10 border-success/30"
+              : "bg-warning/10 border-warning/30"
           }`}
         >
           <div className="flex items-center gap-2 mb-2">
