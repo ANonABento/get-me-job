@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { ResumeTemplate, TemplateStyles } from "@/lib/resume/template-data";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +17,18 @@ interface TemplateThumbnailTraits {
   bulletLabel: string;
   isTwoColumn: boolean;
 }
+
+const SAMPLE_RESUME = {
+  name: "Alex Morgan",
+  headline: "Product Leader",
+  contact: "alex@example.com | New York, NY",
+  summary: "Built hiring tools used by fast-growing teams.",
+  experience: [
+    "Led roadmap for document workflows",
+    "Improved activation by 24%",
+  ],
+  skills: ["Strategy", "Analytics", "AI tooling"],
+};
 
 export function getTemplateThumbnailTraits(
   styles: TemplateStyles
@@ -65,31 +77,32 @@ export function TemplatePreviewThumbnail({
       style={style}
     >
       <div className="h-1 bg-[var(--template-accent)]" />
-      <div className="space-y-1.5 p-2">
-        <div className={cn("flex flex-col gap-0.5", traits.headerAlignmentClass)}>
-          <div className="h-1.5 w-14 rounded-full bg-slate-900" />
-          <div className="h-1 w-20 rounded-full bg-slate-300" />
-        </div>
+      <div className="space-y-1 p-2 text-[5px] leading-tight">
+        <header className={cn("flex flex-col gap-0.5", traits.headerAlignmentClass)}>
+          <p className="text-[7px] font-semibold leading-none">{SAMPLE_RESUME.name}</p>
+          <p className="text-slate-500">{SAMPLE_RESUME.headline}</p>
+          <p className="truncate text-[4px] text-slate-400">{SAMPLE_RESUME.contact}</p>
+        </header>
 
-        <div className={cn("pt-1", traits.isTwoColumn && "grid grid-cols-[1fr_1.6fr] gap-1.5")}>
-          {traits.isTwoColumn && (
-            <div
-              className="space-y-1 rounded-sm p-1"
-              style={{ backgroundColor: `${traits.accentColor}14` }}
-            >
-              <PreviewSection traits={traits} short />
-              <PreviewLine className="w-8" />
-              <PreviewLine className="w-6" />
-            </div>
+        <div
+          className={cn(
+            "pt-0.5",
+            traits.isTwoColumn && "grid grid-cols-[0.9fr_1.5fr] gap-1.5"
           )}
+        >
+          {traits.isTwoColumn && <ThumbnailSidebar traits={traits} />}
 
-          <div className="space-y-1.5">
-            <PreviewSection traits={traits} />
-            <PreviewBullet traits={traits} widthClass="w-16" />
-            <PreviewBullet traits={traits} widthClass="w-14" />
-            <PreviewSection traits={traits} short />
-            <PreviewLine className="w-20" />
-            <PreviewLine className="w-12" />
+          <div className="space-y-1">
+            <PreviewSection traits={traits} title="Summary">
+              <p className="line-clamp-2 text-slate-500">{SAMPLE_RESUME.summary}</p>
+            </PreviewSection>
+            <PreviewSection traits={traits} title="Experience">
+              {SAMPLE_RESUME.experience.map((item) => (
+                <PreviewBullet key={item} traits={traits}>
+                  {item}
+                </PreviewBullet>
+              ))}
+            </PreviewSection>
           </div>
         </div>
       </div>
@@ -97,45 +110,67 @@ export function TemplatePreviewThumbnail({
   );
 }
 
+function ThumbnailSidebar({ traits }: { traits: TemplateThumbnailTraits }) {
+  return (
+    <aside
+      className="space-y-1 rounded-sm p-1"
+      style={{ backgroundColor: `${traits.accentColor}14` }}
+    >
+      <PreviewSection traits={traits} title="Skills" compact>
+        {SAMPLE_RESUME.skills.map((skill) => (
+          <p key={skill} className="truncate text-slate-500">
+            {skill}
+          </p>
+        ))}
+      </PreviewSection>
+    </aside>
+  );
+}
+
 function PreviewSection({
   traits,
-  short = false,
+  title,
+  children,
+  compact = false,
 }: {
   traits: TemplateThumbnailTraits;
-  short?: boolean;
+  title: string;
+  children: ReactNode;
+  compact?: boolean;
 }) {
   return (
-    <div
-      className={cn(
-        "h-2 border-[var(--template-accent)] text-[0px]",
-        traits.sectionRuleClass,
-        short ? "w-10" : "w-16"
-      )}
-    >
-      <div className="h-1 w-full rounded-full bg-[var(--template-accent)]" />
-    </div>
+    <section className="space-y-0.5">
+      <h3
+        className={cn(
+          "border-[var(--template-accent)] text-[5px] font-semibold uppercase leading-tight text-[var(--template-accent)]",
+          traits.sectionRuleClass,
+          compact ? "w-9" : "w-16"
+        )}
+      >
+        {title}
+      </h3>
+      <div className="space-y-0.5">{children}</div>
+    </section>
   );
 }
 
 function PreviewBullet({
   traits,
-  widthClass,
+  children,
 }: {
   traits: TemplateThumbnailTraits;
-  widthClass: string;
+  children: ReactNode;
 }) {
-  return (
-    <div className="flex items-center gap-1">
-      {traits.bulletLabel && (
-        <span className="w-1.5 text-[8px] leading-none text-[var(--template-accent)]">
-          {traits.bulletLabel}
-        </span>
-      )}
-      <PreviewLine className={widthClass} />
-    </div>
-  );
-}
+  if (!traits.bulletLabel) {
+    return <p className="line-clamp-1 text-slate-500">{children}</p>;
+  }
 
-function PreviewLine({ className }: { className: string }) {
-  return <div className={cn("h-1 rounded-full bg-slate-300", className)} />;
+  return (
+    <p className="flex gap-0.5 text-slate-500">
+      <span className="w-1 text-[5px] leading-tight text-[var(--template-accent)]">
+        {traits.bulletLabel}
+      </span>
+      <span className="line-clamp-1 min-w-0 flex-1">{children}</span>
+    </p>
+  );
 }

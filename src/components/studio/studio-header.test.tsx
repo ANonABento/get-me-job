@@ -32,6 +32,14 @@ describe("StudioHeader", () => {
     expect(screen.getByTestId("template-thumbnail-modern")).toBeInTheDocument();
   });
 
+  it("falls back to the classic template when the selected id is missing", () => {
+    renderStudioHeader({ templateId: "missing-template" });
+
+    expect(screen.getByRole("button", { name: /select resume template/i }))
+      .toHaveTextContent("Classic");
+    expect(screen.getByTestId("template-thumbnail-classic")).toBeInTheDocument();
+  });
+
   it("opens a grid picker with thumbnails for every template", () => {
     renderStudioHeader();
 
@@ -53,6 +61,15 @@ describe("StudioHeader", () => {
     fireEvent.click(screen.getByRole("option", { name: /modern/i }));
 
     expect(onTemplateSelect).toHaveBeenCalledWith("modern");
+    expect(screen.queryByRole("listbox", { name: /resume templates/i })).not.toBeInTheDocument();
+  });
+
+  it("closes the template grid on Escape", () => {
+    renderStudioHeader();
+
+    fireEvent.click(screen.getByRole("button", { name: /select resume template/i }));
+    fireEvent.keyDown(document, { key: "Escape" });
+
     expect(screen.queryByRole("listbox", { name: /resume templates/i })).not.toBeInTheDocument();
   });
 });

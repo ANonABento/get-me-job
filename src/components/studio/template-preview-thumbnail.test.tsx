@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { TEMPLATES } from "@/lib/resume/template-data";
 import {
@@ -37,5 +37,7 @@ describe("TemplatePreviewThumbnail", () => {
     const thumbnail = screen.getByTestId("template-thumbnail-modern");
     expect(thumbnail).toHaveAttribute("aria-hidden", "true");
     expect(thumbnail).toHaveStyle({ fontFamily: "'Inter', 'Segoe UI', sans-serif" });
+    expect(within(thumbnail).getByText("Alex Morgan")).toBeInTheDocument();
+    expect(within(thumbnail).getByText("Experience")).toBeInTheDocument();
   });
 });

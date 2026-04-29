@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Check,
   ChevronDown,
@@ -10,7 +10,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { TEMPLATES } from "@/lib/resume/template-data";
+import { getTemplate, TEMPLATES } from "@/lib/resume/template-data";
 import { cn } from "@/lib/utils";
 import {
   DOCUMENT_MODE_OPTIONS,
@@ -45,9 +45,22 @@ export function StudioHeader({
 }: StudioHeaderProps) {
   const [templateOpen, setTemplateOpen] = useState(false);
   const selectedTemplate = useMemo(
-    () => TEMPLATES.find((template) => template.id === templateId),
+    () => getTemplate(templateId),
     [templateId]
   );
+
+  useEffect(() => {
+    if (!templateOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setTemplateOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [templateOpen]);
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 md:px-6">
@@ -82,13 +95,11 @@ export function StudioHeader({
             onClick={() => setTemplateOpen((prev) => !prev)}
             className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors hover:bg-muted"
           >
-            {selectedTemplate && (
-              <TemplatePreviewThumbnail
-                template={selectedTemplate}
-                className="h-7 w-5 shrink-0 rounded-sm"
-              />
-            )}
-            <span>{selectedTemplate?.name ?? "Template"}</span>
+            <TemplatePreviewThumbnail
+              template={selectedTemplate}
+              className="h-7 w-5 shrink-0 rounded-sm"
+            />
+            <span>{selectedTemplate.name}</span>
             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
 
@@ -104,7 +115,7 @@ export function StudioHeader({
                 className="absolute left-0 top-full z-50 mt-2 grid max-h-[70vh] w-[min(26rem,calc(100vw-2rem))] grid-cols-2 gap-2 overflow-auto rounded-lg border bg-popover p-2 shadow-lg sm:grid-cols-3"
               >
                 {TEMPLATES.map((template) => {
-                  const isSelected = template.id === templateId;
+                  const isSelected = template.id === selectedTemplate.id;
                   return (
                     <button
                       key={template.id}
