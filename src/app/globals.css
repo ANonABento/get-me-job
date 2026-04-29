@@ -25,6 +25,9 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    background-image: var(--gradient-bg, none);
+    font-family: var(--font-family);
+    letter-spacing: var(--letter-spacing);
     overscroll-behavior: none;
     overflow-x: hidden;
   }
@@ -60,8 +63,8 @@
   .glass {
     border: var(--border-width, 1px) solid hsl(var(--border) / var(--surface-border-opacity));
     background-color: hsl(var(--card) / var(--surface-glass-opacity));
-    backdrop-filter: blur(var(--backdrop-blur));
-    -webkit-backdrop-filter: blur(var(--backdrop-blur));
+    backdrop-filter: var(--backdrop-blur);
+    -webkit-backdrop-filter: var(--backdrop-blur);
   }
 
   /* Gradient text */

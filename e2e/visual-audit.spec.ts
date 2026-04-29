@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { THEME_DARK_STORAGE_KEY } from "../src/lib/theme/theme-config";
 
 const PUBLIC_PAGES = [
   { path: "/", name: "landing" },
@@ -86,9 +87,9 @@ test.describe("Visual Audit - Landing Page States", () => {
       "Visual baselines are only maintained for the desktop Chromium project."
     );
 
-    await page.evaluate(() => {
-      localStorage.setItem("theme", "light");
-    });
+    await page.evaluate((darkStorageKey) => {
+      localStorage.setItem(darkStorageKey, "false");
+    }, THEME_DARK_STORAGE_KEY);
     await page.goto("/");
     await expect(page.locator("html")).not.toHaveClass(/dark/);
 
@@ -104,9 +105,9 @@ test.describe("Visual Audit - Landing Page States", () => {
       "Visual baselines are only maintained for the desktop Chromium project."
     );
 
-    await page.evaluate(() => {
-      localStorage.setItem("theme", "dark");
-    });
+    await page.evaluate((darkStorageKey) => {
+      localStorage.setItem(darkStorageKey, "true");
+    }, THEME_DARK_STORAGE_KEY);
     await page.goto("/");
     await expect(page.locator("html")).toHaveClass(/dark/);
 
