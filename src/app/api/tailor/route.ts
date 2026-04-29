@@ -85,13 +85,14 @@ export async function POST(request: NextRequest) {
       jobDescription,
       jobTitle = "Unknown Position",
       company = "Unknown Company",
-      opportunityId,
     } = body as {
       jobDescription?: string;
       jobTitle?: string;
       company?: string;
-      opportunityId?: string;
+      opportunityId?: unknown;
     };
+    const opportunityId =
+      typeof body.opportunityId === "string" ? body.opportunityId.trim() : "";
 
     if (!jobDescription || jobDescription.trim().length < 20) {
       return NextResponse.json(

@@ -112,6 +112,31 @@ describe("opportunities", () => {
     expect(opportunity?.linkedResumeId).toBe("resume-1");
   });
 
+  it("ignores blank document ids when linking", () => {
+    mocks.getJob
+      .mockReturnValueOnce(
+        job({ linkedResumeId: "resume-1", linkedCoverLetterId: "cover-1" }),
+      )
+      .mockReturnValueOnce(
+        job({ linkedResumeId: "resume-1", linkedCoverLetterId: "cover-1" }),
+      );
+
+    linkOpportunityDocument(
+      "job-1",
+      { resumeId: "  ", coverLetterId: "cover-2" },
+      "user-1",
+    );
+
+    expect(mocks.updateJob).toHaveBeenCalledWith(
+      "job-1",
+      {
+        linkedResumeId: "resume-1",
+        linkedCoverLetterId: "cover-2",
+      },
+      "user-1",
+    );
+  });
+
   it("returns trimmed opportunity JD text", () => {
     expect(
       getOpportunityDescription(

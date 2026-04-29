@@ -11,13 +11,28 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
   if (isAuthError(authResult)) return authResult;
 
   try {
-    const body = (await request.json()) as {
+    let body: {
       resumeId?: unknown;
       coverLetterId?: unknown;
     };
-    const resumeId = typeof body.resumeId === "string" ? body.resumeId : undefined;
+
+    try {
+      body = (await request.json()) as typeof body;
+    } catch {
+      return NextResponse.json(
+        { error: "Request body must be valid JSON" },
+        { status: 400 },
+      );
+    }
+
+    const resumeId =
+      typeof body.resumeId === "string" && body.resumeId.trim()
+        ? body.resumeId.trim()
+        : undefined;
     const coverLetterId =
-      typeof body.coverLetterId === "string" ? body.coverLetterId : undefined;
+      typeof body.coverLetterId === "string" && body.coverLetterId.trim()
+        ? body.coverLetterId.trim()
+        : undefined;
 
     if (!resumeId && !coverLetterId) {
       return NextResponse.json(

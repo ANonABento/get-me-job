@@ -47,6 +47,8 @@ interface AiAssistantPanelProps {
   documentContent: string;
   selectedEntryCount: number;
   onOpenBank: () => void;
+  onOpportunityClear?: () => void;
+  onOpportunitySelect?: (opportunityId: string) => void;
 }
 
 interface AssistantResponse {
@@ -99,6 +101,8 @@ export function AiAssistantPanel({
   documentContent,
   selectedEntryCount,
   onOpenBank,
+  onOpportunityClear,
+  onOpportunitySelect,
 }: AiAssistantPanelProps) {
   const panelRef = useRef<HTMLElement>(null);
   const runningActionRef = useRef<AssistantRunAction | null>(null);
@@ -176,6 +180,7 @@ export function AiAssistantPanel({
         setSelectedOpportunityLabel(
           `${data.opportunity.title} at ${data.opportunity.company}`,
         );
+        onOpportunitySelect?.(data.opportunity.id);
       } catch (error) {
         if (!cancelled) {
           setOpportunityError(
@@ -192,7 +197,7 @@ export function AiAssistantPanel({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [onOpportunitySelect]);
 
   const ensureLLMConfigured = useCallback(async () => {
     const response = await fetch("/api/settings/status");
@@ -249,11 +254,12 @@ export function AiAssistantPanel({
     setJobDescription(getOpportunityText(opportunity));
     setSelectedOpportunityId(opportunity.id);
     setSelectedOpportunityLabel(`${opportunity.title} at ${opportunity.company}`);
+    onOpportunitySelect?.(opportunity.id);
     setOpportunityPickerOpen(false);
     setOpportunityError("");
     setStatusMessage(`Loaded ${opportunity.title} from the job bank.`);
     setAssistantResult("");
-  }, []);
+  }, [onOpportunitySelect]);
 
   const runRewrite = useCallback(
     async (action: DocumentAssistantAction, fallbackText: string) => {
@@ -438,6 +444,7 @@ export function AiAssistantPanel({
               setJobDescription(event.target.value);
               setSelectedOpportunityId("");
               setSelectedOpportunityLabel("");
+              onOpportunityClear?.();
             }}
             placeholder="Paste the JD here"
             className="min-h-[132px] resize-none"

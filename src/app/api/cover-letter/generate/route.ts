@@ -61,7 +61,6 @@ export async function POST(request: NextRequest) {
       selectedText,
       instruction,
       selectedBankEntryIds,
-      opportunityId,
     } = body as {
       jobDescription?: string;
       jobTitle?: string;
@@ -71,8 +70,10 @@ export async function POST(request: NextRequest) {
       selectedText?: string;
       instruction?: string;
       selectedBankEntryIds?: unknown;
-      opportunityId?: string;
+      opportunityId?: unknown;
     };
+    const opportunityId =
+      typeof body.opportunityId === "string" ? body.opportunityId.trim() : "";
 
     if (!isCoverLetterAction(action)) {
       return NextResponse.json(

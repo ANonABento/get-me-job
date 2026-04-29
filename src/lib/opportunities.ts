@@ -64,12 +64,15 @@ export function linkOpportunityDocument(
   const existing = getJob(id, userId);
   if (!existing) return null;
 
+  const resumeId = input.resumeId?.trim();
+  const coverLetterId = input.coverLetterId?.trim();
+
   updateJob(
     id,
     {
-      linkedResumeId: input.resumeId ?? existing.linkedResumeId,
+      linkedResumeId: resumeId || existing.linkedResumeId,
       linkedCoverLetterId:
-        input.coverLetterId ?? existing.linkedCoverLetterId,
+        coverLetterId || existing.linkedCoverLetterId,
     },
     userId,
   );
