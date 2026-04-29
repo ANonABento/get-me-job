@@ -21,7 +21,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
           <Sidebar />
           <main
             id="main-content"
-            className="flex-1 overflow-x-hidden overflow-y-auto bg-background"
+            className="flex-1 overflow-x-hidden overflow-y-auto overscroll-y-none bg-background"
             role="main"
             aria-label="Main content"
           >

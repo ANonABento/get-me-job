@@ -33,7 +33,7 @@ function createDataTransfer(): DataTransfer {
 
 describe("JobKanbanView", () => {
   it("renders expected columns and card details", () => {
-    render(<JobKanbanView jobs={[baseJob]} onStatusChange={vi.fn()} />);
+    const { container } = render(<JobKanbanView jobs={[baseJob]} onStatusChange={vi.fn()} />);
 
     expect(screen.getByLabelText("Pending jobs")).toBeInTheDocument();
     expect(screen.getByLabelText("Saved jobs")).toBeInTheDocument();
@@ -48,6 +48,7 @@ describe("JobKanbanView", () => {
     expect(screen.getByText("Remote")).toBeInTheDocument();
     expect(screen.getByText("React")).toBeInTheDocument();
     expect(screen.getByText("+1")).toBeInTheDocument();
+    expect(container.firstElementChild).toHaveClass("overflow-x-auto", "overscroll-x-none");
   });
 
   it("calls onStatusChange when a card is dropped into another column", () => {

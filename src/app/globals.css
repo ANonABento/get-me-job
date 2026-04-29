@@ -53,7 +53,7 @@
   .overflow-auto,
   .overflow-y-auto,
   .overflow-x-auto {
-    overscroll-behavior: contain;
+    overscroll-behavior: none;
   }
 
   /* Custom scrollbar */
