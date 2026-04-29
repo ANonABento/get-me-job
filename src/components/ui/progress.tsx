@@ -23,6 +23,19 @@ const variantClasses = {
   warning: "bg-warning",
   destructive: "bg-destructive",
 };
+
+function clampProgressValue(value: number, max: number) {
+  const safeMax = Number.isFinite(max) && max > 0 ? max : 100;
+  const safeValue = Number.isFinite(value) ? value : 0;
+  const clampedValue = Math.min(Math.max(safeValue, 0), safeMax);
+
+  return {
+    value: clampedValue,
+    max: safeMax,
+    percentage: (clampedValue / safeMax) * 100,
+  };
+}
+
 const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
   (
     {
@@ -36,22 +49,24 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
     },
     ref,
   ) => {
-    const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
+    const progress = clampProgressValue(value, max);
 
     return (
       <div className="space-y-1">
         {showLabel && (
           <div className="flex justify-between text-sm [letter-spacing:var(--letter-spacing)]">
             <span className="text-muted-foreground">Progress</span>
-            <span className="font-medium">{Math.round(percentage)}%</span>
+            <span className="font-medium">
+              {Math.round(progress.percentage)}%
+            </span>
           </div>
         )}
         <div
           ref={ref}
           role="progressbar"
-          aria-valuenow={value}
+          aria-valuenow={progress.value}
           aria-valuemin={0}
-          aria-valuemax={max}
+          aria-valuemax={progress.max}
           className={cn(
             "relative w-full overflow-hidden rounded-full bg-muted",
             sizeClasses[size],
@@ -64,7 +79,7 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
               "h-full rounded-full transition-all duration-300 ease-out",
               variantClasses[variant],
             )}
-            style={{ width: `${percentage}%` }}
+            style={{ width: `${progress.percentage}%` }}
           />
         </div>
       </div>
@@ -90,14 +105,15 @@ function CircularProgress({
   className,
   showValue = true,
 }: CircularProgressProps) {
+  const progress = clampProgressValue(value, 100);
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
-  const offset = circumference - (value / 100) * circumference;
+  const offset = circumference - (progress.percentage / 100) * circumference;
 
   const getColor = () => {
-    if (value >= 80) return "hsl(var(--success))";
-    if (value >= 60) return "hsl(var(--warning))";
-    if (value >= 40) return "hsl(var(--primary))";
+    if (progress.value >= 80) return "hsl(var(--success))";
+    if (progress.value >= 60) return "hsl(var(--warning))";
+    if (progress.value >= 40) return "hsl(var(--primary))";
     return "hsl(var(--destructive))";
   };
 
@@ -128,7 +144,7 @@ function CircularProgress({
       {showValue && (
         <div className="absolute inset-0 flex items-center justify-center">
           <span className="text-lg font-bold [letter-spacing:var(--letter-spacing)]">
-            {Math.round(value)}
+            {Math.round(progress.value)}
           </span>
         </div>
       )}

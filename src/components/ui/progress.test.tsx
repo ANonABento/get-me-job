@@ -38,11 +38,25 @@ describe("Progress", () => {
   it("should clamp percentage between 0 and 100", () => {
     const { rerender } = render(<Progress value={-10} />);
     let progressbar = screen.getByRole("progressbar");
-    expect(progressbar).toHaveAttribute("aria-valuenow", "-10");
+    expect(progressbar).toHaveAttribute("aria-valuenow", "0");
 
     rerender(<Progress value={150} />);
     progressbar = screen.getByRole("progressbar");
-    expect(progressbar).toHaveAttribute("aria-valuenow", "150");
+    expect(progressbar).toHaveAttribute("aria-valuenow", "100");
+  });
+
+  it("should fall back to a safe max when max is not positive", () => {
+    const { rerender } = render(<Progress value={0} max={0} showLabel />);
+    let progressbar = screen.getByRole("progressbar");
+    expect(progressbar).toHaveAttribute("aria-valuenow", "0");
+    expect(progressbar).toHaveAttribute("aria-valuemax", "100");
+    expect(screen.getByText("0%")).toBeInTheDocument();
+
+    rerender(<Progress value={50} max={-1} showLabel />);
+    progressbar = screen.getByRole("progressbar");
+    expect(progressbar).toHaveAttribute("aria-valuenow", "50");
+    expect(progressbar).toHaveAttribute("aria-valuemax", "100");
+    expect(screen.getByText("50%")).toBeInTheDocument();
   });
 
   it("should apply sm size class", () => {
@@ -140,12 +154,22 @@ describe("CircularProgress", () => {
   });
 
   it("should apply custom className", () => {
-    const { container } = render(<CircularProgress value={50} className="custom-circular" />);
+    const { container } = render(
+      <CircularProgress value={50} className="custom-circular" />,
+    );
     expect(container.firstChild).toHaveClass("custom-circular");
   });
 
   it("should round displayed value", () => {
     render(<CircularProgress value={75.7} />);
     expect(screen.getByText("76")).toBeInTheDocument();
+  });
+
+  it("should clamp displayed value to valid progress bounds", () => {
+    const { rerender } = render(<CircularProgress value={150} />);
+    expect(screen.getByText("100")).toBeInTheDocument();
+
+    rerender(<CircularProgress value={-20} />);
+    expect(screen.getByText("0")).toBeInTheDocument();
   });
 });
