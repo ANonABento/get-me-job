@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { CoverLetterDialog } from "@/components/cover-letter/cover-letter-dialog";
 import { AddJobDialog } from "@/components/jobs/add-job-dialog";
 import { JobKanbanView } from "@/components/jobs/job-kanban-view";
-import { readJobsViewMode, writeJobsViewMode, type JobsViewMode } from "@/components/jobs/job-kanban-utils";
+import { getJobsViewStorage, readJobsViewMode, writeJobsViewMode, type JobsViewMode } from "@/components/jobs/job-kanban-utils";
 import { JobsEmptyState } from "@/components/jobs/jobs-empty-state";
 import { JobsHero } from "@/components/jobs/jobs-hero";
 import { JobCard, type ResumeTemplate } from "@/components/jobs/job-card";
@@ -105,12 +105,12 @@ export default function JobsPage() {
   useEffect(() => { void fetchJobs(); void fetchTemplates(); }, [fetchJobs, fetchTemplates]);
 
   useEffect(() => {
-    setViewMode(readJobsViewMode(window.localStorage));
+    setViewMode(readJobsViewMode(getJobsViewStorage()));
   }, []);
 
   const handleViewModeChange = (mode: JobsViewMode) => {
     setViewMode(mode);
-    writeJobsViewMode(window.localStorage, mode);
+    writeJobsViewMode(getJobsViewStorage(), mode);
   };
 
   const deleteJob = async (id: string) => {

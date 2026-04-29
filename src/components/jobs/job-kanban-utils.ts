@@ -18,6 +18,16 @@ const KANBAN_STATUS_VALUES = new Set<JobKanbanStatus>(JOB_KANBAN_COLUMNS.map((co
 
 type WritableStorageLike = Pick<Storage, "setItem">;
 
+export function getJobsViewStorage(): Storage | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
 export function parseJobsViewMode(value: string | null | undefined): JobsViewMode {
   return value === "kanban" ? "kanban" : "list";
 }

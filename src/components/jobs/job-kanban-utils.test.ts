@@ -3,6 +3,7 @@ import type { JobDescription } from "@/types";
 import {
   JOBS_VIEW_STORAGE_KEY,
   formatJobDeadline,
+  getJobsViewStorage,
   getKanbanStatusValue,
   groupJobsByKanbanStatus,
   parseJobsViewMode,
@@ -26,6 +27,16 @@ function createJob(overrides: Partial<JobDescription>): JobDescription {
 }
 
 describe("jobs view mode storage", () => {
+  it("returns null when browser storage access is blocked", () => {
+    const localStorageSpy = vi.spyOn(window, "localStorage", "get").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+
+    expect(getJobsViewStorage()).toBeNull();
+
+    localStorageSpy.mockRestore();
+  });
+
   it("parses only the kanban value as kanban", () => {
     expect(parseJobsViewMode("kanban")).toBe("kanban");
     expect(parseJobsViewMode("list")).toBe("list");
