@@ -40,9 +40,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_OPPORTUNITY_FILTERS,
+  OPPORTUNITY_JOB_TYPE_OPTIONS,
+  OPPORTUNITY_LEVEL_OPTIONS,
   OPPORTUNITY_SORT_OPTIONS,
   OPPORTUNITY_SOURCE_OPTIONS,
   OPPORTUNITY_STATUS_OPTIONS,
+  OPPORTUNITY_TYPE_OPTIONS,
+  OPPORTUNITY_TYPE_TAB_OPTIONS,
   REMOTE_TYPE_OPTIONS,
   SAMPLE_OPPORTUNITIES,
   buildOpportunityTeamSize,
@@ -57,10 +61,11 @@ import {
   trimToUndefined,
   type Opportunity,
   type OpportunityFilters,
+  type OpportunityJobType,
+  type OpportunityLevel,
   type OpportunitySource,
   type OpportunityStatus,
   type OpportunityType,
-  type OpportunityTypeTab,
   type RemoteType,
 } from "./utils";
 
@@ -85,8 +90,8 @@ interface OpportunityFormState {
   tags: string;
   techStack: string;
   requiredSkills: string;
-  jobType: NonNullable<Opportunity["jobType"]>;
-  level: NonNullable<Opportunity["level"]>;
+  jobType: OpportunityJobType;
+  level: OpportunityLevel;
   prizes: string;
   tracks: string;
   teamMin: string;
@@ -121,12 +126,6 @@ const DEFAULT_FORM_STATE: OpportunityFormState = {
   teamMax: "",
   submissionUrl: "",
 };
-
-const typeTabs: { value: OpportunityTypeTab; label: string }[] = [
-  { value: "job", label: "Jobs" },
-  { value: "hackathon", label: "Hackathons" },
-  { value: "all", label: "All" },
-];
 
 export default function OpportunitiesPage() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>(SAMPLE_OPPORTUNITIES);
@@ -287,7 +286,7 @@ export default function OpportunitiesPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {typeTabs.map((option) => (
+                  {OPPORTUNITY_TYPE_TAB_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
@@ -383,7 +382,7 @@ export default function OpportunitiesPage() {
         <main className="min-w-0 px-5 py-6 sm:px-8">
           <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="inline-flex w-full rounded-lg border bg-card p-1 sm:w-auto">
-              {typeTabs.map((tab) => (
+              {OPPORTUNITY_TYPE_TAB_OPTIONS.map((tab) => (
                 <button
                   key={tab.value}
                   type="button"
@@ -459,19 +458,19 @@ export default function OpportunitiesPage() {
 
           <form className="space-y-6" onSubmit={handleAddOpportunity}>
             <div className="inline-flex rounded-lg border bg-muted/40 p-1">
-              {(["job", "hackathon"] as const).map((type) => (
+              {OPPORTUNITY_TYPE_OPTIONS.map((option) => (
                 <button
-                  key={type}
+                  key={option.value}
                   type="button"
-                  onClick={() => updateForm("type", type)}
+                  onClick={() => updateForm("type", option.value)}
                   className={cn(
-                    "min-h-10 rounded-md px-4 text-sm font-medium capitalize transition-colors",
-                    form.type === type
+                    "min-h-10 rounded-md px-4 text-sm font-medium transition-colors",
+                    form.type === option.value
                       ? "bg-background text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  {type}
+                  {option.label}
                 </button>
               ))}
             </div>
@@ -553,9 +552,9 @@ export default function OpportunitiesPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {["co-op", "full-time", "part-time", "contract", "internship"].map((jobType) => (
-                        <SelectItem key={jobType} value={jobType}>
-                          {jobType}
+                      {OPPORTUNITY_JOB_TYPE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -567,9 +566,9 @@ export default function OpportunitiesPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {["junior", "intermediate", "senior", "staff"].map((level) => (
-                        <SelectItem key={level} value={level}>
-                          {level}
+                      {OPPORTUNITY_LEVEL_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
                         </SelectItem>
                       ))}
                     </SelectContent>

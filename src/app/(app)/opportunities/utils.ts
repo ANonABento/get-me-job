@@ -9,6 +9,8 @@ export type OpportunitySource =
   | "manual"
   | "url";
 export type RemoteType = "remote" | "hybrid" | "onsite";
+export type OpportunityJobType = "co-op" | "full-time" | "part-time" | "contract" | "internship";
+export type OpportunityLevel = "junior" | "intermediate" | "senior" | "staff";
 export type OpportunityStatus =
   | "pending"
   | "saved"
@@ -20,6 +22,16 @@ export type OpportunityStatus =
   | "dismissed";
 export type OpportunitySortOption = "deadline" | "scrapedAt" | "company" | "salary";
 export type OpportunityTypeTab = "all" | "job" | "hackathon";
+
+export interface OpportunityOption<T extends string> {
+  value: T;
+  label: string;
+}
+
+export interface OpportunityFilterOptions {
+  tags: string[];
+  techStacks: string[];
+}
 
 export interface Opportunity {
   id: string;
@@ -37,8 +49,8 @@ export interface Opportunity {
   region?: string;
   remoteType?: RemoteType;
   additionalLocationInfo?: string;
-  jobType?: "co-op" | "full-time" | "part-time" | "contract" | "internship";
-  level?: "junior" | "intermediate" | "senior" | "staff";
+  jobType?: OpportunityJobType;
+  level?: OpportunityLevel;
   openings?: number;
   workTerm?: string;
   applicationMethod?: string;
@@ -94,7 +106,18 @@ export const DEFAULT_OPPORTUNITY_FILTERS: OpportunityFilters = {
   sortBy: "deadline",
 };
 
-export const OPPORTUNITY_STATUS_OPTIONS: { value: OpportunityStatus | "all"; label: string }[] = [
+export const OPPORTUNITY_TYPE_OPTIONS: OpportunityOption<OpportunityType>[] = [
+  { value: "job", label: "Job" },
+  { value: "hackathon", label: "Hackathon" },
+];
+
+export const OPPORTUNITY_TYPE_TAB_OPTIONS: OpportunityOption<OpportunityTypeTab>[] = [
+  { value: "job", label: "Jobs" },
+  { value: "hackathon", label: "Hackathons" },
+  { value: "all", label: "All" },
+];
+
+export const OPPORTUNITY_STATUS_OPTIONS: OpportunityOption<OpportunityStatus | "all">[] = [
   { value: "all", label: "All statuses" },
   { value: "pending", label: "Pending" },
   { value: "saved", label: "Saved" },
@@ -106,7 +129,7 @@ export const OPPORTUNITY_STATUS_OPTIONS: { value: OpportunityStatus | "all"; lab
   { value: "dismissed", label: "Dismissed" },
 ];
 
-export const OPPORTUNITY_SOURCE_OPTIONS: { value: OpportunitySource | "all"; label: string }[] = [
+export const OPPORTUNITY_SOURCE_OPTIONS: OpportunityOption<OpportunitySource | "all">[] = [
   { value: "all", label: "All sources" },
   { value: "waterlooworks", label: "WaterlooWorks" },
   { value: "linkedin", label: "LinkedIn" },
@@ -118,14 +141,29 @@ export const OPPORTUNITY_SOURCE_OPTIONS: { value: OpportunitySource | "all"; lab
   { value: "url", label: "URL" },
 ];
 
-export const REMOTE_TYPE_OPTIONS: { value: RemoteType | "all"; label: string }[] = [
+export const REMOTE_TYPE_OPTIONS: OpportunityOption<RemoteType | "all">[] = [
   { value: "all", label: "Any remote type" },
   { value: "remote", label: "Remote" },
   { value: "hybrid", label: "Hybrid" },
   { value: "onsite", label: "Onsite" },
 ];
 
-export const OPPORTUNITY_SORT_OPTIONS: { value: OpportunitySortOption; label: string }[] = [
+export const OPPORTUNITY_JOB_TYPE_OPTIONS: OpportunityOption<OpportunityJobType>[] = [
+  { value: "co-op", label: "Co-op" },
+  { value: "full-time", label: "Full-time" },
+  { value: "part-time", label: "Part-time" },
+  { value: "contract", label: "Contract" },
+  { value: "internship", label: "Internship" },
+];
+
+export const OPPORTUNITY_LEVEL_OPTIONS: OpportunityOption<OpportunityLevel>[] = [
+  { value: "junior", label: "Junior" },
+  { value: "intermediate", label: "Intermediate" },
+  { value: "senior", label: "Senior" },
+  { value: "staff", label: "Staff" },
+];
+
+export const OPPORTUNITY_SORT_OPTIONS: OpportunityOption<OpportunitySortOption>[] = [
   { value: "deadline", label: "Deadline" },
   { value: "scrapedAt", label: "Date scraped" },
   { value: "company", label: "Company" },
@@ -260,7 +298,7 @@ export function hasActiveOpportunityFilters(
   );
 }
 
-export function getOpportunityFilterOptions(opportunities: Opportunity[]) {
+export function getOpportunityFilterOptions(opportunities: Opportunity[]): OpportunityFilterOptions {
   return {
     tags: uniqueSorted(opportunities.flatMap((opportunity) => opportunity.tags)),
     techStacks: uniqueSorted(opportunities.flatMap((opportunity) => opportunity.techStack ?? [])),
