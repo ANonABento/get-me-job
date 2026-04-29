@@ -186,7 +186,7 @@ export function ResumePreview({
                 <Button
                   type="button"
                   size="lg"
-                  className="mt-7 gradient-bg text-white hover:opacity-90"
+                  className="mt-7 gradient-bg text-primary-foreground hover:opacity-90"
                   onClick={onAddFromBank}
                 >
                   <Plus className="mr-2 h-5 w-5" />

@@ -29,11 +29,11 @@ const typeIcons: Record<NotificationType, typeof Bell> = {
 };
 
 const typeColors: Record<NotificationType, string> = {
-  reminder_due: "text-amber-500",
-  reminder_overdue: "text-red-500",
-  application_update: "text-blue-500",
-  interview_scheduled: "text-purple-500",
-  job_deadline: "text-orange-500",
+  reminder_due: "text-warning",
+  reminder_overdue: "text-destructive",
+  application_update: "text-info",
+  interview_scheduled: "text-primary",
+  job_deadline: "text-warning",
   system: "text-muted-foreground",
   info: "text-muted-foreground",
 };
@@ -174,7 +174,7 @@ export function NotificationCenter({ collapsed = false }: NotificationCenterProp
         <div className="relative">
           <Bell className="h-5 w-5 shrink-0" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+            <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
@@ -305,7 +305,7 @@ export function NotificationCenter({ collapsed = false }: NotificationCenterProp
                                     e.stopPropagation();
                                     handleDelete(notification.id);
                                   }}
-                                  className="p-1 text-muted-foreground hover:text-red-500 rounded hover:bg-muted transition-colors"
+                                  className="p-1 text-muted-foreground hover:text-destructive rounded hover:bg-muted transition-colors"
                                   title="Delete"
                                   aria-label="Delete notification"
                                 >

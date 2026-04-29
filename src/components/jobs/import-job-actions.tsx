@@ -29,7 +29,7 @@ export function ImportJobActions({
       <Button
         onClick={onSubmit}
         disabled={disabled}
-        className="gradient-bg text-white hover:opacity-90"
+        className="gradient-bg text-primary-foreground hover:opacity-90"
       >
         {loading ? (
           <Loader2 className="h-4 w-4 mr-2 animate-spin" />

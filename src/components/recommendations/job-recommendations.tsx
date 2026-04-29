@@ -68,9 +68,9 @@ function SkillMatchBadge({ match }: { match: SkillMatch }) {
       className={cn(
         "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs",
         match.matched
-          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+          ? "bg-success/10 text-success"
           : match.relevance === "high"
-          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+          ? "bg-destructive/10 text-destructive"
           : "bg-muted text-muted-foreground"
       )}
     >
@@ -103,7 +103,7 @@ function RecommendationCard({ recommendation }: { recommendation: JobRecommendat
                 <p className="text-sm text-muted-foreground">{job.company}</p>
               </div>
               {score >= 70 && (
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs font-medium">
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-success/10 text-success text-xs font-medium">
                   <Star className="h-3 w-3" />
                   Strong Match
                 </span>
@@ -120,7 +120,7 @@ function RecommendationCard({ recommendation }: { recommendation: JobRecommendat
               key={i}
               className="inline-flex items-center gap-1 text-xs text-muted-foreground"
             >
-              <CheckCircle2 className="h-3 w-3 text-green-500" />
+              <CheckCircle2 className="h-3 w-3 text-success" />
               {reason}
             </span>
           ))}
@@ -176,12 +176,12 @@ function RecommendationCard({ recommendation }: { recommendation: JobRecommendat
             )}
 
             {skillGaps.length > 0 && (
-              <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                <p className="text-xs font-medium text-amber-700 dark:text-amber-400 flex items-center gap-1 mb-1">
+              <div className="p-3 rounded-lg bg-warning/5 border border-warning/20">
+                <p className="text-xs font-medium text-warning flex items-center gap-1 mb-1">
                   <AlertCircle className="h-3 w-3" />
                   Skills to Develop
                 </p>
-                <p className="text-sm text-amber-600 dark:text-amber-300">
+                <p className="text-sm text-warning">
                   {skillGaps.join(", ")}
                 </p>
               </div>

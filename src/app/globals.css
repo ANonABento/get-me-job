@@ -25,9 +25,8 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
-    background-image: var(--gradient-bg, none);
-    font-family: var(--font-family);
-    letter-spacing: var(--letter-spacing);
+    letter-spacing: var(--letter-spacing, 0);
+    text-transform: var(--text-transform, none);
     overscroll-behavior: none;
     overflow-x: hidden;
   }
@@ -63,8 +62,8 @@
   .glass {
     border: var(--border-width, 1px) solid hsl(var(--border) / var(--surface-border-opacity));
     background-color: hsl(var(--card) / var(--surface-glass-opacity));
-    backdrop-filter: var(--backdrop-blur);
-    -webkit-backdrop-filter: var(--backdrop-blur);
+    backdrop-filter: blur(var(--backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--backdrop-blur));
   }
 
   /* Gradient text */
@@ -94,7 +93,7 @@
 
   /* Elevated card with deeper shadow */
   .card-elevated {
-    @apply rounded-2xl border bg-card shadow-md;
+    @apply rounded-2xl border bg-card shadow-elevated;
     border-width: var(--border-width);
   }
 
@@ -122,7 +121,7 @@
 
   /* Soft glow for interactive elements */
   .glow-primary {
-    box-shadow: 0 0 20px hsl(var(--primary) / var(--glow-primary-opacity));
+    box-shadow: 0 0 20px var(--glow-color);
   }
 
   /* Subtle pulse animation for status indicators */

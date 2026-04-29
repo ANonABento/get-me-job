@@ -57,7 +57,7 @@ export function InterviewSummary({
           responses and feedback below.
         </p>
         <div className="mt-6 flex justify-center gap-3">
-          <Button onClick={onReset} className="gradient-bg text-white hover:opacity-90">
+          <Button onClick={onReset} className="gradient-bg text-primary-foreground hover:opacity-90">
             <RotateCcw className="mr-2 h-4 w-4" />
             Start New Interview
           </Button>

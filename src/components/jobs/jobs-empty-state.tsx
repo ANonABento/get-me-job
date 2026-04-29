@@ -13,7 +13,7 @@ export function JobsEmptyState({ onAdd }: { onAdd: () => void }) {
       <p className="text-muted-foreground mt-2 max-w-md mx-auto">
         Add a job description to analyze your match score and generate a tailored resume.
       </p>
-      <Button onClick={onAdd} size="lg" className="mt-6 gradient-bg text-white hover:opacity-90">
+      <Button onClick={onAdd} size="lg" className="mt-6 gradient-bg text-primary-foreground hover:opacity-90">
         <Plus className="h-5 w-5 mr-2" />
         Add Your First Job
       </Button>
@@ -34,7 +34,7 @@ export function JobsEmptyState({ onAdd }: { onAdd: () => void }) {
           <p className="text-sm text-muted-foreground mt-1">See how well your profile matches each job.</p>
         </div>
         <div className="p-4 rounded-xl bg-muted/50">
-          <div className="p-2 w-10 h-10 rounded-lg bg-violet-500/10 text-violet-500 flex items-center justify-center mb-3">
+          <div className="p-2 w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-3">
             <Download className="h-5 w-5" />
           </div>
           <h3 className="font-medium">Generate Tailored Resumes</h3>

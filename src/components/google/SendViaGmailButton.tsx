@@ -112,7 +112,7 @@ export function SendViaGmailButton({
     <Button
       onClick={handleSend}
       disabled={sending || disabled}
-      className="flex-1 gradient-bg text-white hover:opacity-90"
+      className="flex-1 gradient-bg text-primary-foreground hover:opacity-90"
     >
       {sending ? (
         <Loader2 className="h-4 w-4 mr-2 animate-spin" />

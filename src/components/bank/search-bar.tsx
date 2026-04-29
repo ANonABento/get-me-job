@@ -32,7 +32,7 @@ function CountBadge({ count, active }: { count: number; active: boolean }) {
   return (
     <span className={cn(
       "ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full text-xs",
-      active ? "bg-white/20 text-white" : "bg-background text-muted-foreground"
+      active ? "bg-primary-foreground/20 text-primary-foreground" : "bg-background text-muted-foreground"
     )}>
       {count}
     </span>
@@ -94,7 +94,7 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function S
           className={cn(
             "px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200",
             activeCategory === "all"
-              ? "gradient-bg text-white shadow-sm scale-105"
+              ? "gradient-bg text-primary-foreground shadow-sm scale-105"
               : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
           )}
         >
@@ -110,7 +110,7 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function S
             className={cn(
               "px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200",
               activeCategory === cat
-                ? "gradient-bg text-white shadow-sm scale-105"
+                ? "gradient-bg text-primary-foreground shadow-sm scale-105"
                 : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80",
               !counts[cat] && activeCategory !== cat && "opacity-50"
             )}

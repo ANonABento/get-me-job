@@ -31,9 +31,9 @@ interface ATSScoreBreakdownProps {
 
 function ScoreBar({ label, score, icon: Icon }: { label: string; score: number; icon: React.ElementType }) {
   const getColorClass = (s: number) => {
-    if (s >= 80) return "bg-emerald-500";
-    if (s >= 60) return "bg-amber-500";
-    return "bg-red-500";
+    if (s >= 80) return "bg-success";
+    if (s >= 60) return "bg-warning";
+    return "bg-destructive";
   };
 
   return (
@@ -70,11 +70,11 @@ function IssueCard({ issue }: { issue: ATSIssue }) {
   const getBgClass = () => {
     switch (issue.type) {
       case "error":
-        return "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900";
+        return "bg-destructive/5 border-destructive/20";
       case "warning":
-        return "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900";
+        return "bg-warning/5 border-warning/20";
       default:
-        return "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900";
+        return "bg-info/5 border-info/20";
     }
   };
 
@@ -101,7 +101,7 @@ function KeywordBadge({ keyword }: { keyword: KeywordAnalysis }) {
       variant={keyword.found ? "default" : "secondary"}
       className={`text-xs ${
         keyword.found
-          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+          ? "bg-success/10 text-success"
           : "bg-muted text-muted-foreground"
       }`}
     >
@@ -192,7 +192,7 @@ export function ATSScoreBreakdown({ result, open, onOpenChange }: ATSScoreBreakd
             >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
               {tab === "issues" && (errorCount + warningCount > 0) && (
-                <span className="ml-1.5 px-1.5 py-0.5 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 rounded-full text-xs">
+                <span className="ml-1.5 px-1.5 py-0.5 bg-destructive/10 text-destructive rounded-full text-xs">
                   {errorCount + warningCount}
                 </span>
               )}
@@ -215,15 +215,15 @@ export function ATSScoreBreakdown({ result, open, onOpenChange }: ATSScoreBreakd
               {/* Quick Stats */}
               <div className="grid grid-cols-3 gap-3 pt-2">
                 <div className="text-center p-3 rounded-lg bg-muted/50">
-                  <div className="text-lg font-bold text-emerald-600">{foundKeywords}</div>
+                  <div className="text-lg font-bold text-success">{foundKeywords}</div>
                   <div className="text-xs text-muted-foreground">Keywords Found</div>
                 </div>
                 <div className="text-center p-3 rounded-lg bg-muted/50">
-                  <div className="text-lg font-bold text-red-600">{errorCount}</div>
+                  <div className="text-lg font-bold text-destructive">{errorCount}</div>
                   <div className="text-xs text-muted-foreground">Errors</div>
                 </div>
                 <div className="text-center p-3 rounded-lg bg-muted/50">
-                  <div className="text-lg font-bold text-amber-600">{warningCount}</div>
+                  <div className="text-lg font-bold text-warning">{warningCount}</div>
                   <div className="text-xs text-muted-foreground">Warnings</div>
                 </div>
               </div>
@@ -328,9 +328,9 @@ export function ATSScoreBadge({
   onClick?: () => void;
 }) {
   const getColorClass = () => {
-    if (score >= 80) return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400";
-    if (score >= 60) return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
-    return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+    if (score >= 80) return "bg-success/10 text-success";
+    if (score >= 60) return "bg-warning/10 text-warning";
+    return "bg-destructive/10 text-destructive";
   };
 
   return (

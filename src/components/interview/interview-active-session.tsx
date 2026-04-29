@@ -349,7 +349,7 @@ export function InterviewActiveSession({
               <Button
                 onClick={handleSubmitFollowUp}
                 disabled={submitting || !currentAnswer.trim()}
-                className="flex-1 gradient-bg text-white hover:opacity-90"
+                className="flex-1 gradient-bg text-primary-foreground hover:opacity-90"
               >
                 {submitting ? (
                   <>
@@ -370,7 +370,7 @@ export function InterviewActiveSession({
                 onClick={handleSubmitAnswer}
                 disabled={submitting || !currentAnswer.trim()}
                 size="lg"
-                className="w-full gradient-bg text-white hover:opacity-90"
+                className="w-full gradient-bg text-primary-foreground hover:opacity-90"
               >
                 {submitting ? (
                   <>

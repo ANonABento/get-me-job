@@ -24,17 +24,17 @@ interface ATSScoreCardProps {
 }
 
 const scoreColors = {
-  excellent: "text-success dark:text-green-400",
-  good: "text-blue-600 dark:text-blue-400",
-  fair: "text-amber-600 dark:text-amber-400",
-  poor: "text-red-600 dark:text-red-400",
+  excellent: "text-success",
+  good: "text-info",
+  fair: "text-warning",
+  poor: "text-destructive",
 };
 
 const scoreBgColors = {
-  excellent: "bg-green-100 dark:bg-green-900/30",
-  good: "bg-blue-100 dark:bg-blue-900/30",
-  fair: "bg-amber-100 dark:bg-amber-900/30",
-  poor: "bg-red-100 dark:bg-red-900/30",
+  excellent: "bg-success/10",
+  good: "bg-info/10",
+  fair: "bg-warning/10",
+  poor: "bg-destructive/10",
 };
 
 function getScoreLevel(score: number): keyof typeof scoreColors {
@@ -118,8 +118,8 @@ function KeywordItem({ keyword }: { keyword: KeywordAnalysis }) {
       className={cn(
         "px-2.5 py-1.5 rounded-lg text-sm flex items-center gap-1.5",
         keyword.found
-          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-          : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+          ? "bg-success/10 text-success"
+          : "bg-destructive/10 text-destructive"
       )}
     >
       {keyword.found ? (
@@ -217,19 +217,19 @@ export function ATSScoreCard({ jobId, onAnalyze }: ATSScoreCardProps) {
             <p className="text-sm text-muted-foreground mb-3">{result.summary}</p>
             <div className="flex items-center gap-4 text-sm">
               {errorCount > 0 && (
-                <span className="flex items-center gap-1 text-red-600 dark:text-red-400">
+                <span className="flex items-center gap-1 text-destructive">
                   <AlertCircle className="h-4 w-4" />
                   {errorCount} {errorCount === 1 ? "error" : "errors"}
                 </span>
               )}
               {warningCount > 0 && (
-                <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                <span className="flex items-center gap-1 text-warning">
                   <AlertTriangle className="h-4 w-4" />
                   {warningCount} {warningCount === 1 ? "warning" : "warnings"}
                 </span>
               )}
               {errorCount === 0 && warningCount === 0 && (
-                <span className="flex items-center gap-1 text-success dark:text-green-400">
+                <span className="flex items-center gap-1 text-success">
                   <CheckCircle2 className="h-4 w-4" />
                   No issues found
                 </span>

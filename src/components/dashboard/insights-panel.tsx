@@ -26,9 +26,9 @@ const ICON_MAP: Record<InsightType, React.ElementType> = {
 };
 
 const PRIORITY_STYLES: Record<InsightPriority, string> = {
-  high: "border-l-red-500 bg-red-500/5",
-  medium: "border-l-amber-500 bg-amber-500/5",
-  low: "border-l-emerald-500 bg-emerald-500/5",
+  high: "border-l-destructive bg-destructive/5",
+  medium: "border-l-warning bg-warning/5",
+  low: "border-l-success bg-success/5",
 };
 
 export function InsightsPanel() {

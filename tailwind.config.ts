@@ -76,6 +76,9 @@ const config: Config = {
         md: "var(--shadow-md)",
         lg: "var(--shadow-lg)",
         xl: "var(--shadow-xl)",
+        card: "var(--shadow-card)",
+        elevated: "var(--shadow-elevated)",
+        glow: "0 0 20px var(--glow-color)",
       },
       borderWidth: {
         DEFAULT: "var(--border-width)",
@@ -147,6 +150,9 @@ const config: Config = {
       },
       fontSize: {
         "2xs": ["0.625rem", { lineHeight: "0.75rem" }],
+      },
+      letterSpacing: {
+        theme: "var(--letter-spacing)",
       },
     },
   },

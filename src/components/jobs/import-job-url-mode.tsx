@@ -34,7 +34,7 @@ export function ImportJobUrlMode({
         </p>
       </div>
 
-      <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-sm text-amber-600 dark:text-amber-400">
+      <div className="rounded-lg bg-warning/10 border border-warning/20 p-3 text-sm text-warning">
         Note: Some sites may block automated fetching. If the import fails, try pasting the job content directly.
       </div>
 

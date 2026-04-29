@@ -170,8 +170,8 @@ export function StudioHeader({
           className={cn(
             "rounded-full border px-2 py-0.5 text-xs font-medium",
             draftIsSaved
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border-amber-200 bg-amber-50 text-amber-700"
+              ? "border-success/20 bg-success/10 text-success"
+              : "border-warning/20 bg-warning/10 text-warning"
           )}
         >
           {draftIsSaved ? "Saved" : "Unsaved"}

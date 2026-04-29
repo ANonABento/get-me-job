@@ -28,12 +28,12 @@ const OUTCOME_LABELS: Record<ABOutcome, string> = {
 };
 
 const OUTCOME_COLORS: Record<ABOutcome, string> = {
-  applied: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  screening: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-  interviewing: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  offered: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  rejected: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  withdrawn: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400",
+  applied: "bg-info/10 text-info",
+  screening: "bg-primary/10 text-primary",
+  interviewing: "bg-warning/10 text-warning",
+  offered: "bg-success/10 text-success",
+  rejected: "bg-destructive/10 text-destructive",
+  withdrawn: "bg-muted text-muted-foreground",
 };
 
 function ConversionBar({ label, rate, color }: { label: string; rate: number; color: string }) {
@@ -80,12 +80,12 @@ function VersionStatsCard({ stats, isRecommended }: { stats: VersionStats; isRec
         <ConversionBar
           label="Interview Rate"
           rate={stats.interviewRate}
-          color="bg-amber-500"
+          color="bg-warning"
         />
         <ConversionBar
           label="Offer Rate"
           rate={stats.offerRate}
-          color="bg-green-500"
+          color="bg-success"
         />
       </div>
 
@@ -110,9 +110,9 @@ function VersionStatsCard({ stats, isRecommended }: { stats: VersionStats; isRec
 
 function RecommendationBanner({ recommendation }: { recommendation: ABRecommendation }) {
   const confidenceColors = {
-    low: "bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
-    medium: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800",
-    high: "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800",
+    low: "bg-muted border-border",
+    medium: "bg-info/5 border-info/20",
+    high: "bg-success/5 border-success/20",
   };
 
   return (
@@ -156,10 +156,10 @@ function OutcomePipeline({ stats }: { stats: VersionStats[] }) {
               <div
                 className={cn(
                   "w-full rounded-t transition-all duration-500",
-                  i === 0 && "bg-blue-400",
-                  i === 1 && "bg-purple-400",
-                  i === 2 && "bg-amber-400",
-                  i === 3 && "bg-green-400"
+                  i === 0 && "bg-info/80",
+                  i === 1 && "bg-primary/80",
+                  i === 2 && "bg-warning/80",
+                  i === 3 && "bg-success/80"
                 )}
                 style={{ height: `${Math.max((stage.count / maxCount) * 80, 8)}px` }}
               />
@@ -216,8 +216,8 @@ export function ABTracker() {
   if (error) {
     return (
       <div className="rounded-xl border bg-card p-8 text-center">
-        <AlertCircle className="h-8 w-8 mx-auto text-red-500" />
-        <p className="mt-4 text-red-500">{error}</p>
+        <AlertCircle className="h-8 w-8 mx-auto text-destructive" />
+        <p className="mt-4 text-destructive">{error}</p>
       </div>
     );
   }

@@ -82,7 +82,7 @@ function ToastContainer() {
           <div
             key={toast.id}
             className={cn(
-              "flex items-start gap-3 rounded-lg border p-4 shadow-lg backdrop-blur-xl animate-slide-in-right",
+              "flex items-start gap-3 rounded-lg border p-4 shadow-elevated backdrop-blur-xl animate-slide-in-right",
               toastStyles[toast.type]
             )}
           >

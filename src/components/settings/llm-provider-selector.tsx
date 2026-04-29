@@ -11,7 +11,6 @@ export interface ProviderOption {
   description: string;
   icon: ReactNode;
   requiresKey: boolean;
-  color: string;
 }
 
 export const PROVIDERS: ProviderOption[] = [
@@ -21,7 +20,6 @@ export const PROVIDERS: ProviderOption[] = [
     description: "Free, local AI processing",
     icon: <Cpu className="h-5 w-5" />,
     requiresKey: false,
-    color: "from-violet-500 to-purple-400",
   },
   {
     value: "openai",
@@ -29,7 +27,6 @@ export const PROVIDERS: ProviderOption[] = [
     description: "GPT-4 & GPT-3.5 models",
     icon: <Sparkles className="h-5 w-5" />,
     requiresKey: true,
-    color: "from-rose-400 to-orange-400",
   },
   {
     value: "anthropic",
@@ -37,7 +34,6 @@ export const PROVIDERS: ProviderOption[] = [
     description: "Claude models",
     icon: <Zap className="h-5 w-5" />,
     requiresKey: true,
-    color: "from-amber-400 to-orange-400",
   },
   {
     value: "openrouter",
@@ -45,7 +41,6 @@ export const PROVIDERS: ProviderOption[] = [
     description: "Access multiple providers",
     icon: <Cloud className="h-5 w-5" />,
     requiresKey: true,
-    color: "from-indigo-500 to-violet-400",
   },
 ];
 
@@ -83,7 +78,7 @@ export function LLMProviderSelector({ provider, apiKey, onProviderChange }: LLMP
               provider === option.value ? "border-primary bg-primary/5" : "border-transparent bg-muted/50 hover:bg-muted"
             }`}
           >
-            <div className={`p-2.5 rounded-xl bg-gradient-to-br ${option.color} text-white shrink-0`}>{option.icon}</div>
+            <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">{option.icon}</div>
             <div>
               <p className="font-medium">{option.label}</p>
               <p className="text-sm text-muted-foreground">{option.description}</p>

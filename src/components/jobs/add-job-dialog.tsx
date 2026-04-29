@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Briefcase, Link as LinkIcon, Loader2 } from "lucide-react";
+import { Briefcase, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import { readJsonResponse } from "@/lib/http";
 import type { JobDescription } from "@/types";
-import { scrapeJobFromUrl } from "./import-job-api";
 
 interface AddJobDialogProps {
   open: boolean;
@@ -39,41 +38,7 @@ const EMPTY_FORM: NewJobForm = {
 export function AddJobDialog({ open, onOpenChange, onCreated }: AddJobDialogProps) {
   const [form, setForm] = useState<NewJobForm>(EMPTY_FORM);
   const [addingJob, setAddingJob] = useState(false);
-  const [scrapingUrl, setScrapingUrl] = useState(false);
   const showErrorToast = useErrorToast();
-
-  const handleScrapeUrl = async () => {
-    const url = form.url.trim();
-    if (!url) return;
-
-    try {
-      new URL(url);
-    } catch {
-      showErrorToast(new Error("Please enter a valid URL."), {
-        title: "Could not scrape URL",
-        fallbackDescription: "Check the pasted job URL and try again.",
-      });
-      return;
-    }
-
-    setScrapingUrl(true);
-    try {
-      const preview = await scrapeJobFromUrl(url);
-      setForm({
-        title: preview.title,
-        company: preview.company,
-        description: preview.fullDescription,
-        url: preview.url || url,
-      });
-    } catch (error) {
-      showErrorToast(error, {
-        title: "Could not scrape URL",
-        fallbackDescription: "Try pasting the job description manually.",
-      });
-    } finally {
-      setScrapingUrl(false);
-    }
-  };
 
   const handleSubmit = async () => {
     if (!form.title || !form.company || !form.description) {
@@ -143,28 +108,12 @@ export function AddJobDialog({ open, onOpenChange, onCreated }: AddJobDialogProp
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Paste URL</Label>
-            <div className="flex gap-2">
-              <Input
-                value={form.url}
-                onChange={(event) => setForm((prev) => ({ ...prev, url: event.target.value }))}
-                placeholder="https://..."
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => void handleScrapeUrl()}
-                disabled={scrapingUrl || !form.url.trim()}
-                className="shrink-0"
-              >
-                {scrapingUrl ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <LinkIcon className="h-4 w-4 mr-2" />
-                )}
-                Scrape
-              </Button>
-            </div>
+            <Label>Job URL (optional)</Label>
+            <Input
+              value={form.url}
+              onChange={(event) => setForm((prev) => ({ ...prev, url: event.target.value }))}
+              placeholder="https://..."
+            />
           </div>
           <div className="space-y-2">
             <Label>Job Description</Label>
@@ -184,8 +133,8 @@ export function AddJobDialog({ open, onOpenChange, onCreated }: AddJobDialogProp
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={addingJob || scrapingUrl || !form.title || !form.company || !form.description}
-            className="gradient-bg text-white hover:opacity-90"
+            disabled={addingJob || !form.title || !form.company || !form.description}
+            className="gradient-bg text-primary-foreground hover:opacity-90"
           >
             {addingJob && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Add Job

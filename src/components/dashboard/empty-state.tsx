@@ -11,7 +11,7 @@ export function EmptyState({ variant }: EmptyStateProps) {
   if (variant === "no-resume") {
     return (
       <div className="rounded-2xl border-2 border-dashed bg-card p-8 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl gradient-bg text-white shadow-lg">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl gradient-bg text-primary-foreground shadow-elevated">
           <Upload className="h-8 w-8" />
         </div>
         <h3 className="text-xl font-bold">Get started: upload your resume</h3>
@@ -21,7 +21,7 @@ export function EmptyState({ variant }: EmptyStateProps) {
         </p>
         <Link
           href="/bank"
-          className="mt-6 inline-flex items-center gap-2 rounded-xl gradient-bg px-6 py-3 font-medium text-white shadow-lg hover:opacity-90 transition-opacity"
+          className="mt-6 inline-flex items-center gap-2 rounded-xl gradient-bg px-6 py-3 font-medium text-primary-foreground shadow-elevated hover:opacity-90 transition-opacity"
         >
           <Upload className="h-4 w-4" />
           Upload Resume

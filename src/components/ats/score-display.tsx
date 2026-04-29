@@ -31,19 +31,19 @@ function getScoreLevel(score: number): ScoreLevel {
 
 const SCORE_COLORS: Record<ScoreLevel, { text: string; bar: string; bg: string }> = {
   good: {
-    text: "text-emerald-600 dark:text-emerald-400",
-    bar: "bg-emerald-500",
-    bg: "bg-emerald-100 dark:bg-emerald-900/30",
+    text: "text-success",
+    bar: "bg-success",
+    bg: "bg-success/10",
   },
   fair: {
-    text: "text-amber-600 dark:text-amber-400",
-    bar: "bg-amber-500",
-    bg: "bg-amber-100 dark:bg-amber-900/30",
+    text: "text-warning",
+    bar: "bg-warning",
+    bg: "bg-warning/10",
   },
   poor: {
-    text: "text-red-600 dark:text-red-400",
-    bar: "bg-red-500",
-    bg: "bg-red-100 dark:bg-red-900/30",
+    text: "text-destructive",
+    bar: "bg-destructive",
+    bg: "bg-destructive/10",
   },
 };
 
@@ -135,8 +135,8 @@ export function ScoreDisplay({ result }: ScoreDisplayProps) {
                 className={cn(
                   "px-2.5 py-1 rounded-full text-xs font-medium",
                   kw.found
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                    : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                    ? "bg-success/10 text-success"
+                    : "bg-destructive/10 text-destructive"
                 )}
               >
                 {kw.found ? "\u2713" : "\u2717"} {kw.keyword}

@@ -38,10 +38,10 @@ function ScoreRing({
 
   const color =
     score >= SCORE_STRONG
-      ? "text-emerald-500"
+      ? "text-success"
       : score >= SCORE_MODERATE
-      ? "text-amber-500"
-      : "text-red-500";
+      ? "text-warning"
+      : "text-destructive";
 
   const bgColor =
     score >= SCORE_STRONG
@@ -126,9 +126,9 @@ export function GapAnalysis({
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              <CheckCircle2 className="h-4 w-4 text-success" />
               Matched Keywords
-              <span className="ml-auto text-xs font-normal text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+              <span className="ml-auto text-xs font-normal text-success bg-success/10 px-2 py-0.5 rounded-full">
                 {keywordsFound.length} found
               </span>
             </CardTitle>
@@ -138,7 +138,7 @@ export function GapAnalysis({
               {topFound.map((kw, i) => (
                 <span
                   key={i}
-                  className="rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-2.5 py-0.5 text-xs"
+                  className="rounded-full bg-success/10 text-success px-2.5 py-0.5 text-xs"
                 >
                   {kw}
                 </span>
@@ -158,9 +158,9 @@ export function GapAnalysis({
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <AlertTriangle className="h-4 w-4 text-warning" />
               Missing Keywords
-              <span className="ml-auto text-xs font-normal text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full">
+              <span className="ml-auto text-xs font-normal text-warning bg-warning/10 px-2 py-0.5 rounded-full">
                 {keywordsMissing.length} missing
               </span>
             </CardTitle>
@@ -170,7 +170,7 @@ export function GapAnalysis({
               {topMissing.map((kw, i) => (
                 <span
                   key={i}
-                  className="rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 px-2.5 py-0.5 text-xs flex items-center gap-1"
+                  className="rounded-full bg-warning/10 text-warning px-2.5 py-0.5 text-xs flex items-center gap-1"
                 >
                   {kw}
                   <MapPin className="h-2.5 w-2.5 opacity-60" />
@@ -194,9 +194,9 @@ export function GapAnalysis({
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Lightbulb className="h-4 w-4 text-blue-500" />
+              <Lightbulb className="h-4 w-4 text-info" />
               Improvement Suggestions
-              <span className="ml-auto text-xs font-normal text-blue-600 bg-blue-500/10 px-2 py-0.5 rounded-full">
+              <span className="ml-auto text-xs font-normal text-info bg-info/10 px-2 py-0.5 rounded-full">
                 {gaps.length} tips
               </span>
             </CardTitle>
@@ -205,7 +205,7 @@ export function GapAnalysis({
             <ul className="space-y-2">
               {gaps.map((gap, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm">
-                  <ArrowRight className="h-4 w-4 mt-0.5 shrink-0 text-blue-500" />
+                  <ArrowRight className="h-4 w-4 mt-0.5 shrink-0 text-info" />
                   <div>
                     <p>{gap.suggestion}</p>
                     <span className="text-xs text-muted-foreground capitalize">

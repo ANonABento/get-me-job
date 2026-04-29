@@ -85,8 +85,8 @@ export function RecordingControls({
 
         {isRecording && (
           <>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/10 text-destructive">
-              <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive">
+              <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
               <span className="text-sm font-mono">{formatDuration(duration)}</span>
             </div>
             <Button
@@ -127,7 +127,7 @@ export function RecordingControls({
           <span
             className={cn(
               "h-3 w-3 rounded-full",
-              isPaused ? "bg-amber-500" : "bg-red-500 animate-pulse"
+              isPaused ? "bg-warning" : "bg-destructive animate-pulse"
             )}
           />
           <span className="text-2xl font-mono font-bold">
@@ -161,7 +161,7 @@ export function RecordingControls({
         {!isRecording && !recording && (
           <Button
             onClick={startRecording}
-            className="gap-2 gradient-bg text-white hover:opacity-90"
+            className="gap-2 gradient-bg text-primary-foreground hover:opacity-90"
           >
             <Mic className="h-4 w-4" />
             Start Recording

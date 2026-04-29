@@ -112,28 +112,28 @@ const steps = [
     title: "Upload Your Resume",
     description: "Start by uploading your resume. Taida will automatically extract and organize your professional information.",
     icon: Upload,
-    gradient: "from-violet-500 to-purple-400",
+    gradient: "from-primary to-accent",
     action: "/bank",
   },
   {
     title: "Build Your Profile",
     description: "Review and enhance your extracted profile. Add missing details to strengthen your applications.",
     icon: FileText,
-    gradient: "from-rose-400 to-orange-400",
+    gradient: "from-primary to-accent",
     action: "/bank",
   },
   {
     title: "Create Application Documents",
     description: "Build application-ready resumes in Document Studio.",
     icon: Briefcase,
-    gradient: "from-blue-500 to-indigo-400",
+    gradient: "from-primary to-accent",
     action: "/studio",
   },
   {
     title: "Ace Your Interviews",
     description: "Practice with AI-powered mock interviews customized to your target roles. Get instant feedback.",
     icon: MessageSquare,
-    gradient: "from-amber-400 to-orange-400",
+    gradient: "from-primary to-accent",
     action: "/interview",
   },
 ];
@@ -203,7 +203,7 @@ export function OnboardingDialog() {
         <div className="flex flex-col gap-3 mt-6">
           <Button
             onClick={handleNext}
-            className="gradient-bg text-white hover:opacity-90"
+            className="gradient-bg text-primary-foreground hover:opacity-90"
           >
             {isLastStep ? "Get Started" : "Continue"}
             <ArrowRight className="h-4 w-4 ml-2" />

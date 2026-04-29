@@ -53,7 +53,7 @@ export function DataManagement(props: DataManagementProps) {
               {exporting === "profile" ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
-                <FileJson className="h-4 w-4 mr-2 text-blue-500" />
+                <FileJson className="h-4 w-4 mr-2 text-info" />
               )}
               Export Profile (JSON)
             </Button>
@@ -61,7 +61,7 @@ export function DataManagement(props: DataManagementProps) {
               {exporting === "jobs-json" ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
-                <FileJson className="h-4 w-4 mr-2 text-green-500" />
+                <FileJson className="h-4 w-4 mr-2 text-success" />
               )}
               Export Jobs (JSON)
             </Button>
@@ -69,7 +69,7 @@ export function DataManagement(props: DataManagementProps) {
               {exporting === "jobs-csv" ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
-                <FileSpreadsheet className="h-4 w-4 mr-2 text-emerald-500" />
+                <FileSpreadsheet className="h-4 w-4 mr-2 text-success" />
               )}
               Export Jobs (CSV)
             </Button>
@@ -77,7 +77,7 @@ export function DataManagement(props: DataManagementProps) {
               {exporting === "backup" ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
-                <HardDrive className="h-4 w-4 mr-2 text-violet-500" />
+                <HardDrive className="h-4 w-4 mr-2 text-primary" />
               )}
               Full Backup
             </Button>
@@ -112,7 +112,7 @@ export function DataManagement(props: DataManagementProps) {
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
               />
               <Button variant="outline" disabled={importing} className="w-full justify-start pointer-events-none">
-                {importing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileJson className="h-4 w-4 mr-2 text-blue-500" />}
+                {importing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileJson className="h-4 w-4 mr-2 text-info" />}
                 Import Jobs (JSON/CSV)
               </Button>
             </div>
@@ -125,7 +125,7 @@ export function DataManagement(props: DataManagementProps) {
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
               />
               <Button variant="outline" disabled={importing} className="w-full justify-start pointer-events-none">
-                {importing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <HardDrive className="h-4 w-4 mr-2 text-violet-500" />}
+                {importing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <HardDrive className="h-4 w-4 mr-2 text-primary" />}
                 Restore Backup
               </Button>
             </div>
@@ -166,7 +166,7 @@ export function DataManagement(props: DataManagementProps) {
                 size="sm"
                 onClick={() => void onConfirmFullImport()}
                 disabled={importing}
-                className="gradient-bg text-white hover:opacity-90"
+                className="gradient-bg text-primary-foreground hover:opacity-90"
               >
                 {importing ? (
                   <>

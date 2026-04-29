@@ -43,15 +43,15 @@ function FunnelVisualization({ stages }: { stages: FunnelStage[] }) {
               <div
                 className={cn(
                   "h-10 rounded-r-lg flex items-center justify-between px-3 transition-all",
-                  index === 0 && "bg-blue-500",
-                  index === 1 && "bg-purple-500",
-                  index === 2 && "bg-amber-500",
-                  index === 3 && "bg-green-500"
+                  index === 0 && "bg-info",
+                  index === 1 && "bg-primary",
+                  index === 2 && "bg-warning",
+                  index === 3 && "bg-success"
                 )}
                 style={{ width: `${widthPercentage}%` }}
               >
-                <span className="text-white font-bold">{stage.count}</span>
-                <span className="text-white/80 text-sm">{stage.percentage}%</span>
+                <span className="text-primary-foreground font-bold">{stage.count}</span>
+                <span className="text-primary-foreground/80 text-sm">{stage.percentage}%</span>
               </div>
             </div>
             <div className="w-20 text-right">
@@ -146,7 +146,7 @@ function ResumePerformanceList({ resumes }: { resumes: ResumePerformance[] }) {
           key={resume.id}
           className={cn(
             "flex items-center gap-3 p-3 rounded-lg border",
-            resume.successful && "border-green-500/30 bg-green-500/5"
+            resume.successful && "border-success/30 bg-success/5"
           )}
         >
           <div
@@ -168,15 +168,15 @@ function ResumePerformanceList({ resumes }: { resumes: ResumePerformance[] }) {
           </div>
           <div className="flex items-center gap-2">
             {resume.successful && (
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <CheckCircle2 className="h-4 w-4 text-success" />
             )}
             {resume.jobStatus && (
               <span
                 className={cn(
                   "text-xs px-2 py-0.5 rounded capitalize",
-                  resume.jobStatus === "offered" && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-                  resume.jobStatus === "interviewing" && "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-                  resume.jobStatus === "rejected" && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                  resume.jobStatus === "offered" && "bg-success/10 text-success",
+                  resume.jobStatus === "interviewing" && "bg-warning/10 text-warning",
+                  resume.jobStatus === "rejected" && "bg-destructive/10 text-destructive"
                 )}
               >
                 {resume.jobStatus}

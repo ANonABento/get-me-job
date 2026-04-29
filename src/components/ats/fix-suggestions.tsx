@@ -21,20 +21,20 @@ const ISSUE_STYLES: Record<
   error: {
     icon: AlertCircle,
     border: "border-l-red-500",
-    iconColor: "text-red-500",
-    badge: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+    iconColor: "text-destructive",
+    badge: "bg-destructive/10 text-destructive",
   },
   warning: {
     icon: AlertTriangle,
     border: "border-l-amber-500",
-    iconColor: "text-amber-500",
-    badge: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+    iconColor: "text-warning",
+    badge: "bg-warning/10 text-warning",
   },
   info: {
     icon: Info,
     border: "border-l-blue-500",
-    iconColor: "text-blue-500",
-    badge: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    iconColor: "text-info",
+    badge: "bg-info/10 text-info",
   },
 };
 

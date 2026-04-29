@@ -57,8 +57,8 @@ export function ProfileCompletenessRing({ data }: ProfileCompletenessRingProps) 
               />
               <defs>
                 <linearGradient id="ring-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="hsl(172 66% 45%)" />
-                  <stop offset="100%" stopColor="hsl(210 90% 50%)" />
+                  <stop offset="0%" stopColor="hsl(var(--success))" />
+                  <stop offset="100%" stopColor="hsl(var(--primary))" />
                 </linearGradient>
               </defs>
             </svg>
