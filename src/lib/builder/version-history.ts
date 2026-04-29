@@ -45,11 +45,6 @@ function isBuilderDocumentMode(value: unknown): value is BuilderDocumentMode {
   return value === "resume" || value === "cover_letter";
 }
 
-function getDefaultTemplateIdForDocumentMode(
-  documentMode: BuilderDocumentMode
-): string {
-  return documentMode === "cover_letter" ? "formal" : "classic";
-}
 
 function getVersionTimestamp(version: Pick<BuilderVersion, "savedAt">): number {
   const timestamp = Date.parse(version.savedAt);

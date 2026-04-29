@@ -79,13 +79,14 @@ export function getTemplateThumbnailTraits(
     };
   }
 
+  const resumeStyles = styles as TemplateStyles;
   return {
     accentColor: styles.accentColor,
     fontFamily: styles.fontFamily,
-    headerAlignmentClass: HEADER_ALIGNMENT_CLASS_BY_STYLE[styles.headerStyle],
-    sectionRuleClass: SECTION_RULE_CLASS_BY_DIVIDER[styles.sectionDivider],
-    bulletLabel: BULLET_LABEL_BY_STYLE[styles.bulletStyle],
-    isTwoColumn: styles.layout === "two-column",
+    headerAlignmentClass: HEADER_ALIGNMENT_CLASS_BY_STYLE[resumeStyles.headerStyle],
+    sectionRuleClass: SECTION_RULE_CLASS_BY_DIVIDER[resumeStyles.sectionDivider],
+    bulletLabel: BULLET_LABEL_BY_STYLE[resumeStyles.bulletStyle],
+    isTwoColumn: resumeStyles.layout === "two-column",
     isLetter: false,
   };
 }

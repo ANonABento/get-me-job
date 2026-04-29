@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getDefaultTemplateIdForDocumentMode,
   getTemplateForDocumentMode,
+  TEMPLATES,
 } from "@/lib/resume/template-data";
 import type {
   CoverLetterTemplateStyles,
@@ -577,11 +578,12 @@ export function useStudioPageState(): StudioPageState {
 
     if (documentMode === "cover_letter") return bodyHtml;
 
-    if (!("layout" in selectedTemplate.styles)) return bodyHtml;
+    if (!selectedTemplate || !("layout" in selectedTemplate.styles))
+      return bodyHtml;
 
     return createPrintableEditorHtml(
       bodyHtml,
-      selectedTemplate.styles,
+      selectedTemplate.styles as TemplateStyles,
       `${selectedTemplate.name} Resume`
     );
   }, [content, documentMode, html, selectedTemplate]);

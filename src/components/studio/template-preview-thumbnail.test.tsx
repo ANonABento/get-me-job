@@ -1,6 +1,10 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { getCoverLetterTemplate } from "@/lib/builder/cover-letter-document";
+import {
+  getCoverLetterTemplate,
+  type CoverLetterTemplate,
+  COVER_LETTER_TEMPLATES,
+} from "@/lib/builder/cover-letter-document";
 import { TEMPLATES } from "@/lib/resume/template-data";
 import type { ResumeTemplate } from "@/lib/resume/template-data";
 import {
