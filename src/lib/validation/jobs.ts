@@ -2,11 +2,14 @@ import { z } from "zod";
 
 // Job status enum
 export const jobStatusSchema = z.enum([
+  "pending",
   "saved",
+  "dismissed",
   "applied",
   "interviewing",
   "offered",
   "rejected",
+  "withdrawn",
 ]);
 
 // Job type enum

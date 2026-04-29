@@ -49,6 +49,7 @@ export const createJobSchema = z.object({
 export type CreateJobInput = z.infer<typeof createJobSchema>;
 
 export const updateJobSchema = createJobSchema.partial().extend({
+  status: jobStatusSchema.optional(),
   appliedAt: z.string().optional(),
 });
 

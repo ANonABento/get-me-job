@@ -47,9 +47,20 @@ function daysBetween(date1: string, date2: string): number {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
+function isAppliedLifecycleStatus(status?: JobDescription["status"]): boolean {
+  return (
+    status === "applied" ||
+    status === "interviewing" ||
+    status === "offered" ||
+    status === "rejected" ||
+    status === "withdrawn"
+  );
+}
+
 export function calculateFunnel(jobs: JobDescription[]): FunnelStage[] {
-  const total = jobs.length;
-  if (total === 0) {
+  const appliedJobs = jobs.filter((job) => isAppliedLifecycleStatus(job.status));
+  const applied = appliedJobs.length;
+  if (applied === 0) {
     return [
       { stage: "Applied", count: 0, percentage: 0, conversionFromPrevious: 0 },
       { stage: "Response", count: 0, percentage: 0, conversionFromPrevious: 0 },
@@ -58,14 +69,13 @@ export function calculateFunnel(jobs: JobDescription[]): FunnelStage[] {
     ];
   }
 
-  const applied = total;
-  const responded = jobs.filter(
+  const responded = appliedJobs.filter(
     (j) => j.status === "interviewing" || j.status === "offered" || j.status === "rejected"
   ).length;
-  const interviewed = jobs.filter(
+  const interviewed = appliedJobs.filter(
     (j) => j.status === "interviewing" || j.status === "offered"
   ).length;
-  const offered = jobs.filter((j) => j.status === "offered").length;
+  const offered = appliedJobs.filter((j) => j.status === "offered").length;
 
   return [
     {
@@ -145,7 +155,7 @@ export function calculateOfferRate(jobs: JobDescription[]): {
   byJobType: { type: string; rate: number; count: number }[];
 } {
   const appliedJobs = jobs.filter(
-    (j) => j.status !== "saved" && j.status !== "withdrawn"
+    (j) => isAppliedLifecycleStatus(j.status) && j.status !== "withdrawn"
   );
   const offeredJobs = jobs.filter((j) => j.status === "offered");
 
@@ -257,7 +267,7 @@ export function generateInsights(
   }
 
   // Volume insight
-  const totalApplied = jobs.filter((j) => j.status !== "saved").length;
+  const totalApplied = jobs.filter((j) => isAppliedLifecycleStatus(j.status)).length;
   if (totalApplied < 10) {
     insights.push(
       "Apply to more positions to get statistically meaningful insights. Aim for 15-20+ applications."

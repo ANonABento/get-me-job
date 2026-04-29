@@ -496,7 +496,11 @@ function Step({
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
+    pending:
+      "bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400",
     saved: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+    dismissed:
+      "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300",
     applied:
       "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
     interviewing:
@@ -505,14 +509,19 @@ function StatusBadge({ status }: { status: string }) {
       "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
     rejected:
       "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
+    withdrawn:
+      "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300",
   };
 
   const labels: Record<string, string> = {
+    pending: "Pending",
     saved: "Saved",
+    dismissed: "Dismissed",
     applied: "Applied",
     interviewing: "Interview",
     offered: "Offered",
     rejected: "Rejected",
+    withdrawn: "Withdrawn",
   };
 
   return (

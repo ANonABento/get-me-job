@@ -110,7 +110,24 @@ export async function PATCH(
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
 
-    const data = await request.json();
+    const rawData = await request.json();
+    const parseResult = updateJobSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      const errors = parseResult.error.issues.map((issue) => ({
+        field: issue.path.join("."),
+        message: issue.message,
+      }));
+      return NextResponse.json(
+        { error: "Validation failed", errors },
+        { status: 400 }
+      );
+    }
+
+    const data = parseResult.data;
+    if (data.status === "applied" && !data.appliedAt && !existingJob.appliedAt) {
+      data.appliedAt = new Date().toISOString();
+    }
+
     updateJob(params.id, data, authResult.userId);
     const job = getJob(params.id, authResult.userId);
 

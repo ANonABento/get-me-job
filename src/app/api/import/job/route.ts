@@ -185,6 +185,7 @@ export async function PUT(request: NextRequest) {
       responsibilities: [],
       keywords: keywords || [],
       url,
+      status: "pending",
     }, authResult.userId);
 
     return NextResponse.json({

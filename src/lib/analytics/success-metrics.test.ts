@@ -46,6 +46,9 @@ describe("calculateFunnel", () => {
 
   it("calculates funnel stages correctly", () => {
     const jobs = [
+      createJob({ status: "pending" }),
+      createJob({ status: "dismissed" }),
+      createJob({ status: "saved" }),
       createJob({ status: "applied" }),
       createJob({ status: "applied" }),
       createJob({ status: "interviewing" }),
@@ -144,7 +147,11 @@ describe("calculateTimeToInterview", () => {
 
 describe("calculateOfferRate", () => {
   it("returns 0 for no applied jobs", () => {
-    const jobs = [createJob({ status: "saved" })];
+    const jobs = [
+      createJob({ status: "pending" }),
+      createJob({ status: "saved" }),
+      createJob({ status: "dismissed" }),
+    ];
     const result = calculateOfferRate(jobs);
 
     expect(result.overall).toBe(0);

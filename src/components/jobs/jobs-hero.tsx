@@ -69,6 +69,7 @@ export function JobsHero({ jobsCount, onImportClick, onAddClick, onGmailImportSu
                     company: email.parsed?.company || email.from.split("@")[1]?.split(".")[0] || "Unknown",
                     description: email.snippet,
                     url: "",
+                    status: "pending",
                   };
 
                   try {

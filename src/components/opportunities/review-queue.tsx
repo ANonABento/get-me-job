@@ -15,18 +15,32 @@ const DESCRIPTION_PREVIEW_LENGTH = 260;
 const SWIPE_DISTANCE_THRESHOLD = 110;
 const SWIPE_VELOCITY_THRESHOLD = 650;
 
+function getDeadlineTime(deadline?: string): number {
+  if (!deadline) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  const time = new Date(deadline).getTime();
+  return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time;
+}
+
+function getCreatedAtTime(createdAt: string): number {
+  const time = new Date(createdAt).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
 export function getPendingOpportunities(jobs: JobDescription[]): JobDescription[] {
   return jobs
     .filter((job) => job.status === "pending")
     .sort((a, b) => {
-      const deadlineA = a.deadline ? new Date(a.deadline).getTime() : Number.POSITIVE_INFINITY;
-      const deadlineB = b.deadline ? new Date(b.deadline).getTime() : Number.POSITIVE_INFINITY;
+      const deadlineA = getDeadlineTime(a.deadline);
+      const deadlineB = getDeadlineTime(b.deadline);
 
       if (deadlineA !== deadlineB) {
         return deadlineA - deadlineB;
       }
 
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      return getCreatedAtTime(b.createdAt) - getCreatedAtTime(a.createdAt);
     });
 }
 
