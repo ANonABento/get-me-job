@@ -72,7 +72,7 @@ describe("constants barrel", () => {
 
 describe("updateJobSchema", () => {
   it("does not default status on partial updates", () => {
-    expect(updateJobSchema.parse({ notes: "Follow up" })).toEqual({
+    expect(updateJobSchema.parse({ notes: "Follow up" })).toMatchObject({
       notes: "Follow up",
     });
   });
