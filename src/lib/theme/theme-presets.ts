@@ -87,6 +87,8 @@ const CONTROLLED_VARIABLES = [
   "--gradient-hero",
 ] as const;
 
+type ControlledThemeVariable = (typeof CONTROLLED_VARIABLES)[number];
+
 export function hexToHslString(hex: string): string {
   const normalized = normalizeHex(hex);
   const red = parseInt(normalized.slice(0, 2), 16) / 255;
@@ -155,13 +157,14 @@ export function hslStringToHex(hsl: string): string {
   return `#${toHexChannel(red + match)}${toHexChannel(green + match)}${toHexChannel(blue + match)}`;
 }
 
-export function buildThemeVariables(colors: ThemeColors): Record<string, string> {
+export function buildThemeVariables(colors: ThemeColors): Record<ControlledThemeVariable, string> {
   const primary = parseHslString(colors.primary);
   const background = parseHslString(colors.background);
   const card = parseHslString(colors.card);
   const darkBackground = background.lightness < 45;
   const secondaryLightness = darkBackground ? clamp(background.lightness + 8, 10, 28) : clamp(background.lightness - 4, 90, 98);
   const borderLightness = darkBackground ? clamp(background.lightness + 12, 14, 34) : clamp(background.lightness - 8, 84, 94);
+  const accent = createAccentColor(primary, darkBackground);
 
   return {
     "--background": formatHsl(background),
@@ -176,13 +179,13 @@ export function buildThemeVariables(colors: ThemeColors): Record<string, string>
     "--secondary-foreground": readableForeground({ ...background, lightness: secondaryLightness }),
     "--muted": `${background.hue} 12% ${secondaryLightness}%`,
     "--muted-foreground": darkBackground ? `${background.hue} 8% 64%` : `${background.hue} 8% 42%`,
-    "--accent": `${(primary.hue + 112) % 360} ${clamp(primary.saturation, 45, 90)}% ${darkBackground ? 62 : 56}%`,
+    "--accent": formatHsl(accent),
     "--accent-foreground": "0 0% 100%",
     "--border": `${background.hue} 12% ${borderLightness}%`,
     "--input": `${background.hue} 12% ${borderLightness}%`,
     "--ring": formatHsl(primary),
-    "--gradient-primary": `linear-gradient(135deg, hsl(${formatHsl(primary)}) 0%, hsl(${(primary.hue + 112) % 360} ${clamp(primary.saturation, 45, 90)}% ${darkBackground ? 62 : 56}%) 100%)`,
-    "--gradient-hero": `linear-gradient(135deg, hsl(${formatHsl(primary)} / 0.06) 0%, hsl(${(primary.hue + 112) % 360} ${clamp(primary.saturation, 45, 90)}% ${darkBackground ? 62 : 56}% / 0.04) 100%)`,
+    "--gradient-primary": buildGradient(primary, accent),
+    "--gradient-hero": buildGradient(primary, accent, "0.06", "0.04"),
   };
 }
 
@@ -233,6 +236,8 @@ export function readThemePreference(storage = getThemeStorage()): ThemePreferenc
 }
 
 export function notifyThemePreferenceChanged(): void {
+  if (typeof window === "undefined") return;
+
   window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
 }
 
@@ -266,12 +271,23 @@ function readCustomColors(storage: Storage): ThemeColors {
   try {
     const parsed = JSON.parse(stored) as Partial<Record<ThemeColorKey, unknown>>;
     return {
-      primary: typeof parsed.primary === "string" ? parseHslString(parsed.primary) && parsed.primary : DEFAULT_CUSTOM_THEME.primary,
-      background: typeof parsed.background === "string" ? parseHslString(parsed.background) && parsed.background : DEFAULT_CUSTOM_THEME.background,
-      card: typeof parsed.card === "string" ? parseHslString(parsed.card) && parsed.card : DEFAULT_CUSTOM_THEME.card,
+      primary: readStoredColor(parsed.primary, DEFAULT_CUSTOM_THEME.primary),
+      background: readStoredColor(parsed.background, DEFAULT_CUSTOM_THEME.background),
+      card: readStoredColor(parsed.card, DEFAULT_CUSTOM_THEME.card),
     };
   } catch {
     return DEFAULT_CUSTOM_THEME;
+  }
+}
+
+function readStoredColor(value: unknown, fallback: string): string {
+  if (typeof value !== "string") return fallback;
+
+  try {
+    parseHslString(value);
+    return value;
+  } catch {
+    return fallback;
   }
 }
 
@@ -315,6 +331,21 @@ function parseHslString(hsl: string): ParsedHsl {
 
 function formatHsl(hsl: ParsedHsl): string {
   return `${hsl.hue} ${hsl.saturation}% ${hsl.lightness}%`;
+}
+
+function createAccentColor(primary: ParsedHsl, darkBackground: boolean): ParsedHsl {
+  return {
+    hue: (primary.hue + 112) % 360,
+    saturation: clamp(primary.saturation, 45, 90),
+    lightness: darkBackground ? 62 : 56,
+  };
+}
+
+function buildGradient(start: ParsedHsl, end: ParsedHsl, startAlpha?: string, endAlpha?: string): string {
+  const startColor = startAlpha ? `${formatHsl(start)} / ${startAlpha}` : formatHsl(start);
+  const endColor = endAlpha ? `${formatHsl(end)} / ${endAlpha}` : formatHsl(end);
+
+  return `linear-gradient(135deg, hsl(${startColor}) 0%, hsl(${endColor}) 100%)`;
 }
 
 function readableForeground(color: ParsedHsl): string {
