@@ -55,8 +55,9 @@ describe("Input", () => {
     expect(input.className).toContain("flex");
     expect(input.className).toContain("h-10");
     expect(input.className).toContain("w-full");
-    expect(input.className).toContain("rounded-md");
-    expect(input.className).toContain("border");
+    expect(input.className).toContain("rounded-[var(--radius)]");
+    expect(input.className).toContain("border-[length:var(--border-width)]");
+    expect(input.className).toContain("[letter-spacing:var(--letter-spacing)]");
   });
 
   it("should merge custom className", () => {
@@ -80,7 +81,7 @@ describe("Input", () => {
         autoComplete="username"
         required
         maxLength={50}
-      />
+      />,
     );
     const input = screen.getByTestId("input");
     expect(input).toHaveAttribute("id", "username");
@@ -93,7 +94,9 @@ describe("Input", () => {
   it("should handle focus and blur events", () => {
     const handleFocus = vi.fn();
     const handleBlur = vi.fn();
-    render(<Input data-testid="input" onFocus={handleFocus} onBlur={handleBlur} />);
+    render(
+      <Input data-testid="input" onFocus={handleFocus} onBlur={handleBlur} />,
+    );
     const input = screen.getByTestId("input");
 
     fireEvent.focus(input);
@@ -104,7 +107,13 @@ describe("Input", () => {
   });
 
   it("should accept a value prop for controlled input", () => {
-    render(<Input data-testid="input" value="controlled value" onChange={() => {}} />);
+    render(
+      <Input
+        data-testid="input"
+        value="controlled value"
+        onChange={() => {}}
+      />,
+    );
     expect(screen.getByTestId("input")).toHaveValue("controlled value");
   });
 

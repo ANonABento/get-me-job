@@ -25,15 +25,18 @@ const ToastContext = createContext<ToastContextType | null>(null);
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const addToast = useCallback(({ type, title, description }: Omit<Toast, "id">) => {
-    const id = Math.random().toString(36).slice(2);
-    setToasts((prev) => [...prev, { id, type, title, description }]);
+  const addToast = useCallback(
+    ({ type, title, description }: Omit<Toast, "id">) => {
+      const id = Math.random().toString(36).slice(2);
+      setToasts((prev) => [...prev, { id, type, title, description }]);
 
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 5000);
-  }, []);
+      // Auto remove after 5 seconds
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, 5000);
+    },
+    [],
+  );
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -82,15 +85,17 @@ function ToastContainer() {
           <div
             key={toast.id}
             className={cn(
-              "flex items-start gap-3 rounded-lg border p-4 shadow-elevated backdrop-blur-xl animate-slide-in-right",
-              toastStyles[toast.type]
+              "flex items-start gap-3 rounded-[var(--radius)] border-[length:var(--border-width)] p-4 shadow-[var(--shadow-elevated)] [backdrop-filter:var(--backdrop-blur)] animate-slide-in-right",
+              toastStyles[toast.type],
             )}
           >
             <Icon className="h-5 w-5 mt-0.5 shrink-0" />
             <div className="flex-1">
-              <p className="font-medium text-foreground">{toast.title}</p>
+              <p className="font-medium text-foreground [letter-spacing:var(--letter-spacing)]">
+                {toast.title}
+              </p>
               {toast.description && (
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-1 text-sm text-muted-foreground [letter-spacing:var(--letter-spacing)]">
                   {toast.description}
                 </p>
               )}

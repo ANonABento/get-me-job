@@ -34,14 +34,14 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
       variant = "default",
       ...props
     },
-    ref
+    ref,
   ) => {
     const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
 
     return (
       <div className="space-y-1">
         {showLabel && (
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between text-sm [letter-spacing:var(--letter-spacing)]">
             <span className="text-muted-foreground">Progress</span>
             <span className="font-medium">{Math.round(percentage)}%</span>
           </div>
@@ -55,21 +55,21 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
           className={cn(
             "relative w-full overflow-hidden rounded-full bg-muted",
             sizeClasses[size],
-            className
+            className,
           )}
           {...props}
         >
           <div
             className={cn(
               "h-full rounded-full transition-all duration-300 ease-out",
-              variantClasses[variant]
+              variantClasses[variant],
             )}
             style={{ width: `${percentage}%` }}
           />
         </div>
       </div>
     );
-  }
+  },
 );
 
 Progress.displayName = "Progress";
@@ -103,11 +103,7 @@ function CircularProgress({
 
   return (
     <div className={cn("relative inline-flex", className)}>
-      <svg
-        width={size}
-        height={size}
-        className="-rotate-90"
-      >
+      <svg width={size} height={size} className="-rotate-90">
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -131,7 +127,9 @@ function CircularProgress({
       </svg>
       {showValue && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-lg font-bold">{Math.round(value)}</span>
+          <span className="text-lg font-bold [letter-spacing:var(--letter-spacing)]">
+            {Math.round(value)}
+          </span>
         </div>
       )}
     </div>

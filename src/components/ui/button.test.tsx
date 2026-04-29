@@ -36,8 +36,18 @@ describe("Button", () => {
   it("should apply outline variant classes", () => {
     render(<Button variant="outline">Outline</Button>);
     const button = screen.getByRole("button");
-    expect(button.className).toContain("border");
+    expect(button.className).toContain("border-[length:var(--border-width)]");
     expect(button.className).toContain("bg-transparent");
+  });
+
+  it("should use theme variable classes for radius, text, and button shadow", () => {
+    render(<Button>Themed</Button>);
+    const button = screen.getByRole("button");
+    expect(button.className).toContain("rounded-[var(--radius)]");
+    expect(button.className).toContain(
+      "[letter-spacing:var(--letter-spacing)]",
+    );
+    expect(button.className).toContain("[box-shadow:var(--shadow-button)]");
   });
 
   it("should apply secondary variant classes", () => {
@@ -76,6 +86,7 @@ describe("Button", () => {
     render(<Button size="lg">Large</Button>);
     const button = screen.getByRole("button");
     expect(button.className).toContain("h-11");
+    expect(button.className).toContain("rounded-[var(--radius)]");
     expect(button.className).toContain("px-8");
   });
 
@@ -102,14 +113,18 @@ describe("Button", () => {
     render(
       <Button asChild>
         <a href="/test">Link Button</a>
-      </Button>
+      </Button>,
     );
     expect(screen.getByRole("link")).toHaveTextContent("Link Button");
     expect(screen.queryByRole("button")).toBeNull();
   });
 
   it("should pass through additional HTML attributes", () => {
-    render(<Button type="submit" data-testid="submit-btn">Submit</Button>);
+    render(
+      <Button type="submit" data-testid="submit-btn">
+        Submit
+      </Button>,
+    );
     const button = screen.getByTestId("submit-btn");
     expect(button).toHaveAttribute("type", "submit");
   });
