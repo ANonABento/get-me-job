@@ -1,8 +1,11 @@
 import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
+import { createRequire } from "module";
 import { PATHS } from "@/lib/constants";
 import { runLocalDevCleanSlateMigration } from "./local-clean-slate";
+
+const require = createRequire(import.meta.url);
 
 // Ensure data directory exists
 const dataDir = path.dirname(PATHS.DATABASE);
@@ -29,7 +32,6 @@ try {
 
 // Load sqlite-vec extension for vector search (optional — fails gracefully if not available)
 try {
-  // eslint-disable-next-line
   const sqliteVec = require("sqlite-vec");
   sqliteVec.load(db);
 } catch {
