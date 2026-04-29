@@ -52,7 +52,7 @@ function HighlightedText({
           return (
             <mark
               key={i}
-              className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded px-0.5"
+              className="bg-success/20 text-success rounded px-0.5"
             >
               {seg.text}
             </mark>
@@ -62,7 +62,7 @@ function HighlightedText({
           return (
             <mark
               key={i}
-              className="bg-amber-500/20 text-amber-700 dark:text-amber-300 rounded px-0.5"
+              className="bg-warning/20 text-warning rounded px-0.5"
             >
               {seg.text}
             </mark>
@@ -116,8 +116,8 @@ function DiffView({ original, improved }: { original: string; improved: string }
           key={i}
           className={cn(
             "px-2 py-0.5 rounded",
-            line.type === "added" && "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-            line.type === "removed" && "bg-red-500/10 text-red-700 dark:text-red-300 line-through",
+            line.type === "added" && "bg-success/10 text-success",
+            line.type === "removed" && "bg-destructive/10 text-destructive line-through",
             line.type === "unchanged" && "text-muted-foreground"
           )}
         >
@@ -432,7 +432,7 @@ export function ResumePreview({
                         className={cn(
                           "rounded-full px-2.5 py-0.5 text-xs",
                           isMatched
-                            ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                            ? "bg-success/15 text-success"
                             : "bg-muted"
                         )}
                       >

@@ -37,16 +37,16 @@ interface DriveFilePickerProps {
 
 function getFileIcon(mimeType: string) {
   if (mimeType.includes("pdf")) {
-    return <FileText className="h-5 w-5 text-red-500" />;
+    return <FileText className="h-5 w-5 text-destructive" />;
   }
   if (mimeType.includes("image")) {
-    return <FileImage className="h-5 w-5 text-blue-500" />;
+    return <FileImage className="h-5 w-5 text-info" />;
   }
   if (mimeType.includes("spreadsheet") || mimeType.includes("excel")) {
-    return <FileSpreadsheet className="h-5 w-5 text-green-500" />;
+    return <FileSpreadsheet className="h-5 w-5 text-success" />;
   }
   if (mimeType.includes("document") || mimeType.includes("word")) {
-    return <FileText className="h-5 w-5 text-blue-600" />;
+    return <FileText className="h-5 w-5 text-info" />;
   }
   return <File className="h-5 w-5 text-muted-foreground" />;
 }

@@ -52,12 +52,12 @@ function ChecklistSection({
             className={cn(
               "w-full flex items-start gap-2 p-2 rounded-lg text-left transition-colors",
               item.completed
-                ? "bg-green-50 dark:bg-green-900/20"
+                ? "bg-success/5"
                 : "hover:bg-muted/50"
             )}
           >
             {item.completed ? (
-              <CheckSquare className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
+              <CheckSquare className="h-4 w-4 text-success shrink-0 mt-0.5" />
             ) : (
               <Square className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
             )}
@@ -80,10 +80,10 @@ function QuestionCard({ question, index }: { question: PrepQuestion; index: numb
   const [expanded, setExpanded] = useState(false);
 
   const categoryColors = {
-    behavioral: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    technical: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-    situational: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-    company: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+    behavioral: "bg-info/10 text-info",
+    technical: "bg-primary/10 text-primary",
+    situational: "bg-warning/10 text-warning",
+    company: "bg-success/10 text-success",
   };
 
   return (
@@ -308,13 +308,13 @@ export function PrepGuideCard({ jobId }: PrepGuideCardProps) {
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <h4 className="text-sm font-medium flex items-center gap-2 mb-2">
-                  <Sparkles className="h-4 w-4 text-green-500" />
+                  <Sparkles className="h-4 w-4 text-success" />
                   Your Strengths
                 </h4>
                 <ul className="space-y-1">
                   {guide.yourStrengths.map((strength, i) => (
                     <li key={i} className="text-sm flex items-start gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
+                      <CheckCircle2 className="h-4 w-4 text-success shrink-0 mt-0.5" />
                       {strength}
                     </li>
                   ))}

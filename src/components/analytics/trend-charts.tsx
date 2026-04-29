@@ -54,9 +54,9 @@ function TrendIndicator({
   const Icon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
   const colorClass =
     trend === "up"
-      ? "text-success dark:text-green-400"
+      ? "text-success"
       : trend === "down"
-      ? "text-red-600 dark:text-red-400"
+      ? "text-destructive"
       : "text-muted-foreground";
 
   return (
@@ -89,9 +89,9 @@ function SimpleBarChart({
 
   const colorClasses = {
     primary: "bg-primary",
-    green: "bg-green-500",
-    blue: "bg-blue-500",
-    amber: "bg-amber-500",
+    green: "bg-success",
+    blue: "bg-info",
+    amber: "bg-warning",
   };
 
   return (
@@ -165,8 +165,8 @@ function ActivityTimelineItem({ event }: { event: ActivityEvent }) {
 
   const colorMap = {
     application: "text-info",
-    interview: "text-purple-500",
-    offer: "text-green-500",
+    interview: "text-primary",
+    offer: "text-success",
     rejection: "text-destructive",
     status_change: "text-warning",
   };
@@ -361,7 +361,7 @@ export function TrendCharts({ initialRange = "30d" }: TrendChartsProps) {
             <div className="flex flex-col items-center justify-center py-6 text-center">
               <div className="h-[80px] w-full flex items-end justify-around gap-1.5 mb-3 opacity-15">
                 {[25, 40, 20, 50, 35, 45, 30].map((h, i) => (
-                  <div key={i} className="flex-1 bg-blue-500 rounded-t" style={{ height: `${h}%` }} />
+                  <div key={i} className="flex-1 bg-info rounded-t" style={{ height: `${h}%` }} />
                 ))}
               </div>
               <p className="text-sm text-muted-foreground">No responses yet</p>
@@ -381,7 +381,7 @@ export function TrendCharts({ initialRange = "30d" }: TrendChartsProps) {
             <div className="flex flex-col items-center justify-center py-6 text-center">
               <div className="h-[80px] w-full flex items-end justify-around gap-1.5 mb-3 opacity-15">
                 {[30, 25, 45, 35, 50, 40, 55].map((h, i) => (
-                  <div key={i} className="flex-1 bg-amber-500 rounded-t" style={{ height: `${h}%` }} />
+                  <div key={i} className="flex-1 bg-warning rounded-t" style={{ height: `${h}%` }} />
                 ))}
               </div>
               <p className="text-sm text-muted-foreground">No interviews yet</p>
@@ -392,7 +392,7 @@ export function TrendCharts({ initialRange = "30d" }: TrendChartsProps) {
         {/* Offers over time */}
         <div className="rounded-xl border bg-card p-4">
           <h3 className="font-medium mb-4 flex items-center gap-2">
-            <Trophy className="h-4 w-4 text-green-500" />
+            <Trophy className="h-4 w-4 text-success" />
             Offers Over Time
           </h3>
           {hasRealData(data.timeSeries.offers) ? (
@@ -401,7 +401,7 @@ export function TrendCharts({ initialRange = "30d" }: TrendChartsProps) {
             <div className="flex flex-col items-center justify-center py-6 text-center">
               <div className="h-[80px] w-full flex items-end justify-around gap-1.5 mb-3 opacity-15">
                 {[35, 45, 25, 55, 40, 30, 50].map((h, i) => (
-                  <div key={i} className="flex-1 bg-green-500 rounded-t" style={{ height: `${h}%` }} />
+                  <div key={i} className="flex-1 bg-success rounded-t" style={{ height: `${h}%` }} />
                 ))}
               </div>
               <p className="text-sm text-muted-foreground">No offers yet</p>

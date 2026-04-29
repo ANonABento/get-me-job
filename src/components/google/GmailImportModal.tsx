@@ -65,12 +65,12 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  recruiter_outreach: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-  interview_invite: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-  application_received: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
-  rejection: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
-  offer: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-  unknown: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+  recruiter_outreach: "bg-info/10 text-info",
+  interview_invite: "bg-success/10 text-success",
+  application_received: "bg-muted text-muted-foreground",
+  rejection: "bg-destructive/10 text-destructive",
+  offer: "bg-warning/10 text-warning",
+  unknown: "bg-muted text-muted-foreground",
 };
 
 export function GmailImportModal({ onImport, trigger }: GmailImportModalProps) {

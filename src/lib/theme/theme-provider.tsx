@@ -14,7 +14,6 @@ import {
   DEFAULT_THEME_PRESET,
   THEME_PRESET_STORAGE_KEY,
   THEME_STORAGE_KEY,
-  applyThemeVariables,
   isThemeMode,
   isThemePresetName,
   themePresetNames,
@@ -24,6 +23,13 @@ import {
   type ThemePreset,
   type ThemePresetName,
 } from "./theme-config";
+import {
+  DEFAULT_CUSTOM_THEME,
+  THEME_CHANGE_EVENT,
+  applyThemePreference,
+  readThemePreference,
+  type ThemePreference,
+} from "./theme-presets";
 
 interface ThemeContextType {
   theme: ThemeMode;
@@ -37,6 +43,10 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 const LEGACY_THEME_STORAGE_KEY = "theme";
 const LEGACY_THEME_PRESET_STORAGE_KEY = "theme-preset";
+const DEFAULT_THEME_PREFERENCE: ThemePreference = {
+  presetId: DEFAULT_THEME_PRESET,
+  customColors: DEFAULT_CUSTOM_THEME,
+};
 
 function readStoredValue<T>(
   key: string,
@@ -72,6 +82,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeMode>(DEFAULT_THEME_MODE);
   const [themePreset, setThemePresetState] =
     useState<ThemePresetName>(DEFAULT_THEME_PRESET);
+  const [themePreference, setThemePreference] =
+    useState<ThemePreference>(DEFAULT_THEME_PREFERENCE);
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedThemeMode>("light");
   const [mounted, setMounted] = useState(false);
 
@@ -87,13 +99,23 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setThemeState(storedTheme);
     }
 
+    const storedPreference = readThemePreference();
     const storedPreset = readStoredValueWithLegacyFallback(
       THEME_PRESET_STORAGE_KEY,
       LEGACY_THEME_PRESET_STORAGE_KEY,
       isThemePresetName
     );
-    if (storedPreset) {
-      setThemePresetState(storedPreset);
+    const nextPreference =
+      storedPreference.presetId === "custom"
+        ? storedPreference
+        : {
+            ...storedPreference,
+            presetId: storedPreset ?? storedPreference.presetId,
+          };
+
+    setThemePreference(nextPreference);
+    if (isThemePresetName(nextPreference.presetId)) {
+      setThemePresetState(nextPreference.presetId);
     }
   }, []);
 
@@ -105,7 +127,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     const applyTheme = (
       currentTheme: ThemeMode,
-      currentPreset: ThemePresetName
+      currentPreference: ThemePreference
     ) => {
       const nextResolvedTheme =
         currentTheme === "system"
@@ -116,20 +138,32 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
       setResolvedTheme(nextResolvedTheme);
       root.classList.toggle("dark", nextResolvedTheme === "dark");
-      applyThemeVariables(root, currentPreset, nextResolvedTheme);
+      applyThemePreference(root, currentPreference);
     };
 
-    applyTheme(theme, themePreset);
+    applyTheme(theme, themePreference);
 
     const handleMediaChange = () => {
       if (theme === "system") {
-        applyTheme("system", themePreset);
+        applyTheme("system", themePreference);
+      }
+    };
+
+    const handleThemePreferenceChange = () => {
+      const nextPreference = readThemePreference();
+      setThemePreference(nextPreference);
+      if (isThemePresetName(nextPreference.presetId)) {
+        setThemePresetState(nextPreference.presetId);
       }
     };
 
     mediaQuery.addEventListener("change", handleMediaChange);
-    return () => mediaQuery.removeEventListener("change", handleMediaChange);
-  }, [theme, themePreset, mounted]);
+    window.addEventListener(THEME_CHANGE_EVENT, handleThemePreferenceChange);
+    return () => {
+      mediaQuery.removeEventListener("change", handleMediaChange);
+      window.removeEventListener(THEME_CHANGE_EVENT, handleThemePreferenceChange);
+    };
+  }, [theme, themePreference, mounted]);
 
   const setTheme = useCallback((newTheme: ThemeMode) => {
     setThemeState(newTheme);
@@ -138,6 +172,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setThemePreset = useCallback((newPreset: ThemePresetName) => {
     setThemePresetState(newPreset);
+    setThemePreference((currentPreference) => ({
+      presetId: newPreset,
+      customColors: currentPreference.customColors,
+    }));
     persistValue(THEME_PRESET_STORAGE_KEY, newPreset);
   }, []);
 

@@ -140,7 +140,7 @@ export function LLMProviderConfig(props: LLMProviderConfigProps) {
               </>
             )}
           </Button>
-          <Button onClick={onSave} disabled={saving || !hasChanges} className="flex-1 gradient-bg text-white hover:opacity-90">
+          <Button onClick={onSave} disabled={saving || !hasChanges} className="flex-1 gradient-bg text-primary-foreground hover:opacity-90">
             {saving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

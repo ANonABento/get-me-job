@@ -9,6 +9,10 @@ import {
   themePresetNames,
 } from "./theme-config";
 import { ThemeProvider, useTheme } from "./theme-provider";
+import {
+  CUSTOM_THEME_STORAGE_KEY,
+  THEME_CHANGE_EVENT,
+} from "./theme-presets";
 
 function resetRootThemeState() {
   document.documentElement.className = "";
@@ -191,6 +195,34 @@ describe("theme config", () => {
     expect(document.documentElement.dataset.themePreset).toBe("forest");
   });
 
+  it("loads stored custom theme preferences in the provider", async () => {
+    vi.mocked(window.localStorage.getItem).mockImplementation((key) => {
+      if (key === THEME_PRESET_STORAGE_KEY) return "custom";
+      if (key === CUSTOM_THEME_STORAGE_KEY) {
+        return JSON.stringify({
+          primary: "142 71% 45%",
+          background: "210 30% 98%",
+          card: "0 0% 100%",
+        });
+      }
+      return null;
+    });
+
+    render(
+      <ThemeProvider>
+        <ThemeProbe />
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(document.documentElement.dataset.themePreset).toBe("custom");
+    });
+
+    expect(document.documentElement.style.getPropertyValue("--primary")).toBe(
+      "142 71% 45%"
+    );
+  });
+
   it("ignores invalid stored values and applies the default theme preset", async () => {
     vi.mocked(window.localStorage.getItem).mockImplementation((key) => {
       if (key === THEME_STORAGE_KEY) return "sepia";
@@ -265,6 +297,42 @@ describe("theme config", () => {
     expect(document.documentElement.dataset.themePreset).toBe("bold");
     expect(document.documentElement.style.getPropertyValue("--border-width")).toBe(
       "2px"
+    );
+  });
+
+  it("applies theme preference changes dispatched outside the provider", async () => {
+    render(
+      <ThemeProvider>
+        <ThemeProbe />
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(document.documentElement.dataset.themePreset).toBe("default");
+    });
+
+    vi.mocked(window.localStorage.getItem).mockImplementation((key) => {
+      if (key === THEME_PRESET_STORAGE_KEY) return "custom";
+      if (key === CUSTOM_THEME_STORAGE_KEY) {
+        return JSON.stringify({
+          primary: "196 78% 42%",
+          background: "210 30% 98%",
+          card: "0 0% 100%",
+        });
+      }
+      return null;
+    });
+
+    await act(async () => {
+      window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
+    });
+
+    await waitFor(() => {
+      expect(document.documentElement.dataset.themePreset).toBe("custom");
+    });
+
+    expect(document.documentElement.style.getPropertyValue("--primary")).toBe(
+      "196 78% 42%"
     );
   });
 });

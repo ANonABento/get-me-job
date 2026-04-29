@@ -37,17 +37,17 @@ const resourceTypeIcons = {
 };
 
 const priorityColors = {
-  high: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  medium: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  low: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  high: "bg-destructive/10 text-destructive",
+  medium: "bg-warning/10 text-warning",
+  low: "bg-success/10 text-success",
 };
 
 const levelColors = {
-  none: "bg-gray-100 dark:bg-gray-800",
-  beginner: "bg-green-500",
-  intermediate: "bg-amber-500",
-  advanced: "bg-red-500",
-  expert: "bg-purple-500",
+  none: "bg-muted",
+  beginner: "bg-success",
+  intermediate: "bg-warning",
+  advanced: "bg-destructive",
+  expert: "bg-primary",
 };
 
 function ProgressBar({
@@ -115,9 +115,9 @@ function ResourceCard({ resource }: { resource: LearningResource }) {
           <span
             className={cn(
               "px-1.5 py-0.5 text-xs rounded capitalize",
-              resource.difficulty === "beginner" && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-              resource.difficulty === "intermediate" && "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-              resource.difficulty === "advanced" && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+              resource.difficulty === "beginner" && "bg-success/10 text-success",
+              resource.difficulty === "intermediate" && "bg-warning/10 text-warning",
+              resource.difficulty === "advanced" && "bg-destructive/10 text-destructive"
             )}
           >
             {resource.difficulty}
@@ -126,7 +126,7 @@ function ResourceCard({ resource }: { resource: LearningResource }) {
             className={cn(
               "px-1.5 py-0.5 text-xs rounded",
               resource.free
-                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                ? "bg-success/10 text-success"
                 : "bg-muted text-muted-foreground"
             )}
           >
@@ -221,7 +221,7 @@ function LearningPathCard({ path }: { path: SkillLearningPath }) {
                   className="w-full flex items-start gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors text-left"
                 >
                   {completedMilestones.has(i) ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="h-4 w-4 text-success shrink-0 mt-0.5" />
                   ) : (
                     <Circle className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                   )}
@@ -411,9 +411,9 @@ export function SkillLearningPaths() {
       {/* Quick wins and strategic skills */}
       <div className="grid md:grid-cols-2 gap-4">
         {result.quickWins.length > 0 && (
-          <div className="p-4 rounded-xl border bg-green-50/50 dark:bg-green-900/10">
+          <div className="p-4 rounded-xl border bg-success/5">
             <h3 className="text-sm font-medium flex items-center gap-2 mb-2">
-              <Zap className="h-4 w-4 text-green-500" />
+              <Zap className="h-4 w-4 text-success" />
               Quick Wins
             </h3>
             <p className="text-sm text-muted-foreground">
@@ -423,7 +423,7 @@ export function SkillLearningPaths() {
               {result.quickWins.map((skill, i) => (
                 <span
                   key={i}
-                  className="px-2 py-1 text-xs rounded-lg bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                  className="px-2 py-1 text-xs rounded-lg bg-success/10 text-success"
                 >
                   {skill}
                 </span>
@@ -433,7 +433,7 @@ export function SkillLearningPaths() {
         )}
 
         {result.strategicSkills.length > 0 && (
-          <div className="p-4 rounded-xl border bg-blue-50/50 dark:bg-blue-900/10">
+          <div className="p-4 rounded-xl border bg-info/5">
             <h3 className="text-sm font-medium flex items-center gap-2 mb-2">
               <TrendingUp className="h-4 w-4 text-info" />
               Strategic Focus
@@ -445,7 +445,7 @@ export function SkillLearningPaths() {
               {result.strategicSkills.map((skill, i) => (
                 <span
                   key={i}
-                  className="px-2 py-1 text-xs rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                  className="px-2 py-1 text-xs rounded-lg bg-info/10 text-info"
                 >
                   {skill}
                 </span>

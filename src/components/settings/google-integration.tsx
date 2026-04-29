@@ -13,7 +13,7 @@ export function GoogleIntegration() {
   return (
     <div className="rounded-2xl border bg-card p-6">
       <div className="flex items-center gap-3 mb-6">
-        <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-green-500 text-white">
+        <div className="p-2.5 rounded-xl gradient-bg text-primary-foreground">
           <Cloud className="h-5 w-5" />
         </div>
         <div>
@@ -31,15 +31,15 @@ export function GoogleIntegration() {
           <h3 className="text-sm font-medium mb-3">Connected features:</h3>
           <div className="grid gap-2 sm:grid-cols-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="h-4 w-4 text-blue-500" />
+              <Calendar className="h-4 w-4 text-info" />
               <span>Calendar Sync</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <FolderOpen className="h-4 w-4 text-yellow-500" />
+              <FolderOpen className="h-4 w-4 text-warning" />
               <span>Drive Backup</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Mail className="h-4 w-4 text-red-500" />
+              <Mail className="h-4 w-4 text-destructive" />
               <span>Gmail Import</span>
             </div>
           </div>

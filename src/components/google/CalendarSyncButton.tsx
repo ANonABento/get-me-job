@@ -150,7 +150,7 @@ export function CalendarSyncButton({
                 Synced {result.synced} events
               </span>
             ) : (
-              <span className="text-yellow-600">
+              <span className="text-warning">
                 {result.synced} synced, {result.failed} failed
               </span>
             )}
@@ -204,9 +204,9 @@ export function CalendarSyncButton({
         >
           <div className="flex items-center gap-2 mb-2">
             {result.success ? (
-              <CheckCircle className="h-5 w-5 text-success dark:text-green-400" />
+              <CheckCircle className="h-5 w-5 text-success" />
             ) : (
-              <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+              <AlertCircle className="h-5 w-5 text-warning" />
             )}
             <span className="font-medium">
               {result.success
@@ -226,7 +226,7 @@ export function CalendarSyncButton({
                     {item.success ? (
                       <CheckCircle className="h-3 w-3 text-success shrink-0" />
                     ) : (
-                      <AlertCircle className="h-3 w-3 text-red-500 shrink-0" />
+                      <AlertCircle className="h-3 w-3 text-destructive shrink-0" />
                     )}
                     <span className="truncate">{item.title}</span>
                   </div>

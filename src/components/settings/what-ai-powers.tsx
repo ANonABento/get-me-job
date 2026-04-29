@@ -6,20 +6,20 @@ const FEATURE_DESCRIPTIONS = [
   {
     title: "Resume Parsing",
     description: "Extract skills, experience, and education from uploaded resumes automatically",
-    icon: <FileText className="h-4 w-4 text-blue-600" />,
-    color: "bg-blue-100 dark:bg-blue-900/30",
+    icon: <FileText className="h-4 w-4 text-info" />,
+    color: "bg-info/10",
   },
   {
     title: "Resume Tailoring",
     description: "Generate job-specific resumes optimized for ATS and recruiter review",
-    icon: <Sparkles className="h-4 w-4 text-amber-600" />,
-    color: "bg-amber-100 dark:bg-amber-900/30",
+    icon: <Sparkles className="h-4 w-4 text-warning" />,
+    color: "bg-warning/10",
   },
   {
     title: "Cover Letters",
     description: "Create personalized cover letters matching your profile to job requirements",
-    icon: <Mail className="h-4 w-4 text-rose-600" />,
-    color: "bg-rose-100 dark:bg-rose-900/30",
+    icon: <Mail className="h-4 w-4 text-accent" />,
+    color: "bg-accent/10",
   },
 ];
 

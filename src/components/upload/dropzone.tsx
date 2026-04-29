@@ -37,10 +37,10 @@ interface DropzoneProps {
 }
 
 const fileTypeIcons: Record<string, React.ReactNode> = {
-  pdf: <FileText className="h-6 w-6 text-red-500" />,
-  docx: <FileText className="h-6 w-6 text-blue-500" />,
-  doc: <FileText className="h-6 w-6 text-blue-500" />,
-  txt: <File className="h-6 w-6 text-gray-500" />,
+  pdf: <FileText className="h-6 w-6 text-destructive" />,
+  docx: <FileText className="h-6 w-6 text-info" />,
+  doc: <FileText className="h-6 w-6 text-info" />,
+  txt: <File className="h-6 w-6 text-muted-foreground" />,
 };
 
 function getFileIcon(filename: string) {
@@ -181,7 +181,7 @@ export function Dropzone({
             className={cn(
               "mx-auto w-20 h-20 rounded-2xl flex items-center justify-center transition-all duration-300",
               isDragActive
-                ? "gradient-bg text-white scale-110"
+                ? "gradient-bg text-primary-foreground scale-110"
                 : "bg-muted text-muted-foreground"
             )}
           >
@@ -207,11 +207,11 @@ export function Dropzone({
           </p>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-sm font-medium">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive text-sm font-medium">
               <FileText className="h-4 w-4" />
               PDF
             </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-sm font-medium">
               <File className="h-4 w-4" />
               TXT
             </span>
@@ -324,7 +324,7 @@ export function Dropzone({
           onClick={uploadFiles}
           disabled={isUploading}
           size="lg"
-          className="w-full gradient-bg text-white hover:opacity-90"
+          className="w-full gradient-bg text-primary-foreground hover:opacity-90"
         >
           {isUploading ? (
             <>

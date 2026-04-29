@@ -42,9 +42,9 @@ interface ComparisonData {
 
 function DiffBadge({ type }: { type: DiffItem["type"] }) {
   const config = {
-    added: { icon: Plus, bg: "bg-green-100 dark:bg-green-900/30", text: "text-green-700 dark:text-green-400" },
-    removed: { icon: Minus, bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-700 dark:text-red-400" },
-    changed: { icon: RefreshCw, bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-700 dark:text-amber-400" },
+    added: { icon: Plus, bg: "bg-success/10", text: "text-success" },
+    removed: { icon: Minus, bg: "bg-destructive/10", text: "text-destructive" },
+    changed: { icon: RefreshCw, bg: "bg-warning/10", text: "text-warning" },
     unchanged: { icon: FileText, bg: "bg-muted", text: "text-muted-foreground" },
   };
 
@@ -83,7 +83,7 @@ function DiffItemRow({ diff }: { diff: DiffItem }) {
           {diff.oldValue && (
             <div className={cn(
               "p-3 rounded-lg",
-              diff.type === "removed" ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"
+              diff.type === "removed" ? "bg-destructive/5" : "bg-muted/50"
             )}>
               <p className="text-xs font-medium text-muted-foreground mb-1">Before</p>
               <p className="text-sm whitespace-pre-wrap">{diff.oldValue}</p>
@@ -92,7 +92,7 @@ function DiffItemRow({ diff }: { diff: DiffItem }) {
           {diff.newValue && (
             <div className={cn(
               "p-3 rounded-lg",
-              diff.type === "added" ? "bg-green-50 dark:bg-green-900/20" : "bg-muted/50"
+              diff.type === "added" ? "bg-success/5" : "bg-muted/50"
             )}>
               <p className="text-xs font-medium text-muted-foreground mb-1">After</p>
               <p className="text-sm whitespace-pre-wrap">{diff.newValue}</p>
@@ -115,8 +115,8 @@ function ScoreChangeIndicator({
   return (
     <div className={cn(
       "flex items-center gap-4 p-4 rounded-lg",
-      isPositive && "bg-green-100 dark:bg-green-900/30",
-      isNegative && "bg-red-100 dark:bg-red-900/30",
+      isPositive && "bg-success/10",
+      isNegative && "bg-destructive/10",
       !isPositive && !isNegative && "bg-muted"
     )}>
       <div className="text-center">
@@ -126,16 +126,16 @@ function ScoreChangeIndicator({
 
       <div className="flex items-center gap-2">
         {isPositive ? (
-          <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
+          <TrendingUp className="h-6 w-6 text-success" />
         ) : isNegative ? (
-          <TrendingDown className="h-6 w-6 text-red-600 dark:text-red-400" />
+          <TrendingDown className="h-6 w-6 text-destructive" />
         ) : (
           <RefreshCw className="h-6 w-6 text-muted-foreground" />
         )}
         <span className={cn(
           "text-lg font-bold",
-          isPositive && "text-green-600 dark:text-green-400",
-          isNegative && "text-red-600 dark:text-red-400"
+          isPositive && "text-success",
+          isNegative && "text-destructive"
         )}>
           {isPositive ? "+" : ""}{scoreChange.change}%
         </span>
@@ -193,7 +193,7 @@ export function ComparisonView({ beforeId, afterId, onClose }: ComparisonViewPro
   if (error || !data) {
     return (
       <div className="rounded-xl border bg-card p-8 text-center">
-        <p className="text-red-500">{error || "Failed to load comparison"}</p>
+        <p className="text-destructive">{error || "Failed to load comparison"}</p>
       </div>
     );
   }
@@ -254,23 +254,23 @@ export function ComparisonView({ beforeId, afterId, onClose }: ComparisonViewPro
 
       {/* Summary stats */}
       <div className="p-4 border-b grid grid-cols-3 gap-4">
-        <div className="text-center p-3 rounded-lg bg-green-100 dark:bg-green-900/30">
-          <p className="text-2xl font-bold text-green-700 dark:text-green-400">
+        <div className="text-center p-3 rounded-lg bg-success/10">
+          <p className="text-2xl font-bold text-success">
             {comparison.summary.additions}
           </p>
-          <p className="text-xs text-green-600 dark:text-green-500">Additions</p>
+          <p className="text-xs text-success">Additions</p>
         </div>
-        <div className="text-center p-3 rounded-lg bg-red-100 dark:bg-red-900/30">
-          <p className="text-2xl font-bold text-red-700 dark:text-red-400">
+        <div className="text-center p-3 rounded-lg bg-destructive/10">
+          <p className="text-2xl font-bold text-destructive">
             {comparison.summary.removals}
           </p>
-          <p className="text-xs text-red-600 dark:text-red-500">Removals</p>
+          <p className="text-xs text-destructive">Removals</p>
         </div>
-        <div className="text-center p-3 rounded-lg bg-amber-100 dark:bg-amber-900/30">
-          <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">
+        <div className="text-center p-3 rounded-lg bg-warning/10">
+          <p className="text-2xl font-bold text-warning">
             {comparison.summary.modifications}
           </p>
-          <p className="text-xs text-amber-600 dark:text-amber-500">Changes</p>
+          <p className="text-xs text-warning dark:text-warning">Changes</p>
         </div>
       </div>
 

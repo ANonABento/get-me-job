@@ -89,7 +89,7 @@ export function JobsHero({ jobsCount, onImportClick, onAddClick, onGmailImportSu
                   </Button>
                 }
               />
-              <Button onClick={onAddClick} size="lg" className="gradient-bg text-white hover:opacity-90">
+              <Button onClick={onAddClick} size="lg" className="gradient-bg text-primary-foreground hover:opacity-90">
                 <Plus className="h-5 w-5 mr-2" />
                 Add Job
               </Button>
