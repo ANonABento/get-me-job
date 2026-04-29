@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   coverLetterTextToTipTapDocument,
   createBlankCoverLetterTipTapDocument,
+  isBlankCoverLetterTipTapDocument,
 } from "./cover-letter-tiptap";
 
 describe("createBlankCoverLetterTipTapDocument", () => {
@@ -42,5 +43,29 @@ describe("coverLetterTextToTipTapDocument", () => {
     expect(coverLetterTextToTipTapDocument(" \n ")).toEqual(
       createBlankCoverLetterTipTapDocument(),
     );
+  });
+});
+
+describe("isBlankCoverLetterTipTapDocument", () => {
+  it("detects blank documents and documents with visible text", () => {
+    expect(
+      isBlankCoverLetterTipTapDocument(createBlankCoverLetterTipTapDocument()),
+    ).toBe(true);
+    expect(
+      isBlankCoverLetterTipTapDocument({
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "  " }],
+          },
+        ],
+      }),
+    ).toBe(true);
+    expect(
+      isBlankCoverLetterTipTapDocument(
+        coverLetterTextToTipTapDocument("Dear Hiring Team,"),
+      ),
+    ).toBe(false);
   });
 });

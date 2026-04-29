@@ -259,6 +259,37 @@ describe("StudioPage", () => {
     expect(fetchMock.getBuilderRequestCount()).toBe(0);
   });
 
+  it("does not overwrite manually edited cover letter text when bank selections change", async () => {
+    mockStudioFetch(bankEntries);
+
+    render(<StudioPage />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Cover Letter" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Toggle entry" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resume-html")).toHaveTextContent("Engineer"),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit preview" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resume-html")).toHaveTextContent(
+        "Edited inline",
+      ),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Toggle entry" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resume-html")).toHaveTextContent(
+        "Edited inline",
+      ),
+    );
+  });
+
   it("opens the bank entry picker from the add button", async () => {
     mockStudioFetch(bankEntries);
 

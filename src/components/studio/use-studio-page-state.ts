@@ -36,6 +36,7 @@ import { tailoredResumeToTipTapDocument } from "@/lib/editor/bank-to-tiptap";
 import {
   coverLetterTextToTipTapDocument,
   createBlankCoverLetterTipTapDocument,
+  isBlankCoverLetterTipTapDocument,
 } from "@/lib/editor/cover-letter-tiptap";
 import {
   createEditorBodyHtml,
@@ -217,6 +218,7 @@ export function useStudioPageState(): StudioPageState {
   const lastPreviewErrorToastRef = useRef("");
   const lastActiveDocumentIdRef = useRef<string | null>(null);
   const lastCoverLetterEntryKeyRef = useRef("");
+  const contentRef = useRef<TipTapJSONContent | undefined>(undefined);
 
   const activeDocument = useMemo(
     () =>
@@ -285,6 +287,9 @@ export function useStudioPageState(): StudioPageState {
       setPreviewVersionId(null);
       lastActiveDocumentIdRef.current = activeDocument.id;
       lastCoverLetterEntryKeyRef.current = "__active-document-changed__";
+      contentRef.current = activeDocument.content;
+      setHtml(activeDocument.html ?? "");
+      setContent(activeDocument.content);
     }
 
     if (typeof window !== "undefined") {
@@ -292,6 +297,8 @@ export function useStudioPageState(): StudioPageState {
     }
   }, [
     activeDocument.id,
+    activeDocument.content,
+    activeDocument.html,
     activeDocument.mode,
     activeDocument.sections,
     activeDocument.selectedEntryIds,
@@ -354,12 +361,19 @@ export function useStudioPageState(): StudioPageState {
   }, [previewVersionId]);
 
   useEffect(() => {
+    contentRef.current = content;
+  }, [content]);
+
+  useEffect(() => {
     if (previewVersionId) return;
 
     if (documentMode === "cover_letter") {
       const entryKey = orderedEntries.map((entry) => entry.id).join("|");
+      const currentContent = contentRef.current;
       const shouldCreateDraft =
-        !content || lastCoverLetterEntryKeyRef.current !== entryKey;
+        !currentContent ||
+        (isBlankCoverLetterTipTapDocument(currentContent) &&
+          lastCoverLetterEntryKeyRef.current !== entryKey);
       if (shouldCreateDraft) {
         const nextContent =
           orderedEntries.length > 0
@@ -367,8 +381,16 @@ export function useStudioPageState(): StudioPageState {
                 buildCoverLetterPreviewContent(orderedEntries),
               )
             : createBlankCoverLetterTipTapDocument();
+        const nextHtml = createEditorBodyHtml(nextContent);
+        contentRef.current = nextContent;
         setContent(nextContent);
-        setHtml(createEditorBodyHtml(nextContent));
+        setHtml(nextHtml);
+        setDocuments((current) =>
+          updateStudioDocument(current, activeDocument.id, {
+            content: nextContent,
+            html: nextHtml,
+          }),
+        );
         lastCoverLetterEntryKeyRef.current = entryKey;
       }
       setGenerating(false);
@@ -377,7 +399,14 @@ export function useStudioPageState(): StudioPageState {
 
     if (orderedEntries.length === 0) {
       setHtml("");
+      contentRef.current = undefined;
       setContent(undefined);
+      setDocuments((current) =>
+        updateStudioDocument(current, activeDocument.id, {
+          content: undefined,
+          html: "",
+        }),
+      );
       setGenerating(false);
       return;
     }
@@ -405,11 +434,17 @@ export function useStudioPageState(): StudioPageState {
         if (!cancelled) {
           lastPreviewErrorToastRef.current = "";
           if (data.html) {
+            const nextContent = data.resume
+              ? tailoredResumeToTipTapDocument(data.resume)
+              : undefined;
+            contentRef.current = nextContent;
             setHtml(data.html);
-            setContent(
-              data.resume
-                ? tailoredResumeToTipTapDocument(data.resume)
-                : undefined,
+            setContent(nextContent);
+            setDocuments((current) =>
+              updateStudioDocument(current, activeDocument.id, {
+                content: nextContent,
+                html: data.html,
+              }),
             );
           } else {
             // API returned empty — use client-side fallback
@@ -417,7 +452,14 @@ export function useStudioPageState(): StudioPageState {
               orderedEntries,
               templateId,
             );
+            contentRef.current = undefined;
             setHtml(fallbackHtml);
+            setDocuments((current) =>
+              updateStudioDocument(current, activeDocument.id, {
+                content: undefined,
+                html: fallbackHtml,
+              }),
+            );
           }
         }
       } catch (err) {
@@ -430,7 +472,15 @@ export function useStudioPageState(): StudioPageState {
               templateId,
             );
             lastPreviewErrorToastRef.current = "";
+            contentRef.current = undefined;
             setHtml(fallbackHtml);
+            setContent(undefined);
+            setDocuments((current) =>
+              updateStudioDocument(current, activeDocument.id, {
+                content: undefined,
+                html: fallbackHtml,
+              }),
+            );
           } catch (fallbackErr) {
             const message =
               fallbackErr instanceof Error ? fallbackErr.message : "preview";
@@ -457,6 +507,7 @@ export function useStudioPageState(): StudioPageState {
     };
   }, [
     documentMode,
+    activeDocument.id,
     orderedEntries,
     previewVersionId,
     showErrorToast,
@@ -493,25 +544,31 @@ export function useStudioPageState(): StudioPageState {
 
   const handleContentChange = useCallback(
     (nextContent: TipTapJSONContent) => {
+      const nextHtml = createEditorBodyHtml(nextContent);
+      contentRef.current = nextContent;
       markActiveDocumentDirty();
       setContent(nextContent);
-      setHtml(createEditorBodyHtml(nextContent));
+      setHtml(nextHtml);
+      updateActiveDocument({ content: nextContent, html: nextHtml });
     },
-    [markActiveDocumentDirty],
+    [markActiveDocumentDirty, updateActiveDocument],
   );
 
   const handleCoverLetterGenerated = useCallback(
     (generatedContent: string) => {
       const nextContent = coverLetterTextToTipTapDocument(generatedContent);
+      const nextHtml = createEditorBodyHtml(nextContent);
+      contentRef.current = nextContent;
       setPreviewVersionId(null);
       markActiveDocumentDirty();
       setContent(nextContent);
-      setHtml(createEditorBodyHtml(nextContent));
+      setHtml(nextHtml);
+      updateActiveDocument({ content: nextContent, html: nextHtml });
       lastCoverLetterEntryKeyRef.current = orderedEntries
         .map((entry) => entry.id)
         .join("|");
     },
-    [markActiveDocumentDirty, orderedEntries],
+    [markActiveDocumentDirty, orderedEntries, updateActiveDocument],
   );
 
   const handleToggleEntry = useCallback(
@@ -659,11 +716,14 @@ export function useStudioPageState(): StudioPageState {
       setTemplateId(version.state.templateId);
       setHtml(version.state.html);
       markActiveDocumentSaved();
+      contentRef.current = version.state.content;
       setContent(version.state.content);
       updateActiveDocument({
         selectedEntryIds: version.state.selectedIds,
         sections: version.state.sections,
         templateId: version.state.templateId,
+        content: version.state.content,
+        html: version.state.html,
       });
     },
     [markActiveDocumentSaved, updateActiveDocument, versions],

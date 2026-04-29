@@ -22,6 +22,19 @@ export function createBlankCoverLetterTipTapDocument(): TipTapJSONContent {
   };
 }
 
+export function isBlankCoverLetterTipTapDocument(
+  content: TipTapJSONContent | undefined,
+): boolean {
+  if (!content?.content || content.content.length === 0) return true;
+
+  function hasVisibleText(node: TipTapJSONContent): boolean {
+    if (typeof node.text === "string" && node.text.trim()) return true;
+    return Array.isArray(node.content) && node.content.some(hasVisibleText);
+  }
+
+  return !content.content.some(hasVisibleText);
+}
+
 export function coverLetterTextToTipTapDocument(
   text: string,
 ): TipTapJSONContent {
