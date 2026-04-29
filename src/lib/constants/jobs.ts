@@ -2,6 +2,7 @@ import { z } from "zod";
 
 // Job application statuses
 export const JOB_STATUSES = [
+  "pending",
   "saved",
   "applied",
   "interviewing",

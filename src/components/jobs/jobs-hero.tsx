@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { ArrowLeft, FileDown, Mail, Plus, Target } from "lucide-react";
+import { ArrowLeft, FileDown, LayoutGrid, List, Mail, Plus, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SkeletonButton } from "@/components/ui/skeleton";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import { readJsonResponse } from "@/lib/http";
+import type { JobsViewMode } from "./job-kanban-utils";
 
 const GmailImportModal = dynamic(
   () => import("@/components/google").then((module) => module.GmailImportModal),
@@ -15,12 +16,14 @@ const GmailImportModal = dynamic(
 
 interface JobsHeroProps {
   jobsCount: number;
+  viewMode: JobsViewMode;
   onImportClick: () => void;
   onAddClick: () => void;
+  onViewModeChange: (mode: JobsViewMode) => void;
   onGmailImportSuccess: () => Promise<void>;
 }
 
-export function JobsHero({ jobsCount, onImportClick, onAddClick, onGmailImportSuccess }: JobsHeroProps) {
+export function JobsHero({ jobsCount, viewMode, onImportClick, onAddClick, onViewModeChange, onGmailImportSuccess }: JobsHeroProps) {
   const showErrorToast = useErrorToast();
 
   return (
@@ -51,7 +54,31 @@ export function JobsHero({ jobsCount, onImportClick, onAddClick, onGmailImportSu
               <p className="text-3xl font-bold text-primary">{jobsCount}</p>
               <p className="text-sm text-muted-foreground">Jobs Tracked</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
+              <div className="flex rounded-lg border bg-card p-1" aria-label="Job view mode">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={viewMode === "list" ? "default" : "ghost"}
+                  aria-pressed={viewMode === "list"}
+                  onClick={() => onViewModeChange("list")}
+                  className="h-9"
+                >
+                  <List className="h-4 w-4 mr-2" />
+                  List
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={viewMode === "kanban" ? "default" : "ghost"}
+                  aria-pressed={viewMode === "kanban"}
+                  onClick={() => onViewModeChange("kanban")}
+                  className="h-9"
+                >
+                  <LayoutGrid className="h-4 w-4 mr-2" />
+                  Kanban
+                </Button>
+              </div>
               <Button onClick={onImportClick} size="lg" variant="outline">
                 <FileDown className="h-5 w-5 mr-2" />
                 Import

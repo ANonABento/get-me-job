@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { CoverLetterDialog } from "@/components/cover-letter/cover-letter-dialog";
 import { AddJobDialog } from "@/components/jobs/add-job-dialog";
+import { JobKanbanView } from "@/components/jobs/job-kanban-view";
+import { readJobsViewMode, writeJobsViewMode, type JobsViewMode } from "@/components/jobs/job-kanban-utils";
 import { JobsEmptyState } from "@/components/jobs/jobs-empty-state";
 import { JobsHero } from "@/components/jobs/jobs-hero";
 import { JobCard, type ResumeTemplate } from "@/components/jobs/job-card";
@@ -69,6 +71,7 @@ export default function JobsPage() {
   const [typeFilter, setTypeFilter] = useState<JobTypeFilter>("all");
   const [remoteFilter, setRemoteFilter] = useState<JobRemoteFilter>("all");
   const [sortBy, setSortBy] = useState<JobSortOption>("newest");
+  const [viewMode, setViewMode] = useState<JobsViewMode>("list");
   const showErrorToast = useErrorToast();
 
   const fetchJobs = useCallback(async () => {
@@ -100,6 +103,15 @@ export default function JobsPage() {
   }, []);
 
   useEffect(() => { void fetchJobs(); void fetchTemplates(); }, [fetchJobs, fetchTemplates]);
+
+  useEffect(() => {
+    setViewMode(readJobsViewMode(window.localStorage));
+  }, []);
+
+  const handleViewModeChange = (mode: JobsViewMode) => {
+    setViewMode(mode);
+    writeJobsViewMode(window.localStorage, mode);
+  };
 
   const deleteJob = async (id: string) => {
     try {
@@ -204,7 +216,14 @@ export default function JobsPage() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen">
-        <JobsHero jobsCount={jobs.length} onImportClick={() => setShowImportDialog(true)} onAddClick={() => setShowAddDialog(true)} onGmailImportSuccess={fetchJobs} />
+        <JobsHero
+          jobsCount={jobs.length}
+          viewMode={viewMode}
+          onImportClick={() => setShowImportDialog(true)}
+          onAddClick={() => setShowAddDialog(true)}
+          onViewModeChange={handleViewModeChange}
+          onGmailImportSuccess={fetchJobs}
+        />
 
         {jobs.length > 0 && (
           <JobsToolbar
@@ -227,20 +246,24 @@ export default function JobsPage() {
           ) : filteredJobs.length === 0 ? (
             <JobsNoResults onClearFilters={clearFilters} />
           ) : (
-            <div className="grid gap-6 lg:grid-cols-2">
-              {filteredJobs.map((job) => (
-                <JobCard
-                  key={job.id} job={job} analysis={analyses[job.id]} analyzing={analyzing === job.id} generating={generating === job.id}
-                  templates={templates} selectedTemplate={selectedTemplate[job.id] || "classic"} expanded={expandedDescription === job.id}
-                  atsResult={atsResults[job.id]} atsAnalyzing={atsAnalyzing === job.id}
-                  onSelectTemplate={(id) => setSelectedTemplate((prev) => ({ ...prev, [job.id]: id }))}
-                  onAnalyze={() => void analyzeJob(job.id)} onGenerate={() => void generateResume(job.id)} onDelete={() => void deleteJob(job.id)}
-                  onStatusChange={(status) => void updateJobStatus(job.id, status)}
-                  onToggleExpand={() => setExpandedDescription((prev) => (prev === job.id ? null : job.id))}
-                  onAtsCheck={() => void runAtsCheck(job.id)} onAtsDialogOpen={() => setAtsDialogJob(job.id)} onCoverLetter={() => setCoverLetterJob(job)}
-                />
-              ))}
-            </div>
+            viewMode === "kanban" ? (
+              <JobKanbanView jobs={filteredJobs} onStatusChange={(jobId, status) => void updateJobStatus(jobId, status)} />
+            ) : (
+              <div className="grid gap-6 lg:grid-cols-2">
+                {filteredJobs.map((job) => (
+                  <JobCard
+                    key={job.id} job={job} analysis={analyses[job.id]} analyzing={analyzing === job.id} generating={generating === job.id}
+                    templates={templates} selectedTemplate={selectedTemplate[job.id] || "classic"} expanded={expandedDescription === job.id}
+                    atsResult={atsResults[job.id]} atsAnalyzing={atsAnalyzing === job.id}
+                    onSelectTemplate={(id) => setSelectedTemplate((prev) => ({ ...prev, [job.id]: id }))}
+                    onAnalyze={() => void analyzeJob(job.id)} onGenerate={() => void generateResume(job.id)} onDelete={() => void deleteJob(job.id)}
+                    onStatusChange={(status) => void updateJobStatus(job.id, status)}
+                    onToggleExpand={() => setExpandedDescription((prev) => (prev === job.id ? null : job.id))}
+                    onAtsCheck={() => void runAtsCheck(job.id)} onAtsDialogOpen={() => setAtsDialogJob(job.id)} onCoverLetter={() => setCoverLetterJob(job)}
+                  />
+                ))}
+              </div>
+            )
           )}
         </div>
 

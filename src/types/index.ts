@@ -114,7 +114,7 @@ export interface Document {
 }
 
 // Job application types
-export type JobStatus = 'saved' | 'applied' | 'interviewing' | 'offered' | 'rejected' | 'withdrawn';
+export type JobStatus = 'pending' | 'saved' | 'applied' | 'interviewing' | 'offered' | 'rejected' | 'withdrawn';
 
 export interface JobDescription {
   id: string;

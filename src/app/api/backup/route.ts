@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
 
         // Validate and cast job type and status
         const validJobTypes = ["full-time", "part-time", "contract", "internship"] as const;
-        const validStatuses = ["saved", "applied", "interviewing", "offered", "rejected", "withdrawn"] as const;
+        const validStatuses = ["pending", "saved", "applied", "interviewing", "offered", "rejected", "withdrawn"] as const;
 
         const jobType = validJobTypes.includes(job.type as typeof validJobTypes[number])
           ? (job.type as typeof validJobTypes[number])
