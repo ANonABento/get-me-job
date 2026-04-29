@@ -42,7 +42,10 @@ function rawRequest(body: string) {
 describe("opportunities from-extension route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.requireExtensionAuth.mockReturnValue({ success: true, userId: "user-1" });
+    mocks.requireExtensionAuth.mockReturnValue({
+      success: true,
+      userId: "user-1",
+    });
     mocks.countJobsByStatus.mockReturnValue(4);
   });
 
@@ -53,12 +56,14 @@ describe("opportunities from-extension route", () => {
       company: "Acme",
     });
 
-    const response = await POST(jsonRequest({
-      title: "Frontend Engineer",
-      company: "Acme",
-      description: "Build UI",
-      source: "linkedin",
-    }));
+    const response = await POST(
+      jsonRequest({
+        title: "Frontend Engineer",
+        company: "Acme",
+        description: "Build UI",
+        source: "linkedin",
+      }),
+    );
 
     expect(response.status).toBe(201);
     await expect(response.json()).resolves.toEqual({
@@ -74,29 +79,39 @@ describe("opportunities from-extension route", () => {
         status: "pending",
         notes: "Source: linkedin",
       }),
-      "user-1"
+      "user-1",
     );
     expect(mocks.createNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "info",
         title: "New opportunity waiting for review",
-        link: "/jobs",
+        link: "/opportunities",
       }),
-      "user-1"
+      "user-1",
     );
   });
 
   it("accepts existing extension batch shape", async () => {
     mocks.createJob
-      .mockReturnValueOnce({ id: "job-1", title: "Frontend Engineer", company: "Acme" })
-      .mockReturnValueOnce({ id: "job-2", title: "Backend Engineer", company: "Beta" });
+      .mockReturnValueOnce({
+        id: "job-1",
+        title: "Frontend Engineer",
+        company: "Acme",
+      })
+      .mockReturnValueOnce({
+        id: "job-2",
+        title: "Backend Engineer",
+        company: "Beta",
+      });
 
-    const response = await POST(jsonRequest({
-      jobs: [
-        { title: "Frontend Engineer", company: "Acme" },
-        { title: "Backend Engineer", company: "Beta" },
-      ],
-    }));
+    const response = await POST(
+      jsonRequest({
+        jobs: [
+          { title: "Frontend Engineer", company: "Acme" },
+          { title: "Backend Engineer", company: "Beta" },
+        ],
+      }),
+    );
 
     await expect(response.json()).resolves.toEqual({
       imported: 2,
@@ -109,15 +124,23 @@ describe("opportunities from-extension route", () => {
         title: "2 new opportunities waiting for review",
         message: "4 pending opportunities are ready to review.",
       }),
-      "user-1"
+      "user-1",
     );
   });
 
   it("returns auth failures from extension auth", async () => {
-    const authResponse = Response.json({ error: "Invalid token" }, { status: 401 });
-    mocks.requireExtensionAuth.mockReturnValueOnce({ success: false, response: authResponse });
+    const authResponse = Response.json(
+      { error: "Invalid token" },
+      { status: 401 },
+    );
+    mocks.requireExtensionAuth.mockReturnValueOnce({
+      success: false,
+      response: authResponse,
+    });
 
-    const response = await POST(jsonRequest({ title: "Frontend Engineer", company: "Acme" }));
+    const response = await POST(
+      jsonRequest({ title: "Frontend Engineer", company: "Acme" }),
+    );
 
     expect(response.status).toBe(401);
     expect(mocks.createJob).not.toHaveBeenCalled();
@@ -137,7 +160,9 @@ describe("opportunities from-extension route", () => {
     const response = await POST(rawRequest("{not-json"));
 
     expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({ error: "Invalid JSON payload" });
+    await expect(response.json()).resolves.toEqual({
+      error: "Invalid JSON payload",
+    });
     expect(mocks.createJob).not.toHaveBeenCalled();
     expect(mocks.createNotification).not.toHaveBeenCalled();
   });

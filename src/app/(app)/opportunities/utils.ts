@@ -9,7 +9,12 @@ export type OpportunitySource =
   | "manual"
   | "url";
 export type RemoteType = "remote" | "hybrid" | "onsite";
-export type OpportunityJobType = "co-op" | "full-time" | "part-time" | "contract" | "internship";
+export type OpportunityJobType =
+  | "co-op"
+  | "full-time"
+  | "part-time"
+  | "contract"
+  | "internship";
 export type OpportunityLevel = "junior" | "intermediate" | "senior" | "staff";
 export type OpportunityStatus =
   | "pending"
@@ -20,8 +25,13 @@ export type OpportunityStatus =
   | "rejected"
   | "expired"
   | "dismissed";
-export type OpportunitySortOption = "deadline" | "scrapedAt" | "company" | "salary";
+export type OpportunitySortOption =
+  | "deadline"
+  | "scrapedAt"
+  | "company"
+  | "salary";
 export type OpportunityTypeTab = "all" | "job" | "hackathon";
+export type OpportunityViewMode = "list" | "kanban";
 
 export interface OpportunityOption<T extends string> {
   value: T;
@@ -106,18 +116,23 @@ export const DEFAULT_OPPORTUNITY_FILTERS: OpportunityFilters = {
   sortBy: "deadline",
 };
 
+export const OPPORTUNITIES_VIEW_STORAGE_KEY = "get_me_job_opportunities_view";
+
 export const OPPORTUNITY_TYPE_OPTIONS: OpportunityOption<OpportunityType>[] = [
   { value: "job", label: "Job" },
   { value: "hackathon", label: "Hackathon" },
 ];
 
-export const OPPORTUNITY_TYPE_TAB_OPTIONS: OpportunityOption<OpportunityTypeTab>[] = [
-  { value: "job", label: "Jobs" },
-  { value: "hackathon", label: "Hackathons" },
-  { value: "all", label: "All" },
-];
+export const OPPORTUNITY_TYPE_TAB_OPTIONS: OpportunityOption<OpportunityTypeTab>[] =
+  [
+    { value: "job", label: "Jobs" },
+    { value: "hackathon", label: "Hackathons" },
+    { value: "all", label: "All" },
+  ];
 
-export const OPPORTUNITY_STATUS_OPTIONS: OpportunityOption<OpportunityStatus | "all">[] = [
+export const OPPORTUNITY_STATUS_OPTIONS: OpportunityOption<
+  OpportunityStatus | "all"
+>[] = [
   { value: "all", label: "All statuses" },
   { value: "pending", label: "Pending" },
   { value: "saved", label: "Saved" },
@@ -129,7 +144,15 @@ export const OPPORTUNITY_STATUS_OPTIONS: OpportunityOption<OpportunityStatus | "
   { value: "dismissed", label: "Dismissed" },
 ];
 
-export const OPPORTUNITY_SOURCE_OPTIONS: OpportunityOption<OpportunitySource | "all">[] = [
+export const OPPORTUNITY_KANBAN_COLUMNS: readonly OpportunityOption<OpportunityStatus>[] =
+  OPPORTUNITY_STATUS_OPTIONS.filter(
+    (option): option is OpportunityOption<OpportunityStatus> =>
+      option.value !== "all",
+  );
+
+export const OPPORTUNITY_SOURCE_OPTIONS: OpportunityOption<
+  OpportunitySource | "all"
+>[] = [
   { value: "all", label: "All sources" },
   { value: "waterlooworks", label: "WaterlooWorks" },
   { value: "linkedin", label: "LinkedIn" },
@@ -148,27 +171,30 @@ export const REMOTE_TYPE_OPTIONS: OpportunityOption<RemoteType | "all">[] = [
   { value: "onsite", label: "Onsite" },
 ];
 
-export const OPPORTUNITY_JOB_TYPE_OPTIONS: OpportunityOption<OpportunityJobType>[] = [
-  { value: "co-op", label: "Co-op" },
-  { value: "full-time", label: "Full-time" },
-  { value: "part-time", label: "Part-time" },
-  { value: "contract", label: "Contract" },
-  { value: "internship", label: "Internship" },
-];
+export const OPPORTUNITY_JOB_TYPE_OPTIONS: OpportunityOption<OpportunityJobType>[] =
+  [
+    { value: "co-op", label: "Co-op" },
+    { value: "full-time", label: "Full-time" },
+    { value: "part-time", label: "Part-time" },
+    { value: "contract", label: "Contract" },
+    { value: "internship", label: "Internship" },
+  ];
 
-export const OPPORTUNITY_LEVEL_OPTIONS: OpportunityOption<OpportunityLevel>[] = [
-  { value: "junior", label: "Junior" },
-  { value: "intermediate", label: "Intermediate" },
-  { value: "senior", label: "Senior" },
-  { value: "staff", label: "Staff" },
-];
+export const OPPORTUNITY_LEVEL_OPTIONS: OpportunityOption<OpportunityLevel>[] =
+  [
+    { value: "junior", label: "Junior" },
+    { value: "intermediate", label: "Intermediate" },
+    { value: "senior", label: "Senior" },
+    { value: "staff", label: "Staff" },
+  ];
 
-export const OPPORTUNITY_SORT_OPTIONS: OpportunityOption<OpportunitySortOption>[] = [
-  { value: "deadline", label: "Deadline" },
-  { value: "scrapedAt", label: "Date scraped" },
-  { value: "company", label: "Company" },
-  { value: "salary", label: "Salary" },
-];
+export const OPPORTUNITY_SORT_OPTIONS: OpportunityOption<OpportunitySortOption>[] =
+  [
+    { value: "deadline", label: "Deadline" },
+    { value: "scrapedAt", label: "Date scraped" },
+    { value: "company", label: "Company" },
+    { value: "salary", label: "Salary" },
+  ];
 
 export const SAMPLE_OPPORTUNITIES: Opportunity[] = [
   {
@@ -184,8 +210,12 @@ export const SAMPLE_OPPORTUNITIES: Opportunity[] = [
     remoteType: "hybrid",
     jobType: "full-time",
     level: "intermediate",
-    summary: "Build reusable product surfaces, design system primitives, and workflow tooling for hiring teams.",
-    responsibilities: ["Own React feature delivery", "Partner with design on component quality"],
+    summary:
+      "Build reusable product surfaces, design system primitives, and workflow tooling for hiring teams.",
+    responsibilities: [
+      "Own React feature delivery",
+      "Partner with design on component quality",
+    ],
     requiredSkills: ["React", "TypeScript", "Accessibility"],
     preferredSkills: ["Next.js", "Testing Library"],
     techStack: ["React", "TypeScript", "Next.js"],
@@ -209,7 +239,8 @@ export const SAMPLE_OPPORTUNITIES: Opportunity[] = [
     city: "Remote",
     country: "Global",
     remoteType: "remote",
-    summary: "Prototype tools that turn climate datasets into practical local planning insights.",
+    summary:
+      "Prototype tools that turn climate datasets into practical local planning insights.",
     requiredSkills: ["Data visualization", "APIs"],
     techStack: ["Python", "Mapbox", "React"],
     prizes: ["$10,000 grand prize", "Cloud credits"],
@@ -235,8 +266,12 @@ export const SAMPLE_OPPORTUNITIES: Opportunity[] = [
     remoteType: "remote",
     jobType: "contract",
     level: "senior",
-    summary: "Ship applied AI features for operations teams using eval-driven product development.",
-    responsibilities: ["Integrate LLM workflows", "Improve reliability metrics"],
+    summary:
+      "Ship applied AI features for operations teams using eval-driven product development.",
+    responsibilities: [
+      "Integrate LLM workflows",
+      "Improve reliability metrics",
+    ],
     requiredSkills: ["TypeScript", "LLM evaluation", "PostgreSQL"],
     preferredSkills: ["Drizzle", "Next.js"],
     techStack: ["TypeScript", "PostgreSQL", "Next.js"],
@@ -260,7 +295,8 @@ export const SAMPLE_OPPORTUNITIES: Opportunity[] = [
     province: "QC",
     country: "Canada",
     remoteType: "onsite",
-    summary: "Weekend build event for payment, budgeting, and financial literacy prototypes.",
+    summary:
+      "Weekend build event for payment, budgeting, and financial literacy prototypes.",
     requiredSkills: ["Product design", "APIs"],
     techStack: ["Node.js", "React Native"],
     prizes: ["Mentorship", "$3,000 sponsor prize"],
@@ -277,42 +313,127 @@ export const SAMPLE_OPPORTUNITIES: Opportunity[] = [
 
 export function filterOpportunities(
   opportunities: Opportunity[],
-  filters: OpportunityFilters
+  filters: OpportunityFilters,
 ): Opportunity[] {
   return [...opportunities]
     .filter((opportunity) => matchesOpportunityFilters(opportunity, filters))
     .sort((a, b) => sortOpportunities(a, b, filters.sortBy));
 }
 
+type WritableStorageLike = Pick<Storage, "setItem">;
+
+export function getOpportunitiesViewStorage(): Storage | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+export function parseOpportunityViewMode(
+  value: string | null | undefined,
+): OpportunityViewMode {
+  return value === "kanban" ? "kanban" : "list";
+}
+
+export function readOpportunityViewMode(
+  storage: Pick<Storage, "getItem"> | null | undefined,
+): OpportunityViewMode {
+  if (!storage) return "list";
+
+  try {
+    return parseOpportunityViewMode(
+      storage.getItem(OPPORTUNITIES_VIEW_STORAGE_KEY),
+    );
+  } catch {
+    return "list";
+  }
+}
+
+export function writeOpportunityViewMode(
+  storage: WritableStorageLike | null | undefined,
+  mode: OpportunityViewMode,
+): void {
+  if (!storage) return;
+
+  try {
+    storage.setItem(OPPORTUNITIES_VIEW_STORAGE_KEY, mode);
+  } catch {
+    // Keep the in-memory mode when localStorage writes are unavailable.
+  }
+}
+
+export function groupOpportunitiesByStatus(
+  opportunities: Opportunity[],
+): Record<OpportunityStatus, Opportunity[]> {
+  const grouped = OPPORTUNITY_KANBAN_COLUMNS.reduce(
+    (acc, column) => {
+      acc[column.value] = [];
+      return acc;
+    },
+    {} as Record<OpportunityStatus, Opportunity[]>,
+  );
+
+  for (const opportunity of opportunities) {
+    grouped[opportunity.status].push(opportunity);
+  }
+
+  return grouped;
+}
+
 export function hasActiveOpportunityFilters(
-  filters: Pick<OpportunityFilters, "searchQuery" | "typeTab" | "status" | "source" | "tag" | "remoteType" | "techStack">
+  filters: Pick<
+    OpportunityFilters,
+    | "searchQuery"
+    | "typeTab"
+    | "status"
+    | "source"
+    | "tag"
+    | "remoteType"
+    | "techStack"
+  >,
 ): boolean {
   return Boolean(
     filters.searchQuery.trim() ||
-      filters.typeTab !== DEFAULT_OPPORTUNITY_FILTERS.typeTab ||
-      filters.status !== DEFAULT_OPPORTUNITY_FILTERS.status ||
-      filters.source !== DEFAULT_OPPORTUNITY_FILTERS.source ||
-      filters.tag !== DEFAULT_OPPORTUNITY_FILTERS.tag ||
-      filters.remoteType !== DEFAULT_OPPORTUNITY_FILTERS.remoteType ||
-      filters.techStack !== DEFAULT_OPPORTUNITY_FILTERS.techStack
+    filters.typeTab !== DEFAULT_OPPORTUNITY_FILTERS.typeTab ||
+    filters.status !== DEFAULT_OPPORTUNITY_FILTERS.status ||
+    filters.source !== DEFAULT_OPPORTUNITY_FILTERS.source ||
+    filters.tag !== DEFAULT_OPPORTUNITY_FILTERS.tag ||
+    filters.remoteType !== DEFAULT_OPPORTUNITY_FILTERS.remoteType ||
+    filters.techStack !== DEFAULT_OPPORTUNITY_FILTERS.techStack,
   );
 }
 
-export function getOpportunityFilterOptions(opportunities: Opportunity[]): OpportunityFilterOptions {
+export function getOpportunityFilterOptions(
+  opportunities: Opportunity[],
+): OpportunityFilterOptions {
   return {
-    tags: uniqueSorted(opportunities.flatMap((opportunity) => opportunity.tags)),
-    techStacks: uniqueSorted(opportunities.flatMap((opportunity) => opportunity.techStack ?? [])),
+    tags: uniqueSorted(
+      opportunities.flatMap((opportunity) => opportunity.tags),
+    ),
+    techStacks: uniqueSorted(
+      opportunities.flatMap((opportunity) => opportunity.techStack ?? []),
+    ),
   };
 }
 
 export function formatOpportunityLocation(opportunity: Opportunity): string {
-  const pieces = [opportunity.city, opportunity.province, opportunity.country].filter(Boolean);
+  const pieces = [
+    opportunity.city,
+    opportunity.province,
+    opportunity.country,
+  ].filter(Boolean);
   if (pieces.length > 0) return pieces.join(", ");
-  return opportunity.remoteType ? capitalize(opportunity.remoteType) : "Location TBD";
+  return opportunity.remoteType
+    ? capitalize(opportunity.remoteType)
+    : "Location TBD";
 }
 
 export function formatOpportunitySalary(opportunity: Opportunity): string {
-  if (opportunity.salaryMin == null && opportunity.salaryMax == null) return "Compensation TBD";
+  if (opportunity.salaryMin == null && opportunity.salaryMax == null)
+    return "Compensation TBD";
 
   const formatter = getCurrencyFormatter(opportunity.salaryCurrency);
 
@@ -320,7 +441,8 @@ export function formatOpportunitySalary(opportunity: Opportunity): string {
     return `${formatter.format(opportunity.salaryMin)} - ${formatter.format(opportunity.salaryMax)}`;
   }
 
-  if (opportunity.salaryMin != null) return `From ${formatter.format(opportunity.salaryMin)}`;
+  if (opportunity.salaryMin != null)
+    return `From ${formatter.format(opportunity.salaryMin)}`;
   return `Up to ${formatter.format(opportunity.salaryMax ?? 0)}`;
 }
 
@@ -338,11 +460,12 @@ export function formatOpportunityDate(value: string): string {
 
 export function buildOpportunityTeamSize(
   minValue: string,
-  maxValue: string
+  maxValue: string,
 ): Opportunity["teamSize"] {
-  const sizes = [parseOptionalNumber(minValue), parseOptionalNumber(maxValue)].filter(
-    (value): value is number => value != null && value > 0
-  );
+  const sizes = [
+    parseOptionalNumber(minValue),
+    parseOptionalNumber(maxValue),
+  ].filter((value): value is number => value != null && value > 0);
 
   if (sizes.length === 0) return undefined;
 
@@ -375,7 +498,10 @@ export function parseOptionalNumber(value: string): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function matchesOpportunityFilters(opportunity: Opportunity, filters: OpportunityFilters): boolean {
+function matchesOpportunityFilters(
+  opportunity: Opportunity,
+  filters: OpportunityFilters,
+): boolean {
   const query = filters.searchQuery.trim().toLowerCase();
   if (query && !getSearchableOpportunityText(opportunity).includes(query)) {
     return false;
@@ -393,7 +519,10 @@ function matchesOpportunityFilters(opportunity: Opportunity, filters: Opportunit
     return false;
   }
 
-  if (filters.remoteType !== "all" && opportunity.remoteType !== filters.remoteType) {
+  if (
+    filters.remoteType !== "all" &&
+    opportunity.remoteType !== filters.remoteType
+  ) {
     return false;
   }
 
@@ -401,21 +530,30 @@ function matchesOpportunityFilters(opportunity: Opportunity, filters: Opportunit
     return false;
   }
 
-  if (filters.techStack !== "all" && !(opportunity.techStack ?? []).includes(filters.techStack)) {
+  if (
+    filters.techStack !== "all" &&
+    !(opportunity.techStack ?? []).includes(filters.techStack)
+  ) {
     return false;
   }
 
   return true;
 }
 
-function sortOpportunities(a: Opportunity, b: Opportunity, sortBy: OpportunitySortOption): number {
+function sortOpportunities(
+  a: Opportunity,
+  b: Opportunity,
+  sortBy: OpportunitySortOption,
+): number {
   switch (sortBy) {
     case "deadline":
       return compareOptionalDates(a.deadline, b.deadline);
     case "scrapedAt":
       return compareOptionalDates(b.scrapedAt, a.scrapedAt);
     case "company":
-      return a.company.localeCompare(b.company) || a.title.localeCompare(b.title);
+      return (
+        a.company.localeCompare(b.company) || a.title.localeCompare(b.title)
+      );
     case "salary":
       return getSalarySortValue(b) - getSalarySortValue(a);
     default:
@@ -458,7 +596,9 @@ function getSearchableOpportunityText(opportunity: Opportunity): string {
 }
 
 function uniqueSorted(values: string[]): string[] {
-  return Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
+  return Array.from(new Set(values.filter(Boolean))).sort((a, b) =>
+    a.localeCompare(b),
+  );
 }
 
 function capitalize(value: string): string {

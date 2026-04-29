@@ -39,20 +39,27 @@ import { SkeletonChart, SkeletonButton } from "@/components/ui/skeleton";
 import { useErrorToast } from "@/hooks/use-error-toast";
 
 const TrendCharts = dynamic(
-  () => import("@/components/analytics/trend-charts").then((m) => m.TrendCharts),
-  { loading: () => <SkeletonChart /> }
+  () =>
+    import("@/components/analytics/trend-charts").then((m) => m.TrendCharts),
+  { loading: () => <SkeletonChart /> },
 );
 const SuccessDashboard = dynamic(
-  () => import("@/components/analytics/success-dashboard").then((m) => m.SuccessDashboard),
-  { loading: () => <SkeletonChart /> }
+  () =>
+    import("@/components/analytics/success-dashboard").then(
+      (m) => m.SuccessDashboard,
+    ),
+  { loading: () => <SkeletonChart /> },
 );
 const SkillLearningPaths = dynamic(
-  () => import("@/components/learning/skill-learning-paths").then((m) => m.SkillLearningPaths),
-  { loading: () => <SkeletonChart /> }
+  () =>
+    import("@/components/learning/skill-learning-paths").then(
+      (m) => m.SkillLearningPaths,
+    ),
+  { loading: () => <SkeletonChart /> },
 );
 const ExportToSheetsButton = dynamic(
   () => import("@/components/google").then((m) => m.ExportToSheetsButton),
-  { loading: () => <SkeletonButton />, ssr: false }
+  { loading: () => <SkeletonButton />, ssr: false },
 );
 
 interface Analytics {
@@ -92,12 +99,19 @@ interface Analytics {
   };
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; icon: React.ElementType }
+> = {
   pending: { label: "Pending", color: "bg-violet-500", icon: Clock },
   saved: { label: "Saved", color: "bg-slate-500", icon: Star },
   dismissed: { label: "Dismissed", color: "bg-zinc-500", icon: XCircle },
   applied: { label: "Applied", color: "bg-blue-500", icon: CheckCircle },
-  interviewing: { label: "Interviewing", color: "bg-amber-500", icon: MessageSquare },
+  interviewing: {
+    label: "Interviewing",
+    color: "bg-amber-500",
+    icon: MessageSquare,
+  },
   offered: { label: "Offered", color: "bg-emerald-500", icon: TrendingUp },
   rejected: { label: "Rejected", color: "bg-red-500", icon: XCircle },
   withdrawn: { label: "Withdrawn", color: "bg-stone-500", icon: AlertTriangle },
@@ -115,7 +129,7 @@ export default function AnalyticsPage() {
     setExporting(true);
     try {
       const response = await fetch(
-        `/api/analytics/export?format=${format}&range=${exportRange}`
+        `/api/analytics/export?format=${format}&range=${exportRange}`,
       );
       if (!response.ok) throw new Error("Export failed");
 
@@ -140,7 +154,10 @@ export default function AnalyticsPage() {
     window.print();
   };
 
-  const formatAnalyticsForSheets = (): { headers: string[]; rows: string[][] } => {
+  const formatAnalyticsForSheets = (): {
+    headers: string[];
+    rows: string[][];
+  } => {
     if (!analytics) return { headers: [], rows: [] };
 
     const headers = ["Metric", "Value"];
@@ -149,13 +166,21 @@ export default function AnalyticsPage() {
       ["Total Jobs", analytics.overview.totalJobs.toString()],
       ["Total Documents", analytics.overview.totalDocuments.toString()],
       ["Total Interviews", analytics.overview.totalInterviews.toString()],
-      ["Resumes Generated", analytics.overview.totalResumesGenerated.toString()],
+      [
+        "Resumes Generated",
+        analytics.overview.totalResumesGenerated.toString(),
+      ],
       ["", ""],
       ["--- Jobs by Status ---", ""],
-      ...Object.entries(analytics.jobs.byStatus).map(([status, count]) => [status, count.toString()]),
+      ...Object.entries(analytics.jobs.byStatus).map(([status, count]) => [
+        status,
+        count.toString(),
+      ]),
       ["", ""],
       ["--- Skills by Category ---", ""],
-      ...Object.entries(analytics.skills.byCategory).map(([category, count]) => [category, count.toString()]),
+      ...Object.entries(analytics.skills.byCategory).map(
+        ([category, count]) => [category, count.toString()],
+      ),
     ];
 
     return { headers, rows };
@@ -194,24 +219,31 @@ export default function AnalyticsPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
           <AlertTriangle className="h-12 w-12 mx-auto text-destructive" />
-          <p className="text-muted-foreground">{error || "Failed to load analytics"}</p>
+          <p className="text-muted-foreground">
+            {error || "Failed to load analytics"}
+          </p>
           <Button onClick={fetchAnalytics}>Retry</Button>
         </div>
       </div>
     );
   }
 
-  const applicationRate = analytics.overview.totalJobs > 0
-    ? Math.round((analytics.jobs.applied / analytics.overview.totalJobs) * 100)
-    : 0;
+  const applicationRate =
+    analytics.overview.totalJobs > 0
+      ? Math.round(
+          (analytics.jobs.applied / analytics.overview.totalJobs) * 100,
+        )
+      : 0;
 
-  const interviewRate = analytics.jobs.applied > 0
-    ? Math.round((analytics.jobs.interviewing / analytics.jobs.applied) * 100)
-    : 0;
+  const interviewRate =
+    analytics.jobs.applied > 0
+      ? Math.round((analytics.jobs.interviewing / analytics.jobs.applied) * 100)
+      : 0;
 
-  const offerRate = analytics.jobs.interviewing > 0
-    ? Math.round((analytics.jobs.offered / analytics.jobs.interviewing) * 100)
-    : 0;
+  const offerRate =
+    analytics.jobs.interviewing > 0
+      ? Math.round((analytics.jobs.offered / analytics.jobs.interviewing) * 100)
+      : 0;
 
   return (
     <div className="min-h-screen pb-24">
@@ -232,9 +264,12 @@ export default function AnalyticsPage() {
                 <BarChart3 className="h-4 w-4" />
                 Insights
               </div>
-              <h1 className="text-4xl font-bold tracking-tight">Analytics Dashboard</h1>
+              <h1 className="text-4xl font-bold tracking-tight">
+                Analytics Dashboard
+              </h1>
               <p className="text-lg text-muted-foreground max-w-xl">
-                Track your job search progress and identify areas for improvement.
+                Track your job search progress and identify areas for
+                improvement.
               </p>
             </div>
 
@@ -307,15 +342,21 @@ export default function AnalyticsPage() {
                 <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
                   <Target className="h-5 w-5" />
                 </div>
-                <span className="text-2xl font-bold">{analytics.overview.profileCompleteness}%</span>
+                <span className="text-2xl font-bold">
+                  {analytics.overview.profileCompleteness}%
+                </span>
               </div>
               <h3 className="font-medium mb-2">Profile Complete</h3>
-              <Progress value={analytics.overview.profileCompleteness} className="h-2" />
+              <Progress
+                value={analytics.overview.profileCompleteness}
+                className="h-2"
+              />
               {analytics.overview.profileCompleteness < 100 && (
                 <p className="text-xs text-muted-foreground mt-2">
                   <Link href="/bank" className="text-primary hover:underline">
                     Complete your profile
-                  </Link> to improve your chances
+                  </Link>{" "}
+                  to improve your chances
                 </p>
               )}
             </div>
@@ -326,7 +367,9 @@ export default function AnalyticsPage() {
                 <div className="p-2.5 rounded-xl bg-info/10 text-info">
                   <Briefcase className="h-5 w-5" />
                 </div>
-                <span className="text-2xl font-bold">{analytics.overview.totalJobs}</span>
+                <span className="text-2xl font-bold">
+                  {analytics.overview.totalJobs}
+                </span>
               </div>
               <h3 className="font-medium mb-1">Total Jobs Tracked</h3>
               <p className="text-sm text-muted-foreground">
@@ -340,7 +383,9 @@ export default function AnalyticsPage() {
                 <div className="p-2.5 rounded-xl bg-warning/10 text-warning">
                   <MessageSquare className="h-5 w-5" />
                 </div>
-                <span className="text-2xl font-bold">{analytics.overview.totalInterviews}</span>
+                <span className="text-2xl font-bold">
+                  {analytics.overview.totalInterviews}
+                </span>
               </div>
               <h3 className="font-medium mb-1">Interview Sessions</h3>
               <p className="text-sm text-muted-foreground">
@@ -354,7 +399,9 @@ export default function AnalyticsPage() {
                 <div className="p-2.5 rounded-xl bg-success/10 text-success">
                   <FileText className="h-5 w-5" />
                 </div>
-                <span className="text-2xl font-bold">{analytics.overview.totalResumesGenerated}</span>
+                <span className="text-2xl font-bold">
+                  {analytics.overview.totalResumesGenerated}
+                </span>
               </div>
               <h3 className="font-medium mb-1">Resumes Generated</h3>
               <p className="text-sm text-muted-foreground">
@@ -375,18 +422,23 @@ export default function AnalyticsPage() {
               <div className="space-y-4">
                 {Object.entries(STATUS_CONFIG).map(([status, config]) => {
                   const count = analytics.jobs.byStatus[status] || 0;
-                  const percentage = analytics.overview.totalJobs > 0
-                    ? (count / analytics.overview.totalJobs) * 100
-                    : 0;
+                  const percentage =
+                    analytics.overview.totalJobs > 0
+                      ? (count / analytics.overview.totalJobs) * 100
+                      : 0;
 
                   return (
                     <div key={status} className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
-                          <config.icon className={`h-4 w-4 ${config.color.replace("bg-", "text-")}`} />
+                          <config.icon
+                            className={`h-4 w-4 ${config.color.replace("bg-", "text-")}`}
+                          />
                           <span className="font-medium">{config.label}</span>
                         </div>
-                        <span className="text-muted-foreground">{count} jobs</span>
+                        <span className="text-muted-foreground">
+                          {count} jobs
+                        </span>
                       </div>
                       <div className="h-2 rounded-full bg-muted overflow-hidden">
                         <div
@@ -404,15 +456,23 @@ export default function AnalyticsPage() {
                 <h4 className="text-sm font-medium mb-4">Conversion Rates</h4>
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <p className="text-2xl font-bold text-info">{applicationRate}%</p>
+                    <p className="text-2xl font-bold text-info">
+                      {applicationRate}%
+                    </p>
                     <p className="text-xs text-muted-foreground">Applied</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-warning">{interviewRate}%</p>
-                    <p className="text-xs text-muted-foreground">To Interview</p>
+                    <p className="text-2xl font-bold text-warning">
+                      {interviewRate}%
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      To Interview
+                    </p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-success">{offerRate}%</p>
+                    <p className="text-2xl font-bold text-success">
+                      {offerRate}%
+                    </p>
                     <p className="text-xs text-muted-foreground">To Offer</p>
                   </div>
                 </div>
@@ -430,15 +490,22 @@ export default function AnalyticsPage() {
               <div className="space-y-4 mb-6">
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-medium">Total Skills</span>
-                  <span className="text-muted-foreground">{analytics.skills.total}</span>
+                  <span className="text-muted-foreground">
+                    {analytics.skills.total}
+                  </span>
                 </div>
 
-                {Object.entries(analytics.skills.byCategory).map(([category, count]) => (
-                  <div key={category} className="flex items-center justify-between text-sm">
-                    <span className="capitalize">{category}</span>
-                    <span className="text-muted-foreground">{count}</span>
-                  </div>
-                ))}
+                {Object.entries(analytics.skills.byCategory).map(
+                  ([category, count]) => (
+                    <div
+                      key={category}
+                      className="flex items-center justify-between text-sm"
+                    >
+                      <span className="capitalize">{category}</span>
+                      <span className="text-muted-foreground">{count}</span>
+                    </div>
+                  ),
+                )}
               </div>
 
               {/* Skill Gaps */}
@@ -459,7 +526,8 @@ export default function AnalyticsPage() {
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground mt-3">
-                    These skills appear frequently in your saved jobs but aren&apos;t in your profile.
+                    These skills appear frequently in your saved jobs but
+                    aren&apos;t in your profile.
                   </p>
                 </div>
               )}
@@ -476,24 +544,33 @@ export default function AnalyticsPage() {
             {analytics.recent.jobs.length > 0 ? (
               <div className="space-y-3">
                 {analytics.recent.jobs.map((job) => {
-                  const statusConfig = STATUS_CONFIG[job.status] || STATUS_CONFIG.saved;
+                  const statusConfig =
+                    STATUS_CONFIG[job.status] || STATUS_CONFIG.saved;
                   return (
                     <Link
                       key={job.id}
-                      href={`/jobs?highlight=${job.id}`}
+                      href={`/opportunities?highlight=${job.id}`}
                       className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
                     >
                       <div className="flex items-center gap-4">
-                        <div className={`p-2 rounded-lg ${statusConfig.color}/10`}>
-                          <statusConfig.icon className={`h-4 w-4 ${statusConfig.color.replace("bg-", "text-")}`} />
+                        <div
+                          className={`p-2 rounded-lg ${statusConfig.color}/10`}
+                        >
+                          <statusConfig.icon
+                            className={`h-4 w-4 ${statusConfig.color.replace("bg-", "text-")}`}
+                          />
                         </div>
                         <div>
                           <p className="font-medium">{job.title}</p>
-                          <p className="text-sm text-muted-foreground">{job.company}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {job.company}
+                          </p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}/10 ${statusConfig.color.replace("bg-", "text-")}`}>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}/10 ${statusConfig.color.replace("bg-", "text-")}`}
+                        >
                           {statusConfig.label}
                         </span>
                         <p className="text-xs text-muted-foreground mt-1">
@@ -507,9 +584,12 @@ export default function AnalyticsPage() {
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <Briefcase className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                <p>No jobs tracked yet</p>
-                <Link href="/jobs" className="text-primary hover:underline text-sm">
-                  Add your first job
+                <p>No opportunities tracked yet</p>
+                <Link
+                  href="/opportunities"
+                  className="text-primary hover:underline text-sm"
+                >
+                  Add your first opportunity
                 </Link>
               </div>
             )}
@@ -523,7 +603,9 @@ export default function AnalyticsPage() {
               </div>
               <div>
                 <h2 className="text-xl font-bold">Advanced Insights</h2>
-                <p className="text-sm text-muted-foreground">Deep dive into your job search performance</p>
+                <p className="text-sm text-muted-foreground">
+                  Deep dive into your job search performance
+                </p>
               </div>
             </div>
 

@@ -62,20 +62,21 @@ const STATUS_BADGE_CLASSES: Record<string, string> = {
   offered:
     "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   rejected: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-  withdrawn:
-    "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200",
+  withdrawn: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200",
 };
 
 function fieldInputValue(
   opportunity: JobDescription,
-  field: OpportunityFieldConfig
+  field: OpportunityFieldConfig,
 ) {
   const value = formatOpportunityFieldValue(opportunity, field);
   return field.type === "date" ? value.slice(0, 10) : value;
 }
 
 function DocumentDate({ value }: { value: string }) {
-  return <span>{value ? new Date(value).toLocaleDateString() : "Unknown date"}</span>;
+  return (
+    <span>{value ? new Date(value).toLocaleDateString() : "Unknown date"}</span>
+  );
 }
 
 interface OpportunityFieldSectionsProps {
@@ -201,7 +202,7 @@ function OpportunityFieldSections({
                         <div
                           className={cn(
                             "min-h-9 min-w-0 whitespace-pre-wrap break-words text-sm leading-6",
-                            preview === "Not set" && "text-muted-foreground"
+                            preview === "Not set" && "text-muted-foreground",
                           )}
                         >
                           {preview}
@@ -242,7 +243,9 @@ export default function OpportunityDetailPage({
   const [draftValue, setDraftValue] = useState("");
   const [draftChecked, setDraftChecked] = useState(false);
   const [savingField, setSavingField] = useState<string | null>(null);
-  const [resumes, setResumes] = useState<NonNullable<ResumesResponse["resumes"]>>([]);
+  const [resumes, setResumes] = useState<
+    NonNullable<ResumesResponse["resumes"]>
+  >([]);
   const [coverLetters, setCoverLetters] = useState<
     NonNullable<CoverLettersResponse["versions"]>
   >([]);
@@ -258,7 +261,7 @@ export default function OpportunityDetailPage({
       const response = await fetch(`/api/jobs/${params.id}`);
       const data = await readJsonResponse<OpportunityResponse>(
         response,
-        "Failed to load opportunity"
+        "Failed to load opportunity",
       );
       if (data.job) {
         setOpportunity(data.job);
@@ -280,14 +283,14 @@ export default function OpportunityDetailPage({
       fetch(`/api/jobs/${params.id}/resumes`).then((response) =>
         readJsonResponse<ResumesResponse>(
           response,
-          "Failed to load generated resumes"
-        )
+          "Failed to load generated resumes",
+        ),
       ),
       fetch(`/api/jobs/${params.id}/cover-letter/history`).then((response) =>
         readJsonResponse<CoverLettersResponse>(
           response,
-          "Failed to load cover letters"
-        )
+          "Failed to load cover letters",
+        ),
       ),
     ]);
 
@@ -317,11 +320,12 @@ export default function OpportunityDetailPage({
           });
           const data = await readJsonResponse<OpportunityResponse>(
             response,
-            "Failed to update opportunity"
+            "Failed to update opportunity",
           );
 
-          setOpportunity((current) =>
-            data.job ?? (current ? { ...current, ...patch } : current)
+          setOpportunity(
+            (current) =>
+              data.job ?? (current ? { ...current, ...patch } : current),
           );
 
           return data.job;
@@ -329,12 +333,12 @@ export default function OpportunityDetailPage({
 
       patchQueueRef.current = queuedPatch.then(
         () => undefined,
-        () => undefined
+        () => undefined,
       );
 
       return queuedPatch;
     },
-    [params.id]
+    [params.id],
   );
 
   const startEditing = (field: OpportunityFieldConfig) => {
@@ -357,8 +361,8 @@ export default function OpportunityDetailPage({
       await patchOpportunity(
         buildOpportunityPatch(
           field,
-          field.type === "checkbox" ? draftChecked : draftValue
-        )
+          field.type === "checkbox" ? draftChecked : draftValue,
+        ),
       );
       cancelEditing();
     } catch (error) {
@@ -426,12 +430,12 @@ export default function OpportunityDetailPage({
   const linkedDocumentCount = resumes.length + coverLetters.length;
   const studioResumeHref = useMemo(
     () => `/studio?mode=resume&opportunityId=${encodeURIComponent(params.id)}`,
-    [params.id]
+    [params.id],
   );
   const studioCoverLetterHref = useMemo(
     () =>
       `/studio?mode=cover-letter&opportunityId=${encodeURIComponent(params.id)}`,
-    [params.id]
+    [params.id],
   );
 
   if (loading) {
@@ -446,11 +450,11 @@ export default function OpportunityDetailPage({
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
         <Link
-          href="/jobs"
+          href="/opportunities"
           className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to jobs
+          Back to opportunities
         </Link>
         <div className="rounded-lg border bg-card p-8">
           <h1 className="text-2xl font-semibold">Opportunity not found</h1>
@@ -465,11 +469,11 @@ export default function OpportunityDetailPage({
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <Link
-        href="/jobs"
+        href="/opportunities"
         className="mb-5 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to jobs
+        Back to opportunities
       </Link>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -488,7 +492,7 @@ export default function OpportunityDetailPage({
               <Badge
                 className={cn(
                   "border-0 px-3 py-1 text-sm capitalize",
-                  STATUS_BADGE_CLASSES[status]
+                  STATUS_BADGE_CLASSES[status],
                 )}
               >
                 {status}
@@ -581,7 +585,9 @@ export default function OpportunityDetailPage({
                 <h3 className="text-sm font-medium">Tailored resumes</h3>
                 <div className="mt-2 space-y-2">
                   {resumes.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">None attached</p>
+                    <p className="text-sm text-muted-foreground">
+                      None attached
+                    </p>
                   ) : (
                     resumes.map((resume) => (
                       <a
@@ -608,14 +614,18 @@ export default function OpportunityDetailPage({
                 <h3 className="text-sm font-medium">Cover letters</h3>
                 <div className="mt-2 space-y-2">
                   {coverLetters.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">None attached</p>
+                    <p className="text-sm text-muted-foreground">
+                      None attached
+                    </p>
                   ) : (
                     coverLetters.map((letter) => (
                       <div
                         key={letter.id}
                         className="rounded-md border px-3 py-2 text-sm"
                       >
-                        <div className="font-medium">Version {letter.version}</div>
+                        <div className="font-medium">
+                          Version {letter.version}
+                        </div>
                         <div className="text-muted-foreground">
                           <DocumentDate value={letter.createdAt} />
                         </div>

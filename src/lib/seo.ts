@@ -41,10 +41,10 @@ const pages = {
     path: "/studio",
   },
   jobs: {
-    title: "Job Tracker",
+    title: "Opportunities",
     description:
-      "Track job applications through every stage — from saved to offer.",
-    path: "/jobs",
+      "Track jobs and hackathons through every stage from saved to offer.",
+    path: "/opportunities",
   },
   interview: {
     title: "Interview Prep",
@@ -78,7 +78,8 @@ const pages = {
   },
   settings: {
     title: "Settings",
-    description: "Configure your AI provider, model preferences, and account settings.",
+    description:
+      "Configure your AI provider, model preferences, and account settings.",
     path: "/settings",
   },
 } satisfies Record<string, RouteSeo>;

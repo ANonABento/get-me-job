@@ -26,7 +26,12 @@ export interface InsightData {
   profile: Profile | null;
   jobs: JobDescription[];
   snapshots: AnalyticsSnapshot[];
-  generatedResumes: Array<{ id: string; jobId: string; matchScore: number | null; createdAt: string }>;
+  generatedResumes: Array<{
+    id: string;
+    jobId: string;
+    matchScore: number | null;
+    createdAt: string;
+  }>;
 }
 
 interface InsightCache {
@@ -41,7 +46,10 @@ export function clearInsightCache(userId: string): void {
   cache.delete(userId);
 }
 
-export function getInsights(data: InsightData, userId: string = "default"): Insight[] {
+export function getInsights(
+  data: InsightData,
+  userId: string = "default",
+): Insight[] {
   const cached = cache.get(userId);
   if (cached && Date.now() - cached.generatedAt < CACHE_TTL_MS) {
     return cached.insights;
@@ -64,8 +72,14 @@ export function generateInsights(data: InsightData): Insight[] {
   allInsights.push(...analyzeProfileCompleteness(data));
 
   // Sort by priority, then return top 5
-  const priorityOrder: Record<InsightPriority, number> = { high: 0, medium: 1, low: 2 };
-  allInsights.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+  const priorityOrder: Record<InsightPriority, number> = {
+    high: 0,
+    medium: 1,
+    low: 2,
+  };
+  allInsights.sort(
+    (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority],
+  );
 
   return allInsights.slice(0, 5);
 }
@@ -83,16 +97,25 @@ export function analyzeStrongestSkills(data: InsightData): Insight[] {
     const jobText = `${job.title} ${job.description}`.toLowerCase();
 
     for (const skillName of profileSkillNames) {
-      if (jobKeywords.some((k) => k.includes(skillName) || skillName.includes(k)) ||
-          jobText.includes(skillName)) {
-        skillMatchCounts.set(skillName, (skillMatchCounts.get(skillName) || 0) + 1);
+      if (
+        jobKeywords.some(
+          (k) => k.includes(skillName) || skillName.includes(k),
+        ) ||
+        jobText.includes(skillName)
+      ) {
+        skillMatchCounts.set(
+          skillName,
+          (skillMatchCounts.get(skillName) || 0) + 1,
+        );
       }
     }
   }
 
   if (skillMatchCounts.size === 0) return [];
 
-  const sorted = Array.from(skillMatchCounts.entries()).sort((a, b) => b[1] - a[1]);
+  const sorted = Array.from(skillMatchCounts.entries()).sort(
+    (a, b) => b[1] - a[1],
+  );
   const topSkills = sorted.slice(0, 3);
   const topPercentage = Math.round((topSkills[0][1] / jobs.length) * 100);
 
@@ -100,28 +123,32 @@ export function analyzeStrongestSkills(data: InsightData): Insight[] {
 
   const skillNames = topSkills.map(([name]) => capitalize(name));
 
-  return [{
-    id: "strongest-skills",
-    type: "strongest_skills",
-    title: "Your strongest skills",
-    description: `${skillNames.join(", ")} appear in ${topPercentage}% of your tracked jobs. These are your most marketable skills.`,
-    priority: "low",
-    actionLabel: "View Profile",
-    actionUrl: "/bank",
-  }];
+  return [
+    {
+      id: "strongest-skills",
+      type: "strongest_skills",
+      title: "Your strongest skills",
+      description: `${skillNames.join(", ")} appear in ${topPercentage}% of your tracked jobs. These are your most marketable skills.`,
+      priority: "low",
+      actionLabel: "View Profile",
+      actionUrl: "/bank",
+    },
+  ];
 }
 
 export function analyzeMissingKeywords(data: InsightData): Insight[] {
   const { profile, jobs } = data;
   if (!profile || jobs.length === 0) return [];
 
-  const profileSkillNames = new Set(profile.skills.map((s) => s.name.toLowerCase()));
+  const profileSkillNames = new Set(
+    profile.skills.map((s) => s.name.toLowerCase()),
+  );
   const profileText = extractProfileText(profile).toLowerCase();
 
   // Count keyword frequency across all jobs
   const keywordCounts = new Map<string, number>();
   for (const job of jobs) {
-    for (const keyword of (job.keywords || [])) {
+    for (const keyword of job.keywords || []) {
       const kw = keyword.toLowerCase();
       if (!profileSkillNames.has(kw) && !profileText.includes(kw)) {
         keywordCounts.set(kw, (keywordCounts.get(kw) || 0) + 1);
@@ -131,7 +158,9 @@ export function analyzeMissingKeywords(data: InsightData): Insight[] {
 
   if (keywordCounts.size === 0) return [];
 
-  const sorted = Array.from(keywordCounts.entries()).sort((a, b) => b[1] - a[1]);
+  const sorted = Array.from(keywordCounts.entries()).sort(
+    (a, b) => b[1] - a[1],
+  );
   const topMissing = sorted.slice(0, 3);
   const topPercentage = Math.round((topMissing[0][1] / jobs.length) * 100);
 
@@ -139,18 +168,22 @@ export function analyzeMissingKeywords(data: InsightData): Insight[] {
 
   const missingNames = topMissing.map(([name]) => `'${name}'`);
 
-  return [{
-    id: "missing-keywords",
-    type: "missing_keywords",
-    title: "Missing in-demand keywords",
-    description: `You're missing ${missingNames.join(", ")} keywords that appear in ${topPercentage}% of your target jobs. Adding these could improve your match rate.`,
-    priority: "high",
-    actionLabel: "Edit Profile",
-    actionUrl: "/bank",
-  }];
+  return [
+    {
+      id: "missing-keywords",
+      type: "missing_keywords",
+      title: "Missing in-demand keywords",
+      description: `You're missing ${missingNames.join(", ")} keywords that appear in ${topPercentage}% of your target jobs. Adding these could improve your match rate.`,
+      priority: "high",
+      actionLabel: "Edit Profile",
+      actionUrl: "/bank",
+    },
+  ];
 }
 
-function getSnapshotWindow(snapshots: InsightData["snapshots"]): [typeof snapshots[number], typeof snapshots[number]] | null {
+function getSnapshotWindow(
+  snapshots: InsightData["snapshots"],
+): [(typeof snapshots)[number], (typeof snapshots)[number]] | null {
   if (snapshots.length < 2) return null;
   const recent = snapshots[snapshots.length - 1];
   const older = snapshots[Math.max(0, snapshots.length - 8)];
@@ -171,17 +204,19 @@ export function analyzeAtsTrend(data: InsightData): Insight[] {
 
   const improving = change > 0;
 
-  return [{
-    id: "ats-trend",
-    type: "ats_trend",
-    title: improving ? "Profile improving" : "Profile needs attention",
-    description: improving
-      ? `Your profile completeness improved ${change} points since ${older.snapshotDate}. Keep it up!`
-      : `Your profile completeness dropped ${Math.abs(change)} points since ${older.snapshotDate}. Consider updating your profile.`,
-    priority: improving ? "low" : "medium",
-    actionLabel: "View Analytics",
-    actionUrl: "/analytics",
-  }];
+  return [
+    {
+      id: "ats-trend",
+      type: "ats_trend",
+      title: improving ? "Profile improving" : "Profile needs attention",
+      description: improving
+        ? `Your profile completeness improved ${change} points since ${older.snapshotDate}. Keep it up!`
+        : `Your profile completeness dropped ${Math.abs(change)} points since ${older.snapshotDate}. Consider updating your profile.`,
+      priority: improving ? "low" : "medium",
+      actionLabel: "View Analytics",
+      actionUrl: "/analytics",
+    },
+  ];
 }
 
 export function analyzeResumePerformance(data: InsightData): Insight[] {
@@ -190,34 +225,48 @@ export function analyzeResumePerformance(data: InsightData): Insight[] {
 
   // Group resumes by job and check which jobs progressed to interviews
   const interviewingJobs = new Set(
-    jobs.filter((j) => j.status === "interviewing" || j.status === "offered")
-      .map((j) => j.id)
+    jobs
+      .filter((j) => j.status === "interviewing" || j.status === "offered")
+      .map((j) => j.id),
   );
 
-  const resumesWithScore = generatedResumes.filter((r) => r.matchScore !== null);
+  const resumesWithScore = generatedResumes.filter(
+    (r) => r.matchScore !== null,
+  );
   if (resumesWithScore.length < 2) return [];
 
-  const interviewResumes = resumesWithScore.filter((r) => interviewingJobs.has(r.jobId));
-  const nonInterviewResumes = resumesWithScore.filter((r) => !interviewingJobs.has(r.jobId));
+  const interviewResumes = resumesWithScore.filter((r) =>
+    interviewingJobs.has(r.jobId),
+  );
+  const nonInterviewResumes = resumesWithScore.filter(
+    (r) => !interviewingJobs.has(r.jobId),
+  );
 
-  if (interviewResumes.length === 0 || nonInterviewResumes.length === 0) return [];
+  if (interviewResumes.length === 0 || nonInterviewResumes.length === 0)
+    return [];
 
-  const avgInterviewScore = interviewResumes.reduce((sum, r) => sum + (r.matchScore || 0), 0) / interviewResumes.length;
-  const avgNonInterviewScore = nonInterviewResumes.reduce((sum, r) => sum + (r.matchScore || 0), 0) / nonInterviewResumes.length;
+  const avgInterviewScore =
+    interviewResumes.reduce((sum, r) => sum + (r.matchScore || 0), 0) /
+    interviewResumes.length;
+  const avgNonInterviewScore =
+    nonInterviewResumes.reduce((sum, r) => sum + (r.matchScore || 0), 0) /
+    nonInterviewResumes.length;
 
   const scoreDiff = Math.round(avgInterviewScore - avgNonInterviewScore);
 
   if (scoreDiff <= 0) return [];
 
-  return [{
-    id: "resume-performance",
-    type: "resume_performance",
-    title: "Higher-scoring resumes get results",
-    description: `Resumes that led to interviews scored ${scoreDiff} points higher on average. Focus on tailoring your resume to each job for better outcomes.`,
-    priority: "medium",
-    actionLabel: "View Jobs",
-    actionUrl: "/jobs",
-  }];
+  return [
+    {
+      id: "resume-performance",
+      type: "resume_performance",
+      title: "Higher-scoring resumes get results",
+      description: `Resumes that led to interviews scored ${scoreDiff} points higher on average. Focus on tailoring your resume to each job for better outcomes.`,
+      priority: "medium",
+      actionLabel: "View Opportunities",
+      actionUrl: "/opportunities",
+    },
+  ];
 }
 
 export function analyzeQuantifiedMetrics(data: InsightData): Insight[] {
@@ -228,19 +277,25 @@ export function analyzeQuantifiedMetrics(data: InsightData): Insight[] {
     .map((exp) => [exp.description, ...exp.highlights].join(" "))
     .join(" ");
 
-  const hasNumbers = /\d+%|\$[\d,]+|\d+ (people|users|clients|projects|team|members)/i.test(allText);
+  const hasNumbers =
+    /\d+%|\$[\d,]+|\d+ (people|users|clients|projects|team|members)/i.test(
+      allText,
+    );
 
   if (hasNumbers) return [];
 
-  return [{
-    id: "quantified-metrics",
-    type: "quantified_metrics",
-    title: "Add quantified achievements",
-    description: "Consider adding metrics to your experience (e.g., 'Increased sales by 20%', 'Led team of 5'). Resumes with numbers score higher with recruiters and ATS systems.",
-    priority: "high",
-    actionLabel: "Edit Experience",
-    actionUrl: "/bank",
-  }];
+  return [
+    {
+      id: "quantified-metrics",
+      type: "quantified_metrics",
+      title: "Add quantified achievements",
+      description:
+        "Consider adding metrics to your experience (e.g., 'Increased sales by 20%', 'Led team of 5'). Resumes with numbers score higher with recruiters and ATS systems.",
+      priority: "high",
+      actionLabel: "Edit Experience",
+      actionUrl: "/bank",
+    },
+  ];
 }
 
 export function analyzeApplicationMomentum(data: InsightData): Insight[] {
@@ -252,27 +307,32 @@ export function analyzeApplicationMomentum(data: InsightData): Insight[] {
   const interviewChange = recent.jobsInterviewing - older.jobsInterviewing;
 
   if (appliedChange <= 0 && interviewChange <= 0) {
-    return [{
-      id: "application-momentum",
-      type: "application_momentum",
-      title: "Keep up your momentum",
-      description: "Your application activity has slowed down. Try to apply to a few jobs this week to maintain your search momentum.",
-      priority: "medium",
-      actionLabel: "Browse Jobs",
-      actionUrl: "/jobs",
-    }];
+    return [
+      {
+        id: "application-momentum",
+        type: "application_momentum",
+        title: "Keep up your momentum",
+        description:
+          "Your application activity has slowed down. Try to apply to a few jobs this week to maintain your search momentum.",
+        priority: "medium",
+        actionLabel: "Browse Opportunities",
+        actionUrl: "/opportunities",
+      },
+    ];
   }
 
   if (interviewChange > 0) {
-    return [{
-      id: "application-momentum",
-      type: "application_momentum",
-      title: "Great progress!",
-      description: `You've moved ${interviewChange} more job(s) to the interview stage recently. Your application strategy is working!`,
-      priority: "low",
-      actionLabel: "View Analytics",
-      actionUrl: "/analytics",
-    }];
+    return [
+      {
+        id: "application-momentum",
+        type: "application_momentum",
+        title: "Great progress!",
+        description: `You've moved ${interviewChange} more job(s) to the interview stage recently. Your application strategy is working!`,
+        priority: "low",
+        actionLabel: "View Analytics",
+        actionUrl: "/analytics",
+      },
+    ];
   }
 
   return [];
@@ -281,34 +341,40 @@ export function analyzeApplicationMomentum(data: InsightData): Insight[] {
 export function analyzeProfileCompleteness(data: InsightData): Insight[] {
   const { profile } = data;
   if (!profile) {
-    return [{
-      id: "profile-completeness",
-      type: "profile_completeness",
-      title: "Set up your profile",
-      description: "Upload your resume to get started. A complete profile helps generate better-tailored resumes and insights.",
-      priority: "high",
-      actionLabel: "Upload Resume",
-      actionUrl: "/bank",
-    }];
+    return [
+      {
+        id: "profile-completeness",
+        type: "profile_completeness",
+        title: "Set up your profile",
+        description:
+          "Upload your resume to get started. A complete profile helps generate better-tailored resumes and insights.",
+        priority: "high",
+        actionLabel: "Upload Resume",
+        actionUrl: "/bank",
+      },
+    ];
   }
 
   const missing: string[] = [];
-  if (!profile.summary || profile.summary.length < 50) missing.push("professional summary");
+  if (!profile.summary || profile.summary.length < 50)
+    missing.push("professional summary");
   if (profile.skills.length < 3) missing.push("skills (at least 3)");
   if (profile.experiences.length === 0) missing.push("work experience");
   if (!profile.contact?.email) missing.push("email address");
 
   if (missing.length === 0) return [];
 
-  return [{
-    id: "profile-completeness",
-    type: "profile_completeness",
-    title: "Complete your profile",
-    description: `Add ${missing.join(", ")} to strengthen your profile and improve AI-generated resume quality.`,
-    priority: "high",
-    actionLabel: "Edit Profile",
-    actionUrl: "/bank",
-  }];
+  return [
+    {
+      id: "profile-completeness",
+      type: "profile_completeness",
+      title: "Complete your profile",
+      description: `Add ${missing.join(", ")} to strengthen your profile and improve AI-generated resume quality.`,
+      priority: "high",
+      actionLabel: "Edit Profile",
+      actionUrl: "/bank",
+    },
+  ];
 }
 
 function extractProfileText(profile: Profile): string {

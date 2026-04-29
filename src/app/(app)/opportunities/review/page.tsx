@@ -35,11 +35,11 @@ export default function OpportunityReviewPage() {
       ]);
       const settingsData = await readJsonResponse<SettingsResponse>(
         settingsResponse,
-        "Failed to load settings"
+        "Failed to load settings",
       );
       const jobsData = await readJsonResponse<JobsResponse>(
         jobsResponse,
-        "Failed to load opportunities"
+        "Failed to load opportunities",
       );
 
       setEnabled(settingsData.opportunityReview?.enabled ?? true);
@@ -60,7 +60,7 @@ export default function OpportunityReviewPage() {
 
   const updateJobStatus = async (
     job: JobDescription,
-    status: JobDescription["status"]
+    status: JobDescription["status"],
   ) => {
     if (!status) {
       return;
@@ -75,7 +75,9 @@ export default function OpportunityReviewPage() {
       });
       await readJsonResponse<unknown>(response, "Failed to update opportunity");
       setJobs((current) =>
-        current.map((item) => (item.id === job.id ? { ...item, status } : item))
+        current.map((item) =>
+          item.id === job.id ? { ...item, status } : item,
+        ),
       );
     } catch (error) {
       showErrorToast(error, {
@@ -123,9 +125,9 @@ export default function OpportunityReviewPage() {
   return (
     <div className="relative min-h-screen">
       <Link
-        href="/jobs"
+        href="/opportunities"
         className="fixed left-4 top-4 z-30 inline-flex h-10 w-10 items-center justify-center rounded-full border bg-card/90 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground"
-        aria-label="Back to jobs"
+        aria-label="Back to opportunities"
       >
         <ArrowLeft className="h-5 w-5" />
       </Link>

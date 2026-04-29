@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { navigationGroups, bottomNavigation, type NavGroup, type NavItem } from "./sidebar";
+import {
+  navigationGroups,
+  bottomNavigation,
+  type NavGroup,
+  type NavItem,
+} from "./sidebar";
 
 const getGroup = (label: string): NavGroup => {
   const group = navigationGroups.find((g) => g.label === label);
@@ -63,12 +68,10 @@ describe("navigationGroups", () => {
     expect(interviewPrep.icon).toBeDefined();
   });
 
-  it("should have job tracker items in Job Tracker group", () => {
+  it("should have job tracker support items in Job Tracker group", () => {
     const jobTracker = getGroup("Job Tracker");
     const items = jobTracker.items.map((i) => [i.name, i.href]);
     expect(items).toEqual([
-      ["Jobs", "/jobs"],
-      ["Review Queue", "/opportunities/review"],
       ["Calendar", "/calendar"],
       ["Email Templates", "/emails"],
     ]);
@@ -94,8 +97,7 @@ describe("navigationGroups", () => {
       ["Dashboard", "/dashboard"],
       ["Documents", "/bank"],
       ["Document Studio", "/studio"],
-      ["Jobs", "/jobs"],
-      ["Review Queue", "/opportunities/review"],
+      ["Opportunities", "/opportunities"],
       ["Calendar", "/calendar"],
       ["Email Templates", "/emails"],
       ["Interview Prep", "/interview"],
@@ -106,6 +108,12 @@ describe("navigationGroups", () => {
     for (const [name, href] of expectedHrefs) {
       expect(getItem(allItems, name).href).toBe(href);
     }
+  });
+
+  it("does not expose legacy jobs or review queue navigation", () => {
+    const allNames = getItemNames(navigationGroups.flatMap((g) => g.items));
+    expect(allNames).not.toContain("Jobs");
+    expect(allNames).not.toContain("Review Queue");
   });
 
   it("should have icons for all nav items", () => {

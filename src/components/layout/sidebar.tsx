@@ -18,7 +18,6 @@ import {
   Calendar,
   DollarSign,
   FileText,
-  Rows3,
   type LucideIcon,
 } from "lucide-react";
 import { useLLMStatus } from "@/hooks/useLLMStatus";
@@ -37,9 +36,7 @@ export interface NavGroup {
 export const navigationGroups: NavGroup[] = [
   {
     label: "Overview",
-    items: [
-      { name: "Dashboard", href: "/dashboard", icon: Home },
-    ],
+    items: [{ name: "Dashboard", href: "/dashboard", icon: Home }],
   },
   {
     label: "Resume",
@@ -52,8 +49,6 @@ export const navigationGroups: NavGroup[] = [
   {
     label: "Job Tracker",
     items: [
-      { name: "Jobs", href: "/jobs", icon: Briefcase },
-      { name: "Review Queue", href: "/opportunities/review", icon: Rows3 },
       { name: "Calendar", href: "/calendar", icon: Calendar },
       { name: "Email Templates", href: "/emails", icon: Mail },
     ],
@@ -66,15 +61,11 @@ export const navigationGroups: NavGroup[] = [
   },
   {
     label: "Negotiation",
-    items: [
-      { name: "Salary Tools", href: "/salary", icon: DollarSign },
-    ],
+    items: [{ name: "Salary Tools", href: "/salary", icon: DollarSign }],
   },
   {
     label: "Insights",
-    items: [
-      { name: "Analytics", href: "/analytics", icon: BarChart3 },
-    ],
+    items: [{ name: "Analytics", href: "/analytics", icon: BarChart3 }],
   },
 ];
 
@@ -128,14 +119,16 @@ export function Sidebar() {
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex flex-col bg-card border-r transition-all duration-300 ease-in-out grain",
           collapsed ? "w-[72px]" : "w-64",
-          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
         {/* Header */}
-        <div className={cn(
-          "flex h-16 items-center border-b",
-          collapsed ? "justify-center px-3" : "justify-between px-4"
-        )}>
+        <div
+          className={cn(
+            "flex h-16 items-center border-b",
+            collapsed ? "justify-center px-3" : "justify-between px-4",
+          )}
+        >
           <Link href="/dashboard" className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl gradient-bg text-primary-foreground font-bold text-lg shadow-md">
               <Rocket className="h-5 w-5" />
@@ -161,7 +154,13 @@ export function Sidebar() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-3">
           {navigationGroups.map((group, groupIndex) => (
-            <div key={group.label} className={cn(groupIndex > 0 && (collapsed ? "mt-3 pt-3 border-t border-border/50" : "mt-4"))}>
+            <div
+              key={group.label}
+              className={cn(
+                groupIndex > 0 &&
+                  (collapsed ? "mt-3 pt-3 border-t border-border/50" : "mt-4"),
+              )}
+            >
               {/* Section label - only show when expanded */}
               {!collapsed && (
                 <div className="px-3 mb-2">
@@ -185,10 +184,15 @@ export function Sidebar() {
                         isActive
                           ? "gradient-bg text-primary-foreground shadow-md"
                           : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                        collapsed && "justify-center px-2"
+                        collapsed && "justify-center px-2",
                       )}
                     >
-                      <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-primary-foreground")} />
+                      <item.icon
+                        className={cn(
+                          "h-5 w-5 shrink-0",
+                          isActive && "text-primary-foreground",
+                        )}
+                      />
                       {!collapsed && <span>{item.name}</span>}
 
                       {/* Tooltip for collapsed state */}
@@ -227,7 +231,7 @@ export function Sidebar() {
                   isActive
                     ? "bg-muted text-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  collapsed && "justify-center px-2"
+                  collapsed && "justify-center px-2",
                 )}
               >
                 <div className="relative shrink-0">
@@ -238,7 +242,7 @@ export function Sidebar() {
                         "absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card",
                         llmStatus.configured
                           ? "bg-success"
-                          : "bg-muted-foreground/40"
+                          : "bg-muted-foreground/40",
                       )}
                       title={
                         llmStatus.configured
@@ -265,10 +269,12 @@ export function Sidebar() {
       </aside>
 
       {/* Spacer for main content */}
-      <div className={cn(
-        "hidden lg:block shrink-0 transition-all duration-300",
-        collapsed ? "w-[72px]" : "w-64"
-      )} />
+      <div
+        className={cn(
+          "hidden lg:block shrink-0 transition-all duration-300",
+          collapsed ? "w-[72px]" : "w-64",
+        )}
+      />
     </>
   );
 }

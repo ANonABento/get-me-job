@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     } catch {
       return NextResponse.json(
         { error: "Invalid JSON payload" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -34,12 +34,12 @@ export async function POST(request: NextRequest) {
     if (!parseResult.success) {
       return NextResponse.json(
         { error: "Validation failed", errors: parseResult.errors },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const importedJobs = parseResult.opportunities.map((opportunity) =>
-      createJob(buildPendingJobFromExtension(opportunity), authResult.userId)
+      createJob(buildPendingJobFromExtension(opportunity), authResult.userId),
     );
     const pendingCount = countJobsByStatus("pending", authResult.userId);
 
@@ -55,9 +55,9 @@ export async function POST(request: NextRequest) {
             importedJobs.length === 1
               ? `${importedJobs[0].title} at ${importedJobs[0].company} was added to Pending.`
               : `${pendingCount} pending opportunities are ready to review.`,
-          link: "/jobs",
+          link: "/opportunities",
         },
-        authResult.userId
+        authResult.userId,
       );
     }
 
@@ -67,13 +67,13 @@ export async function POST(request: NextRequest) {
         opportunityIds: importedJobs.map((job) => job.id),
         pendingCount,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Extension opportunity import error:", error);
     return NextResponse.json(
       { error: "Failed to import opportunities" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

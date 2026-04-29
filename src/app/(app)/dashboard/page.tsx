@@ -17,8 +17,14 @@ import {
 import { InsightsPanel } from "@/components/dashboard/insights-panel";
 import { ProfileCompletenessRing } from "@/components/dashboard/profile-completeness-ring";
 import { EmptyState } from "@/components/dashboard/empty-state";
-import { RecentActivity, type ActivityItem } from "@/components/dashboard/recent-activity";
-import { calculateProfileCompleteness, type ProfileCompletenessResult } from "@/lib/profile-completeness";
+import {
+  RecentActivity,
+  type ActivityItem,
+} from "@/components/dashboard/recent-activity";
+import {
+  calculateProfileCompleteness,
+  type ProfileCompletenessResult,
+} from "@/lib/profile-completeness";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { SkeletonStatCard, SkeletonInsights } from "@/components/ui/skeleton";
 import { useErrorToast } from "@/hooks/use-error-toast";
@@ -79,7 +85,8 @@ export default function Dashboard() {
         const profile = profileData.profile;
         const documents = documentsData.documents || [];
         const completeness = calculateProfileCompleteness(profile);
-        const resumesGenerated = analyticsData.overview?.totalResumesGenerated || 0;
+        const resumesGenerated =
+          analyticsData.overview?.totalResumesGenerated || 0;
 
         setStats({
           documentsCount: documents.length,
@@ -114,7 +121,7 @@ export default function Dashboard() {
         // Sort by timestamp descending, take 5
         activities.sort(
           (a, b) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
         );
         setActivityItems(activities.slice(0, 5));
       } catch (error) {
@@ -125,12 +132,12 @@ export default function Dashboard() {
           {
             title: "Could not load dashboard",
             fallbackDescription: "Please refresh the page and try again.",
-          }
+          },
         );
         setErrorMessage(
           isAuthError
             ? "Sign in to access your dashboard."
-            : "We couldn't load your dashboard data."
+            : "We couldn't load your dashboard data.",
         );
       } finally {
         setLoading(false);
@@ -192,7 +199,8 @@ export default function Dashboard() {
                   AI-Powered Job Assistant
                 </div>
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
-                  Land your dream job<br />
+                  Land your dream job
+                  <br />
                   <span className="gradient-text">with confidence</span>
                 </h1>
                 <p className="text-lg text-muted-foreground max-w-xl">
@@ -264,9 +272,7 @@ export default function Dashboard() {
         {/* Main content area */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
           {/* Empty state: no documents yet */}
-          {!loading && !hasDocuments && (
-            <EmptyState variant="no-resume" />
-          )}
+          {!loading && !hasDocuments && <EmptyState variant="no-resume" />}
 
           {/* Empty state: has documents but no resumes built */}
           {!loading && hasDocuments && !hasResumes && (
@@ -310,17 +316,15 @@ export default function Dashboard() {
           )}
 
           {/* AI Insights */}
-          {!loading && hasDocuments && (
-            <InsightsPanel />
-          )}
+          {!loading && hasDocuments && <InsightsPanel />}
 
           {/* Recent Jobs */}
           {recentJobs.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">Recent Jobs</h2>
+                <h2 className="text-xl font-bold">Recent Opportunities</h2>
                 <Link
-                  href="/jobs"
+                  href="/opportunities"
                   className="text-sm text-primary hover:underline flex items-center gap-1"
                 >
                   View all <ArrowRight className="h-3 w-3" />
@@ -330,7 +334,7 @@ export default function Dashboard() {
                 {recentJobs.slice(0, 3).map((job) => (
                   <Link
                     key={job.id}
-                    href="/jobs"
+                    href="/opportunities"
                     className="flex items-center gap-3 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors"
                   >
                     <div className="p-2.5 rounded-lg bg-primary/10 text-primary">
@@ -346,11 +350,11 @@ export default function Dashboard() {
                   </Link>
                 ))}
                 <Link
-                  href="/jobs"
+                  href="/opportunities"
                   className="flex items-center justify-center gap-2 p-4 rounded-xl border border-dashed bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
                 >
                   <Plus className="h-5 w-5" />
-                  <span>Add Job</span>
+                  <span>Add Opportunity</span>
                 </Link>
               </div>
             </div>
@@ -499,16 +503,13 @@ function StatusBadge({ status }: { status: string }) {
     pending:
       "bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400",
     saved: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
-    dismissed:
-      "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300",
-    applied:
-      "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
+    dismissed: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300",
+    applied: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
     interviewing:
       "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
     offered:
       "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
-    rejected:
-      "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
+    rejected: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
     withdrawn:
       "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300",
   };
