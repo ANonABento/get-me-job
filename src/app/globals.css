@@ -4,122 +4,11 @@
 
 @layer base {
   :root {
-    /* Background & Foreground - warm cream tint */
-    --background: 30 25% 99%;
-    --foreground: 258 20% 13%;
-
-    /* Cards & Surfaces */
-    --card: 30 20% 99.5%;
-    --card-foreground: 258 20% 13%;
-    --popover: 30 20% 99.5%;
-    --popover-foreground: 258 20% 13%;
-
-    /* Primary - Soft Violet */
-    --primary: 258 65% 58%;
-    --primary-foreground: 0 0% 100%;
-
-    /* Secondary - Warm violet-tinted gray */
-    --secondary: 258 10% 96%;
-    --secondary-foreground: 258 20% 13%;
-
-    /* Muted */
-    --muted: 258 10% 95%;
-    --muted-foreground: 258 8% 45%;
-
-    /* Accent - Warm coral/peach */
-    --accent: 14 90% 68%;
-    --accent-foreground: 0 0% 100%;
-
-    /* Semantic Colors */
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-    --success: 152 60% 42%;
-    --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 0%;
-    --info: 220 80% 56%;
-    --info-foreground: 0 0% 100%;
-
-    /* Borders & Inputs */
-    --border: 258 10% 91%;
-    --input: 258 10% 91%;
-    --ring: 258 65% 58%;
-
-    /* Radius */
-    --radius: 0.75rem;
-
-    /* Typography */
-    --font-sans: "Aptos", "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
-
-    /* Shadows - violet-tinted for warmth */
-    --shadow-sm: 0 1px 2px 0 rgb(100 60 130 / 0.04);
-    --shadow: 0 1px 3px 0 rgb(100 60 130 / 0.06), 0 1px 2px -1px rgb(100 60 130 / 0.06);
-    --shadow-md: 0 4px 6px -1px rgb(100 60 130 / 0.06), 0 2px 4px -2px rgb(100 60 130 / 0.04);
-    --shadow-lg: 0 10px 15px -3px rgb(100 60 130 / 0.08), 0 4px 6px -4px rgb(100 60 130 / 0.04);
-    --shadow-xl: 0 20px 25px -5px rgb(100 60 130 / 0.10), 0 8px 10px -6px rgb(100 60 130 / 0.04);
-
-    /* Gradients - Violet to Warm Rose */
-    --gradient-primary: linear-gradient(135deg, hsl(258 65% 58%) 0%, hsl(350 80% 68%) 100%);
-    --gradient-success: linear-gradient(135deg, hsl(152 60% 42%) 0%, hsl(172 55% 48%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(258 65% 58% / 0.04) 0%, hsl(350 80% 68% / 0.03) 100%);
+    color-scheme: light;
   }
 
   .dark {
-    /* Background - deep navy with purple tint */
-    --background: 258 30% 7%;
-    --foreground: 258 10% 95%;
-
-    /* Cards & Surfaces */
-    --card: 258 25% 10%;
-    --card-foreground: 258 10% 95%;
-    --popover: 258 25% 10%;
-    --popover-foreground: 258 10% 95%;
-
-    /* Primary - brighter violet for dark mode */
-    --primary: 258 65% 65%;
-    --primary-foreground: 0 0% 100%;
-
-    /* Secondary */
-    --secondary: 258 20% 14%;
-    --secondary-foreground: 258 10% 95%;
-
-    /* Muted */
-    --muted: 258 20% 14%;
-    --muted-foreground: 258 8% 55%;
-
-    /* Accent - brighter coral */
-    --accent: 14 90% 72%;
-    --accent-foreground: 0 0% 100%;
-
-    /* Semantic Colors */
-    --destructive: 0 72% 55%;
-    --destructive-foreground: 0 0% 100%;
-    --success: 152 60% 48%;
-    --success-foreground: 0 0% 100%;
-    --warning: 38 92% 55%;
-    --warning-foreground: 0 0% 0%;
-    --info: 220 80% 62%;
-    --info-foreground: 0 0% 100%;
-
-    /* Borders & Inputs */
-    --border: 258 20% 18%;
-    --input: 258 20% 18%;
-    --ring: 258 65% 65%;
-
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3);
-
-    /* Typography */
-    --font-sans: "Aptos", "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
-
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(258 65% 65%) 0%, hsl(350 80% 72%) 100%);
-    --gradient-success: linear-gradient(135deg, hsl(152 60% 48%) 0%, hsl(172 55% 52%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(258 65% 65% / 0.08) 0%, hsl(350 80% 72% / 0.04) 100%);
+    color-scheme: dark;
   }
 }
 
@@ -169,7 +58,10 @@
 @layer components {
   /* Glass morphism effect */
   .glass {
-    @apply bg-card/80 backdrop-blur-xl border border-border/50;
+    border: var(--border-width, 1px) solid hsl(var(--border) / var(--surface-border-opacity));
+    background-color: hsl(var(--card) / var(--surface-glass-opacity));
+    backdrop-filter: blur(var(--backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--backdrop-blur));
   }
 
   /* Gradient text */
@@ -200,6 +92,7 @@
   /* Elevated card with deeper shadow */
   .card-elevated {
     @apply rounded-2xl border bg-card shadow-md;
+    border-width: var(--border-width);
   }
 
   /* Subtle grain texture overlay */
@@ -226,11 +119,7 @@
 
   /* Soft glow for interactive elements */
   .glow-primary {
-    box-shadow: 0 0 20px hsl(258 65% 58% / 0.15);
-  }
-
-  .dark .glow-primary {
-    box-shadow: 0 0 20px hsl(258 65% 65% / 0.2);
+    box-shadow: 0 0 20px hsl(var(--primary) / var(--glow-primary-opacity));
   }
 
   /* Subtle pulse animation for status indicators */

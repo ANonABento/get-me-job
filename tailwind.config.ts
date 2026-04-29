@@ -73,6 +73,9 @@ const config: Config = {
         lg: "var(--shadow-lg)",
         xl: "var(--shadow-xl)",
       },
+      borderWidth: {
+        DEFAULT: "var(--border-width)",
+      },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
@@ -123,8 +126,20 @@ const config: Config = {
         "slide-out-right": "slide-out-right 0.3s ease-out",
       },
       spacing: {
-        "18": "4.5rem",
-        "88": "22rem",
+        "0": "var(--spacing-0)",
+        "1": "var(--spacing-1)",
+        "2": "var(--spacing-2)",
+        "3": "var(--spacing-3)",
+        "4": "var(--spacing-4)",
+        "5": "var(--spacing-5)",
+        "6": "var(--spacing-6)",
+        "8": "var(--spacing-8)",
+        "10": "var(--spacing-10)",
+        "12": "var(--spacing-12)",
+        "16": "var(--spacing-16)",
+        "18": "var(--spacing-18)",
+        "24": "var(--spacing-24)",
+        "88": "var(--spacing-88)",
       },
       fontSize: {
         "2xs": ["0.625rem", { lineHeight: "0.75rem" }],

@@ -1,8 +1,10 @@
 import { ClerkProvider } from "@clerk/nextjs";
+import type { CSSProperties } from "react";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ensureEnvValidated } from "@/lib/env";
 import { getSiteMetadata } from "@/lib/seo";
+import { getThemeVariables } from "@/lib/theme/theme-config";
 
 ensureEnvValidated();
 
@@ -14,7 +16,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const app = (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      style={getThemeVariables("default", "light") as CSSProperties}
+    >
       <body className="font-sans">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
