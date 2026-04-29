@@ -118,7 +118,7 @@ export function buildSelectionRewritePrompt(
 Selected text to rewrite:
 "${selectedText}"
 
-Output ONLY the rewritten text that should replace the selection, no additional commentary.`;
+Output ONLY the rewritten passage that should replace the selection, no additional commentary.`;
 }
 
 export function buildRevisionPrompt(instruction: string): string {
@@ -203,7 +203,7 @@ export async function rewriteCoverLetterSelection(
   selectedText: string,
   instruction: string,
   input: CoverLetterInput,
-  llmConfig: LLMConfig
+  llmConfig: LLMConfig,
 ): Promise<string> {
   const client = new LLMClient(llmConfig);
   const systemPrompt = buildSystemPrompt(input);

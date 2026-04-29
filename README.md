@@ -1,21 +1,27 @@
 # Get Me Job - Job Application Assistant
 
-Your personal job application command center. Upload your resume, match with jobs, and prepare for interviews.
+Your personal job application command center. Upload your career documents, build tailored resumes and cover letters in one workspace, match with jobs, and prepare for interviews.
 
 ## Features
 
-- **Resume Parsing**: Upload PDF/TXT resumes and extract structured data using AI
+- **Knowledge Bank**: Upload resumes, cover letters, and career documents, then extract structured profile data using AI
+- **Document Studio**: Build resumes and cover letters from a single `/studio` workspace
+- **Studio Files**: Create, select, rename, and delete resume or cover letter files from the Studio file panel
+- **Resume/Cover Letter Tabs**: Switch between document types without leaving the Studio
+- **Version History**: Track capped resume draft snapshots through Studio version history helpers
+- **TipTap Editor Integration**: Convert bank entries into TipTap document JSON for the Studio preview/editor shell
+- **AI Panel**: Reserve contextual AI tools in the Studio alongside the document canvas
 - **Profile Management**: Edit and manage your professional information
 - **Job Matching**: Paste job descriptions and get match scores
-- **Resume Generation**: Generate tailored 1-page resumes for specific jobs
 - **Interview Prep**: Practice with AI-powered mock interviews (text and voice)
 
 ## Tech Stack
 
 - **Framework**: Next.js 14 with App Router
-- **Database**: Neon PostgreSQL with Drizzle schema management
+- **Database**: SQLite with Drizzle schema management
 - **AI**: Supports Ollama (free/local) or BYOK (OpenAI, Anthropic, OpenRouter)
-- **PDF Parsing**: pdf-parse
+- **Document Parsing**: pdf-parse, mammoth, OCR utilities
+- **Rich Text Editing**: TipTap
 - **UI**: Tailwind CSS + shadcn/ui
 
 ## Getting Started
@@ -34,11 +40,6 @@ npm install
 
 # Configure environment
 cp .env.example .env.local
-# Set DATABASE_URL to your Neon PostgreSQL connection string
-
-# Push the Drizzle schema to Neon
-npm run db:push
-
 # Start development server
 npm run dev
 ```
@@ -81,21 +82,51 @@ See [docs/google-integration/README.md](docs/google-integration/README.md) for d
 
 ## Usage
 
-1. **Upload Resume**: Go to Upload and drop your resume PDF
-2. **Review Profile**: Check extracted data in My Profile, make corrections
+1. **Upload Documents**: Go to Upload and add resumes, cover letters, or supporting career documents
+2. **Review Profile**: Check extracted data in My Profile and make corrections
 3. **Add Job**: Go to Jobs and paste a job description
 4. **Analyze Match**: Click "Analyze Match" to see how well you fit
-5. **Generate Resume**: Click "Generate Resume" for a tailored 1-page PDF
-6. **Practice Interview**: Go to Interview Prep and start a mock interview
+5. **Open Document Studio**: Go to `/studio` to create resume and cover letter files
+6. **Build Documents**: Use the Resume and Cover Letter tabs, choose a template, select bank entries, and edit the generated draft
+7. **Export**: Copy HTML or download a PDF from the Studio
+8. **Practice Interview**: Go to Interview Prep and start a mock interview
+
+## Document Studio Architecture
+
+Document Studio is the single document-building surface at `/studio`. Legacy document-building pages redirect there, so one route owns resume and cover letter workflows.
+
+```
+/studio
+├── Header
+│   ├── Resume / Cover Letter tabs
+│   ├── Template picker
+│   ├── Saved state
+│   └── Export actions
+├── Left panel
+│   ├── Files
+│   ├── Version History
+│   └── Knowledge bank section picker
+├── Center panel
+│   └── TipTap-backed document preview/editor shell
+└── Right panel
+    └── AI Assistant
+```
+
+The Studio file panel tracks resume and cover letter files separately while keeping users in the same workspace. Resume drafts use knowledge bank entries, section ordering, visibility controls, template styling, and TipTap document JSON. Version history helpers normalize, compare, and store capped builder snapshots in browser storage under `taida:builder:versions:<document-id>`.
 
 ## Project Structure
 
 ```
 src/
 ├── app/           # Next.js pages and API routes
+│   └── (app)/studio/ # Document Studio route
 ├── components/    # React components
+│   ├── studio/    # Studio preview and editor surface
+│   └── builder/   # Reusable section and builder controls
 ├── lib/
 │   ├── db/       # Database access and Drizzle schema
+│   ├── builder/  # Studio document state, export, version history
+│   ├── editor/   # TipTap document conversion and rendering
 │   ├── llm/      # AI client
 │   ├── parser/   # PDF and resume parsing
 │   └── resume/   # Resume generation
@@ -104,11 +135,13 @@ src/
 
 ## Data Storage
 
-Application data is stored in Neon PostgreSQL using the schema in
-`src/lib/db/drizzle/schema.ts`. Uploaded documents and generated resumes are
-stored on disk during local development:
+Application data is stored in SQLite using the schema in `src/lib/db/schema.ts`.
+Uploaded documents and generated files are stored on disk during local development:
+
+- `data/get-me-job.db` - Local SQLite database
 - `uploads/` - Uploaded documents
 - `public/resumes/` - Generated resume files
+- Browser storage - Studio version history snapshots
 
 ## License
 

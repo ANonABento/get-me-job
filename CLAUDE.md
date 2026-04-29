@@ -8,9 +8,10 @@
 
 **Get Me Job** helps job seekers manage their entire application process:
 - Resume parsing and AI-powered tailoring
+- Unified Document Studio for resumes and cover letters
 - Job tracking with status pipeline
 - Interview prep (voice + text) with AI feedback
-- Cover letter generation
+- Cover letter drafting and editing
 - Analytics and progress tracking
 - Calendar and reminders
 - **Google Integration**: Calendar sync, Drive import/backup, Gmail import/send, Docs/Sheets export, Contacts, Tasks
@@ -44,6 +45,7 @@ src/
 │   │   ├── upload/         # Resume upload
 │   │   ├── profile/        # Profile editor
 │   │   ├── documents/      # Document manager
+│   │   ├── studio/         # Unified resume and cover letter builder
 │   │   ├── jobs/           # Job tracker
 │   │   ├── interview/      # Interview prep
 │   │   ├── calendar/       # Calendar view
@@ -56,10 +58,14 @@ src/
 ├── components/
 │   ├── ui/                 # Base UI components (Button, Card, etc.)
 │   ├── layout/             # Sidebar, navigation
+│   ├── studio/             # Document Studio preview/editor components
+│   ├── builder/            # Reusable Studio section controls
 │   └── [feature]/          # Feature-specific components
 ├── lib/
 │   ├── db/                 # Database queries and schema
 │   ├── llm/                # LLM client abstraction
+│   ├── builder/            # Studio state, export, and version history helpers
+│   ├── editor/             # TipTap JSON, rendering, and HTML conversion
 │   ├── resume/             # Resume parsing/generation
 │   ├── ats/                # ATS score analysis
 │   ├── interview/          # Interview prep logic
@@ -79,6 +85,7 @@ src/
 | `/upload` | Resume upload and parsing |
 | `/profile` | Profile editor (contact, experience, education, skills) |
 | `/documents` | Uploaded documents manager |
+| `/studio` | Document Studio for resume and cover letter files |
 | `/jobs` | Job tracker with status pipeline |
 | `/jobs/research/[id]` | Company research for specific job |
 | `/interview` | Interview prep (text/voice modes) |
@@ -86,6 +93,54 @@ src/
 | `/emails` | Email template generator |
 | `/analytics` | Progress tracking and metrics |
 | `/settings` | LLM provider configuration |
+
+---
+
+## Document Studio Architecture
+
+`/studio` is the only in-app workspace for building application documents. Legacy `/builder`, `/tailor`, and `/cover-letter` pages redirect there, so resume and cover letter creation share one header, file panel, document canvas, and AI assistant area.
+
+```
+src/app/(app)/studio/page.tsx
+├── Header
+│   ├── Resume / Cover Letter mode tabs
+│   ├── Template picker
+│   ├── Saved indicator
+│   └── Copy HTML / Download PDF actions
+├── Left panel
+│   ├── Files for the active document type
+│   ├── Version History
+│   └── Knowledge bank sections and entry picker
+├── Center panel
+│   └── Document preview/editor
+└── Right panel
+    └── AI Assistant
+```
+
+### Studio Files
+
+Studio files are represented by `StudioDocument` state in `src/app/(app)/studio/page.tsx`:
+- `id` - Document identity
+- `name` - User-visible file name
+- `mode` - `resume` or `cover_letter`
+- `templateId` - Selected visual template
+- `selectedEntryIds` - Knowledge bank entries used in the draft
+- `sections` - Resume section order and visibility
+
+The file panel filters files by the active Resume/Cover Letter tab, so each document type has its own file list while staying inside `/studio`.
+
+### Version History
+
+Resume draft snapshots use helpers in `src/lib/builder/version-history.ts`.
+Version state is normalized before comparison or persistence, supports manual and automatic snapshot metadata, is capped at `MAX_BUILDER_VERSIONS`, and is stored in browser storage with keys formatted as `taida:builder:versions:<document-id>`.
+
+### TipTap Editor Integration
+
+TipTap document JSON is the editor data contract. Bank entries are converted through `src/lib/editor/bank-to-tiptap.ts`, rendered by `src/lib/editor/resume-editor.tsx`, and exported through `src/lib/editor/document-html.ts`. The Studio preview shell lives in `src/components/studio/resume-preview.tsx`.
+
+### AI Panel
+
+The right-hand Studio panel is reserved for contextual AI assistance. Keep AI document actions scoped to the active Studio file and document mode so resume and cover letter workflows remain part of the same route.
 
 ---
 
@@ -118,6 +173,7 @@ Key tables:
 ### Resume
 - `POST /api/parse` - Parse uploaded resume
 - `POST /api/upload` - Upload file
+- `POST /api/builder` - Generate Studio resume preview HTML from selected bank entries
 
 ### Jobs
 - `GET/POST /api/jobs` - List/create jobs
@@ -135,6 +191,11 @@ Key tables:
 - `GET /api/analytics` - Overview stats
 - `GET /api/analytics/trends` - Time series data
 - `GET /api/analytics/export` - Export (CSV/JSON)
+
+### Document Studio
+- `POST /api/tailor` - Analyze a job description and generate a tailored resume from the knowledge bank
+- `POST /api/tailor/autofix` - Rewrite highlighted resume gaps
+- `POST /api/cover-letter/generate` - Generate or revise cover letter content
 
 ---
 
@@ -283,6 +344,12 @@ describe("MyFunction", () => {
 2. Add to sidebar navigation in `src/components/layout/sidebar.tsx`
 3. Create API routes if needed in `src/app/api/`
 
+### Updating Document Studio
+1. Keep resume and cover letter document-building UX under `src/app/(app)/studio/page.tsx`
+2. Put reusable Studio UI in `src/components/studio/` or `src/components/builder/`
+3. Put document state, export, version history, and TipTap conversion helpers in `src/lib/builder/` or `src/lib/editor/`
+4. Update colocated unit tests for any changed helper functions or Studio behavior
+
 ### Adding a New UI Component
 1. Create in `src/components/ui/[component].tsx`
 2. Use CVA for variants if needed
@@ -315,11 +382,11 @@ npm run test:e2e    # E2E tests
 
 ## Known Limitations
 
-1. **Single-user mode** - Clerk auth installed, multi-user pending Neon DB setup
+1. **Single-user mode** - Clerk auth installed, multi-user persistence still pending
 2. **SQLite database** - Drizzle schema ready for PostgreSQL migration
 3. **Local storage** - Data persists in `data/get-me-job.db` file
 4. **No email sending** - Templates generated but not sent
-5. **No external integrations** - LinkedIn, calendar sync not implemented
+5. **Partial external integrations** - Google integration exists; LinkedIn and other providers are not implemented
 
 See `ROADMAP.md` for planned improvements.
 
@@ -332,7 +399,8 @@ See `ROADMAP.md` for planned improvements.
 - **Rate Limiting:** LLM endpoints protected with sliding window rate limiter
 - **Path Constants:** All file paths centralized in `PATHS` constant
 - **API Utilities:** Shared error response helpers in `src/lib/api-utils.ts`
-- **Testing:** All 344 unit tests passing
+- **Document Studio:** Resume and cover letter document workflows consolidated under `/studio`
+- **Testing:** Unit tests cover Studio redirects/routing, editor conversion, document export, and version history helpers
 
 ---
 
@@ -374,6 +442,12 @@ Restart TypeScript server in VS Code.
 | `src/app/globals.css` | Theme colors and CSS variables |
 | `src/lib/db/schema.ts` | Database table definitions |
 | `src/lib/llm/client.ts` | LLM provider abstraction |
+| `src/app/(app)/studio/page.tsx` | Unified Document Studio route |
+| `src/components/studio/resume-preview.tsx` | Studio document canvas and TipTap preview shell |
+| `src/lib/builder/version-history.ts` | Studio version snapshot helpers |
+| `src/lib/builder/document-export.ts` | Studio print/PDF export helpers |
+| `src/lib/editor/bank-to-tiptap.ts` | Knowledge bank to TipTap document conversion |
+| `src/lib/editor/resume-editor.tsx` | TipTap resume editor integration |
 | `src/lib/constants.ts` | Validation schemas and constants |
 | `src/lib/api-utils.ts` | API error response utilities |
 | `src/lib/rate-limit.ts` | Rate limiting for API routes |
