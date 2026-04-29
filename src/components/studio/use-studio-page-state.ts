@@ -97,6 +97,18 @@ function areSectionsEqual(
   );
 }
 
+export function isDraftSavedForDocument(
+  dirtyDocumentIds: Set<string>,
+  documentId: string,
+  versions: BuilderVersion[],
+  currentDraftState: BuilderDraftState
+): boolean {
+  return (
+    !dirtyDocumentIds.has(documentId) ||
+    isBuilderStateSaved(versions, currentDraftState)
+  );
+}
+
 export function useStudioPageState(): StudioPageState {
   const [entries, setEntries] = useState<BankEntry[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -112,6 +124,9 @@ export function useStudioPageState(): StudioPageState {
   const [manualVersionName, setManualVersionName] = useState("");
   const [previewVersionId, setPreviewVersionId] = useState<string | null>(null);
   const [draftIsSaved, setDraftIsSaved] = useState(true);
+  const [dirtyDocumentIds, setDirtyDocumentIds] = useState<Set<string>>(
+    new Set()
+  );
   const [documents, setDocuments] = useState<StudioDocument[]>([
     createStudioDocument("resume", { id: RESUME_DOCUMENT_ID }),
     createStudioDocument("cover_letter", { id: COVER_LETTER_DOCUMENT_ID }),
@@ -234,8 +249,15 @@ export function useStudioPageState(): StudioPageState {
   );
 
   useEffect(() => {
-    setDraftIsSaved(isBuilderStateSaved(versions, currentDraftState));
-  }, [currentDraftState, versions]);
+    setDraftIsSaved(
+      isDraftSavedForDocument(
+        dirtyDocumentIds,
+        activeDocument.id,
+        versions,
+        currentDraftState
+      )
+    );
+  }, [activeDocument.id, currentDraftState, dirtyDocumentIds, versions]);
 
   useEffect(() => {
     if (previewVersionId) setGenerating(false);
@@ -315,9 +337,28 @@ export function useStudioPageState(): StudioPageState {
     [activeDocument.id]
   );
 
+  const markActiveDocumentDirty = useCallback(() => {
+    setDirtyDocumentIds((current) => {
+      if (current.has(activeDocument.id)) return current;
+      const next = new Set(current);
+      next.add(activeDocument.id);
+      return next;
+    });
+  }, [activeDocument.id]);
+
+  const markActiveDocumentSaved = useCallback(() => {
+    setDirtyDocumentIds((current) => {
+      if (!current.has(activeDocument.id)) return current;
+      const next = new Set(current);
+      next.delete(activeDocument.id);
+      return next;
+    });
+  }, [activeDocument.id]);
+
   const handleToggleEntry = useCallback(
     (id: string) => {
       setPreviewVersionId(null);
+      markActiveDocumentDirty();
       setSelectedIds((prev) => {
         const next = new Set(prev);
         if (next.has(id)) next.delete(id);
@@ -326,7 +367,7 @@ export function useStudioPageState(): StudioPageState {
         return next;
       });
     },
-    [updateActiveDocument]
+    [markActiveDocumentDirty, updateActiveDocument]
   );
 
   const handleReorder = useCallback(
@@ -334,11 +375,12 @@ export function useStudioPageState(): StudioPageState {
       setPreviewVersionId(null);
       setSections((prev) => {
         const next = reorderSections(prev, fromIndex, toIndex);
+        if (next !== prev) markActiveDocumentDirty();
         updateActiveDocument({ sections: next });
         return next;
       });
     },
-    [updateActiveDocument]
+    [markActiveDocumentDirty, updateActiveDocument]
   );
 
   const handleToggleVisibility = useCallback(
@@ -346,20 +388,23 @@ export function useStudioPageState(): StudioPageState {
       setPreviewVersionId(null);
       setSections((prev) => {
         const next = toggleSectionVisibility(prev, categoryId);
+        if (!areSectionsEqual(prev, next)) markActiveDocumentDirty();
         updateActiveDocument({ sections: next });
         return next;
       });
     },
-    [updateActiveDocument]
+    [markActiveDocumentDirty, updateActiveDocument]
   );
 
   const handleTemplateSelect = useCallback(
     (nextTemplateId: string) => {
+      if (nextTemplateId === templateId) return;
       setPreviewVersionId(null);
+      markActiveDocumentDirty();
       setTemplateId(nextTemplateId);
       updateActiveDocument({ templateId: nextTemplateId });
     },
-    [updateActiveDocument]
+    [markActiveDocumentDirty, templateId, updateActiveDocument]
   );
 
   const handleCreateDocument = useCallback(() => {
@@ -385,6 +430,12 @@ export function useStudioPageState(): StudioPageState {
     (id: string) => {
       const result = deleteStudioDocument(documents, id, documentMode);
       setDocuments(result.documents);
+      setDirtyDocumentIds((current) => {
+        if (!current.has(id)) return current;
+        const next = new Set(current);
+        next.delete(id);
+        return next;
+      });
       setActiveDocumentIds((prev) => ({
         ...prev,
         [documentMode]: result.activeDocumentId,
@@ -408,9 +459,10 @@ export function useStudioPageState(): StudioPageState {
       });
       setManualVersionName("");
       setPreviewVersionId(version.id);
+      markActiveDocumentSaved();
       setDraftIsSaved(true);
     },
-    [activeDocument.id, currentDraftState]
+    [activeDocument.id, currentDraftState, markActiveDocumentSaved]
   );
 
   const handleSaveManualVersion = useCallback(() => {
@@ -427,13 +479,14 @@ export function useStudioPageState(): StudioPageState {
       setSections(version.state.sections);
       setTemplateId(version.state.templateId);
       setHtml(version.state.html);
+      markActiveDocumentSaved();
       updateActiveDocument({
         selectedEntryIds: version.state.selectedIds,
         sections: version.state.sections,
         templateId: version.state.templateId,
       });
     },
-    [updateActiveDocument, versions]
+    [markActiveDocumentSaved, updateActiveDocument, versions]
   );
 
   const getPrintableHtml = useCallback(() => {
