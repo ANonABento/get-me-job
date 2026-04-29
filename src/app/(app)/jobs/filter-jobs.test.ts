@@ -129,4 +129,8 @@ describe("getJobStatusValue", () => {
   it("defaults missing status to saved", () => {
     expect(getJobStatusValue({ status: undefined })).toBe("saved");
   });
+
+  it("defaults unsupported statuses to saved", () => {
+    expect(getJobStatusValue({ status: "withdrawn" })).toBe("saved");
+  });
 });

@@ -6,6 +6,10 @@ export type { Theme } from "./storage";
 export {
   JOB_STATUSES,
   jobStatusSchema,
+  TRACKED_JOB_STATUSES,
+  TRACKED_JOB_STATUS_LABELS,
+  isTrackedJobStatus,
+  getTrackedJobStatus,
   JOB_TYPES,
   jobTypeSchema,
   createJobSchema,
@@ -16,6 +20,7 @@ export {
 } from "./jobs";
 export type {
   JobStatus,
+  TrackedJobStatus,
   JobType,
   CreateJobInput,
   UpdateJobInput,

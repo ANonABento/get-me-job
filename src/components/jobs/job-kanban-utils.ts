@@ -1,20 +1,19 @@
 import type { JobDescription } from "@/types";
+import {
+  TRACKED_JOB_STATUSES,
+  TRACKED_JOB_STATUS_LABELS,
+  getTrackedJobStatus,
+  type TrackedJobStatus,
+} from "@/lib/constants/jobs";
 
 export type JobsViewMode = "list" | "kanban";
-export type JobKanbanStatus = "pending" | "saved" | "applied" | "interviewing" | "offered" | "rejected";
+export type JobKanbanStatus = TrackedJobStatus;
 
 export const JOBS_VIEW_STORAGE_KEY = "get_me_job_jobs_view";
 
-export const JOB_KANBAN_COLUMNS: readonly { value: JobKanbanStatus; label: string }[] = [
-  { value: "pending", label: "Pending" },
-  { value: "saved", label: "Saved" },
-  { value: "applied", label: "Applied" },
-  { value: "interviewing", label: "Interviewing" },
-  { value: "offered", label: "Offer" },
-  { value: "rejected", label: "Rejected" },
-];
-
-const KANBAN_STATUS_VALUES = new Set<JobKanbanStatus>(JOB_KANBAN_COLUMNS.map((column) => column.value));
+export const JOB_KANBAN_COLUMNS: readonly { value: JobKanbanStatus; label: string }[] = TRACKED_JOB_STATUSES.map(
+  (status) => ({ value: status, label: TRACKED_JOB_STATUS_LABELS[status] })
+);
 
 type WritableStorageLike = Pick<Storage, "setItem">;
 
@@ -53,8 +52,7 @@ export function writeJobsViewMode(storage: WritableStorageLike | null | undefine
 }
 
 export function getKanbanStatusValue(job: Pick<JobDescription, "status">): JobKanbanStatus {
-  const status = job.status;
-  return status && KANBAN_STATUS_VALUES.has(status as JobKanbanStatus) ? (status as JobKanbanStatus) : "saved";
+  return getTrackedJobStatus(job.status);
 }
 
 export function groupJobsByKanbanStatus(jobs: JobDescription[]): Record<JobKanbanStatus, JobDescription[]> {

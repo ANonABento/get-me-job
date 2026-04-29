@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { JobRemoteFilter, JobSortOption, JobStatusFilter, JobTypeFilter } from "@/app/(app)/jobs/filter-jobs";
+import { TRACKED_JOB_STATUSES, TRACKED_JOB_STATUS_LABELS } from "@/lib/constants/jobs";
 
 interface JobsToolbarProps {
   searchQuery: string;
@@ -69,12 +70,11 @@ export function JobsToolbar(props: JobsToolbarProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="saved">Saved</SelectItem>
-              <SelectItem value="applied">Applied</SelectItem>
-              <SelectItem value="interviewing">Interviewing</SelectItem>
-              <SelectItem value="offered">Offer</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
+              {TRACKED_JOB_STATUSES.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {TRACKED_JOB_STATUS_LABELS[status]}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 

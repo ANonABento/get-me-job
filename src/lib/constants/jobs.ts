@@ -15,6 +15,36 @@ export type JobStatus = (typeof JOB_STATUSES)[number];
 
 export const jobStatusSchema = z.enum(JOB_STATUSES);
 
+export const TRACKED_JOB_STATUSES = [
+  "pending",
+  "saved",
+  "applied",
+  "interviewing",
+  "offered",
+  "rejected",
+] as const;
+
+export type TrackedJobStatus = (typeof TRACKED_JOB_STATUSES)[number];
+
+export const TRACKED_JOB_STATUS_LABELS: Record<TrackedJobStatus, string> = {
+  pending: "Pending",
+  saved: "Saved",
+  applied: "Applied",
+  interviewing: "Interviewing",
+  offered: "Offered",
+  rejected: "Rejected",
+};
+
+const TRACKED_JOB_STATUS_VALUES = new Set<string>(TRACKED_JOB_STATUSES);
+
+export function isTrackedJobStatus(status: string | undefined | null): status is TrackedJobStatus {
+  return Boolean(status && TRACKED_JOB_STATUS_VALUES.has(status));
+}
+
+export function getTrackedJobStatus(status: string | undefined | null): TrackedJobStatus {
+  return isTrackedJobStatus(status) ? status : "saved";
+}
+
 // Job types
 export const JOB_TYPES = [
   "full-time",

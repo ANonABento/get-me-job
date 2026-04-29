@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { CircularProgress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { ATSAnalysisResult } from "@/lib/ats/analyzer";
+import { TRACKED_JOB_STATUSES, TRACKED_JOB_STATUS_LABELS, type TrackedJobStatus } from "@/lib/constants/jobs";
 import type { JobDescription, JobMatch } from "@/types";
 import { getJobStatusValue } from "@/app/(app)/jobs/filter-jobs";
 
@@ -41,7 +42,7 @@ export interface ResumeTemplate {
   description: string;
 }
 
-const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
+const STATUS_STYLES: Record<TrackedJobStatus, { bg: string; text: string }> = {
   pending: { bg: "bg-slate-100 dark:bg-slate-800", text: "text-slate-600 dark:text-slate-300" },
   saved: { bg: "bg-slate-100 dark:bg-slate-800", text: "text-slate-600 dark:text-slate-300" },
   applied: { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-600 dark:text-blue-400" },
@@ -94,7 +95,7 @@ export function JobCard(props: JobCardProps) {
   } = props;
 
   const status = getJobStatusValue(job);
-  const statusStyle = STATUS_STYLES[status] || STATUS_STYLES.saved;
+  const statusStyle = STATUS_STYLES[status];
 
   return (
     <div className="group rounded-2xl border bg-card overflow-hidden transition-all hover:shadow-lg hover:border-primary/20">
@@ -109,16 +110,15 @@ export function JobCard(props: JobCardProps) {
                 <h3 className="font-semibold text-lg truncate">{job.title}</h3>
                 <Select value={status} onValueChange={onStatusChange}>
                   <SelectTrigger className={`h-6 w-auto px-2 text-xs border-0 ${statusStyle.bg} ${statusStyle.text}`}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="saved">Saved</SelectItem>
-                  <SelectItem value="applied">Applied</SelectItem>
-                  <SelectItem value="interviewing">Interviewing</SelectItem>
-                  <SelectItem value="offered">Offer</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TRACKED_JOB_STATUSES.map((statusOption) => (
+                      <SelectItem key={statusOption} value={statusOption}>
+                        {TRACKED_JOB_STATUS_LABELS[statusOption]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
                 {atsResult && <ATSScoreBadge score={atsResult.score.overall} onClick={onAtsDialogOpen} />}
               </div>

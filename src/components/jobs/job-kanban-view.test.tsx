@@ -39,7 +39,7 @@ describe("JobKanbanView", () => {
     expect(screen.getByLabelText("Saved jobs")).toBeInTheDocument();
     expect(screen.getByLabelText("Applied jobs")).toBeInTheDocument();
     expect(screen.getByLabelText("Interviewing jobs")).toBeInTheDocument();
-    expect(screen.getByLabelText("Offer jobs")).toBeInTheDocument();
+    expect(screen.getByLabelText("Offered jobs")).toBeInTheDocument();
     expect(screen.getByLabelText("Rejected jobs")).toBeInTheDocument();
     expect(screen.getByText("Frontend Engineer")).toBeInTheDocument();
     expect(screen.getByText("Acme")).toBeInTheDocument();
