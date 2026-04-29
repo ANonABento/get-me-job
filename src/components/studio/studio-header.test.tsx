@@ -4,10 +4,10 @@ import { describe, expect, it, vi } from "vitest";
 import { TEMPLATES } from "@/lib/resume/template-data";
 import { StudioHeader } from "./studio-header";
 
-function renderStudioHeader(
+function createStudioHeaderProps(
   props: Partial<ComponentProps<typeof StudioHeader>> = {}
-) {
-  const defaultProps: ComponentProps<typeof StudioHeader> = {
+): ComponentProps<typeof StudioHeader> {
+  return {
     documentMode: "resume",
     draftIsSaved: true,
     templateId: "classic",
@@ -18,9 +18,14 @@ function renderStudioHeader(
     onTemplateSelect: vi.fn(),
     onCopyHtml: vi.fn(),
     onDownloadPdf: vi.fn(),
+    ...props,
   };
+}
 
-  return render(<StudioHeader {...defaultProps} {...props} />);
+function renderStudioHeader(
+  props: Partial<ComponentProps<typeof StudioHeader>> = {}
+) {
+  return render(<StudioHeader {...createStudioHeaderProps(props)} />);
 }
 
 describe("StudioHeader", () => {
@@ -49,16 +54,7 @@ describe("StudioHeader", () => {
 
     rerender(
       <StudioHeader
-        documentMode="cover_letter"
-        draftIsSaved
-        templateId="classic"
-        canCopyHtml
-        canDownloadPdf
-        isExporting={false}
-        onDocumentModeChange={vi.fn()}
-        onTemplateSelect={vi.fn()}
-        onCopyHtml={vi.fn()}
-        onDownloadPdf={vi.fn()}
+        {...createStudioHeaderProps({ documentMode: "cover_letter" })}
       />
     );
 
