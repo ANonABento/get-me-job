@@ -46,6 +46,8 @@ describe("calculateFunnel", () => {
 
   it("calculates funnel stages correctly", () => {
     const jobs = [
+      createJob({ status: "pending" }),
+      createJob({ status: "saved" }),
       createJob({ status: "applied" }),
       createJob({ status: "applied" }),
       createJob({ status: "interviewing" }),
@@ -55,7 +57,7 @@ describe("calculateFunnel", () => {
 
     const result = calculateFunnel(jobs);
 
-    expect(result[0].count).toBe(5); // All applied
+    expect(result[0].count).toBe(5); // Submitted applications only
     expect(result[1].count).toBe(3); // Responded (interviewing + offered + rejected)
     expect(result[2].count).toBe(2); // Interviewed (interviewing + offered)
     expect(result[3].count).toBe(1); // Offered
@@ -144,7 +146,7 @@ describe("calculateTimeToInterview", () => {
 
 describe("calculateOfferRate", () => {
   it("returns 0 for no applied jobs", () => {
-    const jobs = [createJob({ status: "saved" })];
+    const jobs = [createJob({ status: "saved" }), createJob({ status: "pending" })];
     const result = calculateOfferRate(jobs);
 
     expect(result.overall).toBe(0);
@@ -152,6 +154,7 @@ describe("calculateOfferRate", () => {
 
   it("calculates overall offer rate", () => {
     const jobs = [
+      createJob({ status: "pending" }),
       createJob({ status: "applied" }),
       createJob({ status: "applied" }),
       createJob({ status: "offered" }),

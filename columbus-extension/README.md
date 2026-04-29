@@ -120,12 +120,50 @@ All extension endpoints use token auth via `X-Extension-Token` header:
 | `/api/extension/auth` | DELETE | Revoke token(s) |
 | `/api/extension/auth/verify` | GET | Validate token |
 | `/api/extension/profile` | GET | Fetch profile with computed fields |
-| `/api/extension/jobs` | POST | Import single or batch jobs |
+| `/api/opportunities/from-extension` | POST | Import single or batch scraped jobs as pending opportunities |
 | `/api/extension/learned-answers` | GET | List saved answers |
 | `/api/extension/learned-answers` | POST | Save new answer |
 | `/api/extension/learned-answers/search` | POST | Similarity search |
 | `/api/extension/learned-answers/[id]` | PATCH | Update answer |
 | `/api/extension/learned-answers/[id]` | DELETE | Delete answer |
+
+#### Opportunity Import Contract
+
+`POST /api/opportunities/from-extension` accepts a single scraped job object or a batch shape:
+
+```json
+{
+  "jobs": [
+    {
+      "title": "Frontend Engineer",
+      "company": "Acme",
+      "location": "Remote",
+      "description": "Full job description...",
+      "requirements": ["React", "TypeScript"],
+      "responsibilities": ["Build product UI"],
+      "keywords": ["React"],
+      "type": "full-time",
+      "remote": true,
+      "salary": "$120k-$150k",
+      "url": "https://example.com/jobs/frontend",
+      "source": "linkedin",
+      "sourceJobId": "abc-123",
+      "postedAt": "2026-04-29",
+      "deadline": "2026-05-15"
+    }
+  ]
+}
+```
+
+The app creates each imported job with `status: "pending"`, adds an unread notification for the user, and returns:
+
+```json
+{
+  "imported": 1,
+  "opportunityIds": ["job-123"],
+  "pendingCount": 3
+}
+```
 
 ### Authentication Flow
 

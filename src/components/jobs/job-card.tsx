@@ -27,7 +27,8 @@ import { Button } from "@/components/ui/button";
 import { CircularProgress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { ATSAnalysisResult } from "@/lib/ats/analyzer";
-import type { JobDescription, JobMatch } from "@/types";
+import { JOB_STATUSES, JOB_STATUS_LABELS } from "@/lib/constants";
+import type { JobDescription, JobMatch, JobStatus } from "@/types";
 import { getJobStatusValue } from "@/app/(app)/jobs/filter-jobs";
 
 const ATSScoreBadge = dynamic(
@@ -41,12 +42,14 @@ export interface ResumeTemplate {
   description: string;
 }
 
-const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
+const STATUS_STYLES: Record<JobStatus, { bg: string; text: string }> = {
+  pending: { bg: "bg-violet-100 dark:bg-violet-900/30", text: "text-violet-600 dark:text-violet-300" },
   saved: { bg: "bg-slate-100 dark:bg-slate-800", text: "text-slate-600 dark:text-slate-300" },
   applied: { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-600 dark:text-blue-400" },
   interviewing: { bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-600 dark:text-amber-400" },
   offered: { bg: "bg-emerald-100 dark:bg-emerald-900/30", text: "text-success dark:text-emerald-400" },
   rejected: { bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-600 dark:text-red-400" },
+  withdrawn: { bg: "bg-gray-100 dark:bg-gray-900/30", text: "text-gray-600 dark:text-gray-400" },
 };
 
 interface JobCardProps {
@@ -63,7 +66,7 @@ interface JobCardProps {
   onAnalyze: () => void;
   onGenerate: () => void;
   onDelete: () => void;
-  onStatusChange: (status: string) => void;
+  onStatusChange: (status: JobStatus) => void;
   onToggleExpand: () => void;
   onAtsCheck: () => void;
   onAtsDialogOpen: () => void;
@@ -93,7 +96,7 @@ export function JobCard(props: JobCardProps) {
   } = props;
 
   const status = getJobStatusValue(job);
-  const statusStyle = STATUS_STYLES[status] || STATUS_STYLES.saved;
+  const statusStyle = STATUS_STYLES[status];
 
   return (
     <div className="group rounded-2xl border bg-card overflow-hidden transition-all hover:shadow-lg hover:border-primary/20">
@@ -106,16 +109,16 @@ export function JobCard(props: JobCardProps) {
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <h3 className="font-semibold text-lg truncate">{job.title}</h3>
-                <Select value={status} onValueChange={onStatusChange}>
+                <Select value={status} onValueChange={(value) => onStatusChange(value as JobStatus)}>
                   <SelectTrigger className={`h-6 w-auto px-2 text-xs border-0 ${statusStyle.bg} ${statusStyle.text}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="saved">Saved</SelectItem>
-                    <SelectItem value="applied">Applied</SelectItem>
-                    <SelectItem value="interviewing">Interviewing</SelectItem>
-                    <SelectItem value="offered">Offered</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
+                    {JOB_STATUSES.map((jobStatus) => (
+                      <SelectItem key={jobStatus} value={jobStatus}>
+                        {JOB_STATUS_LABELS[jobStatus]}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 {atsResult && <ATSScoreBadge score={atsResult.score.overall} onClick={onAtsDialogOpen} />}

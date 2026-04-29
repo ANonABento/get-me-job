@@ -2,6 +2,7 @@ import { z } from "zod";
 
 // Job application statuses
 export const JOB_STATUSES = [
+  "pending",
   "saved",
   "applied",
   "interviewing",
@@ -14,6 +15,16 @@ export type JobStatus = (typeof JOB_STATUSES)[number];
 
 export const jobStatusSchema = z.enum(JOB_STATUSES);
 
+export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
+  pending: "Pending",
+  saved: "Saved",
+  applied: "Applied",
+  interviewing: "Interviewing",
+  offered: "Offered",
+  rejected: "Rejected",
+  withdrawn: "Withdrawn",
+};
+
 // Job types
 export const JOB_TYPES = [
   "full-time",
@@ -25,6 +36,13 @@ export const JOB_TYPES = [
 export type JobType = (typeof JOB_TYPES)[number];
 
 export const jobTypeSchema = z.enum(JOB_TYPES);
+
+export const JOB_TYPE_LABELS: Record<JobType, string> = {
+  "full-time": "Full-time",
+  "part-time": "Part-time",
+  contract: "Contract",
+  internship: "Internship",
+};
 
 // API validation schemas
 export const createJobSchema = z.object({

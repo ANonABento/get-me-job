@@ -74,8 +74,8 @@ export class ColumbusAPIClient {
     return this.authenticatedFetch<ExtensionProfile>('/api/extension/profile');
   }
 
-  async importJob(job: ScrapedJob): Promise<{ jobId: string }> {
-    return this.authenticatedFetch('/api/extension/jobs', {
+  async importJob(job: ScrapedJob): Promise<{ imported: number; opportunityIds: string[]; pendingCount: number }> {
+    return this.authenticatedFetch('/api/opportunities/from-extension', {
       method: 'POST',
       body: JSON.stringify({
         title: job.title,
@@ -89,19 +89,18 @@ export class ColumbusAPIClient {
         remote: job.remote,
         salary: job.salary,
         url: job.url,
+        source: job.source,
+        sourceJobId: job.sourceJobId,
+        postedAt: job.postedAt,
         deadline: job.deadline,
       }),
     });
   }
 
-  async importJobsBatch(jobs: ScrapedJob[]): Promise<{ imported: number; jobIds: string[] }> {
-    return this.authenticatedFetch('/api/extension/jobs', {
+  async importJobsBatch(jobs: ScrapedJob[]): Promise<{ imported: number; opportunityIds: string[]; pendingCount: number }> {
+    return this.authenticatedFetch('/api/opportunities/from-extension', {
       method: 'POST',
-      body: JSON.stringify({
-        jobs,
-        title: 'batch',
-        company: 'batch',
-      }),
+      body: JSON.stringify({ jobs }),
     });
   }
 

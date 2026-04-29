@@ -57,7 +57,11 @@ export interface AuthStatusResponse extends ExtensionResponse<{
 
 export interface ProfileResponse extends ExtensionResponse<ExtensionProfile> {}
 
-export interface ImportJobResponse extends ExtensionResponse<{ jobId: string }> {}
+export interface ImportJobResponse extends ExtensionResponse<{
+  imported: number;
+  opportunityIds: string[];
+  pendingCount: number;
+}> {}
 
 export interface SearchAnswersResponse extends ExtensionResponse<SimilarAnswer[]> {}
 

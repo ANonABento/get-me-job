@@ -22,6 +22,7 @@ import {
   updateJob,
   updateJobStatus,
   deleteJob,
+  countJobsByStatus,
 } from "./jobs";
 
 describe("Job Database Functions", () => {
@@ -200,6 +201,10 @@ describe("Job Database Functions", () => {
         "[]",
         "[]",
         null,
+        "saved",
+        null,
+        null,
+        null,
         "default"
       );
       expect(result.id).toBe("test-id-123");
@@ -257,9 +262,51 @@ describe("Job Database Functions", () => {
         '["Task"]',
         '["key"]',
         "https://job.com",
+        "saved",
+        null,
+        null,
+        null,
         "default"
       );
       expect(result.remote).toBe(true);
+    });
+
+    it("should persist explicit pending status and review notes", () => {
+      const mockRun = vi.fn();
+      const mockGet = vi.fn().mockReturnValue({
+        id: "test-id-123",
+        title: "Job",
+        company: "Company",
+        description: "Desc",
+        requirements_json: "[]",
+        responsibilities_json: "[]",
+        keywords_json: "[]",
+        remote: 0,
+        status: "pending",
+        notes: "Source: linkedin",
+      });
+
+      (db.prepare as Mock).mockImplementation((sql: string) => {
+        if (sql.includes("INSERT")) {
+          return { run: mockRun };
+        }
+        return { get: mockGet };
+      });
+
+      const result = createJob({
+        title: "Job",
+        company: "Company",
+        description: "Desc",
+        requirements: [],
+        responsibilities: [],
+        keywords: [],
+        status: "pending",
+        notes: "Source: linkedin",
+      });
+
+      expect(mockRun.mock.calls[0][12]).toBe("pending");
+      expect(mockRun.mock.calls[0][15]).toBe("Source: linkedin");
+      expect(result.status).toBe("pending");
     });
   });
 
@@ -382,6 +429,21 @@ describe("Job Database Functions", () => {
         "DELETE FROM jobs WHERE id = ? AND user_id = ?"
       );
       expect(mockRun).toHaveBeenCalledWith("job-1", "default");
+    });
+  });
+
+  describe("countJobsByStatus", () => {
+    it("should return the count for a user and status", () => {
+      const mockGet = vi.fn().mockReturnValue({ count: 3 });
+      (db.prepare as Mock).mockReturnValue({ get: mockGet });
+
+      const result = countJobsByStatus("pending", "user-1");
+
+      expect(db.prepare).toHaveBeenCalledWith(
+        "SELECT COUNT(*) as count FROM jobs WHERE status = ? AND user_id = ?"
+      );
+      expect(mockGet).toHaveBeenCalledWith("pending", "user-1");
+      expect(result).toBe(3);
     });
   });
 });

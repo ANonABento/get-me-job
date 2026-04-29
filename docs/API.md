@@ -83,6 +83,65 @@ Update a job.
 ### DELETE /api/jobs/[id]
 Delete a job.
 
+---
+
+## Opportunities
+
+### POST /api/opportunities/from-extension
+Import scraped opportunities from the Columbus browser extension. Requires `X-Extension-Token`.
+
+Scraped opportunities are always created with `status: "pending"` so the user can review them before moving them to Saved, Applied, or another workflow status. The endpoint also creates an unread in-app notification and returns the current pending count for badge/review UI.
+
+**Request Body (single):**
+```json
+{
+  "title": "Frontend Engineer",
+  "company": "Acme",
+  "location": "Remote",
+  "description": "Full job description...",
+  "requirements": ["React", "TypeScript"],
+  "responsibilities": ["Build product UI"],
+  "keywords": ["React"],
+  "type": "full-time",
+  "remote": true,
+  "salary": "$120k-$150k",
+  "url": "https://example.com/jobs/frontend",
+  "source": "linkedin",
+  "sourceJobId": "abc-123",
+  "postedAt": "2026-04-29",
+  "deadline": "2026-05-15"
+}
+```
+
+**Request Body (batch):**
+```json
+{
+  "jobs": [
+    { "title": "Frontend Engineer", "company": "Acme", "url": "https://example.com/a" },
+    { "title": "Backend Engineer", "company": "Beta", "url": "https://example.com/b" }
+  ]
+}
+```
+
+`opportunities` is also accepted instead of `jobs` for batch payloads.
+
+**Response:**
+```json
+{
+  "imported": 2,
+  "opportunityIds": ["job-123", "job-456"],
+  "pendingCount": 5
+}
+```
+
+**Errors:**
+- `401` when the extension token is missing, invalid, or expired.
+- `400` with validation details when a required field such as `title` or `company` is missing.
+
+---
+
+## Job AI
+
 ### POST /api/jobs/[id]/analyze
 Analyze job match with profile.
 
