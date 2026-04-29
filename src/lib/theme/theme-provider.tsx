@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -35,37 +36,23 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-function readStoredTheme(): ThemeMode | null {
+function readStoredValue<T>(
+  key: string,
+  isValid: (value: unknown) => value is T
+): T | null {
   try {
-    const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    return isThemeMode(stored) ? stored : null;
+    const stored = localStorage.getItem(key);
+    return isValid(stored) ? stored : null;
   } catch {
     return null;
   }
 }
 
-function readStoredThemePreset(): ThemePresetName | null {
+function persistValue(key: string, value: string): void {
   try {
-    const stored = localStorage.getItem(THEME_PRESET_STORAGE_KEY);
-    return isThemePresetName(stored) ? stored : null;
+    localStorage.setItem(key, value);
   } catch {
-    return null;
-  }
-}
-
-function persistTheme(theme: ThemeMode): void {
-  try {
-    localStorage.setItem(THEME_STORAGE_KEY, theme);
-  } catch {
-    // Ignore storage errors and keep the in-memory theme.
-  }
-}
-
-function persistThemePreset(preset: ThemePresetName): void {
-  try {
-    localStorage.setItem(THEME_PRESET_STORAGE_KEY, preset);
-  } catch {
-    // Ignore storage errors and keep the in-memory preset.
+    // Ignore storage errors and keep the in-memory value.
   }
 }
 
@@ -79,12 +66,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setMounted(true);
 
-    const storedTheme = readStoredTheme();
+    const storedTheme = readStoredValue(THEME_STORAGE_KEY, isThemeMode);
     if (storedTheme) {
       setThemeState(storedTheme);
     }
 
-    const storedPreset = readStoredThemePreset();
+    const storedPreset = readStoredValue(
+      THEME_PRESET_STORAGE_KEY,
+      isThemePresetName
+    );
     if (storedPreset) {
       setThemePresetState(storedPreset);
     }
@@ -124,29 +114,40 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return () => mediaQuery.removeEventListener("change", handleMediaChange);
   }, [theme, themePreset, mounted]);
 
-  const setTheme = (newTheme: ThemeMode) => {
+  const setTheme = useCallback((newTheme: ThemeMode) => {
     setThemeState(newTheme);
-    persistTheme(newTheme);
-  };
+    persistValue(THEME_STORAGE_KEY, newTheme);
+  }, []);
 
-  const setThemePreset = (newPreset: ThemePresetName) => {
+  const setThemePreset = useCallback((newPreset: ThemePresetName) => {
     setThemePresetState(newPreset);
-    persistThemePreset(newPreset);
-  };
+    persistValue(THEME_PRESET_STORAGE_KEY, newPreset);
+  }, []);
 
   const availableThemePresets = useMemo(
     () => themePresetNames.map((name) => themePresets[name]),
     []
   );
 
-  const value: ThemeContextType = {
-    theme: mounted ? theme : DEFAULT_THEME_MODE,
-    setTheme: mounted ? setTheme : () => {},
-    resolvedTheme: mounted ? resolvedTheme : "light",
-    themePreset: mounted ? themePreset : DEFAULT_THEME_PRESET,
-    setThemePreset: mounted ? setThemePreset : () => {},
-    availableThemePresets,
-  };
+  const value = useMemo<ThemeContextType>(
+    () => ({
+      theme: mounted ? theme : DEFAULT_THEME_MODE,
+      setTheme: mounted ? setTheme : () => {},
+      resolvedTheme: mounted ? resolvedTheme : "light",
+      themePreset: mounted ? themePreset : DEFAULT_THEME_PRESET,
+      setThemePreset: mounted ? setThemePreset : () => {},
+      availableThemePresets,
+    }),
+    [
+      availableThemePresets,
+      mounted,
+      resolvedTheme,
+      setTheme,
+      setThemePreset,
+      theme,
+      themePreset,
+    ]
+  );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
