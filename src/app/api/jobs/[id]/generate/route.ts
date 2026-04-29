@@ -12,6 +12,7 @@ import { getJob } from "@/lib/db/jobs";
 import { getProfile, getLLMConfig, saveGeneratedResume } from "@/lib/db";
 import { generateTailoredResume } from "@/lib/resume/generator";
 import { generateResumeHTML, TEMPLATES } from "@/lib/resume/pdf";
+import { getTemplateWithCustom } from "@/lib/resume/templates";
 import { writeFile, mkdir } from "fs/promises";
 import { generateId } from "@/lib/utils";
 import { PATHS } from "@/lib/constants";
@@ -66,7 +67,8 @@ export async function POST(
     const tailoredResume = await generateTailoredResume(profile, job, llmConfig);
 
     // Generate HTML with selected template
-    const html = generateResumeHTML(tailoredResume, templateId, authResult.userId);
+    const template = getTemplateWithCustom(templateId, authResult.userId);
+    const html = generateResumeHTML(tailoredResume, templateId, template);
 
     // Ensure output directory exists
     await mkdir(PATHS.RESUMES_OUTPUT, { recursive: true });

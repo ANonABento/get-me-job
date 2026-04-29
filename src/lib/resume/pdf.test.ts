@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { generateResumeHTML } from "./pdf";
-import { TEMPLATES } from "./templates";
+import { TEMPLATES } from "./template-data";
 import type { TailoredResume } from "./generator";
+import type { ResumeTemplate } from "./template-types";
 
 const mockResume: TailoredResume = {
   contact: {
@@ -202,6 +203,21 @@ describe("generateResumeHTML - all 9 templates produce valid HTML", () => {
     const html = generateResumeHTML(mockResume, "nonexistent-template");
     const classicHtml = generateResumeHTML(mockResume, "classic");
     expect(html).toBe(classicHtml);
+  });
+
+  it("uses a pre-resolved template when one is provided", () => {
+    const template: ResumeTemplate = {
+      ...TEMPLATES[0],
+      id: "custom-template",
+      styles: {
+        ...TEMPLATES[0].styles,
+        accentColor: "#123456",
+      },
+    };
+
+    const html = generateResumeHTML(mockResume, "custom-template", template);
+
+    expect(html).toContain("#123456");
   });
 });
 

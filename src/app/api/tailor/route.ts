@@ -13,6 +13,7 @@ import { createJob } from "@/lib/db/jobs";
 import { analyzeJobFit, extractKeywords } from "@/lib/tailor/analyze";
 import { generateFromBank } from "@/lib/tailor/generate";
 import { generateResumeHTML, TEMPLATES } from "@/lib/resume/pdf";
+import { getTemplateWithCustom } from "@/lib/resume/templates";
 import {
   isTailorAction,
   isTailoredResume,
@@ -72,9 +73,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      const template = getTemplateWithCustom(templateId, authResult.userId);
       return NextResponse.json({
         success: true,
-        html: generateResumeHTML(body.resume, templateId, authResult.userId),
+        html: generateResumeHTML(body.resume, templateId, template),
       });
     }
 
@@ -149,7 +151,8 @@ export async function POST(request: NextRequest) {
     );
 
     // Generate HTML
-    const html = generateResumeHTML(tailoredResume, templateId, authResult.userId);
+    const template = getTemplateWithCustom(templateId, authResult.userId);
+    const html = generateResumeHTML(tailoredResume, templateId, template);
 
     // Save file
     await mkdir(PATHS.RESUMES_OUTPUT, { recursive: true });

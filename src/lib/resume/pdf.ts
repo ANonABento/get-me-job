@@ -1,5 +1,6 @@
 import type { TailoredResume } from "./generator";
-import { getTemplateWithCustom, type ResumeTemplate, TEMPLATES } from "./templates";
+import { getTemplate, TEMPLATES } from "./template-data";
+import type { ResumeTemplate } from "./template-types";
 import type { ContactInfo } from "@/types";
 import { escapeHtml } from "@/lib/html";
 
@@ -54,9 +55,9 @@ function renderContactInfo(contact: ContactInfo): string {
 export function generateResumeHTML(
   resume: TailoredResume,
   templateId: string = "classic",
-  userId?: string
+  resolvedTemplate?: ResumeTemplate
 ): string {
-  const template = getTemplateWithCustom(templateId, userId);
+  const template = resolvedTemplate ?? getTemplate(templateId);
   const { contact, summary, experiences, skills, education } = resume;
   const styles = template.styles;
 

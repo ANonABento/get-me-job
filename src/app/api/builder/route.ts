@@ -7,6 +7,7 @@ import {
   type EditableResumeDocument,
 } from "@/lib/builder/editor-document";
 import { generateResumeHTML } from "@/lib/resume/pdf";
+import { getTemplateWithCustom } from "@/lib/resume/templates";
 import type { ContactInfo } from "@/types";
 
 interface BuilderRequestBody {
@@ -37,7 +38,8 @@ export async function POST(request: NextRequest) {
         document,
         contact || { name: "Your Name" }
       );
-      const html = generateResumeHTML(resume, templateId, authResult.userId);
+      const template = getTemplateWithCustom(templateId, authResult.userId);
+      const html = generateResumeHTML(resume, templateId, template);
 
       return NextResponse.json({ html, resume });
     }
@@ -57,7 +59,8 @@ export async function POST(request: NextRequest) {
       contact || { name: "Your Name" }
     );
 
-    const html = generateResumeHTML(resume, templateId, authResult.userId);
+    const template = getTemplateWithCustom(templateId, authResult.userId);
+    const html = generateResumeHTML(resume, templateId, template);
 
     return NextResponse.json({ html, resume });
   } catch (error) {
