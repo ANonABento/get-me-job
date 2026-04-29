@@ -12,7 +12,7 @@ import { getJobs, createJob } from "@/lib/db/jobs";
 import { getInterviewSessions } from "@/lib/db/interviews";
 import { getAllGeneratedResumes } from "@/lib/db/resumes";
 import { generateId } from "@/lib/utils";
-import { backupDataSchema } from "@/lib/constants";
+import { backupDataSchema, JOB_STATUSES, JOB_TYPES } from "@/lib/constants";
 import { requireAuth, isAuthError } from "@/lib/auth";
 
 // GET - Export full backup
@@ -161,15 +161,11 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Validate and cast job type and status
-        const validJobTypes = ["full-time", "part-time", "contract", "internship"] as const;
-        const validStatuses = ["pending", "saved", "applied", "interviewing", "offered", "rejected", "withdrawn"] as const;
-
-        const jobType = validJobTypes.includes(job.type as typeof validJobTypes[number])
-          ? (job.type as typeof validJobTypes[number])
+        const jobType = JOB_TYPES.includes(job.type as typeof JOB_TYPES[number])
+          ? (job.type as typeof JOB_TYPES[number])
           : undefined;
-        const jobStatus = validStatuses.includes((job.status || "saved") as typeof validStatuses[number])
-          ? ((job.status || "saved") as typeof validStatuses[number])
+        const jobStatus = JOB_STATUSES.includes((job.status || "saved") as typeof JOB_STATUSES[number])
+          ? ((job.status || "saved") as typeof JOB_STATUSES[number])
           : "saved";
 
         createJob({

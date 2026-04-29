@@ -1,6 +1,6 @@
 import db from "./schema";
 import { generateId } from "@/lib/utils";
-import type { JobDescription } from "@/types";
+import type { JobDescription, JobStatus } from "@/types";
 
 // Get all jobs
 export function getJobs(userId: string = "default"): JobDescription[] {
@@ -127,7 +127,7 @@ export function updateJob(id: string, updates: Partial<JobDescription>, userId: 
 // Update job status
 export function updateJobStatus(
   id: string,
-  status: string,
+  status: JobStatus,
   appliedAt?: string,
   userId: string = "default"
 ): JobDescription | null {
@@ -153,7 +153,7 @@ export function deleteJob(id: string, userId: string = "default"): void {
   db.prepare("DELETE FROM jobs WHERE id = ? AND user_id = ?").run(id, userId);
 }
 
-export function countJobsByStatus(status: string, userId: string = "default"): number {
+export function countJobsByStatus(status: JobStatus, userId: string = "default"): number {
   const row = db.prepare(
     "SELECT COUNT(*) as count FROM jobs WHERE status = ? AND user_id = ?"
   ).get(status, userId) as { count: number };

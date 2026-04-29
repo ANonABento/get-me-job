@@ -1,4 +1,4 @@
-import type { JobDescription } from "@/types";
+import type { JobDescription, JobStatus } from "@/types";
 import type { GeneratedResume } from "@/lib/db/resumes";
 
 export interface TimeToMetric {
@@ -40,8 +40,15 @@ export interface SuccessMetrics {
   insights: string[];
 }
 
+const SUBMITTED_APPLICATION_STATUSES: JobStatus[] = [
+  "applied",
+  "interviewing",
+  "offered",
+  "rejected",
+];
+
 function isSubmittedApplication(job: JobDescription): boolean {
-  return job.status !== "pending" && job.status !== "saved" && job.status !== "withdrawn";
+  return SUBMITTED_APPLICATION_STATUSES.includes(job.status ?? "saved");
 }
 
 function daysBetween(date1: string, date2: string): number {
@@ -52,8 +59,8 @@ function daysBetween(date1: string, date2: string): number {
 }
 
 export function calculateFunnel(jobs: JobDescription[]): FunnelStage[] {
-  const total = jobs.length;
-  if (total === 0) {
+  const appliedJobs = jobs.filter(isSubmittedApplication);
+  if (appliedJobs.length === 0) {
     return [
       { stage: "Applied", count: 0, percentage: 0, conversionFromPrevious: 0 },
       { stage: "Response", count: 0, percentage: 0, conversionFromPrevious: 0 },
@@ -62,14 +69,14 @@ export function calculateFunnel(jobs: JobDescription[]): FunnelStage[] {
     ];
   }
 
-  const applied = total;
-  const responded = jobs.filter(
+  const applied = appliedJobs.length;
+  const responded = appliedJobs.filter(
     (j) => j.status === "interviewing" || j.status === "offered" || j.status === "rejected"
   ).length;
-  const interviewed = jobs.filter(
+  const interviewed = appliedJobs.filter(
     (j) => j.status === "interviewing" || j.status === "offered"
   ).length;
-  const offered = jobs.filter((j) => j.status === "offered").length;
+  const offered = appliedJobs.filter((j) => j.status === "offered").length;
 
   return [
     {

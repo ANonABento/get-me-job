@@ -15,7 +15,7 @@ import { SkeletonJobCard } from "@/components/ui/skeleton";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import type { ATSAnalysisResult } from "@/lib/ats/analyzer";
 import { readJsonResponse } from "@/lib/http";
-import type { JobDescription, JobMatch } from "@/types";
+import type { JobDescription, JobMatch, JobStatus } from "@/types";
 import { filterJobs, hasActiveJobFilters, type JobRemoteFilter, type JobSortOption, type JobStatusFilter, type JobTypeFilter } from "./filter-jobs";
 
 const ATSScoreBreakdown = dynamic(() => import("@/components/ats/score-breakdown").then((module) => module.ATSScoreBreakdown), {
@@ -114,7 +114,7 @@ export default function JobsPage() {
     }
   };
 
-  const updateJobStatus = async (id: string, status: string) => {
+  const updateJobStatus = async (id: string, status: JobStatus) => {
     try {
       const response = await fetch(`/api/jobs/${id}`, {
         method: "PATCH",
@@ -122,7 +122,7 @@ export default function JobsPage() {
         body: JSON.stringify({ status }),
       });
       await readJsonResponse<unknown>(response, "Failed to update job status");
-      setJobs((prev) => prev.map((job) => (job.id === id ? { ...job, status: status as JobDescription["status"] } : job)));
+      setJobs((prev) => prev.map((job) => (job.id === id ? { ...job, status } : job)));
     } catch (error) {
       showErrorToast(error, {
         title: "Could not update job status",

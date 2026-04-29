@@ -37,6 +37,8 @@ import { Progress } from "@/components/ui/progress";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { SkeletonChart, SkeletonButton } from "@/components/ui/skeleton";
 import { useErrorToast } from "@/hooks/use-error-toast";
+import { JOB_STATUS_LABELS } from "@/lib/constants";
+import type { JobStatus } from "@/types";
 
 const TrendCharts = dynamic(
   () => import("@/components/analytics/trend-charts").then((m) => m.TrendCharts),
@@ -86,19 +88,20 @@ interface Analytics {
       id: string;
       title: string;
       company: string;
-      status: string;
+      status: JobStatus;
       createdAt: string;
     }>;
   };
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  pending: { label: "Pending", color: "bg-violet-500", icon: Clock },
-  saved: { label: "Saved", color: "bg-slate-500", icon: Star },
-  applied: { label: "Applied", color: "bg-blue-500", icon: CheckCircle },
-  interviewing: { label: "Interviewing", color: "bg-amber-500", icon: MessageSquare },
-  offered: { label: "Offered", color: "bg-emerald-500", icon: TrendingUp },
-  rejected: { label: "Rejected", color: "bg-red-500", icon: XCircle },
+const STATUS_CONFIG: Record<JobStatus, { label: string; color: string; icon: React.ElementType }> = {
+  pending: { label: JOB_STATUS_LABELS.pending, color: "bg-violet-500", icon: Clock },
+  saved: { label: JOB_STATUS_LABELS.saved, color: "bg-slate-500", icon: Star },
+  applied: { label: JOB_STATUS_LABELS.applied, color: "bg-blue-500", icon: CheckCircle },
+  interviewing: { label: JOB_STATUS_LABELS.interviewing, color: "bg-amber-500", icon: MessageSquare },
+  offered: { label: JOB_STATUS_LABELS.offered, color: "bg-emerald-500", icon: TrendingUp },
+  rejected: { label: JOB_STATUS_LABELS.rejected, color: "bg-red-500", icon: XCircle },
+  withdrawn: { label: JOB_STATUS_LABELS.withdrawn, color: "bg-gray-500", icon: XCircle },
 };
 
 export default function AnalyticsPage() {

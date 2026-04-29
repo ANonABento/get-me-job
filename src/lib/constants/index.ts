@@ -5,8 +5,10 @@ export type { Theme } from "./storage";
 
 export {
   JOB_STATUSES,
+  JOB_STATUS_LABELS,
   jobStatusSchema,
   JOB_TYPES,
+  JOB_TYPE_LABELS,
   jobTypeSchema,
   createJobSchema,
   updateJobSchema,
