@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { CheckCircle, Moon, Palette, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
@@ -69,7 +68,6 @@ interface ThemeChoiceButtonProps {
   description: string;
   colors: string[];
   selected: boolean;
-  icon?: ReactNode;
   onClick: () => void;
 }
 
@@ -78,7 +76,6 @@ function ThemeChoiceButton({
   description,
   colors,
   selected,
-  icon,
   onClick,
 }: ThemeChoiceButtonProps) {
   return (
@@ -93,7 +90,6 @@ function ThemeChoiceButton({
       }`}
     >
       <div className="mb-4 flex items-center gap-2">
-        {icon}
         <div className="flex overflow-hidden rounded-md border">
           {colors.map((color) => (
             <span

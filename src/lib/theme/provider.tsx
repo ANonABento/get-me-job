@@ -14,11 +14,9 @@ import {
   getTheme,
   isThemeId,
 } from "./registry";
+import { THEME_DARK_STORAGE_KEY, THEME_STORAGE_KEY } from "./theme-config";
 import { ThemeContext } from "./use-theme";
 import type { ThemeId, ThemeVariant } from "./tokens";
-
-export const THEME_STORAGE_KEY = "taida-theme";
-export const THEME_DARK_STORAGE_KEY = "taida-dark";
 
 function readStoredThemeId(): ThemeId {
   try {
