@@ -45,6 +45,7 @@ export const navigationGroups: NavGroup[] = [
     items: [
       { name: "Documents", href: "/bank", icon: Database },
       { name: "Document Studio", href: "/studio", icon: FileText },
+      { name: "Opportunities", href: "/opportunities", icon: Briefcase },
     ],
   },
   {
