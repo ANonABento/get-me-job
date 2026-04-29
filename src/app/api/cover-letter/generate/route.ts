@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { getLLMConfig, getProfile } from "@/lib/db";
+import { saveCoverLetter } from "@/lib/db/cover-letters";
 import { getGroupedBankEntries } from "@/lib/db/profile-bank";
+import { getOpportunity, linkOpportunityDocument } from "@/lib/opportunities";
 import { rateLimiters, getClientIdentifier } from "@/lib/rate-limit";
 import {
   filterBankEntriesByIds,
@@ -59,6 +61,7 @@ export async function POST(request: NextRequest) {
       selectedText,
       instruction,
       selectedBankEntryIds,
+      opportunityId,
     } = body as {
       jobDescription?: string;
       jobTitle?: string;
@@ -68,6 +71,7 @@ export async function POST(request: NextRequest) {
       selectedText?: string;
       instruction?: string;
       selectedBankEntryIds?: unknown;
+      opportunityId?: string;
     };
 
     if (!isCoverLetterAction(action)) {
@@ -81,6 +85,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Job description is too short. Please paste the full JD." },
         { status: 400 },
+      );
+    }
+
+    const linkedOpportunity =
+      opportunityId && action === "generate"
+        ? getOpportunity(opportunityId, authResult.userId)
+        : null;
+    if (opportunityId && action === "generate" && !linkedOpportunity) {
+      return NextResponse.json(
+        { error: "Opportunity not found." },
+        { status: 404 },
       );
     }
 
@@ -178,7 +193,28 @@ export async function POST(request: NextRequest) {
 
     // action === "generate"
     const content = await generateCoverLetter(input, llmConfig);
-    return NextResponse.json({ success: true, content });
+    const response: {
+      success: true;
+      content: string;
+      savedCoverLetter?: { id: string };
+    } = { success: true, content };
+
+    if (opportunityId && linkedOpportunity) {
+      const savedCoverLetter = saveCoverLetter(
+        opportunityId,
+        content,
+        [],
+        authResult.userId,
+      );
+      linkOpportunityDocument(
+        opportunityId,
+        { coverLetterId: savedCoverLetter.id },
+        authResult.userId,
+      );
+      response.savedCoverLetter = { id: savedCoverLetter.id };
+    }
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error("Cover letter generation error:", error);
     return NextResponse.json(

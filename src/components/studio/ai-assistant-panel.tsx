@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  BriefcaseBusiness,
   FileText,
   Loader2,
   PenLine,
@@ -18,6 +19,13 @@ import {
   type DocumentAssistantAction,
 } from "@/lib/document-assistant";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -28,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import type { Opportunity } from "@/types";
 
 type AssistantRunAction =
   | DocumentAssistantAction
@@ -42,6 +51,12 @@ interface AiAssistantPanelProps {
 
 interface AssistantResponse {
   content?: string;
+  error?: string;
+}
+
+interface OpportunitiesResponse {
+  opportunities?: Opportunity[];
+  opportunity?: Opportunity;
   error?: string;
 }
 
@@ -76,6 +91,10 @@ async function readApiError(
   }
 }
 
+function getOpportunityText(opportunity: Opportunity): string {
+  return opportunity.summary.trim();
+}
+
 export function AiAssistantPanel({
   documentContent,
   selectedEntryCount,
@@ -84,6 +103,12 @@ export function AiAssistantPanel({
   const panelRef = useRef<HTMLElement>(null);
   const runningActionRef = useRef<AssistantRunAction | null>(null);
   const [jobDescription, setJobDescription] = useState("");
+  const [selectedOpportunityId, setSelectedOpportunityId] = useState("");
+  const [selectedOpportunityLabel, setSelectedOpportunityLabel] = useState("");
+  const [opportunityPickerOpen, setOpportunityPickerOpen] = useState(false);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [opportunitiesLoading, setOpportunitiesLoading] = useState(false);
+  const [opportunityError, setOpportunityError] = useState("");
   const [selectedText, setSelectedText] = useState("");
   const [rewriteSection, setRewriteSection] = useState<RewriteSection | "">(
     "",
@@ -128,6 +153,47 @@ export function AiAssistantPanel({
     };
   }, []);
 
+  useEffect(() => {
+    const opportunityId = new URLSearchParams(window.location.search).get(
+      "opportunityId",
+    );
+    if (!opportunityId) return;
+
+    let cancelled = false;
+
+    async function preloadOpportunity() {
+      try {
+        const response = await fetch(`/api/opportunities/${opportunityId}`);
+        if (!response.ok) {
+          throw new Error(await readApiError(response, "Opportunity not found."));
+        }
+        const data = (await response.json()) as OpportunitiesResponse;
+        if (!data.opportunity) throw new Error("Opportunity not found.");
+        if (cancelled) return;
+
+        setJobDescription(getOpportunityText(data.opportunity));
+        setSelectedOpportunityId(data.opportunity.id);
+        setSelectedOpportunityLabel(
+          `${data.opportunity.title} at ${data.opportunity.company}`,
+        );
+      } catch (error) {
+        if (!cancelled) {
+          setOpportunityError(
+            error instanceof Error
+              ? error.message
+              : "Could not load the selected opportunity.",
+          );
+        }
+      }
+    }
+
+    preloadOpportunity();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const ensureLLMConfigured = useCallback(async () => {
     const response = await fetch("/api/settings/status");
     if (!response.ok) {
@@ -150,6 +216,45 @@ export function AiAssistantPanel({
     return true;
   }, []);
 
+  const loadOpportunities = useCallback(async () => {
+    setOpportunitiesLoading(true);
+    setOpportunityError("");
+    try {
+      const response = await fetch("/api/opportunities?status=saved,applied");
+      if (!response.ok) {
+        throw new Error(
+          await readApiError(response, "Could not load saved opportunities."),
+        );
+      }
+      const data = (await response.json()) as OpportunitiesResponse;
+      setOpportunities(data.opportunities ?? []);
+    } catch (error) {
+      setOpportunities([]);
+      setOpportunityError(
+        error instanceof Error
+          ? error.message
+          : "Could not load saved opportunities.",
+      );
+    } finally {
+      setOpportunitiesLoading(false);
+    }
+  }, []);
+
+  const handleOpenOpportunityPicker = useCallback(() => {
+    setOpportunityPickerOpen(true);
+    void loadOpportunities();
+  }, [loadOpportunities]);
+
+  const handleSelectOpportunity = useCallback((opportunity: Opportunity) => {
+    setJobDescription(getOpportunityText(opportunity));
+    setSelectedOpportunityId(opportunity.id);
+    setSelectedOpportunityLabel(`${opportunity.title} at ${opportunity.company}`);
+    setOpportunityPickerOpen(false);
+    setOpportunityError("");
+    setStatusMessage(`Loaded ${opportunity.title} from the job bank.`);
+    setAssistantResult("");
+  }, []);
+
   const runRewrite = useCallback(
     async (action: DocumentAssistantAction, fallbackText: string) => {
       const textToRewrite = selectedText || fallbackText;
@@ -168,6 +273,9 @@ export function AiAssistantPanel({
             selectedText: textToRewrite,
             documentContent,
             jobDescription,
+            ...(selectedOpportunityId
+              ? { opportunityId: selectedOpportunityId }
+              : {}),
           }),
         ),
       });
@@ -188,7 +296,7 @@ export function AiAssistantPanel({
       setAssistantResult(data.content ?? "");
       setStatusMessage("Review the rewrite before applying it to the document.");
     },
-    [documentContent, jobDescription, selectedText],
+    [documentContent, jobDescription, selectedOpportunityId, selectedText],
   );
 
   const handleAssistantAction = useCallback(
@@ -305,11 +413,32 @@ export function AiAssistantPanel({
         )}
 
         <section className="space-y-2">
-          <Label htmlFor="studio-jd-input">Job description</Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label htmlFor="studio-jd-input">Job description</Label>
+            {selectedOpportunityLabel && (
+              <span className="truncate text-xs text-muted-foreground">
+                {selectedOpportunityLabel}
+              </span>
+            )}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={isBusy}
+            onClick={handleOpenOpportunityPicker}
+          >
+            <BriefcaseBusiness className="mr-2 h-4 w-4" />
+            Select from Job Bank
+          </Button>
           <Textarea
             id="studio-jd-input"
             value={jobDescription}
-            onChange={(event) => setJobDescription(event.target.value)}
+            onChange={(event) => {
+              setJobDescription(event.target.value);
+              setSelectedOpportunityId("");
+              setSelectedOpportunityLabel("");
+            }}
             placeholder="Paste the JD here"
             className="min-h-[132px] resize-none"
           />
@@ -438,6 +567,59 @@ export function AiAssistantPanel({
           </section>
         )}
       </div>
+
+      <Dialog
+        open={opportunityPickerOpen}
+        onOpenChange={setOpportunityPickerOpen}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Select from Job Bank</DialogTitle>
+            <DialogDescription>
+              Choose a saved or applied opportunity to load its description.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[420px] space-y-2 overflow-y-auto">
+            {opportunitiesLoading && (
+              <div className="flex items-center gap-2 rounded-md border p-3 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading opportunities...
+              </div>
+            )}
+            {opportunityError && (
+              <p className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                {opportunityError}
+              </p>
+            )}
+            {!opportunitiesLoading &&
+              !opportunityError &&
+              opportunities.length === 0 && (
+                <p className="rounded-md border p-3 text-sm text-muted-foreground">
+                  No saved or applied opportunities found.
+                </p>
+              )}
+            {opportunities.map((opportunity) => (
+              <button
+                key={opportunity.id}
+                type="button"
+                className="w-full rounded-md border p-3 text-left transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                onClick={() => handleSelectOpportunity(opportunity)}
+              >
+                <span className="block text-sm font-medium">
+                  {opportunity.title}
+                </span>
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  {opportunity.company} · {opportunity.status}
+                </span>
+                <span className="mt-2 line-clamp-2 block text-xs text-muted-foreground">
+                  {opportunity.summary}
+                </span>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </aside>
   );
 }

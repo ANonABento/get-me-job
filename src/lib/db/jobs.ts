@@ -22,6 +22,8 @@ export function getJobs(userId: string = "default"): JobDescription[] {
     appliedAt: row.applied_at,
     deadline: row.deadline,
     notes: row.notes,
+    linkedResumeId: row.linked_resume_id,
+    linkedCoverLetterId: row.linked_cover_letter_id,
     createdAt: row.created_at,
   }));
 }
@@ -47,6 +49,8 @@ export function getJob(id: string, userId: string = "default"): JobDescription |
     appliedAt: row.applied_at,
     deadline: row.deadline,
     notes: row.notes,
+    linkedResumeId: row.linked_resume_id,
+    linkedCoverLetterId: row.linked_cover_letter_id,
     createdAt: row.created_at,
   };
 }
@@ -97,7 +101,9 @@ export function updateJob(id: string, updates: Partial<JobDescription>, userId: 
       status = ?,
       applied_at = ?,
       deadline = ?,
-      notes = ?
+      notes = ?,
+      linked_resume_id = ?,
+      linked_cover_letter_id = ?
     WHERE id = ? AND user_id = ?
   `).run(
     merged.title,
@@ -115,6 +121,8 @@ export function updateJob(id: string, updates: Partial<JobDescription>, userId: 
     merged.appliedAt || null,
     merged.deadline || null,
     merged.notes || null,
+    merged.linkedResumeId || null,
+    merged.linkedCoverLetterId || null,
     id,
     userId
   );
