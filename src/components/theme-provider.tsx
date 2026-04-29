@@ -15,4 +15,6 @@ export type {
   ThemeMode,
   ThemePreset,
   ThemePresetName,
+  ThemeColorKey,
+  ThemeColorOverrides,
 } from "@/lib/theme/theme-config";

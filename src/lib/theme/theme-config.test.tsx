@@ -1,11 +1,16 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  THEME_CUSTOM_COLORS_STORAGE_KEY,
   THEME_PRESET_STORAGE_KEY,
   THEME_STORAGE_KEY,
   applyThemeVariables,
   getThemePreset,
+  getThemePreviewColors,
   getThemeVariables,
+  hexToHslString,
+  hslStringToHex,
+  sanitizeThemeColorOverrides,
   themePresetNames,
 } from "./theme-config";
 import { ThemeProvider, useTheme } from "./theme-provider";
@@ -18,6 +23,7 @@ function resetRootThemeState() {
   document.documentElement.className = "";
   document.documentElement.removeAttribute("data-theme-preset");
   document.documentElement.removeAttribute("data-theme-mode");
+  document.documentElement.removeAttribute("data-theme-custom");
   document.documentElement.removeAttribute("style");
 }
 
@@ -70,6 +76,7 @@ function ThemeProbe() {
     themePreset,
     setTheme,
     setThemePreset,
+    setCustomThemeColor,
     availableThemePresets,
   } = useTheme();
 
@@ -84,6 +91,12 @@ function ThemeProbe() {
       </button>
       <button type="button" onClick={() => setTheme("system")}>
         Use system
+      </button>
+      <button type="button" onClick={() => setTheme("dark")}>
+        Use dark
+      </button>
+      <button type="button" onClick={() => setCustomThemeColor("primary", "142 71% 45%")}>
+        Use custom primary
       </button>
     </div>
   );
@@ -102,6 +115,10 @@ describe("theme config", () => {
     expect(getThemePreset("bold").name).toBe("bold");
   });
 
+  it("exposes seven theme preset names for the settings picker", () => {
+    expect(themePresetNames).toHaveLength(7);
+  });
+
   it("returns CSS custom properties for a preset and color mode", () => {
     const variables = getThemeVariables("bold", "light");
 
@@ -112,14 +129,59 @@ describe("theme config", () => {
     expect(variables["--font-sans"]).toContain("Aptos");
   });
 
+  it("returns CSS custom properties with custom color overrides", () => {
+    const variables = getThemeVariables("ocean", "light", {
+      primary: "142 71% 45%",
+      accent: "278 64% 56%",
+    });
+
+    expect(variables["--primary"]).toBe("142 71% 45%");
+    expect(variables["--accent"]).toBe("278 64% 56%");
+    expect(variables["--ring"]).toBe("142 71% 45%");
+  });
+
+  it("keeps readable foreground tokens for custom primary and accent colors", () => {
+    const variables = getThemeVariables("default", "light", {
+      primary: "0 0% 100%",
+      accent: "0 0% 0%",
+    });
+
+    expect(variables["--primary-foreground"]).toBe("258 20% 13%");
+    expect(variables["--accent-foreground"]).toBe("0 0% 100%");
+  });
+
+  it("builds preview colors with custom overrides", () => {
+    expect(getThemePreviewColors("forest", { accent: "12 86% 55%" })).toEqual({
+      primary: "145 55% 34%",
+      background: "42 24% 98%",
+      accent: "12 86% 55%",
+    });
+  });
+
+  it("converts editable color formats and sanitizes stored custom colors", () => {
+    expect(hexToHslString("#22c55e")).toBe("142 71% 45%");
+    expect(hslStringToHex("0 0% 100%")).toBe("#ffffff");
+    expect(
+      sanitizeThemeColorOverrides({
+        primary: "142 71% 45%",
+        accent: "not hsl",
+        extra: "0 0% 0%",
+      })
+    ).toEqual({ primary: "142 71% 45%" });
+  });
+
   it("applies theme variables and metadata to an element", () => {
-    applyThemeVariables(document.documentElement, "glassmorphism", "dark");
+    applyThemeVariables(document.documentElement, "glassmorphism", "dark", {
+      accent: "278 64% 56%",
+    });
 
     expect(document.documentElement.dataset.themePreset).toBe("glassmorphism");
     expect(document.documentElement.dataset.themeMode).toBe("dark");
+    expect(document.documentElement.dataset.themeCustom).toBe("true");
     expect(document.documentElement.style.getPropertyValue("--backdrop-blur")).toBe(
       "28px"
     );
+<<<<<<< HEAD
     expect(document.documentElement.style.getPropertyValue("--glow-color")).toBe(
       "hsl(var(--accent) / 0.26)"
     );
@@ -146,12 +208,20 @@ describe("theme config", () => {
       expect(darkVariables["--shadow-card"]).toBeTruthy();
       expect(darkVariables["--glow-color"]).toBeTruthy();
     }
+=======
+    expect(document.documentElement.style.getPropertyValue("--accent")).toBe(
+      "278 64% 56%"
+    );
+>>>>>>> origin/bentoya/build-theme-picker-ui-in-settings-with-live-preview
   });
 
   it("loads stored theme mode and theme preset in the provider", async () => {
     vi.mocked(window.localStorage.getItem).mockImplementation((key) => {
       if (key === THEME_STORAGE_KEY) return "dark";
       if (key === THEME_PRESET_STORAGE_KEY) return "minimal";
+      if (key === THEME_CUSTOM_COLORS_STORAGE_KEY) {
+        return JSON.stringify({ primary: "142 71% 45%" });
+      }
       return null;
     });
 
@@ -169,6 +239,9 @@ describe("theme config", () => {
 
     expect(document.documentElement).toHaveClass("dark");
     expect(document.documentElement.dataset.themePreset).toBe("minimal");
+    expect(document.documentElement.style.getPropertyValue("--primary")).toBe(
+      "142 71% 45%"
+    );
     expect(screen.getByTestId("preset-count")).toHaveTextContent(
       String(themePresetNames.length)
     );
@@ -300,7 +373,11 @@ describe("theme config", () => {
     );
   });
 
+<<<<<<< HEAD
   it("applies theme preference changes dispatched outside the provider", async () => {
+=======
+  it("persists and applies custom color changes from the provider", async () => {
+>>>>>>> origin/bentoya/build-theme-picker-ui-in-settings-with-live-preview
     render(
       <ThemeProvider>
         <ThemeProbe />
@@ -311,6 +388,7 @@ describe("theme config", () => {
       expect(document.documentElement.dataset.themePreset).toBe("default");
     });
 
+<<<<<<< HEAD
     vi.mocked(window.localStorage.getItem).mockImplementation((key) => {
       if (key === THEME_PRESET_STORAGE_KEY) return "custom";
       if (key === CUSTOM_THEME_STORAGE_KEY) {
@@ -333,6 +411,54 @@ describe("theme config", () => {
 
     expect(document.documentElement.style.getPropertyValue("--primary")).toBe(
       "196 78% 42%"
+=======
+    await act(async () => {
+      screen.getByRole("button", { name: "Use custom primary" }).click();
+    });
+
+    await waitFor(() => {
+      expect(document.documentElement.style.getPropertyValue("--primary")).toBe(
+        "142 71% 45%"
+      );
+    });
+
+    expect(window.localStorage.setItem).toHaveBeenCalledWith(
+      THEME_CUSTOM_COLORS_STORAGE_KEY,
+      JSON.stringify({ primary: "142 71% 45%" })
+    );
+  });
+
+  it("cycles theme presets with Ctrl+T", async () => {
+    render(
+      <ThemeProvider>
+        <ThemeProbe />
+      </ThemeProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("theme-preset")).toHaveTextContent("default");
+    });
+
+    const event = new KeyboardEvent("keydown", {
+      key: "t",
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    await act(async () => {
+      window.dispatchEvent(event);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("theme-preset")).toHaveTextContent("bold");
+    });
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(window.localStorage.setItem).toHaveBeenCalledWith(
+      THEME_PRESET_STORAGE_KEY,
+      "bold"
+>>>>>>> origin/bentoya/build-theme-picker-ui-in-settings-with-live-preview
     );
   });
 });

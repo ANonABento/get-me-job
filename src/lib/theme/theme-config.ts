@@ -2,6 +2,7 @@ export type ThemeMode = "light" | "dark" | "system";
 export type ResolvedThemeMode = "light" | "dark";
 export type ThemePresetName =
   | "default"
+<<<<<<< HEAD
   | "ocean"
   | "forest"
   | "sunset"
@@ -11,6 +12,20 @@ export type ThemePresetName =
 
 export const THEME_STORAGE_KEY = "get_me_job_theme";
 export const THEME_PRESET_STORAGE_KEY = "get_me_job_theme_preset";
+=======
+  | "bold"
+  | "glassmorphism"
+  | "minimal"
+  | "ocean"
+  | "forest"
+  | "sunset";
+export type ThemeColorKey = "primary" | "background" | "accent";
+export type ThemeColorOverrides = Partial<Record<ThemeColorKey, string>>;
+
+export const THEME_STORAGE_KEY = "theme";
+export const THEME_PRESET_STORAGE_KEY = "theme-preset";
+export const THEME_CUSTOM_COLORS_STORAGE_KEY = "theme-custom-colors";
+>>>>>>> origin/bentoya/build-theme-picker-ui-in-settings-with-live-preview
 export const DEFAULT_THEME_MODE: ThemeMode = "system";
 export const DEFAULT_THEME_PRESET: ThemePresetName = "default";
 
@@ -22,6 +37,9 @@ export const themePresetNames = [
   "bold",
   "glassmorphism",
   "minimal",
+  "ocean",
+  "forest",
+  "sunset",
 ] as const satisfies readonly ThemePresetName[];
 
 type ThemeTokenGroup = Record<string, string>;
@@ -30,6 +48,7 @@ export interface ThemePreset {
   name: ThemePresetName;
   label: string;
   description: string;
+  preview: Record<ThemeColorKey, string>;
   light: ThemeTokenGroup;
   dark: ThemeTokenGroup;
 }
@@ -170,6 +189,11 @@ export const themePresets: Record<ThemePresetName, ThemePreset> = {
     name: "default",
     label: "Taida",
     description: "Current violet and coral theme.",
+    preview: {
+      primary: defaultLight.primary,
+      background: defaultLight.background,
+      accent: defaultLight.accent,
+    },
     light: defaultLight,
     dark: defaultDark,
   },
@@ -327,6 +351,11 @@ export const themePresets: Record<ThemePresetName, ThemePreset> = {
     name: "bold",
     label: "Bold",
     description: "High contrast color with stronger borders.",
+    preview: {
+      primary: "246 100% 45%",
+      background: "0 0% 100%",
+      accent: "347 100% 52%",
+    },
     light: {
       ...defaultLight,
       background: "0 0% 100%",
@@ -395,6 +424,11 @@ export const themePresets: Record<ThemePresetName, ThemePreset> = {
     name: "glassmorphism",
     label: "Glassmorphism",
     description: "Translucent surfaces with blur and light borders.",
+    preview: {
+      primary: "199 89% 48%",
+      background: "210 60% 98%",
+      accent: "316 73% 58%",
+    },
     light: {
       ...defaultLight,
       background: "210 60% 98%",
@@ -452,6 +486,11 @@ export const themePresets: Record<ThemePresetName, ThemePreset> = {
     name: "minimal",
     label: "Minimal",
     description: "Quiet neutrals with generous spacing and subtle depth.",
+    preview: {
+      primary: "220 16% 20%",
+      background: "0 0% 100%",
+      accent: "180 55% 35%",
+    },
     light: {
       ...defaultLight,
       background: "0 0% 100%",
@@ -511,6 +550,183 @@ export const themePresets: Record<ThemePresetName, ThemePreset> = {
         "linear-gradient(135deg, hsl(var(--muted)) 0%, hsl(var(--background)) 100%)",
     },
   },
+  ocean: {
+    name: "ocean",
+    label: "Ocean",
+    description: "Cool blue controls with bright open surfaces.",
+    preview: {
+      primary: "190 86% 38%",
+      background: "205 45% 98%",
+      accent: "168 76% 42%",
+    },
+    light: {
+      ...defaultLight,
+      background: "205 45% 98%",
+      foreground: "211 36% 14%",
+      card: "0 0% 100%",
+      "card-foreground": "211 36% 14%",
+      popover: "0 0% 100%",
+      "popover-foreground": "211 36% 14%",
+      primary: "190 86% 38%",
+      secondary: "199 54% 93%",
+      "secondary-foreground": "211 36% 14%",
+      muted: "199 42% 92%",
+      "muted-foreground": "211 18% 42%",
+      accent: "168 76% 42%",
+      border: "199 36% 84%",
+      input: "199 36% 84%",
+      ring: "190 86% 38%",
+      "shadow-sm": "0 1px 2px rgb(8 145 178 / 0.06)",
+      shadow: "0 1px 3px rgb(8 145 178 / 0.08)",
+      "shadow-md": "0 8px 24px rgb(8 145 178 / 0.10)",
+      "shadow-lg": "0 16px 40px rgb(8 145 178 / 0.12)",
+      "shadow-xl": "0 28px 64px rgb(8 145 178 / 0.14)",
+      "gradient-primary":
+        "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)",
+      "gradient-hero":
+        "linear-gradient(135deg, hsl(var(--primary) / 0.10) 0%, hsl(var(--accent) / 0.08) 100%)",
+    },
+    dark: {
+      ...defaultDark,
+      background: "211 50% 7%",
+      foreground: "199 28% 94%",
+      card: "211 42% 10%",
+      "card-foreground": "199 28% 94%",
+      popover: "211 42% 10%",
+      "popover-foreground": "199 28% 94%",
+      primary: "190 86% 56%",
+      secondary: "211 34% 16%",
+      "secondary-foreground": "199 28% 94%",
+      muted: "211 34% 16%",
+      "muted-foreground": "199 18% 66%",
+      accent: "168 76% 52%",
+      border: "211 28% 22%",
+      input: "211 28% 22%",
+      ring: "190 86% 56%",
+      "gradient-primary":
+        "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)",
+      "gradient-hero":
+        "linear-gradient(135deg, hsl(var(--primary) / 0.14) 0%, hsl(var(--accent) / 0.10) 100%)",
+    },
+  },
+  forest: {
+    name: "forest",
+    label: "Forest",
+    description: "Grounded green with warm neutral surfaces.",
+    preview: {
+      primary: "145 55% 34%",
+      background: "42 24% 98%",
+      accent: "34 92% 48%",
+    },
+    light: {
+      ...defaultLight,
+      background: "42 24% 98%",
+      foreground: "150 26% 12%",
+      card: "45 28% 99%",
+      "card-foreground": "150 26% 12%",
+      popover: "45 28% 99%",
+      "popover-foreground": "150 26% 12%",
+      primary: "145 55% 34%",
+      secondary: "98 28% 91%",
+      "secondary-foreground": "150 26% 12%",
+      muted: "95 18% 91%",
+      "muted-foreground": "150 10% 38%",
+      accent: "34 92% 48%",
+      border: "92 18% 82%",
+      input: "92 18% 82%",
+      ring: "145 55% 34%",
+      "shadow-sm": "0 1px 2px rgb(21 128 61 / 0.05)",
+      shadow: "0 1px 3px rgb(21 128 61 / 0.07)",
+      "shadow-md": "0 8px 22px rgb(21 128 61 / 0.09)",
+      "shadow-lg": "0 16px 38px rgb(21 128 61 / 0.11)",
+      "shadow-xl": "0 28px 58px rgb(21 128 61 / 0.13)",
+      "gradient-primary":
+        "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)",
+      "gradient-hero":
+        "linear-gradient(135deg, hsl(var(--primary) / 0.09) 0%, hsl(var(--accent) / 0.08) 100%)",
+    },
+    dark: {
+      ...defaultDark,
+      background: "150 26% 8%",
+      foreground: "95 18% 94%",
+      card: "150 24% 11%",
+      "card-foreground": "95 18% 94%",
+      popover: "150 24% 11%",
+      "popover-foreground": "95 18% 94%",
+      primary: "145 55% 52%",
+      secondary: "150 20% 17%",
+      "secondary-foreground": "95 18% 94%",
+      muted: "150 20% 17%",
+      "muted-foreground": "95 12% 64%",
+      accent: "34 92% 58%",
+      border: "150 18% 24%",
+      input: "150 18% 24%",
+      ring: "145 55% 52%",
+      "gradient-primary":
+        "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)",
+      "gradient-hero":
+        "linear-gradient(135deg, hsl(var(--primary) / 0.14) 0%, hsl(var(--accent) / 0.10) 100%)",
+    },
+  },
+  sunset: {
+    name: "sunset",
+    label: "Sunset",
+    description: "Warm coral accents with balanced ink contrast.",
+    preview: {
+      primary: "12 86% 55%",
+      background: "32 45% 98%",
+      accent: "278 64% 56%",
+    },
+    light: {
+      ...defaultLight,
+      background: "32 45% 98%",
+      foreground: "252 24% 12%",
+      card: "0 0% 100%",
+      "card-foreground": "252 24% 12%",
+      popover: "0 0% 100%",
+      "popover-foreground": "252 24% 12%",
+      primary: "12 86% 55%",
+      secondary: "28 58% 92%",
+      "secondary-foreground": "252 24% 12%",
+      muted: "28 36% 92%",
+      "muted-foreground": "252 10% 42%",
+      accent: "278 64% 56%",
+      border: "28 28% 84%",
+      input: "28 28% 84%",
+      ring: "12 86% 55%",
+      "shadow-sm": "0 1px 2px rgb(234 88 12 / 0.05)",
+      shadow: "0 1px 3px rgb(234 88 12 / 0.07)",
+      "shadow-md": "0 8px 24px rgb(234 88 12 / 0.09)",
+      "shadow-lg": "0 16px 40px rgb(234 88 12 / 0.11)",
+      "shadow-xl": "0 28px 64px rgb(234 88 12 / 0.13)",
+      "gradient-primary":
+        "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)",
+      "gradient-hero":
+        "linear-gradient(135deg, hsl(var(--primary) / 0.10) 0%, hsl(var(--accent) / 0.08) 100%)",
+    },
+    dark: {
+      ...defaultDark,
+      background: "252 28% 8%",
+      foreground: "28 24% 95%",
+      card: "252 25% 11%",
+      "card-foreground": "28 24% 95%",
+      popover: "252 25% 11%",
+      "popover-foreground": "28 24% 95%",
+      primary: "12 86% 62%",
+      secondary: "252 20% 17%",
+      "secondary-foreground": "28 24% 95%",
+      muted: "252 20% 17%",
+      "muted-foreground": "28 12% 66%",
+      accent: "278 64% 66%",
+      border: "252 18% 24%",
+      input: "252 18% 24%",
+      ring: "12 86% 62%",
+      "gradient-primary":
+        "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)",
+      "gradient-hero":
+        "linear-gradient(135deg, hsl(var(--primary) / 0.14) 0%, hsl(var(--accent) / 0.10) 100%)",
+    },
+  },
 };
 
 const themeVariableNames = Object.keys(defaultLight).map(
@@ -525,16 +741,21 @@ export function isThemePresetName(value: unknown): value is ThemePresetName {
   return typeof value === "string" && themePresetNames.includes(value as ThemePresetName);
 }
 
+export function isThemeColorKey(value: unknown): value is ThemeColorKey {
+  return value === "primary" || value === "background" || value === "accent";
+}
+
 export function getThemePreset(name: unknown): ThemePreset {
   return themePresets[isThemePresetName(name) ? name : "default"];
 }
 
 export function getThemeVariables(
   presetName: unknown,
-  resolvedTheme: ResolvedThemeMode
+  resolvedTheme: ResolvedThemeMode,
+  customColors: ThemeColorOverrides = {}
 ): Record<`--${string}`, string> {
   const preset = getThemePreset(presetName);
-  const tokens = preset[resolvedTheme];
+  const tokens = applyCustomThemeColors(preset[resolvedTheme], customColors);
 
   return Object.fromEntries(
     Object.entries(tokens).map(([name, value]) => [`--${name}`, value])
@@ -544,21 +765,243 @@ export function getThemeVariables(
 export function applyThemeVariables(
   root: HTMLElement,
   presetName: unknown,
-  resolvedTheme: ResolvedThemeMode
+  resolvedTheme: ResolvedThemeMode,
+  customColors: ThemeColorOverrides = {}
 ): void {
   const preset = getThemePreset(presetName);
-  const variables = getThemeVariables(preset.name, resolvedTheme);
+  const variables = getThemeVariables(preset.name, resolvedTheme, customColors);
 
   root.dataset.themePreset = preset.name;
   root.dataset.themeMode = resolvedTheme;
+  root.dataset.themeCustom = hasThemeColorOverrides(customColors) ? "true" : "false";
 
   for (const [name, value] of Object.entries(variables)) {
     root.style.setProperty(name, value);
   }
 }
 
+<<<<<<< HEAD
 export function clearThemeVariables(root: HTMLElement): void {
   for (const name of themeVariableNames) {
     root.style.removeProperty(name);
   }
 }
+=======
+export function getThemePreviewColors(
+  presetName: unknown,
+  customColors: ThemeColorOverrides = {}
+): Record<ThemeColorKey, string> {
+  const preview = { ...getThemePreset(presetName).preview };
+
+  for (const key of Object.keys(customColors)) {
+    if (isThemeColorKey(key) && isHslString(customColors[key])) {
+      preview[key] = customColors[key];
+    }
+  }
+
+  return preview;
+}
+
+export function hasThemeColorOverrides(
+  customColors: ThemeColorOverrides
+): boolean {
+  return Object.values(customColors).some((value) => isHslString(value));
+}
+
+export function sanitizeThemeColorOverrides(
+  value: unknown
+): ThemeColorOverrides {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  const overrides: ThemeColorOverrides = {};
+  for (const [key, color] of Object.entries(value)) {
+    if (isThemeColorKey(key) && isHslString(color)) {
+      overrides[key] = color;
+    }
+  }
+
+  return overrides;
+}
+
+export function hexToHslString(hex: string): string {
+  const normalized = normalizeHex(hex);
+  const red = parseInt(normalized.slice(0, 2), 16) / 255;
+  const green = parseInt(normalized.slice(2, 4), 16) / 255;
+  const blue = parseInt(normalized.slice(4, 6), 16) / 255;
+
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const lightness = (max + min) / 2;
+
+  if (max === min) {
+    return `0 0% ${Math.round(lightness * 100)}%`;
+  }
+
+  const delta = max - min;
+  const saturation =
+    lightness > 0.5 ? delta / (2 - max - min) : delta / (max + min);
+  let hue: number;
+
+  switch (max) {
+    case red:
+      hue = (green - blue) / delta + (green < blue ? 6 : 0);
+      break;
+    case green:
+      hue = (blue - red) / delta + 2;
+      break;
+    default:
+      hue = (red - green) / delta + 4;
+      break;
+  }
+
+  return `${Math.round(hue * 60)} ${Math.round(saturation * 100)}% ${Math.round(lightness * 100)}%`;
+}
+
+export function hslStringToHex(hsl: string): string {
+  const parsed = parseHslString(hsl);
+  const saturation = parsed.saturation / 100;
+  const lightness = parsed.lightness / 100;
+  const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
+  const huePrime = parsed.hue / 60;
+  const x = chroma * (1 - Math.abs((huePrime % 2) - 1));
+  const match = lightness - chroma / 2;
+  let red = 0;
+  let green = 0;
+  let blue = 0;
+
+  if (huePrime >= 0 && huePrime < 1) {
+    red = chroma;
+    green = x;
+  } else if (huePrime >= 1 && huePrime < 2) {
+    red = x;
+    green = chroma;
+  } else if (huePrime >= 2 && huePrime < 3) {
+    green = chroma;
+    blue = x;
+  } else if (huePrime >= 3 && huePrime < 4) {
+    green = x;
+    blue = chroma;
+  } else if (huePrime >= 4 && huePrime < 5) {
+    red = x;
+    blue = chroma;
+  } else {
+    red = chroma;
+    blue = x;
+  }
+
+  return `#${toHexChannel(red + match)}${toHexChannel(green + match)}${toHexChannel(blue + match)}`;
+}
+
+function applyCustomThemeColors(
+  tokens: ThemeTokenGroup,
+  customColors: ThemeColorOverrides
+): ThemeTokenGroup {
+  const nextTokens = { ...tokens };
+  const validCustomColors = sanitizeThemeColorOverrides(customColors);
+
+  for (const [key, color] of Object.entries(validCustomColors)) {
+    nextTokens[key] = color;
+  }
+
+  if (validCustomColors.primary) {
+    nextTokens["primary-foreground"] = readableForeground(
+      parseHslString(validCustomColors.primary)
+    );
+    nextTokens.ring = validCustomColors.primary;
+    nextTokens["gradient-primary"] =
+      "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)";
+  }
+
+  if (validCustomColors.background) {
+    nextTokens.foreground = readableForeground(parseHslString(validCustomColors.background));
+  }
+
+  if (validCustomColors.accent) {
+    nextTokens["accent-foreground"] = readableForeground(
+      parseHslString(validCustomColors.accent)
+    );
+    nextTokens["gradient-primary"] =
+      "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)";
+    nextTokens["gradient-hero"] =
+      "linear-gradient(135deg, hsl(var(--primary) / 0.10) 0%, hsl(var(--accent) / 0.08) 100%)";
+  }
+
+  return nextTokens;
+}
+
+interface ParsedHsl {
+  hue: number;
+  saturation: number;
+  lightness: number;
+}
+
+function isHslString(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+
+  try {
+    parseHslString(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function normalizeHex(hex: string): string {
+  const trimmed = hex.trim().replace(/^#/, "");
+  if (/^[0-9a-fA-F]{3}$/.test(trimmed)) {
+    return trimmed
+      .split("")
+      .map((char) => `${char}${char}`)
+      .join("")
+      .toLowerCase();
+  }
+
+  if (/^[0-9a-fA-F]{6}$/.test(trimmed)) {
+    return trimmed.toLowerCase();
+  }
+
+  throw new Error(`Invalid hex color: ${hex}`);
+}
+
+function parseHslString(hsl: string): ParsedHsl {
+  const match = hsl
+    .trim()
+    .match(/^(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)%\s+(\d+(?:\.\d+)?)%$/);
+  if (!match) {
+    throw new Error(`Invalid HSL color: ${hsl}`);
+  }
+
+  const hue = Number(match[1]);
+  const saturation = Number(match[2]);
+  const lightness = Number(match[3]);
+
+  if (
+    hue < 0 ||
+    hue > 360 ||
+    saturation < 0 ||
+    saturation > 100 ||
+    lightness < 0 ||
+    lightness > 100
+  ) {
+    throw new Error(`Invalid HSL color: ${hsl}`);
+  }
+
+  return { hue, saturation, lightness };
+}
+
+function readableForeground(color: ParsedHsl): string {
+  return color.lightness < 54 ? "0 0% 100%" : "258 20% 13%";
+}
+
+function toHexChannel(channel: number): string {
+  return Math.round(clamp(channel, 0, 1) * 255)
+    .toString(16)
+    .padStart(2, "0");
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+>>>>>>> origin/bentoya/build-theme-picker-ui-in-settings-with-live-preview

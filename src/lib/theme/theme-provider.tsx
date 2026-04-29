@@ -12,13 +12,22 @@ import {
 import {
   DEFAULT_THEME_MODE,
   DEFAULT_THEME_PRESET,
+  THEME_CUSTOM_COLORS_STORAGE_KEY,
   THEME_PRESET_STORAGE_KEY,
   THEME_STORAGE_KEY,
+<<<<<<< HEAD
+=======
+  applyThemeVariables,
+  hasThemeColorOverrides,
+>>>>>>> origin/bentoya/build-theme-picker-ui-in-settings-with-live-preview
   isThemeMode,
   isThemePresetName,
+  sanitizeThemeColorOverrides,
   themePresetNames,
   themePresets,
   type ResolvedThemeMode,
+  type ThemeColorKey,
+  type ThemeColorOverrides,
   type ThemeMode,
   type ThemePreset,
   type ThemePresetName,
@@ -37,16 +46,24 @@ interface ThemeContextType {
   resolvedTheme: ResolvedThemeMode;
   themePreset: ThemePresetName;
   setThemePreset: (preset: ThemePresetName) => void;
+  cycleThemePreset: () => void;
+  customThemeColors: ThemeColorOverrides;
+  setCustomThemeColor: (key: ThemeColorKey, color: string) => void;
+  resetCustomThemeColors: () => void;
   availableThemePresets: readonly ThemePreset[];
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+<<<<<<< HEAD
 const LEGACY_THEME_STORAGE_KEY = "theme";
 const LEGACY_THEME_PRESET_STORAGE_KEY = "theme-preset";
 const DEFAULT_THEME_PREFERENCE: ThemePreference = {
   presetId: DEFAULT_THEME_PRESET,
   customColors: DEFAULT_CUSTOM_THEME,
 };
+=======
+let themeTransitionTimeoutId: number | undefined;
+>>>>>>> origin/bentoya/build-theme-picker-ui-in-settings-with-live-preview
 
 function readStoredValue<T>(
   key: string,
@@ -78,12 +95,59 @@ function persistValue(key: string, value: string): void {
   }
 }
 
+function readStoredCustomColors(): ThemeColorOverrides {
+  try {
+    const stored = localStorage.getItem(THEME_CUSTOM_COLORS_STORAGE_KEY);
+    if (!stored) return {};
+
+    return sanitizeThemeColorOverrides(JSON.parse(stored));
+  } catch {
+    return {};
+  }
+}
+
+function persistCustomColors(colors: ThemeColorOverrides): void {
+  try {
+    if (hasThemeColorOverrides(colors)) {
+      localStorage.setItem(THEME_CUSTOM_COLORS_STORAGE_KEY, JSON.stringify(colors));
+    } else {
+      localStorage.removeItem(THEME_CUSTOM_COLORS_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore storage errors and keep the in-memory value.
+  }
+}
+
+function startThemeTransition(root: HTMLElement): void {
+  const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+  if (themeTransitionTimeoutId !== undefined) {
+    window.clearTimeout(themeTransitionTimeoutId);
+  }
+
+  if (motionQuery.matches) {
+    root.classList.remove("theme-transitioning");
+    themeTransitionTimeoutId = undefined;
+    return;
+  }
+
+  root.classList.add("theme-transitioning");
+  themeTransitionTimeoutId = window.setTimeout(() => {
+    root.classList.remove("theme-transitioning");
+    themeTransitionTimeoutId = undefined;
+  }, 260);
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeMode>(DEFAULT_THEME_MODE);
   const [themePreset, setThemePresetState] =
     useState<ThemePresetName>(DEFAULT_THEME_PRESET);
+<<<<<<< HEAD
   const [themePreference, setThemePreference] =
     useState<ThemePreference>(DEFAULT_THEME_PREFERENCE);
+=======
+  const [customThemeColors, setCustomThemeColorsState] =
+    useState<ThemeColorOverrides>({});
+>>>>>>> origin/bentoya/build-theme-picker-ui-in-settings-with-live-preview
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedThemeMode>("light");
   const [mounted, setMounted] = useState(false);
 
@@ -117,6 +181,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (isThemePresetName(nextPreference.presetId)) {
       setThemePresetState(nextPreference.presetId);
     }
+
+    setCustomThemeColorsState(readStoredCustomColors());
   }, []);
 
   useEffect(() => {
@@ -137,8 +203,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           : currentTheme;
 
       setResolvedTheme(nextResolvedTheme);
+      startThemeTransition(root);
       root.classList.toggle("dark", nextResolvedTheme === "dark");
+<<<<<<< HEAD
       applyThemePreference(root, currentPreference);
+=======
+      applyThemeVariables(
+        root,
+        currentPreset,
+        nextResolvedTheme,
+        customThemeColors
+      );
+>>>>>>> origin/bentoya/build-theme-picker-ui-in-settings-with-live-preview
     };
 
     applyTheme(theme, themePreference);
@@ -158,12 +234,41 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     };
 
     mediaQuery.addEventListener("change", handleMediaChange);
+<<<<<<< HEAD
     window.addEventListener(THEME_CHANGE_EVENT, handleThemePreferenceChange);
     return () => {
       mediaQuery.removeEventListener("change", handleMediaChange);
       window.removeEventListener(THEME_CHANGE_EVENT, handleThemePreferenceChange);
     };
   }, [theme, themePreference, mounted]);
+=======
+    return () => mediaQuery.removeEventListener("change", handleMediaChange);
+  }, [customThemeColors, theme, themePreset, mounted]);
+
+  const cycleThemePreset = useCallback(() => {
+    setThemePresetState((currentPreset) => {
+      const currentIndex = themePresetNames.indexOf(currentPreset);
+      const nextPreset =
+        themePresetNames[(currentIndex + 1) % themePresetNames.length];
+      persistValue(THEME_PRESET_STORAGE_KEY, nextPreset);
+      return nextPreset;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && !event.metaKey && event.key.toLowerCase() === "t") {
+        event.preventDefault();
+        cycleThemePreset();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [cycleThemePreset, mounted]);
+>>>>>>> origin/bentoya/build-theme-picker-ui-in-settings-with-live-preview
 
   const setTheme = useCallback((newTheme: ThemeMode) => {
     setThemeState(newTheme);
@@ -179,6 +284,25 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     persistValue(THEME_PRESET_STORAGE_KEY, newPreset);
   }, []);
 
+  const setCustomThemeColor = useCallback(
+    (key: ThemeColorKey, color: string) => {
+      setCustomThemeColorsState((currentColors) => {
+        const nextColors = sanitizeThemeColorOverrides({
+          ...currentColors,
+          [key]: color,
+        });
+        persistCustomColors(nextColors);
+        return nextColors;
+      });
+    },
+    []
+  );
+
+  const resetCustomThemeColors = useCallback(() => {
+    setCustomThemeColorsState({});
+    persistCustomColors({});
+  }, []);
+
   const availableThemePresets = useMemo(
     () => themePresetNames.map((name) => themePresets[name]),
     []
@@ -191,12 +315,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       resolvedTheme: mounted ? resolvedTheme : "light",
       themePreset: mounted ? themePreset : DEFAULT_THEME_PRESET,
       setThemePreset: mounted ? setThemePreset : () => {},
+      cycleThemePreset: mounted ? cycleThemePreset : () => {},
+      customThemeColors: mounted ? customThemeColors : {},
+      setCustomThemeColor: mounted ? setCustomThemeColor : () => {},
+      resetCustomThemeColors: mounted ? resetCustomThemeColors : () => {},
       availableThemePresets,
     }),
     [
       availableThemePresets,
       mounted,
       resolvedTheme,
+      cycleThemePreset,
+      customThemeColors,
+      resetCustomThemeColors,
+      setCustomThemeColor,
       setTheme,
       setThemePreset,
       theme,

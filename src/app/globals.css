@@ -31,6 +31,24 @@
     overflow-x: hidden;
   }
 
+  .theme-transitioning,
+  .theme-transitioning * {
+    transition:
+      background-color 220ms ease,
+      border-color 220ms ease,
+      color 220ms ease,
+      fill 220ms ease,
+      stroke 220ms ease,
+      box-shadow 220ms ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .theme-transitioning,
+    .theme-transitioning * {
+      transition: none;
+    }
+  }
+
   /* Prevent overscroll bounce in scrollable containers */
   .overflow-auto,
   .overflow-y-auto,
