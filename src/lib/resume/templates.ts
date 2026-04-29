@@ -1,11 +1,26 @@
 // Resume template definitions and management
-export type { ResumeTemplate, TemplateStyles } from "./template-types";
+export type {
+  CoverLetterTemplate,
+  CoverLetterTemplateStyles,
+  DocumentTemplate,
+  ResumeTemplate,
+  TemplateStyles,
+} from "./template-types";
 import type { ResumeTemplate } from "./template-types";
 import { getCustomTemplate } from "@/lib/db/custom-templates";
 import { TEMPLATES } from "./template-data";
 
 // Re-export client-safe template data
-export { TEMPLATES, getTemplate, generateTemplateCSS } from "./template-data";
+export {
+  COVER_LETTER_TEMPLATES,
+  TEMPLATES,
+  generateTemplateCSS,
+  getCoverLetterTemplate,
+  getDefaultTemplateIdForDocumentMode,
+  getTemplate,
+  getTemplateForDocumentMode,
+  getTemplatesForDocumentMode,
+} from "./template-data";
 
 // Get template by ID, checking custom templates first (server-only)
 export function getTemplateWithCustom(

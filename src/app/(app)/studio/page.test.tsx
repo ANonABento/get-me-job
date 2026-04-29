@@ -215,6 +215,23 @@ describe("StudioPage", () => {
     expect(screen.queryByText("Unsaved")).not.toBeInTheDocument();
   });
 
+  it("renders cover letter previews without calling the resume builder API", async () => {
+    const fetchMock = mockStudioFetch(bankEntries);
+
+    render(<StudioPage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Cover Letter" }));
+    fireEvent.click(screen.getByRole("button", { name: "Toggle entry" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("resume-html")).toHaveTextContent(
+        "cover-letter-document"
+      );
+      expect(screen.getByTestId("resume-html")).toHaveTextContent("Engineer");
+    });
+    expect(fetchMock.getBuilderRequestCount()).toBe(0);
+  });
+
   it("opens the bank entry picker from the add button", async () => {
     mockStudioFetch(bankEntries);
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { generateResumeHTML } from "./pdf";
-import { TEMPLATES } from "./template-data";
+import { generateCoverLetterHTML, generateResumeHTML } from "./pdf";
+import { COVER_LETTER_TEMPLATES, TEMPLATES } from "./template-data";
 import type { TailoredResume } from "./generator";
 import type { ResumeTemplate } from "./template-types";
 
@@ -344,5 +344,55 @@ describe("generateResumeHTML - two-column CSS layout", () => {
   it("includes print media query with min-height for two-column", () => {
     const html = generateResumeHTML(mockResume, "two-column");
     expect(html).toContain("min-height: calc(11in - 1.1in)");
+  });
+});
+
+describe("generateCoverLetterHTML", () => {
+  it("renders escaped cover letter paragraphs in a letter document", () => {
+    const html = generateCoverLetterHTML({
+      content: "Dear team,\n\nI built <dashboards>.\n\nSincerely,\nJane",
+      candidateName: "Jane Doe",
+      jobTitle: "Engineer",
+      company: "Acme",
+    });
+
+    expect(html).toContain("<title>Jane Doe - Acme - Cover Letter</title>");
+    expect(html).toContain("Engineer at Acme");
+    expect(html).toContain("cover-letter-document");
+    expect(html).toContain("<p>I built &lt;dashboards&gt;.</p>");
+    expect(html).not.toContain("<dashboards>");
+  });
+
+  it.each(COVER_LETTER_TEMPLATES.map((template) => template.id))(
+    "applies cover letter template '%s' styles",
+    (id) => {
+      const template = COVER_LETTER_TEMPLATES.find((item) => item.id === id)!;
+      const html = generateCoverLetterHTML({
+        content: "Hello",
+        templateId: id,
+      });
+
+      expect(html).toContain(template.styles.fontFamily);
+      expect(html).toContain(template.styles.lineHeight);
+      expect(html).toContain(template.styles.bodyMaxWidth);
+      expect(html).toContain(template.styles.pagePadding);
+    }
+  );
+
+  it("uses a pre-resolved cover letter template when provided", () => {
+    const html = generateCoverLetterHTML({
+      content: "Hello",
+      templateId: "custom",
+      resolvedTemplate: {
+        ...COVER_LETTER_TEMPLATES[0],
+        id: "custom",
+        styles: {
+          ...COVER_LETTER_TEMPLATES[0].styles,
+          accentColor: "#123456",
+        },
+      },
+    });
+
+    expect(html).toContain("#123456");
   });
 });

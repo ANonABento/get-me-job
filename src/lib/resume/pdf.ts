@@ -1,10 +1,15 @@
 import type { TailoredResume } from "./generator";
-import { getTemplate, TEMPLATES } from "./template-data";
-import type { ResumeTemplate } from "./template-types";
+import {
+  COVER_LETTER_TEMPLATES,
+  getCoverLetterTemplate,
+  getTemplate,
+  TEMPLATES,
+} from "./template-data";
+import type { CoverLetterTemplate, ResumeTemplate } from "./template-types";
 import type { ContactInfo } from "@/types";
 import { escapeHtml } from "@/lib/html";
 
-export { TEMPLATES };
+export { COVER_LETTER_TEMPLATES, TEMPLATES };
 
 function renderPrintButton(): string {
   return `
@@ -49,6 +54,151 @@ function renderContactInfo(contact: ContactInfo): string {
       ${location ? `<span>|</span>${location}` : ""}
       ${linkedin ? `<span>|</span><a href="https://${linkedin}">${linkedin}</a>` : ""}
       ${github ? `<span>|</span><a href="https://${github}">${github}</a>` : ""}`;
+}
+
+export interface CoverLetterHTMLInput {
+  content: string;
+  templateId?: string;
+  resolvedTemplate?: CoverLetterTemplate;
+  candidateName?: string;
+  jobTitle?: string;
+  company?: string;
+  date?: string;
+}
+
+function splitCoverLetterParagraphs(content: string): string[] {
+  return content
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.replace(/\s*\n\s*/g, " ").trim())
+    .filter(Boolean);
+}
+
+export function generateCoverLetterHTML({
+  content,
+  templateId = "formal",
+  resolvedTemplate,
+  candidateName = "Your Name",
+  jobTitle,
+  company,
+  date,
+}: CoverLetterHTMLInput): string {
+  const template = resolvedTemplate ?? getCoverLetterTemplate(templateId);
+  const styles = template.styles;
+  const paragraphs = splitCoverLetterParagraphs(content);
+  const title = [candidateName, company || jobTitle, "Cover Letter"]
+    .filter(Boolean)
+    .join(" - ");
+  const target = [jobTitle, company].filter(Boolean).join(" at ");
+  const headerAlignment =
+    styles.headerStyle === "centered"
+      ? "center"
+      : styles.headerStyle === "minimal"
+      ? "left"
+      : styles.headerStyle;
+  const headerBorder =
+    styles.headerStyle === "minimal"
+      ? ""
+      : `border-bottom: 2px solid ${styles.accentColor};`;
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${escapeHtml(title)}</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: white;
+      color: #1f2937;
+      font-family: ${styles.fontFamily};
+      font-size: ${styles.fontSize};
+      line-height: ${styles.lineHeight};
+      margin: 0 auto;
+      max-width: 8.5in;
+    }
+    .cover-letter-document {
+      color: #1f2937;
+      font-family: ${styles.fontFamily};
+      font-size: ${styles.fontSize};
+      line-height: ${styles.lineHeight};
+      margin: 0 auto;
+      max-width: 8.5in;
+      min-height: 11in;
+      padding: ${styles.pagePadding};
+    }
+    .letter-page {
+      margin: 0 auto;
+      max-width: ${styles.bodyMaxWidth};
+    }
+    .letter-header {
+      ${headerBorder}
+      margin-bottom: 28px;
+      padding-bottom: ${styles.headerStyle === "minimal" ? "8px" : "14px"};
+      text-align: ${headerAlignment};
+    }
+    h1 {
+      color: ${styles.accentColor};
+      font-size: ${styles.headerSize};
+      font-weight: 600;
+      line-height: 1.15;
+      margin-bottom: 6px;
+    }
+    .letter-target,
+    .letter-date {
+      color: #4b5563;
+      font-size: 10pt;
+    }
+    .letter-date {
+      margin-bottom: 22px;
+    }
+    .letter-body p {
+      margin-bottom: ${styles.paragraphSpacing};
+    }
+    .letter-body p:last-child {
+      margin-top: ${styles.signatureSpacing};
+    }
+    @media print {
+      @page {
+        size: letter;
+        margin: 0.6in;
+      }
+      body {
+        padding: 0;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+      .cover-letter-document {
+        min-height: auto;
+        padding: 0;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  ${renderPrintButton()}
+  <article class="cover-letter-document">
+    <div class="letter-page">
+      <header class="letter-header">
+        <h1>${escapeHtml(candidateName)}</h1>
+        ${target ? `<div class="letter-target">${escapeHtml(target)}</div>` : ""}
+      </header>
+      ${date ? `<div class="letter-date">${escapeHtml(date)}</div>` : ""}
+      <main class="letter-body">
+        ${paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("\n        ")}
+      </main>
+    </div>
+  </article>
+</body>
+</html>
+  `.trim();
 }
 
 // Generate HTML resume with template support

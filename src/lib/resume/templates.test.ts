@@ -1,5 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { TEMPLATES, getTemplate, generateTemplateCSS } from "./templates";
+import {
+  COVER_LETTER_TEMPLATES,
+  TEMPLATES,
+  generateTemplateCSS,
+  getCoverLetterTemplate,
+  getDefaultTemplateIdForDocumentMode,
+  getTemplate,
+  getTemplateForDocumentMode,
+  getTemplatesForDocumentMode,
+} from "./templates";
 
 describe("TEMPLATES", () => {
   it("includes the two-column template", () => {
@@ -29,6 +38,52 @@ describe("getTemplate", () => {
   it("returns classic as fallback for unknown id", () => {
     const template = getTemplate("nonexistent");
     expect(template.id).toBe("classic");
+  });
+});
+
+describe("COVER_LETTER_TEMPLATES", () => {
+  it("includes cover-letter specific templates", () => {
+    expect(COVER_LETTER_TEMPLATES.map((template) => template.id)).toEqual([
+      "formal",
+      "modern",
+      "creative",
+      "minimal",
+    ]);
+  });
+
+  it("uses letter layout with larger line height", () => {
+    for (const template of COVER_LETTER_TEMPLATES) {
+      expect(template.styles.layout).toBe("letter");
+      expect(Number(template.styles.lineHeight)).toBeGreaterThanOrEqual(1.6);
+      expect(template.styles.bodyMaxWidth).toMatch(/in$/);
+    }
+  });
+});
+
+describe("getCoverLetterTemplate", () => {
+  it("returns a matching cover letter template by id", () => {
+    expect(getCoverLetterTemplate("modern").name).toBe("Modern");
+  });
+
+  it("falls back to formal for unknown ids", () => {
+    expect(getCoverLetterTemplate("missing").id).toBe("formal");
+  });
+});
+
+describe("document mode template helpers", () => {
+  it("keeps resume and cover letter template sets separate", () => {
+    expect(getTemplatesForDocumentMode("resume")).toBe(TEMPLATES);
+    expect(getTemplatesForDocumentMode("cover_letter")).toBe(COVER_LETTER_TEMPLATES);
+    expect(getTemplateForDocumentMode("resume", "modern").styles.layout).toBe(
+      "single-column"
+    );
+    expect(getTemplateForDocumentMode("cover_letter", "modern").styles.layout)
+      .toBe("letter");
+  });
+
+  it("returns mode-specific default template ids", () => {
+    expect(getDefaultTemplateIdForDocumentMode("resume")).toBe("classic");
+    expect(getDefaultTemplateIdForDocumentMode("cover_letter")).toBe("formal");
   });
 });
 

@@ -10,9 +10,10 @@ export const MAX_BUILDER_VERSIONS = 20;
 export const BUILDER_VERSION_STORAGE_PREFIX = "taida:builder:versions";
 
 export type BuilderVersionKind = "auto" | "manual";
+export type BuilderDocumentMode = "resume" | "cover_letter";
 
 export interface BuilderDraftState {
-  documentMode: "resume";
+  documentMode: BuilderDocumentMode;
   selectedIds: string[];
   sections: SectionState[];
   templateId: string;
@@ -37,6 +38,14 @@ function isBankCategory(value: unknown): value is BankCategory {
     typeof value === "string" &&
     BANK_CATEGORIES.includes(value as BankCategory)
   );
+}
+
+function isBuilderDocumentMode(value: unknown): value is BuilderDocumentMode {
+  return value === "resume" || value === "cover_letter";
+}
+
+function getDefaultTemplateId(documentMode: BuilderDocumentMode): string {
+  return documentMode === "cover_letter" ? "formal" : "classic";
 }
 
 function getVersionTimestamp(version: Pick<BuilderVersion, "savedAt">): number {
@@ -83,7 +92,7 @@ export function normalizeBuilderState(
   state: BuilderDraftState
 ): BuilderDraftState {
   return {
-    documentMode: "resume",
+    documentMode: state.documentMode,
     selectedIds: Array.from(new Set(state.selectedIds)).sort(),
     sections: state.sections.map((section) => ({
       id: section.id,
@@ -97,19 +106,21 @@ export function normalizeBuilderState(
 
 export function parseBuilderDraftState(value: unknown): BuilderDraftState | null {
   if (!isRecord(value)) return null;
-  if (value.documentMode !== "resume") return null;
+  if (!isBuilderDocumentMode(value.documentMode)) return null;
 
   const sections = normalizeSections(value.sections);
   if (!sections) return null;
 
   return normalizeBuilderState({
-    documentMode: "resume",
+    documentMode: value.documentMode,
     selectedIds: Array.isArray(value.selectedIds)
       ? value.selectedIds.filter((id): id is string => typeof id === "string")
       : [],
     sections,
     templateId:
-      typeof value.templateId === "string" ? value.templateId : "classic",
+      typeof value.templateId === "string"
+        ? value.templateId
+        : getDefaultTemplateId(value.documentMode),
     html: typeof value.html === "string" ? value.html : "",
     content: normalizeTipTapContent(value.content),
   });

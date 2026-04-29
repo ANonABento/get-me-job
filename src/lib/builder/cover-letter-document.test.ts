@@ -23,6 +23,7 @@ describe("getCoverLetterTemplate", () => {
       "formal",
       "modern",
       "creative",
+      "minimal",
     ]);
   });
 });
@@ -89,8 +90,8 @@ describe("generateCoverLetterHTML", () => {
       templateId: "creative",
     });
 
-    expect(html).toContain("font-family: Avenir, Montserrat, Arial, sans-serif");
+    expect(html).toContain("font-family: 'Avenir Next', 'Montserrat', Arial, sans-serif");
     expect(html).toContain("border-bottom: 2px solid #be123c");
-    expect(html).toContain("max-width: 7.25in");
+    expect(html).toContain("max-width: 7.05in");
   });
 });

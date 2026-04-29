@@ -10,7 +10,10 @@ import {
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getTemplate, TEMPLATES } from "@/lib/resume/template-data";
+import {
+  getTemplateForDocumentMode,
+  getTemplatesForDocumentMode,
+} from "@/lib/resume/template-data";
 import { cn } from "@/lib/utils";
 import {
   DOCUMENT_MODE_OPTIONS,
@@ -44,10 +47,20 @@ export function StudioHeader({
   onDownloadPdf,
 }: StudioHeaderProps) {
   const [templateOpen, setTemplateOpen] = useState(false);
-  const selectedTemplate = useMemo(
-    () => getTemplate(templateId),
-    [templateId]
+  const templates = useMemo(
+    () => getTemplatesForDocumentMode(documentMode),
+    [documentMode]
   );
+  const selectedTemplate = useMemo(
+    () => getTemplateForDocumentMode(documentMode, templateId),
+    [documentMode, templateId]
+  );
+  const templateLabel =
+    documentMode === "cover_letter" ? "cover letter" : "resume";
+  const templateListLabel =
+    documentMode === "cover_letter"
+      ? "Cover letter templates"
+      : "Resume templates";
 
   useEffect(() => {
     if (!templateOpen) return;
@@ -89,7 +102,7 @@ export function StudioHeader({
         <div className="relative md:ml-4">
           <button
             type="button"
-            aria-label="Select resume template"
+            aria-label={`Select ${templateLabel} template`}
             aria-expanded={templateOpen}
             aria-haspopup="listbox"
             onClick={() => setTemplateOpen((prev) => !prev)}
@@ -111,10 +124,10 @@ export function StudioHeader({
               />
               <div
                 role="listbox"
-                aria-label="Resume templates"
+                aria-label={templateListLabel}
                 className="absolute left-0 top-full z-50 mt-2 grid max-h-[70vh] w-[min(26rem,calc(100vw-2rem))] grid-cols-2 gap-2 overflow-auto rounded-lg border bg-popover p-2 shadow-lg sm:grid-cols-3"
               >
-                {TEMPLATES.map((template) => {
+                {templates.map((template) => {
                   const isSelected = template.id === selectedTemplate.id;
                   return (
                     <button
@@ -135,7 +148,9 @@ export function StudioHeader({
                     >
                       <TemplatePreviewThumbnail template={template} />
                       <span className="mt-2 flex items-center gap-1.5 font-medium">
-                        <span className="min-w-0 flex-1 truncate">{template.name}</span>
+                        <span className="min-w-0 flex-1 truncate">
+                          {template.name}
+                        </span>
                         {isSelected && (
                           <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
                         )}

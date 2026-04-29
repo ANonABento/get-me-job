@@ -4,7 +4,10 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import { CheckCircle2, FileText, PenLine, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResumeEditor } from "@/lib/editor/resume-editor";
-import { TEMPLATES } from "@/lib/resume/template-data";
+import {
+  getTemplateForDocumentMode,
+  TEMPLATES,
+} from "@/lib/resume/template-data";
 import type { TipTapJSONContent } from "@/lib/editor/types";
 import type { DocumentMode } from "./studio-documents";
 
@@ -70,11 +73,12 @@ export function ResumePreview({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [fitScale, setFitScale] = useState(1);
 
-  const template = TEMPLATES.find((t) => t.id === templateId);
-  const templateStyles = template?.styles ?? TEMPLATES[0].styles;
-  const accentColor = template?.styles.accentColor ?? "#333333";
+  const template = getTemplateForDocumentMode(documentMode, templateId);
+  const templateStyles =
+    template.styles.layout === "letter" ? TEMPLATES[0].styles : template.styles;
+  const accentColor = template.styles.accentColor;
   const fontFamily =
-    template?.styles.fontFamily ?? "'Helvetica Neue', Arial, sans-serif";
+    template.styles.fontFamily ?? "'Helvetica Neue', Arial, sans-serif";
 
   const updateScale = useCallback(() => {
     if (!wrapperRef.current) return;

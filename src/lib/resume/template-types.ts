@@ -9,6 +9,14 @@ export interface ResumeTemplate {
   styles: TemplateStyles;
 }
 
+export interface CoverLetterTemplate {
+  id: string;
+  name: string;
+  description: string;
+  preview?: string;
+  styles: CoverLetterTemplateStyles;
+}
+
 export interface TemplateStyles {
   fontFamily: string;
   fontSize: string;
@@ -21,3 +29,19 @@ export interface TemplateStyles {
   bulletStyle: "disc" | "dash" | "arrow" | "none";
   sectionDivider: "line" | "space" | "none";
 }
+
+export interface CoverLetterTemplateStyles {
+  fontFamily: string;
+  fontSize: string;
+  headerSize: string;
+  lineHeight: string;
+  accentColor: string;
+  layout: "letter";
+  headerStyle: "centered" | "left" | "minimal";
+  paragraphSpacing: string;
+  bodyMaxWidth: string;
+  pagePadding: string;
+  signatureSpacing: string;
+}
+
+export type DocumentTemplate = ResumeTemplate | CoverLetterTemplate;

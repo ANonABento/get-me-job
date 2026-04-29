@@ -101,6 +101,22 @@ describe("builder version history", () => {
     });
   });
 
+  it("parses cover letter draft state with cover letter template fallback", () => {
+    const parsed = parseBuilderDraftState({
+      documentMode: "cover_letter",
+      selectedIds: ["entry-1"],
+      sections: [{ id: "experience", visible: true }],
+      html: "<p>Cover letter</p>",
+    });
+
+    expect(parsed).toMatchObject({
+      documentMode: "cover_letter",
+      selectedIds: ["entry-1"],
+      templateId: "formal",
+      html: "<p>Cover letter</p>",
+    });
+  });
+
   it("reads only valid versions from storage", () => {
     const storage = {
       getItem: vi.fn().mockReturnValue(
