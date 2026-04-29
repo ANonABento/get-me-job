@@ -4,6 +4,7 @@ import StudioPage from "./page";
 import type { BankEntry } from "@/types";
 
 const mockShowErrorToast = vi.hoisted(() => vi.fn());
+const mockResumePreview = vi.hoisted(() => vi.fn());
 
 vi.mock("@/components/builder/section-list", () => ({
   SectionList: ({
@@ -27,12 +28,42 @@ vi.mock("@/components/builder/section-list", () => ({
 }));
 
 vi.mock("@/components/studio/resume-preview", () => ({
-  ResumePreview: ({ html }: { html: string }) => (
-    <div>
-      <div>Resume preview</div>
-      <div data-testid="resume-html">{html}</div>
-    </div>
-  ),
+  ResumePreview: (props: {
+    html: string;
+    content?: unknown;
+    onContentChange?: (content: {
+      type: string;
+      content?: Array<Record<string, unknown>>;
+    }) => void;
+  }) => {
+    mockResumePreview(props);
+
+    return (
+      <div>
+        <div>Resume preview</div>
+        <div data-testid="resume-html">{props.html}</div>
+        <div data-testid="resume-content">
+          {props.content ? "editable" : "static"}
+        </div>
+        <button
+          type="button"
+          onClick={() =>
+            props.onContentChange?.({
+              type: "doc",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Edited inline" }],
+                },
+              ],
+            })
+          }
+        >
+          Edit preview
+        </button>
+      </div>
+    );
+  },
 }));
 
 vi.mock("@/hooks/use-error-toast", () => ({
@@ -90,9 +121,26 @@ function mockStudioFetch(
           JSON.parse(init.body);
         }
 
-        return new Response(JSON.stringify({ html: createPreviewHtml() }), {
-          status: 200,
-        });
+        return new Response(
+          JSON.stringify({
+            html: createPreviewHtml(),
+            resume: {
+              contact: { name: "Jane Doe" },
+              summary: "Current summary",
+              experiences: [
+                {
+                  company: "Acme",
+                  title: "Engineer",
+                  dates: "2024",
+                  highlights: ["Built workflows"],
+                },
+              ],
+              skills: ["TypeScript"],
+              education: [],
+            },
+          }),
+          { status: 200 }
+        );
       }
 
       return new Response(JSON.stringify({ entries }), { status: 200 });
@@ -107,6 +155,7 @@ function mockStudioFetch(
 describe("StudioPage", () => {
   beforeEach(() => {
     mockShowErrorToast.mockClear();
+    mockResumePreview.mockClear();
     mockStorage();
     vi.stubGlobal(
       "fetch",
@@ -206,6 +255,30 @@ describe("StudioPage", () => {
     expect(mockShowErrorToast).not.toHaveBeenCalled();
   });
 
+  it("passes generated TipTap content to the resume preview for inline editing", async () => {
+    mockStudioFetch(bankEntries);
+
+    render(<StudioPage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Toggle entry" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resume-content")).toHaveTextContent("editable")
+    );
+    expect(mockResumePreview).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        content: expect.objectContaining({ type: "doc" }),
+        onContentChange: expect.any(Function),
+      })
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit preview" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resume-html")).toHaveTextContent("Edited inline")
+    );
+  });
+
   it("restores saved version HTML without a live preview overwrite", async () => {
     let previewCount = 0;
     const fetchMock = mockStudioFetch(
@@ -236,6 +309,13 @@ describe("StudioPage", () => {
       expect(screen.getByTestId("resume-html")).toHaveTextContent(
         "Saved preview 1"
       )
+    );
+    expect(fetchMock.getBuilderRequestCount()).toBe(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit preview" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resume-html")).toHaveTextContent("Edited inline")
     );
     expect(fetchMock.getBuilderRequestCount()).toBe(1);
   });

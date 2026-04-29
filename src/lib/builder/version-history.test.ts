@@ -22,6 +22,10 @@ const draftState: BuilderDraftState = {
   ],
   templateId: "classic",
   html: "<main>Resume</main>",
+  content: {
+    type: "doc",
+    content: [{ type: "paragraph", content: [{ type: "text", text: "Resume" }] }],
+  },
 };
 
 function version(id: string, savedAt: string): BuilderVersion {
@@ -51,6 +55,7 @@ describe("builder version history", () => {
       savedAt: "2026-01-01T00:00:00.000Z",
       state: {
         selectedIds: ["entry-1", "entry-2"],
+        content: draftState.content,
       },
     });
   });
@@ -80,6 +85,7 @@ describe("builder version history", () => {
       sections: [{ id: "skill", visible: false }, { id: "unknown" }],
       templateId: "modern",
       html: "<p>Saved</p>",
+      content: { type: "doc", content: [{ type: "paragraph" }] },
     });
 
     expect(parsed).toEqual({
@@ -91,6 +97,7 @@ describe("builder version history", () => {
       ]),
       templateId: "modern",
       html: "<p>Saved</p>",
+      content: { type: "doc", content: [{ type: "paragraph" }] },
     });
   });
 
@@ -200,7 +207,12 @@ describe("builder version history", () => {
     expect(
       isBuilderStateSaved([version("old", "2026-01-01T00:00:00.000Z")], {
         ...draftState,
-        html: "<main>Changed</main>",
+        content: {
+          type: "doc",
+          content: [
+            { type: "paragraph", content: [{ type: "text", text: "Changed" }] },
+          ],
+        },
       })
     ).toBe(false);
   });

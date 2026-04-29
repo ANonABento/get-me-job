@@ -22,8 +22,11 @@ import {
 } from "@/lib/builder/version-history";
 import { createDocumentFilename, downloadHtmlAsPdf } from "@/lib/builder/document-export";
 import { generateResumePreviewFallbackHTML } from "@/lib/builder/resume-preview-fallback";
-import { createPrintableEditorHtml } from "@/lib/editor/document-html";
+import { tailoredResumeToTipTapDocument } from "@/lib/editor/bank-to-tiptap";
+import { createEditorBodyHtml, createPrintableEditorHtml } from "@/lib/editor/document-html";
+import type { TipTapJSONContent } from "@/lib/editor/types";
 import { readJsonResponse } from "@/lib/http";
+import type { TailoredResume } from "@/lib/resume/generator";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import type { BankCategory, BankEntry } from "@/types";
 import {
@@ -41,6 +44,7 @@ import {
 
 interface BuilderPreviewResponse {
   html?: string;
+  resume?: TailoredResume;
 }
 
 interface StudioPageState {
@@ -64,6 +68,8 @@ interface StudioPageState {
   handleToggleEntry: (id: string) => void;
   handleToggleVisibility: (categoryId: BankCategory) => void;
   html: string;
+  content?: TipTapJSONContent;
+  handleContentChange: (content: TipTapJSONContent) => void;
   isExporting: boolean;
   loading: boolean;
   manualVersionName: string;
@@ -118,6 +124,7 @@ export function useStudioPageState(): StudioPageState {
   const [loading, setLoading] = useState(true);
   const [hasLoadedEntries, setHasLoadedEntries] = useState(false);
   const [html, setHtml] = useState("");
+  const [content, setContent] = useState<TipTapJSONContent | undefined>();
   const [entryPickerOpen, setEntryPickerOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [mobileView, setMobileView] = useState<BuilderPanel>(DEFAULT_BUILDER_PANEL);
@@ -244,8 +251,9 @@ export function useStudioPageState(): StudioPageState {
       sections,
       templateId,
       html,
+      content,
     }),
-    [html, sections, selectedIds, templateId]
+    [content, html, sections, selectedIds, templateId]
   );
 
   const draftIsSaved = useMemo(
@@ -268,6 +276,7 @@ export function useStudioPageState(): StudioPageState {
 
     if (orderedEntries.length === 0) {
       setHtml("");
+      setContent(undefined);
       setGenerating(false);
       return;
     }
@@ -295,6 +304,9 @@ export function useStudioPageState(): StudioPageState {
         if (!cancelled) {
           lastPreviewErrorToastRef.current = "";
           setHtml(data.html ?? "");
+          setContent(
+            data.resume ? tailoredResumeToTipTapDocument(data.resume) : undefined
+          );
         }
       } catch (err) {
         const isAbortError =
@@ -365,6 +377,11 @@ export function useStudioPageState(): StudioPageState {
       return next;
     });
   }, [activeDocument.id]);
+
+  const handleContentChange = useCallback((nextContent: TipTapJSONContent) => {
+    setContent(nextContent);
+    setHtml(createEditorBodyHtml(nextContent));
+  }, []);
 
   const handleToggleEntry = useCallback(
     (id: string) => {
@@ -490,6 +507,7 @@ export function useStudioPageState(): StudioPageState {
       setTemplateId(version.state.templateId);
       setHtml(version.state.html);
       markActiveDocumentSaved();
+      setContent(version.state.content);
       updateActiveDocument({
         selectedEntryIds: version.state.selectedIds,
         sections: version.state.sections,
@@ -500,13 +518,17 @@ export function useStudioPageState(): StudioPageState {
   );
 
   const getPrintableHtml = useCallback(() => {
-    if (!html || !selectedTemplate) return "";
+    if (!selectedTemplate) return "";
+
+    const bodyHtml = content ? createEditorBodyHtml(content) : html;
+    if (!bodyHtml) return "";
+
     return createPrintableEditorHtml(
-      html,
+      bodyHtml,
       selectedTemplate.styles,
       `${selectedTemplate.name} Resume`
     );
-  }, [html, selectedTemplate]);
+  }, [content, html, selectedTemplate]);
 
   const handleDownloadPdf = useCallback(async () => {
     const printableHtml = getPrintableHtml();
@@ -529,9 +551,10 @@ export function useStudioPageState(): StudioPageState {
   }, [getPrintableHtml, selectedTemplate?.name, showErrorToast]);
 
   const handleCopyHtml = useCallback(async () => {
-    if (!html) return;
-    await navigator.clipboard.writeText(html);
-  }, [html]);
+    const currentHtml = getPrintableHtml() || html;
+    if (!currentHtml) return;
+    await navigator.clipboard.writeText(currentHtml);
+  }, [getPrintableHtml, html]);
 
   return {
     activeDocumentId: activeDocumentIds[documentMode],
@@ -541,6 +564,8 @@ export function useStudioPageState(): StudioPageState {
     entries,
     entryPickerOpen,
     generating,
+    content,
+    handleContentChange,
     handleCopyHtml,
     handleCreateDocument,
     handleDeleteDocument,

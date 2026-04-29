@@ -3,6 +3,7 @@ import {
   DEFAULT_SECTION_ORDER,
   type SectionState,
 } from "@/lib/builder/section-manager";
+import type { TipTapJSONContent } from "@/lib/editor/types";
 
 export const AUTO_SAVE_INTERVAL_MS = 30_000;
 export const MAX_BUILDER_VERSIONS = 20;
@@ -16,6 +17,7 @@ export interface BuilderDraftState {
   sections: SectionState[];
   templateId: string;
   html: string;
+  content?: TipTapJSONContent;
 }
 
 export interface BuilderVersion {
@@ -68,6 +70,11 @@ function normalizeSections(value: unknown): SectionState[] | null {
   return sections;
 }
 
+function normalizeTipTapContent(value: unknown): TipTapJSONContent | undefined {
+  if (!isRecord(value) || typeof value.type !== "string") return undefined;
+  return value as TipTapJSONContent;
+}
+
 export function getBuilderVersionStorageKey(documentId: string): string {
   return `${BUILDER_VERSION_STORAGE_PREFIX}:${documentId}`;
 }
@@ -84,6 +91,7 @@ export function normalizeBuilderState(
     })),
     templateId: state.templateId,
     html: state.html,
+    content: normalizeTipTapContent(state.content),
   };
 }
 
@@ -103,6 +111,7 @@ export function parseBuilderDraftState(value: unknown): BuilderDraftState | null
     templateId:
       typeof value.templateId === "string" ? value.templateId : "classic",
     html: typeof value.html === "string" ? value.html : "",
+    content: normalizeTipTapContent(value.content),
   });
 }
 

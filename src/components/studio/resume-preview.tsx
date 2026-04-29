@@ -125,17 +125,19 @@ export function ResumePreview({
                 editable
                 onUpdate={onContentChange}
               />
-              <div className="px-12 pb-12">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-10 w-full border border-dashed border-slate-300 text-slate-500 hover:border-primary hover:bg-primary/5 hover:text-primary"
-                  onClick={onAddSection}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Section
-                </Button>
-              </div>
+              {onAddSection && (
+                <div className="px-12 pb-12">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-10 w-full border border-dashed border-slate-300 text-slate-500 hover:border-primary hover:bg-primary/5 hover:text-primary"
+                    onClick={onAddSection}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Section
+                  </Button>
+                </div>
+              )}
             </>
           ) : html ? (
             <div

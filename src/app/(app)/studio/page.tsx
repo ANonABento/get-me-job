@@ -28,8 +28,8 @@ function StudioPageContent() {
         documentMode={studio.documentMode}
         draftIsSaved={studio.draftIsSaved}
         templateId={studio.templateId}
-        canCopyHtml={Boolean(studio.html)}
-        canDownloadPdf={Boolean(studio.html)}
+        canCopyHtml={Boolean(studio.content || studio.html)}
+        canDownloadPdf={Boolean(studio.content || studio.html)}
         isExporting={studio.isExporting}
         onDocumentModeChange={studio.setDocumentMode}
         onTemplateSelect={studio.handleTemplateSelect}
@@ -116,6 +116,8 @@ function StudioPageContent() {
               html={studio.html}
               documentMode={studio.documentMode}
               onAddFromBank={() => studio.setEntryPickerOpen(true)}
+              content={studio.content}
+              onContentChange={studio.handleContentChange}
             />
           </div>
 
