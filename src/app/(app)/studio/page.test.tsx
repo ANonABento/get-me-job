@@ -336,4 +336,79 @@ describe("StudioPage", () => {
     );
     expect(fetchMock.getBuilderRequestCount()).toBe(1);
   });
+
+  it("links saved resume versions to the selected job bank opportunity", async () => {
+    const linkRequests: unknown[] = [];
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url === "/api/bank") {
+          return new Response(JSON.stringify({ entries: bankEntries }), {
+            status: 200,
+          });
+        }
+
+        if (url === "/api/opportunities?status=saved,applied") {
+          return new Response(
+            JSON.stringify({
+              opportunities: [
+                {
+                  id: "job-1",
+                  type: "job",
+                  title: "Frontend Engineer",
+                  company: "Acme",
+                  source: "manual",
+                  summary: "Build accessible React workflows.",
+                  status: "saved",
+                  tags: [],
+                  createdAt: "2026-01-01T00:00:00.000Z",
+                  updatedAt: "2026-01-01T00:00:00.000Z",
+                },
+              ],
+            }),
+            { status: 200 }
+          );
+        }
+
+        if (url === "/api/builder") {
+          return new Response(
+            JSON.stringify({
+              html: "<p>Current HTML</p>",
+              resume: {
+                contact: { name: "Jane Doe" },
+                summary: "Current summary",
+                experiences: [],
+                skills: [],
+                education: [],
+              },
+            }),
+            { status: 200 }
+          );
+        }
+
+        if (url === "/api/opportunities/job-1/link") {
+          linkRequests.push(JSON.parse(String(init?.body)));
+          return new Response(JSON.stringify({ success: true }), { status: 200 });
+        }
+
+        return new Response("Not found", { status: 404 });
+      })
+    );
+
+    render(<StudioPage />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Select from Job Bank" })
+    );
+    fireEvent.click(await screen.findByRole("button", { name: /frontend engineer/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Toggle entry" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(linkRequests).toEqual([
+        { resumeId: expect.stringMatching(/^manual-/) },
+      ])
+    );
+  });
 });

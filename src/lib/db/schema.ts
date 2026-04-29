@@ -157,6 +157,8 @@ db.exec(`
     applied_at TEXT,
     deadline TEXT,
     notes TEXT,
+    linked_resume_id TEXT,
+    linked_cover_letter_id TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -503,6 +505,12 @@ try {
   }
   if (!columnNames.includes("notes")) {
     db.exec("ALTER TABLE jobs ADD COLUMN notes TEXT");
+  }
+  if (!columnNames.includes("linked_resume_id")) {
+    db.exec("ALTER TABLE jobs ADD COLUMN linked_resume_id TEXT");
+  }
+  if (!columnNames.includes("linked_cover_letter_id")) {
+    db.exec("ALTER TABLE jobs ADD COLUMN linked_cover_letter_id TEXT");
   }
   // Add user_id column for multi-user support
   if (!columnNames.includes("user_id")) {

@@ -50,6 +50,8 @@ describe("Job Database Functions", () => {
           applied_at: null,
           deadline: null,
           notes: null,
+          linked_resume_id: "resume-1",
+          linked_cover_letter_id: "cover-1",
           created_at: "2024-01-15T00:00:00.000Z",
         },
       ];
@@ -81,6 +83,8 @@ describe("Job Database Functions", () => {
         appliedAt: null,
         deadline: null,
         notes: null,
+        linkedResumeId: "resume-1",
+        linkedCoverLetterId: "cover-1",
         createdAt: "2024-01-15T00:00:00.000Z",
       });
     });
@@ -337,7 +341,7 @@ describe("Job Database Functions", () => {
       expect(mockRun).toHaveBeenCalled();
       const runArgs = mockRun.mock.calls[0];
       expect(runArgs[0]).toBe("New Title"); // First arg is title
-      expect(runArgs[16]).toBe("default");
+      expect(runArgs[18]).toBe("default");
     });
 
     it("should do nothing for non-existent job", () => {

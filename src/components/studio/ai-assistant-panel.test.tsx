@@ -12,7 +12,13 @@ function statusResponse(configured: boolean) {
   );
 }
 
-function renderWithSelectableText(anchorText = "Built APIs quickly.") {
+function renderWithSelectableText(
+  anchorText = "Built APIs quickly.",
+  options: {
+    onOpportunityClear?: () => void;
+    onOpportunitySelect?: (opportunityId: string) => void;
+  } = {},
+) {
   const onOpenBank = vi.fn();
   const view = render(
     <div>
@@ -23,6 +29,8 @@ function renderWithSelectableText(anchorText = "Built APIs quickly.") {
         documentContent="<p>Built APIs quickly.</p>"
         selectedEntryCount={1}
         onOpenBank={onOpenBank}
+        onOpportunityClear={options.onOpportunityClear}
+        onOpportunitySelect={options.onOpportunitySelect}
       />
     </div>,
   );
@@ -41,6 +49,7 @@ describe("AiAssistantPanel", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    window.history.replaceState(null, "", "/");
   });
 
   it("renders the AI assistant controls", () => {
@@ -55,6 +64,9 @@ describe("AiAssistantPanel", () => {
     expect(screen.getByLabelText("Job description")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Tailor to JD" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Select from Job Bank" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Generate from Bank" }),
@@ -274,5 +286,127 @@ describe("AiAssistantPanel", () => {
     expect(
       screen.getByText("Bank entries are ready for the next generation step."),
     ).toBeInTheDocument();
+  });
+
+  it("loads a selected job bank opportunity into the JD input", async () => {
+    const onOpportunitySelect = vi.fn();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url === "/api/opportunities?status=saved,applied") {
+          return new Response(
+            JSON.stringify({
+              opportunities: [
+                {
+                  id: "job-1",
+                  type: "job",
+                  title: "Frontend Engineer",
+                  company: "Acme",
+                  source: "manual",
+                  summary: "Build accessible React workflows.",
+                  status: "saved",
+                  tags: [],
+                  createdAt: "2026-01-01T00:00:00.000Z",
+                  updatedAt: "2026-01-01T00:00:00.000Z",
+                },
+              ],
+            }),
+            { status: 200 },
+          );
+        }
+        return new Response("Not found", { status: 404 });
+      }),
+    );
+    renderWithSelectableText("Built APIs quickly.", { onOpportunitySelect });
+
+    fireEvent.click(screen.getByRole("button", { name: "Select from Job Bank" }));
+    fireEvent.click(await screen.findByRole("button", { name: /frontend engineer/i }));
+
+    expect(screen.getByLabelText("Job description")).toHaveValue(
+      "Build accessible React workflows.",
+    );
+    expect(screen.getByText("Frontend Engineer at Acme")).toBeInTheDocument();
+    expect(onOpportunitySelect).toHaveBeenCalledWith("job-1");
+  });
+
+  it("preloads the URL opportunity parameter into the JD input", async () => {
+    const onOpportunitySelect = vi.fn();
+    window.history.pushState(null, "", "/studio?opportunityId=job-2");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url === "/api/opportunities/job-2") {
+          return new Response(
+            JSON.stringify({
+              opportunity: {
+                id: "job-2",
+                type: "job",
+                title: "Product Engineer",
+                company: "Beta",
+                source: "manual",
+                summary: "Own full-stack product quality.",
+                status: "applied",
+                tags: [],
+                createdAt: "2026-01-01T00:00:00.000Z",
+                updatedAt: "2026-01-01T00:00:00.000Z",
+              },
+            }),
+            { status: 200 },
+          );
+        }
+        return new Response("Not found", { status: 404 });
+      }),
+    );
+
+    renderWithSelectableText("Built APIs quickly.", { onOpportunitySelect });
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Job description")).toHaveValue(
+        "Own full-stack product quality.",
+      ),
+    );
+    expect(screen.getByText("Product Engineer at Beta")).toBeInTheDocument();
+    expect(onOpportunitySelect).toHaveBeenCalledWith("job-2");
+  });
+
+  it("clears the selected opportunity when the JD is edited manually", async () => {
+    const onOpportunityClear = vi.fn();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url === "/api/opportunities?status=saved,applied") {
+          return new Response(
+            JSON.stringify({
+              opportunities: [
+                {
+                  id: "job-1",
+                  type: "job",
+                  title: "Frontend Engineer",
+                  company: "Acme",
+                  source: "manual",
+                  summary: "Build accessible React workflows.",
+                  status: "saved",
+                  tags: [],
+                  createdAt: "2026-01-01T00:00:00.000Z",
+                  updatedAt: "2026-01-01T00:00:00.000Z",
+                },
+              ],
+            }),
+            { status: 200 },
+          );
+        }
+        return new Response("Not found", { status: 404 });
+      }),
+    );
+    renderWithSelectableText("Built APIs quickly.", { onOpportunityClear });
+
+    fireEvent.click(screen.getByRole("button", { name: "Select from Job Bank" }));
+    fireEvent.click(await screen.findByRole("button", { name: /frontend engineer/i }));
+    fireEvent.change(screen.getByLabelText("Job description"), {
+      target: { value: "Manual JD override" },
+    });
+
+    expect(onOpportunityClear).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("Frontend Engineer at Acme")).not.toBeInTheDocument();
   });
 });

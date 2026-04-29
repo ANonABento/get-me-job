@@ -149,7 +149,37 @@ export interface JobDescription {
   appliedAt?: string;
   deadline?: string;
   notes?: string;
+  linkedResumeId?: string;
+  linkedCoverLetterId?: string;
   createdAt: string;
+}
+
+export type OpportunityStatus =
+  | 'pending'
+  | 'saved'
+  | 'applied'
+  | 'interviewing'
+  | 'offer'
+  | 'rejected'
+  | 'expired'
+  | 'dismissed';
+
+export interface Opportunity {
+  id: string;
+  type: 'job' | 'hackathon';
+  title: string;
+  company: string;
+  source: string;
+  sourceUrl?: string;
+  summary: string;
+  status: OpportunityStatus;
+  deadline?: string;
+  tags: string[];
+  notes?: string;
+  linkedResumeId?: string;
+  linkedCoverLetterId?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface JobMatch {

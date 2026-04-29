@@ -87,12 +87,57 @@ interface StudioPageState {
   previewVersionId: string | null;
   sections: SectionState[];
   selectedIds: Set<string>;
+  setLinkedOpportunityId: (opportunityId: string) => void;
   setDocumentMode: (mode: DocumentMode) => void;
   setEntryPickerOpen: (open: boolean) => void;
   setManualVersionName: (name: string) => void;
   setMobileView: (panel: BuilderPanel) => void;
   templateId: string;
   versions: BuilderVersion[];
+}
+
+interface LinkStudioVersionOptions {
+  documentMode: DocumentMode;
+  fetcher?: typeof fetch;
+  opportunityId: string;
+  versionId: string;
+}
+
+async function readLinkError(response: Response): Promise<string> {
+  try {
+    const data = (await response.json()) as { error?: string };
+    return data.error ?? "Failed to link saved document to opportunity";
+  } catch {
+    return "Failed to link saved document to opportunity";
+  }
+}
+
+export async function linkStudioVersionToOpportunity({
+  documentMode,
+  fetcher = fetch,
+  opportunityId,
+  versionId,
+}: LinkStudioVersionOptions): Promise<void> {
+  const trimmedOpportunityId = opportunityId.trim();
+  const trimmedVersionId = versionId.trim();
+  if (!trimmedOpportunityId || !trimmedVersionId) return;
+
+  const response = await fetcher(
+    `/api/opportunities/${encodeURIComponent(trimmedOpportunityId)}/link`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        documentMode === "cover_letter"
+          ? { coverLetterId: trimmedVersionId }
+          : { resumeId: trimmedVersionId }
+      ),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await readLinkError(response));
+  }
 }
 
 function coverLetterStylesToEditorTemplateStyles(
@@ -168,6 +213,7 @@ export function useStudioPageState(): StudioPageState {
     createStudioDocument("resume", { id: RESUME_DOCUMENT_ID }),
     createStudioDocument("cover_letter", { id: COVER_LETTER_DOCUMENT_ID }),
   ]);
+  const [linkedOpportunityId, setLinkedOpportunityId] = useState("");
   const [documentMode, setDocumentMode] = useState<DocumentMode>("resume");
   const [activeDocumentIds, setActiveDocumentIds] = useState<
     Record<DocumentMode, string>
@@ -543,8 +589,29 @@ export function useStudioPageState(): StudioPageState {
       setManualVersionName("");
       setPreviewVersionId(version.id);
       markActiveDocumentSaved();
+
+      if (linkedOpportunityId) {
+        void linkStudioVersionToOpportunity({
+          documentMode,
+          opportunityId: linkedOpportunityId,
+          versionId: version.id,
+        }).catch((err) => {
+          showErrorToast(err, {
+            title: "Could not link opportunity",
+            fallbackDescription:
+              "The document was saved, but it was not attached to the selected opportunity.",
+          });
+        });
+      }
     },
-    [activeDocument.id, currentDraftState, markActiveDocumentSaved]
+    [
+      activeDocument.id,
+      currentDraftState,
+      documentMode,
+      linkedOpportunityId,
+      markActiveDocumentSaved,
+      showErrorToast,
+    ]
   );
 
   const handleSaveManualVersion = useCallback(() => {
@@ -650,6 +717,7 @@ export function useStudioPageState(): StudioPageState {
     previewVersionId,
     sections,
     selectedIds,
+    setLinkedOpportunityId,
     setDocumentMode,
     setEntryPickerOpen,
     setManualVersionName,

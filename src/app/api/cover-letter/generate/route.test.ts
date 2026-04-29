@@ -12,6 +12,9 @@ const mocks = vi.hoisted(() => ({
   reviseCoverLetter: vi.fn(),
   rewriteCoverLetterSelection: vi.fn(),
   getTotalBankEntries: vi.fn(),
+  saveCoverLetter: vi.fn(),
+  getOpportunity: vi.fn(),
+  linkOpportunityDocument: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -40,6 +43,15 @@ vi.mock("@/lib/cover-letter/generate", () => ({
   reviseCoverLetter: mocks.reviseCoverLetter,
   rewriteCoverLetterSelection: mocks.rewriteCoverLetterSelection,
   getTotalBankEntries: mocks.getTotalBankEntries,
+}));
+
+vi.mock("@/lib/db/cover-letters", () => ({
+  saveCoverLetter: mocks.saveCoverLetter,
+}));
+
+vi.mock("@/lib/opportunities", () => ({
+  getOpportunity: mocks.getOpportunity,
+  linkOpportunityDocument: mocks.linkOpportunityDocument,
 }));
 
 import { POST } from "./route";
@@ -74,6 +86,8 @@ describe("cover letter generate route", () => {
       certification: [],
     });
     mocks.getTotalBankEntries.mockReturnValue(1);
+    mocks.getOpportunity.mockReturnValue(null);
+    mocks.saveCoverLetter.mockReturnValue({ id: "cover-1" });
   });
 
   it("routes selection rewrites to the rewrite helper", async () => {
@@ -146,5 +160,38 @@ describe("cover letter generate route", () => {
     expect(mocks.generateCoverLetter).not.toHaveBeenCalled();
     expect(mocks.reviseCoverLetter).not.toHaveBeenCalled();
     expect(mocks.rewriteCoverLetterSelection).not.toHaveBeenCalled();
+  });
+
+  it("links generated cover letters back to a selected opportunity", async () => {
+    mocks.getOpportunity.mockReturnValue({ id: "job-1" });
+    mocks.generateCoverLetter.mockResolvedValue("Dear Acme...");
+
+    const response = await POST(
+      jsonRequest({
+        jobDescription:
+          "We need a frontend engineer who can improve reliability across customer-facing systems.",
+        jobTitle: "Frontend Engineer",
+        company: "Acme",
+        action: "generate",
+        opportunityId: "job-1",
+      })
+    );
+
+    await expect(response.json()).resolves.toEqual({
+      success: true,
+      content: "Dear Acme...",
+      savedCoverLetter: { id: "cover-1" },
+    });
+    expect(mocks.saveCoverLetter).toHaveBeenCalledWith(
+      "job-1",
+      "Dear Acme...",
+      [],
+      "user-1",
+    );
+    expect(mocks.linkOpportunityDocument).toHaveBeenCalledWith(
+      "job-1",
+      { coverLetterId: "cover-1" },
+      "user-1",
+    );
   });
 });

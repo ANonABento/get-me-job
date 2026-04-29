@@ -125,6 +125,8 @@ function StudioPageContent() {
             documentContent={studio.html}
             selectedEntryCount={studio.selectedIds.size}
             onOpenBank={() => studio.setEntryPickerOpen(true)}
+            onOpportunityClear={() => studio.setLinkedOpportunityId("")}
+            onOpportunitySelect={studio.setLinkedOpportunityId}
           />
         </div>
       </div>

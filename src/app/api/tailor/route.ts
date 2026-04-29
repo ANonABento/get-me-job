@@ -9,7 +9,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfile, getLLMConfig, saveGeneratedResume } from "@/lib/db";
 import { getGroupedBankEntries } from "@/lib/db/profile-bank";
-import { createJob } from "@/lib/db/jobs";
+import { createJob, getJob } from "@/lib/db/jobs";
+import { linkOpportunityDocument } from "@/lib/opportunities";
 import { analyzeJobFit, extractKeywords } from "@/lib/tailor/analyze";
 import { generateFromBank } from "@/lib/tailor/generate";
 import { generateResumeHTML, TEMPLATES } from "@/lib/resume/pdf";
@@ -88,12 +89,26 @@ export async function POST(request: NextRequest) {
       jobDescription?: string;
       jobTitle?: string;
       company?: string;
+      opportunityId?: unknown;
     };
+    const opportunityId =
+      typeof body.opportunityId === "string" ? body.opportunityId.trim() : "";
 
     if (!jobDescription || jobDescription.trim().length < 20) {
       return NextResponse.json(
         { error: "Job description is too short. Please paste the full JD." },
         { status: 400 }
+      );
+    }
+
+    const existingOpportunity = opportunityId
+      ? getJob(opportunityId, authResult.userId)
+      : null;
+
+    if (opportunityId && !existingOpportunity) {
+      return NextResponse.json(
+        { error: "Opportunity not found." },
+        { status: 404 },
       );
     }
 
@@ -161,19 +176,22 @@ export async function POST(request: NextRequest) {
     await writeFile(filePath, html);
     const pdfUrl = `/resumes/${filename}`;
 
-    // Save a job record so it appears in the job tracker
-    const job = createJob(
-      {
-        title: jobTitle,
-        company,
-        description: jobDescription,
-        keywords,
-        requirements: [],
-        responsibilities: [],
-        status: "saved",
-      },
-      authResult.userId
-    );
+    // Save a job record so it appears in the job tracker, unless this run
+    // came from an existing opportunity in the bank.
+    const job =
+      existingOpportunity ??
+      createJob(
+        {
+          title: jobTitle,
+          company,
+          description: jobDescription,
+          keywords,
+          requirements: [],
+          responsibilities: [],
+          status: "saved",
+        },
+        authResult.userId
+      );
 
     // Save the generated resume
     const savedResume = saveGeneratedResume(
@@ -184,6 +202,14 @@ export async function POST(request: NextRequest) {
       analysis.matchScore,
       authResult.userId
     );
+
+    if (opportunityId) {
+      linkOpportunityDocument(
+        opportunityId,
+        { resumeId: savedResume.id },
+        authResult.userId,
+      );
+    }
 
     return NextResponse.json({
       success: true,

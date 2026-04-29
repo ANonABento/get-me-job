@@ -40,6 +40,7 @@ export interface DocumentAssistantRequestPayload {
   selectedText: string;
   documentContent: string;
   jobDescription?: string;
+  opportunityId?: string;
 }
 
 export interface LLMStatusResponse {
@@ -97,6 +98,7 @@ export function buildDocumentAssistantRequestPayload({
   selectedText,
   documentContent,
   jobDescription,
+  opportunityId,
 }: DocumentAssistantRequestPayload): DocumentAssistantRequestPayload {
   const payload: DocumentAssistantRequestPayload = {
     action,
@@ -107,6 +109,11 @@ export function buildDocumentAssistantRequestPayload({
   const trimmedJobDescription = jobDescription?.trim();
   if (trimmedJobDescription) {
     payload.jobDescription = trimmedJobDescription;
+  }
+
+  const trimmedOpportunityId = opportunityId?.trim();
+  if (trimmedOpportunityId) {
+    payload.opportunityId = trimmedOpportunityId;
   }
 
   return payload;

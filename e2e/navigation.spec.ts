@@ -5,7 +5,12 @@ async function preparePage(page: Page, path = "/dashboard") {
     localStorage.setItem("get_me_job_onboarding_completed", "true");
   });
   await page.goto(path);
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {
+    // Background API calls and polling can keep the app from becoming fully
+    // network-idle; visible shell readiness is enough for navigation checks.
+  });
+  await expect(page.getByRole("main", { name: /main content/i })).toBeVisible();
+  await expect(page.locator("aside")).toBeVisible();
 }
 
 async function ensureSidebarOpen(page: Page) {
