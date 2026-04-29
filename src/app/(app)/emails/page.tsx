@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import {
-  ArrowLeft,
   Mail,
   Loader2,
   Copy,
@@ -35,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AppPage, PageContent, PageHeader } from "@/components/ui/page-layout";
 import { SkeletonButton } from "@/components/ui/skeleton";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import { readJsonResponse } from "@/lib/http";
@@ -42,7 +41,7 @@ import type { EmailTemplateType, JobDescription } from "@/types";
 
 const SendViaGmailButton = dynamic(
   () => import("@/components/google").then((m) => m.SendViaGmailButton),
-  { loading: () => <SkeletonButton className="w-36" />, ssr: false }
+  { loading: () => <SkeletonButton className="w-36" />, ssr: false },
 );
 
 interface EmailDraft {
@@ -108,7 +107,9 @@ const TEMPLATE_CONFIG: Record<
 };
 
 export default function EmailTemplatesPage() {
-  const [selectedType, setSelectedType] = useState<EmailTemplateType | null>(null);
+  const [selectedType, setSelectedType] = useState<EmailTemplateType | null>(
+    null,
+  );
   const [jobs, setJobs] = useState<JobDescription[]>([]);
   const [selectedJobId, setSelectedJobId] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -138,7 +139,10 @@ export default function EmailTemplatesPage() {
   const fetchJobs = useCallback(async () => {
     try {
       const res = await fetch("/api/jobs");
-      const data = await readJsonResponse<JobsResponse>(res, "Failed to load jobs");
+      const data = await readJsonResponse<JobsResponse>(
+        res,
+        "Failed to load jobs",
+      );
       setJobs(data.jobs || []);
     } catch (error) {
       showErrorToast(error, {
@@ -153,7 +157,7 @@ export default function EmailTemplatesPage() {
       const res = await fetch("/api/email/drafts");
       const data = await readJsonResponse<EmailDraftsResponse>(
         res,
-        "Failed to load drafts"
+        "Failed to load drafts",
       );
       setDrafts(data.drafts || []);
     } catch (error) {
@@ -239,7 +243,9 @@ export default function EmailTemplatesPage() {
 
   const deleteDraft = async (draftId: string) => {
     try {
-      const response = await fetch(`/api/email/drafts/${draftId}`, { method: "DELETE" });
+      const response = await fetch(`/api/email/drafts/${draftId}`, {
+        method: "DELETE",
+      });
       await readJsonResponse<unknown>(response, "Failed to delete draft");
       void fetchDrafts();
       if (editingDraftId === draftId) {
@@ -274,7 +280,7 @@ export default function EmailTemplatesPage() {
 
       const data = await readJsonResponse<GeneratedEmailResponse>(
         res,
-        "Failed to generate email"
+        "Failed to generate email",
       );
       if (data.email) {
         setGeneratedEmail({
@@ -451,33 +457,16 @@ export default function EmailTemplatesPage() {
   };
 
   return (
-    <div className="min-h-screen pb-24">
-      {/* Hero Section */}
-      <div className="hero-gradient border-b">
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
-          </Link>
-
-          <div className="space-y-4 animate-enter">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
-              <Mail className="h-4 w-4" />
-              Communication
-            </div>
-            <h1 className="text-4xl font-bold tracking-tight">Email Templates</h1>
-            <p className="text-lg text-muted-foreground max-w-xl">
-              Generate professional emails for follow-ups, thank you notes, and networking.
-            </p>
-          </div>
-        </div>
-      </div>
+    <AppPage>
+      <PageHeader
+        icon={Mail}
+        eyebrow="Communication"
+        title="Email Templates"
+        description="Generate professional emails for follow-ups, thank you notes, and networking."
+      />
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <PageContent>
         {/* Drafts Section */}
         {drafts.length > 0 && (
           <div className="rounded-2xl border bg-card overflow-hidden mb-8">
@@ -500,7 +489,9 @@ export default function EmailTemplatesPage() {
               <div className="border-t divide-y">
                 {drafts.map((draft) => {
                   const config = TEMPLATE_CONFIG[draft.type];
-                  const job = draft.jobId ? jobs.find((j) => j.id === draft.jobId) : null;
+                  const job = draft.jobId
+                    ? jobs.find((j) => j.id === draft.jobId)
+                    : null;
 
                   return (
                     <div
@@ -508,11 +499,15 @@ export default function EmailTemplatesPage() {
                       className="p-4 flex items-center justify-between gap-4"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className={`p-2 rounded-lg bg-muted ${config.color}`}>
+                        <div
+                          className={`p-2 rounded-lg bg-muted ${config.color}`}
+                        >
                           <config.icon className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
-                          <p className="font-medium truncate">{draft.subject}</p>
+                          <p className="font-medium truncate">
+                            {draft.subject}
+                          </p>
                           <p className="text-sm text-muted-foreground flex items-center gap-2">
                             <span>{config.title}</span>
                             {job && (
@@ -561,36 +556,40 @@ export default function EmailTemplatesPage() {
             <div className="rounded-2xl border bg-card p-6">
               <h2 className="font-semibold mb-4">Choose Template</h2>
               <div className="grid gap-3">
-                {(Object.keys(TEMPLATE_CONFIG) as EmailTemplateType[]).map((type) => {
-                  const config = TEMPLATE_CONFIG[type];
-                  const Icon = config.icon;
-                  const isSelected = selectedType === type;
+                {(Object.keys(TEMPLATE_CONFIG) as EmailTemplateType[]).map(
+                  (type) => {
+                    const config = TEMPLATE_CONFIG[type];
+                    const Icon = config.icon;
+                    const isSelected = selectedType === type;
 
-                  return (
-                    <button
-                      key={type}
-                      onClick={() => {
-                        setSelectedType(type);
-                        setGeneratedEmail(null);
-                      }}
-                      className={`flex items-start gap-4 p-4 rounded-xl border text-left transition-all ${
-                        isSelected
-                          ? "border-primary bg-primary/5"
-                          : "hover:border-primary/50 hover:bg-muted/50"
-                      }`}
-                    >
-                      <div className={`p-2 rounded-lg bg-muted ${config.color}`}>
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{config.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {config.description}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => {
+                          setSelectedType(type);
+                          setGeneratedEmail(null);
+                        }}
+                        className={`flex items-start gap-4 p-4 rounded-xl border text-left transition-all ${
+                          isSelected
+                            ? "border-primary bg-primary/5"
+                            : "hover:border-primary/50 hover:bg-muted/50"
+                        }`}
+                      >
+                        <div
+                          className={`p-2 rounded-lg bg-muted ${config.color}`}
+                        >
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{config.title}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {config.description}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  },
+                )}
               </div>
             </div>
 
@@ -639,7 +638,9 @@ export default function EmailTemplatesPage() {
               <div className="space-y-4">
                 {/* Subject */}
                 <div>
-                  <Label className="text-xs text-muted-foreground">Subject</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Subject
+                  </Label>
                   <div className="mt-1 p-3 rounded-lg bg-muted/50 font-medium">
                     {generatedEmail.subject}
                   </div>
@@ -655,7 +656,9 @@ export default function EmailTemplatesPage() {
 
                 {/* Recipient for Gmail */}
                 <div>
-                  <Label className="text-xs text-muted-foreground">Recipient (for Gmail)</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Recipient (for Gmail)
+                  </Label>
                   <Input
                     type="email"
                     placeholder="recipient@example.com"
@@ -685,7 +688,11 @@ export default function EmailTemplatesPage() {
                       </>
                     )}
                   </Button>
-                  <Button onClick={openInMailClient} variant="outline" className="flex-1">
+                  <Button
+                    onClick={openInMailClient}
+                    variant="outline"
+                    className="flex-1"
+                  >
                     <Send className="h-4 w-4 mr-2" />
                     Mail App
                   </Button>
@@ -726,7 +733,7 @@ export default function EmailTemplatesPage() {
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </PageContent>
+    </AppPage>
   );
 }

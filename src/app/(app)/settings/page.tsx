@@ -1,23 +1,28 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowLeft, Loader2, Settings } from "lucide-react";
+import { Loader2, Settings } from "lucide-react";
 import { DataManagement } from "@/components/settings/data-management";
 import { GoogleIntegration } from "@/components/settings/google-integration";
 import { HelpCards } from "@/components/settings/help-cards";
 import { LLMProviderConfig } from "@/components/settings/llm-provider-config";
-import { LLMProviderSelector, PROVIDERS } from "@/components/settings/llm-provider-selector";
+import {
+  LLMProviderSelector,
+  PROVIDERS,
+} from "@/components/settings/llm-provider-selector";
 import { OllamaWarning } from "@/components/settings/ollama-warning";
 import { OpportunityReviewSection } from "@/components/settings/opportunity-review-section";
 import { ThemeSection } from "@/components/settings/theme-section";
 import { WhatAiPowers } from "@/components/settings/what-ai-powers";
+import { AppPage, PageContent, PageHeader } from "@/components/ui/page-layout";
 import { useDataIO } from "./use-data-io";
 import { useLLMSettings } from "./use-llm-settings";
 
 export default function SettingsPage() {
   const llmSettings = useLLMSettings();
   const dataIO = useDataIO();
-  const selectedProvider = PROVIDERS.find((provider) => provider.value === llmSettings.config.provider);
+  const selectedProvider = PROVIDERS.find(
+    (provider) => provider.value === llmSettings.config.provider,
+  );
 
   if (llmSettings.loading) {
     return (
@@ -31,31 +36,16 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen pb-24">
-      <div className="hero-gradient border-b">
-        <div className="max-w-3xl mx-auto px-6 py-12">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
-          </Link>
+    <AppPage>
+      <PageHeader
+        width="narrow"
+        icon={Settings}
+        eyebrow="Configuration"
+        title="Settings"
+        description="Configure your AI provider for resume parsing and interview preparation."
+      />
 
-          <div className="space-y-4 animate-enter">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
-              <Settings className="h-4 w-4" />
-              Configuration
-            </div>
-            <h1 className="text-4xl font-bold tracking-tight">Settings</h1>
-            <p className="text-lg text-muted-foreground max-w-xl">
-              Configure your AI provider for resume parsing and interview preparation.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-3xl mx-auto px-6 py-8">
+      <PageContent width="narrow">
         <div className="space-y-6">
           <LLMProviderSelector
             provider={llmSettings.config.provider}
@@ -92,7 +82,7 @@ export default function SettingsPage() {
           <GoogleIntegration />
           {llmSettings.config.provider === "ollama" && <OllamaWarning />}
         </div>
-      </div>
-    </div>
+      </PageContent>
+    </AppPage>
   );
 }

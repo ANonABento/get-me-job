@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import dynamic from "next/dynamic";
-import { ArrowLeft, FileDown, LayoutGrid, List, Mail, Plus, Target } from "lucide-react";
+import { FileDown, LayoutGrid, List, Mail, Plus, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SkeletonButton } from "@/components/ui/skeleton";
 import { useErrorToast } from "@/hooks/use-error-toast";
@@ -11,7 +10,7 @@ import type { JobsViewMode } from "./job-kanban-utils";
 
 const GmailImportModal = dynamic(
   () => import("@/components/google").then((module) => module.GmailImportModal),
-  { loading: () => <SkeletonButton className="h-10 w-36" />, ssr: false }
+  { loading: () => <SkeletonButton className="h-10 w-36" />, ssr: false },
 );
 
 interface JobsHeroProps {
@@ -23,30 +22,34 @@ interface JobsHeroProps {
   onGmailImportSuccess: () => Promise<void>;
 }
 
-export function JobsHero({ jobsCount, viewMode, onImportClick, onAddClick, onViewModeChange, onGmailImportSuccess }: JobsHeroProps) {
+export function JobsHero({
+  jobsCount,
+  viewMode,
+  onImportClick,
+  onAddClick,
+  onViewModeChange,
+  onGmailImportSuccess,
+}: JobsHeroProps) {
   const showErrorToast = useErrorToast();
 
   return (
-    <div className="hero-gradient border-b">
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
-        </Link>
-
+    <div className="border-b bg-card/70">
+      <div className="mx-auto max-w-6xl px-5 py-6 sm:px-8">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          <div className="space-y-4 animate-enter">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
-              <Target className="h-4 w-4" />
+          <div className="max-w-3xl space-y-3 animate-enter">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Target className="h-4 w-4 text-primary" />
               Job Tracker
             </div>
-            <h1 className="text-4xl font-bold tracking-tight">Job Applications</h1>
-            <p className="text-lg text-muted-foreground max-w-xl">
-              Track your target jobs, analyze match scores, and generate tailored resumes.
-            </p>
+            <div>
+              <h1 className="text-3xl font-bold tracking-normal text-foreground sm:text-4xl">
+                Job Applications
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                Track your target jobs, analyze match scores, and generate
+                tailored resumes.
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
@@ -55,7 +58,10 @@ export function JobsHero({ jobsCount, viewMode, onImportClick, onAddClick, onVie
               <p className="text-sm text-muted-foreground">Jobs Tracked</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
-              <div className="flex rounded-lg border bg-card p-1" aria-label="Job view mode">
+              <div
+                className="flex rounded-lg border bg-card p-1"
+                aria-label="Job view mode"
+              >
                 <Button
                   type="button"
                   size="sm"
@@ -86,8 +92,13 @@ export function JobsHero({ jobsCount, viewMode, onImportClick, onAddClick, onVie
               <GmailImportModal
                 onImport={async (email) => {
                   const jobData = {
-                    title: email.parsed?.role || email.subject.replace(/^(Re:|Fwd:)\s*/gi, "").trim(),
-                    company: email.parsed?.company || email.from.split("@")[1]?.split(".")[0] || "Unknown",
+                    title:
+                      email.parsed?.role ||
+                      email.subject.replace(/^(Re:|Fwd:)\s*/gi, "").trim(),
+                    company:
+                      email.parsed?.company ||
+                      email.from.split("@")[1]?.split(".")[0] ||
+                      "Unknown",
                     description: email.snippet,
                     url: "",
                   };
@@ -99,13 +110,17 @@ export function JobsHero({ jobsCount, viewMode, onImportClick, onAddClick, onVie
                       body: JSON.stringify(jobData),
                     });
 
-                    await readJsonResponse<unknown>(response, "Failed to create job");
+                    await readJsonResponse<unknown>(
+                      response,
+                      "Failed to create job",
+                    );
 
                     await onGmailImportSuccess();
                   } catch (error) {
                     showErrorToast(error, {
                       title: "Could not import Gmail job",
-                      fallbackDescription: "Please try importing the email again.",
+                      fallbackDescription:
+                        "Please try importing the email again.",
                     });
                   }
                 }}
@@ -116,7 +131,11 @@ export function JobsHero({ jobsCount, viewMode, onImportClick, onAddClick, onVie
                   </Button>
                 }
               />
-              <Button onClick={onAddClick} size="lg" className="gradient-bg text-white hover:opacity-90">
+              <Button
+                onClick={onAddClick}
+                size="lg"
+                className="gradient-bg text-white hover:opacity-90"
+              >
                 <Plus className="h-5 w-5 mr-2" />
                 Add Job
               </Button>

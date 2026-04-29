@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import {
-  ArrowLeft,
   DollarSign,
   Calculator,
   TrendingUp,
@@ -31,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AppPage, PageContent, PageHeader } from "@/components/ui/page-layout";
 import { cn } from "@/lib/utils";
 
 interface SalaryRange {
@@ -273,36 +272,23 @@ ${script.close}
   };
 
   const tabs = [
-    { id: "calculator" as TabType, label: "Salary Calculator", icon: Calculator },
+    {
+      id: "calculator" as TabType,
+      label: "Salary Calculator",
+      icon: Calculator,
+    },
     { id: "compare" as TabType, label: "Compare Offers", icon: BarChart3 },
     { id: "negotiate" as TabType, label: "Negotiate", icon: TrendingUp },
   ];
 
   return (
-    <div className="min-h-screen pb-24">
-      {/* Hero Section */}
-      <div className="hero-gradient border-b">
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
-          </Link>
-
-          <div className="space-y-4 animate-enter">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
-              <DollarSign className="h-4 w-4" />
-              Negotiation
-            </div>
-            <h1 className="text-4xl font-bold tracking-tight">Salary Tools</h1>
-            <p className="text-lg text-muted-foreground max-w-xl">
-              Research market rates, compare offers, and prepare for salary negotiations.
-            </p>
-          </div>
-        </div>
-      </div>
+    <AppPage>
+      <PageHeader
+        icon={DollarSign}
+        eyebrow="Negotiation"
+        title="Salary Tools"
+        description="Research market rates, compare offers, and prepare for salary negotiations."
+      />
 
       {/* Tabs */}
       <div className="border-b bg-card/50">
@@ -316,7 +302,7 @@ ${script.close}
                   "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
                   activeTab === tab.id
                     ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted",
                 )}
               >
                 <tab.icon className="h-4 w-4" />
@@ -328,7 +314,7 @@ ${script.close}
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <PageContent>
         {/* Calculator Tab */}
         {activeTab === "calculator" && (
           <div className="grid lg:grid-cols-2 gap-8">
@@ -395,7 +381,9 @@ ${script.close}
 
                 <Button
                   onClick={calculateSalaryRange}
-                  disabled={!role || !location || !yearsExperience || calculatingRange}
+                  disabled={
+                    !role || !location || !yearsExperience || calculatingRange
+                  }
                   className="w-full mt-4 gradient-bg text-white hover:opacity-90"
                 >
                   {calculatingRange ? (
@@ -428,19 +416,25 @@ ${script.close}
                   {/* Stats */}
                   <div className="grid grid-cols-3 gap-4">
                     <div className="text-center p-4 rounded-xl bg-warning/10 border border-warning/20">
-                      <p className="text-xs text-muted-foreground mb-1">25th Percentile</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        25th Percentile
+                      </p>
                       <p className="text-lg font-bold text-warning">
                         {formatCurrency(salaryRange.percentile25)}
                       </p>
                     </div>
                     <div className="text-center p-4 rounded-xl bg-success/10 border border-success/20">
-                      <p className="text-xs text-muted-foreground mb-1">Median</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Median
+                      </p>
                       <p className="text-xl font-bold text-success">
                         {formatCurrency(salaryRange.median)}
                       </p>
                     </div>
                     <div className="text-center p-4 rounded-xl bg-info/10 border border-info/20">
-                      <p className="text-xs text-muted-foreground mb-1">75th Percentile</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        75th Percentile
+                      </p>
                       <p className="text-lg font-bold text-info">
                         {formatCurrency(salaryRange.percentile75)}
                       </p>
@@ -450,10 +444,12 @@ ${script.close}
                   {/* Insights */}
                   <div className="p-4 rounded-xl bg-muted/50">
                     <p className="text-sm text-muted-foreground">
-                      Based on {role} roles in {location} with {yearsExperience} years of experience.
-                      Aim for the median ({formatCurrency(salaryRange.median)}) as a baseline, and the
-                      75th percentile ({formatCurrency(salaryRange.percentile75)}) if you have strong
-                      skills or competing offers.
+                      Based on {role} roles in {location} with {yearsExperience}{" "}
+                      years of experience. Aim for the median (
+                      {formatCurrency(salaryRange.median)}) as a baseline, and
+                      the 75th percentile (
+                      {formatCurrency(salaryRange.percentile75)}) if you have
+                      strong skills or competing offers.
                     </p>
                   </div>
                 </div>
@@ -463,7 +459,8 @@ ${script.close}
                     <Calculator className="h-8 w-8" />
                   </div>
                   <p className="text-muted-foreground">
-                    Enter your role, location, and experience to see market rates
+                    Enter your role, location, and experience to see market
+                    rates
                   </p>
                 </div>
               )}
@@ -486,7 +483,9 @@ ${script.close}
                   <Label className="mb-2 block">Company</Label>
                   <Input
                     value={newOffer.company || ""}
-                    onChange={(e) => setNewOffer({ ...newOffer, company: e.target.value })}
+                    onChange={(e) =>
+                      setNewOffer({ ...newOffer, company: e.target.value })
+                    }
                     placeholder="e.g., Google"
                   />
                 </div>
@@ -496,7 +495,10 @@ ${script.close}
                     type="number"
                     value={newOffer.baseSalary || ""}
                     onChange={(e) =>
-                      setNewOffer({ ...newOffer, baseSalary: parseInt(e.target.value) || undefined })
+                      setNewOffer({
+                        ...newOffer,
+                        baseSalary: parseInt(e.target.value) || undefined,
+                      })
                     }
                     placeholder="e.g., 180000"
                   />
@@ -507,7 +509,10 @@ ${script.close}
                     type="number"
                     value={newOffer.signingBonus || ""}
                     onChange={(e) =>
-                      setNewOffer({ ...newOffer, signingBonus: parseInt(e.target.value) || undefined })
+                      setNewOffer({
+                        ...newOffer,
+                        signingBonus: parseInt(e.target.value) || undefined,
+                      })
                     }
                     placeholder="e.g., 25000"
                   />
@@ -518,7 +523,10 @@ ${script.close}
                     type="number"
                     value={newOffer.annualBonus || ""}
                     onChange={(e) =>
-                      setNewOffer({ ...newOffer, annualBonus: parseInt(e.target.value) || undefined })
+                      setNewOffer({
+                        ...newOffer,
+                        annualBonus: parseInt(e.target.value) || undefined,
+                      })
                     }
                     placeholder="e.g., 20000"
                   />
@@ -529,7 +537,10 @@ ${script.close}
                     type="number"
                     value={newOffer.equityValue || ""}
                     onChange={(e) =>
-                      setNewOffer({ ...newOffer, equityValue: parseInt(e.target.value) || undefined })
+                      setNewOffer({
+                        ...newOffer,
+                        equityValue: parseInt(e.target.value) || undefined,
+                      })
                     }
                     placeholder="e.g., 200000"
                   />
@@ -571,7 +582,7 @@ ${script.close}
                         "p-4 rounded-xl border relative",
                         comparison?.bestOverall === offer.company
                           ? "border-success bg-success/5"
-                          : "bg-muted/30"
+                          : "bg-muted/30",
                       )}
                     >
                       {comparison?.bestOverall === offer.company && (
@@ -587,24 +598,42 @@ ${script.close}
                         <Trash2 className="h-4 w-4" />
                       </button>
                       <h3 className="font-medium">{offer.company}</h3>
-                      <p className="text-sm text-muted-foreground">{offer.role}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {offer.role}
+                      </p>
                       <div className="mt-3 space-y-1 text-sm">
                         <p>Base: {formatCurrency(offer.baseSalary)}</p>
-                        {offer.signingBonus && <p>Signing: {formatCurrency(offer.signingBonus)}</p>}
-                        {offer.annualBonus && <p>Bonus: {formatCurrency(offer.annualBonus)}/yr</p>}
-                        {offer.equityValue && <p>Equity: {formatCurrency(offer.equityValue)} (4yr)</p>}
+                        {offer.signingBonus && (
+                          <p>Signing: {formatCurrency(offer.signingBonus)}</p>
+                        )}
+                        {offer.annualBonus && (
+                          <p>Bonus: {formatCurrency(offer.annualBonus)}/yr</p>
+                        )}
+                        {offer.equityValue && (
+                          <p>
+                            Equity: {formatCurrency(offer.equityValue)} (4yr)
+                          </p>
+                        )}
                       </div>
                       {comparison && (
                         <div className="mt-3 pt-3 border-t">
-                          <p className="text-xs text-muted-foreground">Total Annual Comp</p>
+                          <p className="text-xs text-muted-foreground">
+                            Total Annual Comp
+                          </p>
                           <p className="font-bold text-lg">
                             {formatCurrency(
-                              comparison.ranked.find((r) => r.offer.id === offer.id)?.totalComp
-                                .totalAnnual || 0
+                              comparison.ranked.find(
+                                (r) => r.offer.id === offer.id,
+                              )?.totalComp.totalAnnual || 0,
                             )}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            Rank: #{comparison.ranked.find((r) => r.offer.id === offer.id)?.rank}
+                            Rank: #
+                            {
+                              comparison.ranked.find(
+                                (r) => r.offer.id === offer.id,
+                              )?.rank
+                            }
                           </p>
                         </div>
                       )}
@@ -648,7 +677,10 @@ ${script.close}
                 </div>
                 <div>
                   <Label className="mb-2 block">Role</Label>
-                  <Select value={negotiateRole} onValueChange={setNegotiateRole}>
+                  <Select
+                    value={negotiateRole}
+                    onValueChange={setNegotiateRole}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
@@ -682,7 +714,12 @@ ${script.close}
 
                 <Button
                   onClick={generateNegotiationScript}
-                  disabled={!negotiateCompany || !currentOffer || !targetSalary || generatingScript}
+                  disabled={
+                    !negotiateCompany ||
+                    !currentOffer ||
+                    !targetSalary ||
+                    generatingScript
+                  }
                   className="w-full mt-4 gradient-bg text-white hover:opacity-90"
                 >
                   {generatingScript ? (
@@ -719,15 +756,24 @@ ${script.close}
               {script ? (
                 <div className="space-y-6 max-h-[600px] overflow-y-auto pr-2">
                   <div>
-                    <h3 className="text-sm font-medium text-primary mb-2">Opening</h3>
-                    <p className="text-sm bg-muted/50 p-3 rounded-lg">{script.opening}</p>
+                    <h3 className="text-sm font-medium text-primary mb-2">
+                      Opening
+                    </h3>
+                    <p className="text-sm bg-muted/50 p-3 rounded-lg">
+                      {script.opening}
+                    </p>
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-medium text-primary mb-2">Value Points</h3>
+                    <h3 className="text-sm font-medium text-primary mb-2">
+                      Value Points
+                    </h3>
                     <ul className="space-y-2">
                       {script.valuePoints.map((point, i) => (
-                        <li key={i} className="text-sm bg-muted/50 p-3 rounded-lg flex items-start gap-2">
+                        <li
+                          key={i}
+                          className="text-sm bg-muted/50 p-3 rounded-lg flex items-start gap-2"
+                        >
                           <span className="shrink-0 w-5 h-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center">
                             {i + 1}
                           </span>
@@ -738,20 +784,30 @@ ${script.close}
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-medium text-primary mb-2">The Ask</h3>
+                    <h3 className="text-sm font-medium text-primary mb-2">
+                      The Ask
+                    </h3>
                     <p className="text-sm bg-success/10 border border-success/20 p-3 rounded-lg">
                       {script.theAsk}
                     </p>
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-medium text-primary mb-2">Handling Pushback</h3>
+                    <h3 className="text-sm font-medium text-primary mb-2">
+                      Handling Pushback
+                    </h3>
                     <div className="space-y-3">
                       {script.pushbackResponses.map((pr, i) => (
                         <div key={i} className="bg-muted/50 p-3 rounded-lg">
-                          <p className="text-xs text-muted-foreground mb-1">If they say:</p>
-                          <p className="text-sm font-medium mb-2">&ldquo;{pr.objection}&rdquo;</p>
-                          <p className="text-xs text-muted-foreground mb-1">You respond:</p>
+                          <p className="text-xs text-muted-foreground mb-1">
+                            If they say:
+                          </p>
+                          <p className="text-sm font-medium mb-2">
+                            &ldquo;{pr.objection}&rdquo;
+                          </p>
+                          <p className="text-xs text-muted-foreground mb-1">
+                            You respond:
+                          </p>
                           <p className="text-sm">{pr.response}</p>
                         </div>
                       ))}
@@ -759,8 +815,12 @@ ${script.close}
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-medium text-primary mb-2">Close</h3>
-                    <p className="text-sm bg-muted/50 p-3 rounded-lg">{script.close}</p>
+                    <h3 className="text-sm font-medium text-primary mb-2">
+                      Close
+                    </h3>
+                    <p className="text-sm bg-muted/50 p-3 rounded-lg">
+                      {script.close}
+                    </p>
                   </div>
                 </div>
               ) : (
@@ -769,14 +829,15 @@ ${script.close}
                     <TrendingUp className="h-8 w-8" />
                   </div>
                   <p className="text-muted-foreground">
-                    Enter offer details to generate your personalized negotiation script
+                    Enter offer details to generate your personalized
+                    negotiation script
                   </p>
                 </div>
               )}
             </div>
           </div>
         )}
-      </div>
-    </div>
+      </PageContent>
+    </AppPage>
   );
 }
