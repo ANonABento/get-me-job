@@ -26,6 +26,7 @@ function makeEmptyBank(): GroupedBankEntries {
     experience: [],
     skill: [],
     project: [],
+    hackathon: [],
     education: [],
     achievement: [],
     certification: [],

@@ -20,6 +20,7 @@ export const SECTION_LABELS: Record<BankCategory, string> = {
   education: "Education",
   skill: "Skills",
   project: "Projects",
+  hackathon: "Hackathons",
   achievement: "Achievements",
   certification: "Certifications",
 };
@@ -37,6 +38,7 @@ export const DEFAULT_SECTION_ORDER: BankCategory[] = [
   "education",
   "skill",
   "project",
+  "hackathon",
   "achievement",
   "certification",
 ];

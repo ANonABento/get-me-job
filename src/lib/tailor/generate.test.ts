@@ -61,6 +61,7 @@ function makeBank(): GroupedBankEntries {
       }),
     ],
     project: [],
+    hackathon: [],
     achievement: [],
     certification: [],
   };

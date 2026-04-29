@@ -46,6 +46,24 @@ export interface Project {
   highlights: string[];
 }
 
+export interface Hackathon {
+  id: string;
+  name: string;
+  organizer?: string;
+  location?: string;
+  startDate?: string;
+  endDate?: string;
+  submissionUrl?: string;
+  eventUrl?: string;
+  prizes: string[];
+  teamSizeMin?: string;
+  teamSizeMax?: string;
+  tracks: string[];
+  themes: string[];
+  technologies: string[];
+  notes?: string;
+}
+
 export interface Skill {
   id: string;
   name: string;
@@ -165,6 +183,7 @@ export const BANK_CATEGORIES = [
   'experience',
   'skill',
   'project',
+  'hackathon',
   'education',
   'achievement',
   'certification',
@@ -186,6 +205,7 @@ export interface GroupedBankEntries {
   experience: BankEntry[];
   skill: BankEntry[];
   project: BankEntry[];
+  hackathon: BankEntry[];
   education: BankEntry[];
   achievement: BankEntry[];
   certification: BankEntry[];

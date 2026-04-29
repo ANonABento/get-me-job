@@ -19,6 +19,10 @@ import {
   FieldEditor,
   cleanContent,
 } from "./chunk-card";
+import {
+  HACKATHON_TEMPLATES,
+  applyHackathonTemplate,
+} from "./hackathon-templates";
 
 interface AddEntryDialogProps {
   onCreate: (category: BankCategory, content: Record<string, unknown>) => void;
@@ -38,6 +42,10 @@ export function AddEntryDialog({ onCreate }: AddEntryDialogProps) {
 
   function handleFieldChange(key: string, value: unknown) {
     setContent((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleTemplateSelect(templateId: string) {
+    setContent((prev) => applyHackathonTemplate(prev, templateId));
   }
 
   function handleSubmit() {
@@ -99,6 +107,29 @@ export function AddEntryDialog({ onCreate }: AddEntryDialogProps) {
               })}
             </div>
           </div>
+
+          {category === "hackathon" && (
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Hackathon Templates</Label>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {HACKATHON_TEMPLATES.map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => handleTemplateSelect(template.id)}
+                    className="rounded-lg border bg-background px-3 py-2 text-left text-xs transition-colors hover:border-warning/60 hover:bg-warning/5"
+                  >
+                    <span className="block font-medium text-foreground">
+                      {template.label}
+                    </span>
+                    <span className="mt-1 block text-muted-foreground">
+                      {template.description}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Dynamic fields */}
           {fields.map((field) => (

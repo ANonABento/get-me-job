@@ -4,7 +4,9 @@ import {
   ChunkCard,
   getEntryTitle,
   getDateRange,
+  getHackathonTeamSize,
   getHighlights,
+  getStringList,
   getTechnologies,
   SKILL_CATEGORY_COLORS,
   listToText,
@@ -57,6 +59,14 @@ describe("getEntryTitle", () => {
       content: { name: "Cool App" },
     });
     expect(getEntryTitle(entry)).toBe("Cool App");
+  });
+
+  it("should return name for hackathon", () => {
+    const entry = makeBankEntry({
+      category: "hackathon",
+      content: { name: "AI Build Weekend" },
+    });
+    expect(getEntryTitle(entry)).toBe("AI Build Weekend");
   });
 
   it("should return name — issuer for certification", () => {
@@ -131,6 +141,34 @@ describe("getTechnologies", () => {
 
   it("should return empty array if technologies is not array", () => {
     expect(getTechnologies({ technologies: "React" })).toEqual([]);
+  });
+});
+
+describe("getStringList", () => {
+  it("should return trimmed string values for list fields", () => {
+    expect(getStringList({ prizes: [" $5,000 ", "Best AI"] }, "prizes")).toEqual([
+      "$5,000",
+      "Best AI",
+    ]);
+  });
+
+  it("should return empty array for missing or non-list fields", () => {
+    expect(getStringList({}, "tracks")).toEqual([]);
+    expect(getStringList({ tracks: "AI" }, "tracks")).toEqual([]);
+  });
+});
+
+describe("getHackathonTeamSize", () => {
+  it("should return a min-max team size label", () => {
+    expect(getHackathonTeamSize({ teamSizeMin: "1", teamSizeMax: "4" })).toBe("1-4 people");
+  });
+
+  it("should return a max-only team size label", () => {
+    expect(getHackathonTeamSize({ teamSizeMax: "5" })).toBe("Up to 5 people");
+  });
+
+  it("should return empty string when no team size is set", () => {
+    expect(getHackathonTeamSize({})).toBe("");
   });
 });
 
@@ -406,6 +444,31 @@ describe("ChunkCard", () => {
     expect(screen.getByText("React")).toBeInTheDocument();
     expect(screen.getByText("Node.js")).toBeInTheDocument();
     expect(screen.getByText("PostgreSQL")).toBeInTheDocument();
+  });
+
+  it("should show hackathon preview with prizes, team size, and tracks", () => {
+    const entry = makeBankEntry({
+      category: "hackathon",
+      content: {
+        name: "AI Build Weekend",
+        location: "Online",
+        startDate: "2026-05-10",
+        endDate: "2026-05-12",
+        prizes: ["$5,000 Grand Prize", "Best AI App"],
+        teamSizeMin: "1",
+        teamSizeMax: "4",
+        tracks: ["AI/ML", "Developer Tools"],
+        themes: ["Accessibility"],
+      },
+    });
+    render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
+
+    expect(screen.getByText("$5,000 Grand Prize · Best AI App")).toBeInTheDocument();
+    expect(screen.getByText("1-4 people")).toBeInTheDocument();
+    expect(screen.getByText("Online · 2026-05-10 — 2026-05-12")).toBeInTheDocument();
+    expect(screen.getByText("AI/ML")).toBeInTheDocument();
+    expect(screen.getByText("Developer Tools")).toBeInTheDocument();
+    expect(screen.getByText("Accessibility")).toBeInTheDocument();
   });
 
   it("should show +N more for projects with many technologies", () => {

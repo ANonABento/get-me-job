@@ -79,7 +79,8 @@ export default function BankPage() {
     try {
       const params = new URLSearchParams();
       if (query) params.set("q", query);
-      if (activeCategory !== "all") params.set("category", activeCategory);
+      if (activeCategory === "hackathon") params.set("type", "hackathon");
+      else if (activeCategory !== "all") params.set("category", activeCategory);
       const res = await fetch(`/api/bank?${params}`);
       if (!res.ok) throw new Error("Failed to fetch entries");
       const data = await res.json();

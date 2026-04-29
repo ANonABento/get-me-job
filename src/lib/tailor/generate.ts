@@ -37,6 +37,7 @@ async function generateWithLLM(
   const skillEntries = formatBankCategory(input.bankEntries.skill);
   const educationEntries = formatBankCategory(input.bankEntries.education);
   const projectEntries = formatBankCategory(input.bankEntries.project);
+  const hackathonEntries = formatBankCategory(input.bankEntries.hackathon);
   const achievementEntries = formatBankCategory(input.bankEntries.achievement);
 
   const response = await client.complete({
@@ -65,6 +66,9 @@ ${educationEntries}
 
 KNOWLEDGE BANK - PROJECTS:
 ${projectEntries}
+
+KNOWLEDGE BANK - HACKATHONS:
+${hackathonEntries}
 
 KNOWLEDGE BANK - ACHIEVEMENTS:
 ${achievementEntries}

@@ -14,7 +14,7 @@ import { extractTextFromFile } from "@/lib/parser/pdf";
 import { classifyDocument } from "@/lib/parser/document-classifier";
 import { parseDocumentByType } from "@/lib/parser/resume";
 import { smartParseResume, type SmartParseResult } from "@/lib/parser/smart-parser";
-import type { ParsedDocumentData } from "@/types";
+import type { BankCategory, ParsedDocumentData } from "@/types";
 import {
   MAX_FILE_SIZE_BYTES,
   ALLOWED_MIME_TYPES,
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
       try {
         const { insertBankEntries } = await import("@/lib/db/profile-bank");
         const profile = (parsedData?.data ?? {}) as Record<string, unknown>;
-        const entries: Array<{ category: "experience" | "education" | "skill" | "project" | "certification" | "achievement"; content: Record<string, unknown>; sourceDocumentId: string }> = [];
+        const entries: Array<{ category: BankCategory; content: Record<string, unknown>; sourceDocumentId: string }> = [];
 
         // Chunk profile into bank entries (only valid BankCategory types)
         const experiences = profile.experiences as Record<string, unknown>[] | undefined;

@@ -12,6 +12,8 @@ export function getEntryTitle(entry: BankEntry): string {
       return (c.name as string) || "Skill";
     case "project":
       return (c.name as string) || "Project";
+    case "hackathon":
+      return (c.name as string) || "Hackathon";
     case "certification":
       return [c.name, c.issuer].filter(Boolean).join(" — ") || "Certification";
     case "achievement":
@@ -39,6 +41,26 @@ export function getTechnologies(content: Record<string, unknown>): string[] {
   return content.technologies.map(String);
 }
 
+export function getStringList(
+  content: Record<string, unknown>,
+  key: string
+): string[] {
+  const value = content[key];
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item).trim()).filter(Boolean);
+}
+
+export function getHackathonTeamSize(content: Record<string, unknown>): string {
+  const min = content.teamSizeMin ? String(content.teamSizeMin).trim() : "";
+  const max = content.teamSizeMax ? String(content.teamSizeMax).trim() : "";
+
+  if (min && max && min === max) return `${min} person`;
+  if (min && max) return `${min}-${max} people`;
+  if (min) return `${min}+ people`;
+  if (max) return `Up to ${max} people`;
+  return "";
+}
+
 export function listToText(value: unknown): string {
   if (Array.isArray(value)) return value.join("\n");
   return "";
@@ -55,7 +77,9 @@ export function cleanContent(
   const cleaned = { ...content };
   for (const field of fields) {
     if (field.type === "list" && Array.isArray(cleaned[field.key])) {
-      cleaned[field.key] = (cleaned[field.key] as string[]).filter((s) => s.trim());
+      cleaned[field.key] = (cleaned[field.key] as string[])
+        .map((s) => s.trim())
+        .filter(Boolean);
     }
     if (field.type === "text" && typeof cleaned[field.key] === "string") {
       cleaned[field.key] = (cleaned[field.key] as string).trim();

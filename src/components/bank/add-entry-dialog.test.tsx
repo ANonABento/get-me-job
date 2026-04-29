@@ -23,6 +23,7 @@ describe("AddEntryDialog", () => {
     expect(screen.getByText("Education")).toBeInTheDocument();
     expect(screen.getByText("Skill")).toBeInTheDocument();
     expect(screen.getByText("Project")).toBeInTheDocument();
+    expect(screen.getByText("Hackathon")).toBeInTheDocument();
     expect(screen.getByText("Achievement")).toBeInTheDocument();
     expect(screen.getByText("Certification")).toBeInTheDocument();
   });
@@ -68,5 +69,21 @@ describe("AddEntryDialog", () => {
     expect(onCreate).toHaveBeenCalledWith("skill", expect.objectContaining({
       name: "React",
     }));
+  });
+
+  it("should apply hackathon template defaults without overwriting filled fields", () => {
+    render(<AddEntryDialog onCreate={vi.fn()} />);
+    fireEvent.click(screen.getByText("Add Entry"));
+    fireEvent.click(screen.getByText("Hackathon"));
+
+    fireEvent.change(screen.getByLabelText("Hackathon Name"), {
+      target: { value: "My Hackathon" },
+    });
+    fireEvent.click(screen.getByText("DevPost Online"));
+
+    expect(screen.getByLabelText("Hackathon Name")).toHaveValue("My Hackathon");
+    expect(screen.getByLabelText("Organizer")).toHaveValue("Devpost");
+    expect(screen.getByLabelText("Location")).toHaveValue("Online");
+    expect(screen.getByLabelText("Maximum Team Size")).toHaveValue("4");
   });
 });

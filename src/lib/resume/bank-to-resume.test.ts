@@ -136,6 +136,29 @@ describe("bankEntriesToResume", () => {
     expect(result.experiences[0].highlights).toEqual(["1000 stars", "Featured on HN"]);
   });
 
+  it("converts hackathon entries to experiences with prize and track highlights", () => {
+    const entry = makeEntry("hackathon", {
+      name: "AI Build Weekend",
+      organizer: "Devpost",
+      startDate: "2026-05-10",
+      endDate: "2026-05-12",
+      prizes: ["Best AI App"],
+      tracks: ["AI/ML"],
+      themes: ["Accessibility"],
+      notes: "Submitted working demo",
+    });
+    const result = bankEntriesToResume([entry]);
+    expect(result.experiences[0].company).toBe("Devpost");
+    expect(result.experiences[0].title).toBe("AI Build Weekend");
+    expect(result.experiences[0].dates).toBe("2026-05-10 — 2026-05-12");
+    expect(result.experiences[0].highlights).toEqual([
+      "Prizes: Best AI App",
+      "Tracks: AI/ML",
+      "Themes: Accessibility",
+      "Submitted working demo",
+    ]);
+  });
+
   it("handles mixed entry types", () => {
     const entries = [
       makeEntry("experience", { company: "A", title: "Dev", startDate: "2020" }, "e1"),
@@ -144,9 +167,10 @@ describe("bankEntriesToResume", () => {
       makeEntry("achievement", { description: "Award winner" }, "a1"),
       makeEntry("certification", { name: "CKA" }, "c1"),
       makeEntry("project", { name: "Proj", highlights: ["Cool"] }, "p1"),
+      makeEntry("hackathon", { name: "Hack", prizes: ["Winner"] }, "h1"),
     ];
     const result = bankEntriesToResume(entries);
-    expect(result.experiences).toHaveLength(2); // experience + project
+    expect(result.experiences).toHaveLength(3); // experience + project + hackathon
     expect(result.skills).toEqual(["Go", "CKA"]);
     expect(result.education).toHaveLength(1);
     expect(result.summary).toBe("Award winner");

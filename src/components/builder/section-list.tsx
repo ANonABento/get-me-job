@@ -22,6 +22,7 @@ import {
   Shield,
   Sparkles,
   Check,
+  Trophy,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ const SECTION_ICONS: Record<BankCategory, LucideIcon> = {
   education: GraduationCap,
   skill: Wrench,
   project: FolderOpen,
+  hackathon: Trophy,
   achievement: Award,
   certification: Shield,
 };

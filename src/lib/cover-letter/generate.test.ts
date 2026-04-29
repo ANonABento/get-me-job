@@ -26,6 +26,7 @@ function makeEmptyBank(): GroupedBankEntries {
     experience: [],
     skill: [],
     project: [],
+    hackathon: [],
     education: [],
     achievement: [],
     certification: [],
@@ -64,6 +65,17 @@ function makePopulatedBank(): GroupedBankEntries {
         content: { name: "Dashboard App", highlights: ["Real-time data viz"] },
       }),
     ],
+    hackathon: [
+      makeBankEntry({
+        id: "hack-1",
+        category: "hackathon",
+        content: {
+          name: "AI Build Weekend",
+          prizes: ["Best AI App"],
+          tracks: ["AI/ML"],
+        },
+      }),
+    ],
     education: [
       makeBankEntry({
         id: "edu-1",
@@ -95,7 +107,7 @@ describe("getTotalBankEntries", () => {
 
   it("counts all entries across categories", () => {
     const bank = makePopulatedBank();
-    expect(getTotalBankEntries(bank)).toBe(7);
+    expect(getTotalBankEntries(bank)).toBe(8);
   });
 });
 
@@ -110,6 +122,7 @@ describe("filterBankEntriesByIds", () => {
     expect(filtered.experience.map((entry) => entry.id)).toEqual(["exp-1"]);
     expect(filtered.skill.map((entry) => entry.id)).toEqual(["skill-2"]);
     expect(filtered.project).toEqual([]);
+    expect(filtered.hackathon).toEqual([]);
     expect(filtered.certification.map((entry) => entry.id)).toEqual(["cert-1"]);
     expect(getTotalBankEntries(filtered)).toBe(3);
   });
@@ -184,6 +197,15 @@ describe("buildSystemPrompt", () => {
     };
     const prompt = buildSystemPrompt(input);
     expect(prompt).toContain("Dashboard App");
+  });
+
+  it("includes hackathons from bank", () => {
+    const input: CoverLetterInput = {
+      jobDescription: "We need a developer",
+      bankEntries: makePopulatedBank(),
+    };
+    const prompt = buildSystemPrompt(input);
+    expect(prompt).toContain("AI Build Weekend");
   });
 
   it("includes achievements from bank", () => {

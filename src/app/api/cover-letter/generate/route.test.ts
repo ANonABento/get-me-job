@@ -68,6 +68,7 @@ describe("cover letter generate route", () => {
       experience: [],
       skill: [{ id: "skill-1", content: { name: "React" } }],
       project: [],
+      hackathon: [],
       education: [],
       achievement: [],
       certification: [],
