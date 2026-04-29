@@ -11,6 +11,12 @@ import {
   type ThemePreset,
 } from "@/lib/theme/theme-config";
 
+const CUSTOM_COLOR_KEYS = [
+  "primary",
+  "background",
+  "accent",
+] as const satisfies readonly ThemeColorKey[];
+
 const CUSTOM_LABELS: Record<ThemeColorKey, string> = {
   primary: "Primary",
   background: "Background",
@@ -30,6 +36,7 @@ export function ThemeSection() {
     availableThemePresets,
   } = useTheme();
   const darkModeEnabled = resolvedTheme === "dark";
+  const previewColors = getThemePreviewColors(themePreset, customThemeColors);
 
   const toggleDarkMode = () => {
     setTheme(darkModeEnabled ? "light" : "dark");
@@ -115,21 +122,18 @@ export function ThemeSection() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          {(Object.keys(CUSTOM_LABELS) as ThemeColorKey[]).map((key) => {
-            const previewColors = getThemePreviewColors(themePreset, customThemeColors);
-            return (
-              <label key={key} className="space-y-2 text-sm font-medium">
-                <span>{CUSTOM_LABELS[key]}</span>
-                <input
-                  type="color"
-                  value={hslStringToHex(previewColors[key])}
-                  onChange={(event) => updateCustomColor(key, event.target.value)}
-                  className="h-10 w-full rounded-md border border-input bg-background p-1"
-                  aria-label={`${CUSTOM_LABELS[key]} color`}
-                />
-              </label>
-            );
-          })}
+          {CUSTOM_COLOR_KEYS.map((key) => (
+            <label key={key} className="space-y-2 text-sm font-medium">
+              <span>{CUSTOM_LABELS[key]}</span>
+              <input
+                type="color"
+                value={hslStringToHex(previewColors[key])}
+                onChange={(event) => updateCustomColor(key, event.target.value)}
+                className="h-10 w-full rounded-md border border-input bg-background p-1"
+                aria-label={`${CUSTOM_LABELS[key]} color`}
+              />
+            </label>
+          ))}
         </div>
       </div>
     </section>
