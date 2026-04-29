@@ -32,15 +32,15 @@ describe("ResumeEditor", () => {
         content={content}
         templateStyles={template.styles}
         editable={false}
-      />
+      />,
     );
 
     expect(container.querySelector(".resume-editor")).toBeTruthy();
     expect(container.querySelector("style")?.textContent).toContain(
-      ".resume-editor .ProseMirror"
+      ".resume-editor .ProseMirror",
     );
     expect(
-      await screen.findByText("Product-minded engineer")
+      await screen.findByText("Product-minded engineer"),
     ).toBeInTheDocument();
   });
 
@@ -82,7 +82,7 @@ describe("ResumeEditor", () => {
         content={firstContent}
         templateStyles={template.styles}
         editable={false}
-      />
+      />,
     );
 
     expect(await screen.findByText("First summary")).toBeInTheDocument();
@@ -92,7 +92,7 @@ describe("ResumeEditor", () => {
         content={nextContent}
         templateStyles={template.styles}
         editable={false}
-      />
+      />,
     );
 
     expect(await screen.findByText("Updated summary")).toBeInTheDocument();
@@ -117,17 +117,17 @@ describe("ResumeEditor", () => {
         content={content}
         templateStyles={template.styles}
         editable
-      />
+      />,
     );
 
     expect(
-      await screen.findByLabelText("Drag Experience section")
+      await screen.findByLabelText("Drag Experience section"),
     ).toBeInTheDocument();
     expect(container.querySelector("style")?.textContent).toContain(
-      ".resume-section-drag-handle"
+      ".resume-section-drag-handle",
     );
     expect(container.querySelector("style")?.textContent).toContain(
-      "caret-color"
+      "caret-color",
     );
   });
 
@@ -183,7 +183,7 @@ describe("ResumeEditor", () => {
         templateStyles={template.styles}
         editable
         onUpdate={handleUpdate}
-      />
+      />,
     );
 
     const name = await screen.findByText("Jane Doe");
@@ -217,7 +217,7 @@ describe("ResumeEditor", () => {
               ]),
             }),
           ]),
-        })
+        }),
       );
     });
   });
@@ -242,10 +242,41 @@ describe("ResumeEditor", () => {
         content={content}
         templateStyles={template.styles}
         editable
-      />
+      />,
     );
 
     expect(await screen.findByText("555-1234")).toBeInTheDocument();
     expect(container.querySelector(".contact")?.textContent).toBe("555-1234");
+  });
+
+  it("renders freeform cover letter content with cover letter editor styles", async () => {
+    const template = TEMPLATES.find((item) => item.id === "classic")!;
+    const content: TipTapJSONContent = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "Dear Hiring Team," }],
+        },
+      ],
+    };
+
+    const { container } = render(
+      <ResumeEditor
+        content={content}
+        templateStyles={template.styles}
+        variant="cover_letter"
+        editable
+      />,
+    );
+
+    expect(await screen.findByText("Dear Hiring Team,")).toBeInTheDocument();
+    expect(container.querySelector(".cover-letter-editor")).toBeTruthy();
+    expect(container.querySelector("style")?.textContent).toContain(
+      ".cover-letter-editor .ProseMirror",
+    );
+    expect(container.querySelector("style")?.textContent).toContain(
+      "padding: 0.7in",
+    );
   });
 });

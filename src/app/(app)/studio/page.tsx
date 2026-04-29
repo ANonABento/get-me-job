@@ -50,7 +50,7 @@ function StudioPageContent() {
             aria-labelledby="builder-edit-tab"
             className={cn(
               "w-full overflow-y-auto md:w-[280px] md:flex-none md:shrink-0 md:border-r",
-              getMobilePanelClasses(studio.mobileView, "edit")
+              getMobilePanelClasses(studio.mobileView, "edit"),
             )}
           >
             <StudioFilePanel
@@ -81,6 +81,7 @@ function StudioPageContent() {
                 onToggleEntry={studio.handleToggleEntry}
                 pickerOpen={studio.entryPickerOpen}
                 onPickerOpenChange={studio.setEntryPickerOpen}
+                showSections={studio.documentMode === "resume"}
               />
               <div className="px-4 py-3">
                 <Button
@@ -103,7 +104,7 @@ function StudioPageContent() {
             data-document-editor-root="true"
             className={cn(
               "relative w-full flex-1 overflow-auto",
-              getMobilePanelClasses(studio.mobileView, "preview")
+              getMobilePanelClasses(studio.mobileView, "preview"),
             )}
           >
             {studio.generating && (
@@ -123,7 +124,10 @@ function StudioPageContent() {
 
           <AiAssistantPanel
             documentContent={studio.html}
+            documentMode={studio.documentMode}
             selectedEntryCount={studio.selectedIds.size}
+            selectedEntryIds={Array.from(studio.selectedIds)}
+            onCoverLetterGenerated={studio.handleCoverLetterGenerated}
             onOpenBank={() => studio.setEntryPickerOpen(true)}
             onOpportunityClear={() => studio.setLinkedOpportunityId("")}
             onOpportunitySelect={studio.setLinkedOpportunityId}

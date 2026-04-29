@@ -1,18 +1,38 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
+import type { Editor } from "@tiptap/react";
 import { CheckCircle2, FileText, PenLine, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResumeEditor } from "@/lib/editor/resume-editor";
-import {
-  getTemplateForDocumentMode,
-  TEMPLATES,
+import { EditorFormattingControls } from "@/components/studio/editor-toolbar";
+import { getTemplateForDocumentMode } from "@/lib/resume/template-data";
+import type {
+  CoverLetterTemplateStyles,
+  TemplateStyles,
 } from "@/lib/resume/template-data";
 import type { TipTapJSONContent } from "@/lib/editor/types";
 import type { DocumentMode } from "./studio-documents";
 
 const PAGE_WIDTH_PX = 816; // 8.5in at 96dpi
 const PAGE_HEIGHT_PX = 1056; // 11in at 96dpi
+
+function coverLetterStylesToEditorTemplateStyles(
+  styles: CoverLetterTemplateStyles,
+): TemplateStyles {
+  return {
+    fontFamily: styles.fontFamily,
+    fontSize: styles.fontSize,
+    headerSize: styles.headerSize,
+    sectionHeaderSize: "13pt",
+    lineHeight: styles.lineHeight,
+    accentColor: styles.accentColor,
+    layout: "single-column",
+    headerStyle: styles.headerStyle,
+    bulletStyle: "disc",
+    sectionDivider: "none",
+  };
+}
 
 export interface ResumePreviewProps {
   templateId: string;
@@ -32,7 +52,7 @@ interface PreviewEmptyStateContent {
 }
 
 export function getPreviewEmptyStateContent(
-  documentMode: DocumentMode = "resume"
+  documentMode: DocumentMode = "resume",
 ): PreviewEmptyStateContent {
   if (documentMode === "cover_letter") {
     return {
@@ -72,10 +92,14 @@ export function ResumePreview({
 }: ResumePreviewProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [fitScale, setFitScale] = useState(1);
+  const [editor, setEditor] = useState<Editor | null>(null);
 
   const template = getTemplateForDocumentMode(documentMode, templateId);
+  const isCoverLetter = documentMode === "cover_letter";
   const templateStyles =
-    template.styles.layout === "letter" ? TEMPLATES[0].styles : template.styles;
+    template.styles.layout === "letter"
+      ? coverLetterStylesToEditorTemplateStyles(template.styles)
+      : template.styles;
   const accentColor = template.styles.accentColor;
   const fontFamily =
     template.styles.fontFamily ?? "'Helvetica Neue', Arial, sans-serif";
@@ -101,10 +125,14 @@ export function ResumePreview({
   const scale = fitScale * (zoomPercent / 100);
   const emptyStateContent = getPreviewEmptyStateContent(documentMode);
   const EmptyStateIcon = documentMode === "cover_letter" ? PenLine : FileText;
-  const isCoverLetter = documentMode === "cover_letter";
 
   return (
     <div ref={wrapperRef} className="h-full overflow-auto bg-muted/30 p-4">
+      {content && (
+        <div className="sticky top-0 z-20 mx-auto mb-3 flex w-fit flex-wrap items-center gap-2 rounded-md border bg-background/95 p-2 shadow-sm backdrop-blur">
+          <EditorFormattingControls editor={editor} />
+        </div>
+      )}
       <div
         className="mx-auto"
         style={{
@@ -127,8 +155,10 @@ export function ResumePreview({
               <ResumeEditor
                 content={content}
                 templateStyles={templateStyles}
+                variant={isCoverLetter ? "cover_letter" : "resume"}
                 editable
                 onUpdate={onContentChange}
+                onEditorReady={setEditor}
               />
               {onAddSection && (
                 <div className="px-12 pb-12">

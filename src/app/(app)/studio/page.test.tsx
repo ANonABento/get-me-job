@@ -11,14 +11,16 @@ vi.mock("@/components/builder/section-list", () => ({
     selectedIds,
     onToggleEntry,
     pickerOpen,
+    showSections = true,
   }: {
     selectedIds: Set<string>;
     onToggleEntry: (entryId: string) => void;
     pickerOpen?: boolean;
+    showSections?: boolean;
   }) => (
     <div>
-      <div>Resume sections</div>
-      <div>Selected {selectedIds.size}</div>
+      {showSections && <div>Resume sections</div>}
+      {showSections && <div>Selected {selectedIds.size}</div>}
       {pickerOpen && <div>Bank Entry Picker</div>}
       <button type="button" onClick={() => onToggleEntry("entry-1")}>
         Toggle entry
@@ -92,7 +94,7 @@ const bankEntries: BankEntry[] = [
 function mockStorage(initialValues: Record<string, string> = {}) {
   const values = new Map(Object.entries(initialValues));
   vi.mocked(window.localStorage.getItem).mockImplementation(
-    (key) => values.get(key) ?? null
+    (key) => values.get(key) ?? null,
   );
   vi.mocked(window.localStorage.setItem).mockImplementation((key, value) => {
     values.set(key, value);
@@ -108,7 +110,7 @@ function mockStorage(initialValues: Record<string, string> = {}) {
 
 function mockStudioFetch(
   entries: BankEntry[] = [],
-  createPreviewHtml = () => "<p>Current HTML</p>"
+  createPreviewHtml = () => "<p>Current HTML</p>",
 ) {
   let builderRequestCount = 0;
 
@@ -139,12 +141,12 @@ function mockStudioFetch(
               education: [],
             },
           }),
-          { status: 200 }
+          { status: 200 },
         );
       }
 
       return new Response(JSON.stringify({ entries }), { status: 200 });
-    })
+    }),
   );
 
   return {
@@ -162,7 +164,7 @@ describe("StudioPage", () => {
       vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({ entries: [] }),
-      })
+      }),
     );
   });
 
@@ -179,8 +181,12 @@ describe("StudioPage", () => {
     render(<StudioPage />);
 
     expect(await screen.findByText("Document Studio")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Cover Letter" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /tailored/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Cover Letter" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /tailored/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows the draft as saved on fresh load", async () => {
@@ -196,7 +202,9 @@ describe("StudioPage", () => {
 
     render(<StudioPage />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Toggle entry" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Toggle entry" }),
+    );
 
     expect(screen.getByText("Unsaved")).toBeInTheDocument();
   });
@@ -206,7 +214,9 @@ describe("StudioPage", () => {
 
     render(<StudioPage />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Toggle entry" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Toggle entry" }),
+    );
     expect(screen.getByText("Unsaved")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Cover Letter" }));
@@ -215,17 +225,34 @@ describe("StudioPage", () => {
     expect(screen.queryByText("Unsaved")).not.toBeInTheDocument();
   });
 
-  it("renders cover letter previews without calling the resume builder API", async () => {
+  it("uses a freeform cover letter editor instead of the resume section picker", async () => {
+    render(<StudioPage />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Cover Letter" }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resume-content")).toHaveTextContent(
+        "editable",
+      ),
+    );
+    expect(screen.queryByText("Resume sections")).not.toBeInTheDocument();
+  });
+
+  it("renders cover letter drafts without calling the resume builder API", async () => {
     const fetchMock = mockStudioFetch(bankEntries);
 
     render(<StudioPage />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Cover Letter" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Cover Letter" }),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Toggle entry" }));
 
     await waitFor(() => {
-      expect(screen.getByTestId("resume-html")).toHaveTextContent(
-        "cover-letter-document"
+      expect(screen.getByTestId("resume-content")).toHaveTextContent(
+        "editable",
       );
       expect(screen.getByTestId("resume-html")).toHaveTextContent("Engineer");
     });
@@ -237,7 +264,9 @@ describe("StudioPage", () => {
 
     render(<StudioPage />);
 
-    fireEvent.click(await screen.findByRole("button", { name: /add from bank/i }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: /add from bank/i }),
+    );
 
     expect(screen.getByText("Bank Entry Picker")).toBeInTheDocument();
   });
@@ -257,12 +286,14 @@ describe("StudioPage", () => {
         return new Response(JSON.stringify({ entries: bankEntries }), {
           status: 200,
         });
-      })
+      }),
     );
 
     render(<StudioPage />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Toggle entry" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Toggle entry" }),
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("resume-html")).toHaveTextContent("Engineer");
@@ -277,22 +308,28 @@ describe("StudioPage", () => {
 
     render(<StudioPage />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Toggle entry" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Toggle entry" }),
+    );
 
     await waitFor(() =>
-      expect(screen.getByTestId("resume-content")).toHaveTextContent("editable")
+      expect(screen.getByTestId("resume-content")).toHaveTextContent(
+        "editable",
+      ),
     );
     expect(mockResumePreview).toHaveBeenLastCalledWith(
       expect.objectContaining({
         content: expect.objectContaining({ type: "doc" }),
         onContentChange: expect.any(Function),
-      })
+      }),
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Edit preview" }));
 
     await waitFor(() =>
-      expect(screen.getByTestId("resume-html")).toHaveTextContent("Edited inline")
+      expect(screen.getByTestId("resume-html")).toHaveTextContent(
+        "Edited inline",
+      ),
     );
   });
 
@@ -300,39 +337,43 @@ describe("StudioPage", () => {
     let previewCount = 0;
     const fetchMock = mockStudioFetch(
       bankEntries,
-      () => `<p>Saved preview ${++previewCount}</p>`
+      () => `<p>Saved preview ${++previewCount}</p>`,
     );
 
     render(<StudioPage />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Toggle entry" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Toggle entry" }),
+    );
 
     await waitFor(() =>
       expect(screen.getByTestId("resume-html")).toHaveTextContent(
-        "Saved preview 1"
-      )
+        "Saved preview 1",
+      ),
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     fireEvent.click(screen.getByRole("button", { name: "Toggle entry" }));
 
     await waitFor(() =>
-      expect(screen.getByTestId("resume-html")).toHaveTextContent(/^$/)
+      expect(screen.getByTestId("resume-html")).toHaveTextContent(/^$/),
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Saved version" }));
 
     await waitFor(() =>
       expect(screen.getByTestId("resume-html")).toHaveTextContent(
-        "Saved preview 1"
-      )
+        "Saved preview 1",
+      ),
     );
     expect(fetchMock.getBuilderRequestCount()).toBe(1);
 
     fireEvent.click(screen.getByRole("button", { name: "Edit preview" }));
 
     await waitFor(() =>
-      expect(screen.getByTestId("resume-html")).toHaveTextContent("Edited inline")
+      expect(screen.getByTestId("resume-html")).toHaveTextContent(
+        "Edited inline",
+      ),
     );
     expect(fetchMock.getBuilderRequestCount()).toBe(1);
   });
@@ -367,7 +408,7 @@ describe("StudioPage", () => {
                 },
               ],
             }),
-            { status: 200 }
+            { status: 200 },
           );
         }
 
@@ -383,32 +424,36 @@ describe("StudioPage", () => {
                 education: [],
               },
             }),
-            { status: 200 }
+            { status: 200 },
           );
         }
 
         if (url === "/api/opportunities/job-1/link") {
           linkRequests.push(JSON.parse(String(init?.body)));
-          return new Response(JSON.stringify({ success: true }), { status: 200 });
+          return new Response(JSON.stringify({ success: true }), {
+            status: 200,
+          });
         }
 
         return new Response("Not found", { status: 404 });
-      })
+      }),
     );
 
     render(<StudioPage />);
 
     fireEvent.click(
-      await screen.findByRole("button", { name: "Select from Job Bank" })
+      await screen.findByRole("button", { name: "Select from Job Bank" }),
     );
-    fireEvent.click(await screen.findByRole("button", { name: /frontend engineer/i }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: /frontend engineer/i }),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Toggle entry" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() =>
       expect(linkRequests).toEqual([
         { resumeId: expect.stringMatching(/^manual-/) },
-      ])
+      ]),
     );
   });
 });

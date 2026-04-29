@@ -6,10 +6,7 @@ import {
   getTemplateForDocumentMode,
   TEMPLATES,
 } from "@/lib/resume/template-data";
-import type {
-  CoverLetterTemplateStyles,
-  TemplateStyles,
-} from "@/lib/resume/template-data";
+import type { TemplateStyles } from "@/lib/resume/template-data";
 import {
   DEFAULT_BUILDER_PANEL,
   createInitialSections,
@@ -29,11 +26,21 @@ import {
   type BuilderVersion,
 } from "@/lib/builder/version-history";
 import { getCoverLetterTemplate } from "@/lib/builder/cover-letter-document";
-import { createDocumentFilename, downloadHtmlAsPdf } from "@/lib/builder/document-export";
-import { generateCoverLetterPreviewFallbackHTML } from "@/lib/builder/cover-letter-preview-fallback";
+import {
+  createDocumentFilename,
+  downloadHtmlAsPdf,
+} from "@/lib/builder/document-export";
+import { buildCoverLetterPreviewContent } from "@/lib/builder/cover-letter-preview-fallback";
 import { generateResumePreviewFallbackHTML } from "@/lib/builder/resume-preview-fallback";
 import { tailoredResumeToTipTapDocument } from "@/lib/editor/bank-to-tiptap";
-import { createEditorBodyHtml, createPrintableEditorHtml } from "@/lib/editor/document-html";
+import {
+  coverLetterTextToTipTapDocument,
+  createBlankCoverLetterTipTapDocument,
+} from "@/lib/editor/cover-letter-tiptap";
+import {
+  createEditorBodyHtml,
+  createPrintableEditorHtml,
+} from "@/lib/editor/document-html";
 import type { TipTapJSONContent } from "@/lib/editor/types";
 import { readJsonResponse } from "@/lib/http";
 import type { TailoredResume } from "@/lib/resume/generator";
@@ -80,6 +87,7 @@ interface StudioPageState {
   html: string;
   content?: TipTapJSONContent;
   handleContentChange: (content: TipTapJSONContent) => void;
+  handleCoverLetterGenerated: (content: string) => void;
   isExporting: boolean;
   loading: boolean;
   manualVersionName: string;
@@ -130,31 +138,14 @@ export async function linkStudioVersionToOpportunity({
       body: JSON.stringify(
         documentMode === "cover_letter"
           ? { coverLetterId: trimmedVersionId }
-          : { resumeId: trimmedVersionId }
+          : { resumeId: trimmedVersionId },
       ),
-    }
+    },
   );
 
   if (!response.ok) {
     throw new Error(await readLinkError(response));
   }
-}
-
-function coverLetterStylesToEditorTemplateStyles(
-  styles: CoverLetterTemplateStyles
-): TemplateStyles {
-  return {
-    fontFamily: styles.fontFamily,
-    fontSize: styles.fontSize,
-    headerSize: styles.headerSize,
-    sectionHeaderSize: "12pt",
-    lineHeight: styles.lineHeight,
-    accentColor: styles.accentColor,
-    layout: "single-column",
-    headerStyle: styles.headerStyle,
-    bulletStyle: "none",
-    sectionDivider: "none",
-  };
 }
 
 function areSelectedIdsEqual(current: Set<string>, next: string[]): boolean {
@@ -164,24 +155,23 @@ function areSelectedIdsEqual(current: Set<string>, next: string[]): boolean {
 
 function areSectionsEqual(
   current: SectionState[],
-  next: SectionState[]
+  next: SectionState[],
 ): boolean {
   return (
     current.length === next.length &&
     current.every(
       (section, index) =>
         section.id === next[index]?.id &&
-        section.visible === next[index]?.visible
+        section.visible === next[index]?.visible,
     )
   );
 }
-
 
 export function isDraftSavedForDocument(
   dirtyDocumentIds: Set<string>,
   documentId: string,
   versions: BuilderVersion[],
-  currentDraftState: BuilderDraftState
+  currentDraftState: BuilderDraftState,
 ): boolean {
   return (
     !dirtyDocumentIds.has(documentId) ||
@@ -192,9 +182,11 @@ export function isDraftSavedForDocument(
 export function useStudioPageState(): StudioPageState {
   const [entries, setEntries] = useState<BankEntry[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [sections, setSections] = useState<SectionState[]>(createInitialSections);
+  const [sections, setSections] = useState<SectionState[]>(
+    createInitialSections,
+  );
   const [templateId, setTemplateId] = useState(
-    getDefaultTemplateIdForDocumentMode("resume")
+    getDefaultTemplateIdForDocumentMode("resume"),
   );
   const [loading, setLoading] = useState(true);
   const [hasLoadedEntries, setHasLoadedEntries] = useState(false);
@@ -202,12 +194,14 @@ export function useStudioPageState(): StudioPageState {
   const [content, setContent] = useState<TipTapJSONContent | undefined>();
   const [entryPickerOpen, setEntryPickerOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [mobileView, setMobileView] = useState<BuilderPanel>(DEFAULT_BUILDER_PANEL);
+  const [mobileView, setMobileView] = useState<BuilderPanel>(
+    DEFAULT_BUILDER_PANEL,
+  );
   const [versions, setVersions] = useState<BuilderVersion[]>([]);
   const [manualVersionName, setManualVersionName] = useState("");
   const [previewVersionId, setPreviewVersionId] = useState<string | null>(null);
   const [dirtyDocumentIds, setDirtyDocumentIds] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [documents, setDocuments] = useState<StudioDocument[]>([
     createStudioDocument("resume", { id: RESUME_DOCUMENT_ID }),
@@ -222,20 +216,21 @@ export function useStudioPageState(): StudioPageState {
   const showErrorToast = useErrorToast();
   const lastPreviewErrorToastRef = useRef("");
   const lastActiveDocumentIdRef = useRef<string | null>(null);
+  const lastCoverLetterEntryKeyRef = useRef("");
 
   const activeDocument = useMemo(
     () =>
       getActiveStudioDocument(
         documents,
         documentMode,
-        activeDocumentIds[documentMode]
+        activeDocumentIds[documentMode],
       ),
-    [activeDocumentIds, documentMode, documents]
+    [activeDocumentIds, documentMode, documents],
   );
 
   const currentDocuments = useMemo(
     () => getDocumentsForType(documents, documentMode),
-    [documentMode, documents]
+    [documentMode, documents],
   );
 
   useEffect(() => {
@@ -277,18 +272,19 @@ export function useStudioPageState(): StudioPageState {
     setSelectedIds((current) =>
       areSelectedIdsEqual(current, nextSelectedEntryIds)
         ? current
-        : new Set(nextSelectedEntryIds)
+        : new Set(nextSelectedEntryIds),
     );
     setSections((current) =>
-      areSectionsEqual(current, nextSections) ? current : nextSections
+      areSectionsEqual(current, nextSections) ? current : nextSections,
     );
     setTemplateId((current) =>
-      current === nextTemplateId ? current : nextTemplateId
+      current === nextTemplateId ? current : nextTemplateId,
     );
 
     if (lastActiveDocumentIdRef.current !== activeDocument.id) {
       setPreviewVersionId(null);
       lastActiveDocumentIdRef.current = activeDocument.id;
+      lastCoverLetterEntryKeyRef.current = "__active-document-changed__";
     }
 
     if (typeof window !== "undefined") {
@@ -304,17 +300,21 @@ export function useStudioPageState(): StudioPageState {
 
   const visibleCategoryIds = useMemo(
     () => getVisibleSectionIds(sections),
-    [sections]
+    [sections],
   );
 
   const orderedEntries = useMemo(() => {
     const categoryOrder = new Map(visibleCategoryIds.map((id, i) => [id, i]));
     return entries
-      .filter((entry) => selectedIds.has(entry.id) && visibleCategoryIds.includes(entry.category))
+      .filter(
+        (entry) =>
+          selectedIds.has(entry.id) &&
+          visibleCategoryIds.includes(entry.category),
+      )
       .sort(
         (a, b) =>
           (categoryOrder.get(a.category) ?? 999) -
-          (categoryOrder.get(b.category) ?? 999)
+          (categoryOrder.get(b.category) ?? 999),
       );
   }, [entries, selectedIds, visibleCategoryIds]);
 
@@ -323,7 +323,7 @@ export function useStudioPageState(): StudioPageState {
       documentMode === "cover_letter"
         ? getCoverLetterTemplate(templateId)
         : TEMPLATES.find((template) => template.id === templateId),
-    [documentMode, templateId]
+    [documentMode, templateId],
   );
 
   const currentDraftState = useMemo<BuilderDraftState>(
@@ -335,7 +335,7 @@ export function useStudioPageState(): StudioPageState {
       html,
       content,
     }),
-    [content, documentMode, html, sections, selectedIds, templateId]
+    [content, documentMode, html, sections, selectedIds, templateId],
   );
 
   const draftIsSaved = useMemo(
@@ -344,9 +344,9 @@ export function useStudioPageState(): StudioPageState {
         dirtyDocumentIds,
         activeDocument.id,
         versions,
-        currentDraftState
+        currentDraftState,
       ),
-    [activeDocument.id, currentDraftState, dirtyDocumentIds, versions]
+    [activeDocument.id, currentDraftState, dirtyDocumentIds, versions],
   );
 
   useEffect(() => {
@@ -356,17 +356,27 @@ export function useStudioPageState(): StudioPageState {
   useEffect(() => {
     if (previewVersionId) return;
 
-    if (orderedEntries.length === 0) {
-      setHtml("");
-      setContent(undefined);
+    if (documentMode === "cover_letter") {
+      const entryKey = orderedEntries.map((entry) => entry.id).join("|");
+      const shouldCreateDraft =
+        !content || lastCoverLetterEntryKeyRef.current !== entryKey;
+      if (shouldCreateDraft) {
+        const nextContent =
+          orderedEntries.length > 0
+            ? coverLetterTextToTipTapDocument(
+                buildCoverLetterPreviewContent(orderedEntries),
+              )
+            : createBlankCoverLetterTipTapDocument();
+        setContent(nextContent);
+        setHtml(createEditorBodyHtml(nextContent));
+        lastCoverLetterEntryKeyRef.current = entryKey;
+      }
       setGenerating(false);
       return;
     }
 
-    if (documentMode === "cover_letter") {
-      setHtml(
-        generateCoverLetterPreviewFallbackHTML(orderedEntries, templateId)
-      );
+    if (orderedEntries.length === 0) {
+      setHtml("");
       setContent(undefined);
       setGenerating(false);
       return;
@@ -389,7 +399,7 @@ export function useStudioPageState(): StudioPageState {
             }),
             signal: controller.signal,
           }),
-          "Failed to update preview"
+          "Failed to update preview",
         );
 
         if (!cancelled) {
@@ -397,13 +407,15 @@ export function useStudioPageState(): StudioPageState {
           if (data.html) {
             setHtml(data.html);
             setContent(
-              data.resume ? tailoredResumeToTipTapDocument(data.resume) : undefined
+              data.resume
+                ? tailoredResumeToTipTapDocument(data.resume)
+                : undefined,
             );
           } else {
             // API returned empty — use client-side fallback
             const fallbackHtml = generateResumePreviewFallbackHTML(
               orderedEntries,
-              templateId
+              templateId,
             );
             setHtml(fallbackHtml);
           }
@@ -415,7 +427,7 @@ export function useStudioPageState(): StudioPageState {
           try {
             const fallbackHtml = generateResumePreviewFallbackHTML(
               orderedEntries,
-              templateId
+              templateId,
             );
             lastPreviewErrorToastRef.current = "";
             setHtml(fallbackHtml);
@@ -455,10 +467,10 @@ export function useStudioPageState(): StudioPageState {
   const updateActiveDocument = useCallback(
     (updates: Partial<StudioDocument>) => {
       setDocuments((current) =>
-        updateStudioDocument(current, activeDocument.id, updates)
+        updateStudioDocument(current, activeDocument.id, updates),
       );
     },
-    [activeDocument.id]
+    [activeDocument.id],
   );
 
   const markActiveDocumentDirty = useCallback(() => {
@@ -479,10 +491,28 @@ export function useStudioPageState(): StudioPageState {
     });
   }, [activeDocument.id]);
 
-  const handleContentChange = useCallback((nextContent: TipTapJSONContent) => {
-    setContent(nextContent);
-    setHtml(createEditorBodyHtml(nextContent));
-  }, []);
+  const handleContentChange = useCallback(
+    (nextContent: TipTapJSONContent) => {
+      markActiveDocumentDirty();
+      setContent(nextContent);
+      setHtml(createEditorBodyHtml(nextContent));
+    },
+    [markActiveDocumentDirty],
+  );
+
+  const handleCoverLetterGenerated = useCallback(
+    (generatedContent: string) => {
+      const nextContent = coverLetterTextToTipTapDocument(generatedContent);
+      setPreviewVersionId(null);
+      markActiveDocumentDirty();
+      setContent(nextContent);
+      setHtml(createEditorBodyHtml(nextContent));
+      lastCoverLetterEntryKeyRef.current = orderedEntries
+        .map((entry) => entry.id)
+        .join("|");
+    },
+    [markActiveDocumentDirty, orderedEntries],
+  );
 
   const handleToggleEntry = useCallback(
     (id: string) => {
@@ -496,7 +526,7 @@ export function useStudioPageState(): StudioPageState {
         return next;
       });
     },
-    [markActiveDocumentDirty, updateActiveDocument]
+    [markActiveDocumentDirty, updateActiveDocument],
   );
 
   const handleReorder = useCallback(
@@ -509,7 +539,7 @@ export function useStudioPageState(): StudioPageState {
         return next;
       });
     },
-    [markActiveDocumentDirty, updateActiveDocument]
+    [markActiveDocumentDirty, updateActiveDocument],
   );
 
   const handleToggleVisibility = useCallback(
@@ -522,7 +552,7 @@ export function useStudioPageState(): StudioPageState {
         return next;
       });
     },
-    [markActiveDocumentDirty, updateActiveDocument]
+    [markActiveDocumentDirty, updateActiveDocument],
   );
 
   const handleTemplateSelect = useCallback(
@@ -533,7 +563,7 @@ export function useStudioPageState(): StudioPageState {
       setTemplateId(nextTemplateId);
       updateActiveDocument({ templateId: nextTemplateId });
     },
-    [markActiveDocumentDirty, templateId, updateActiveDocument]
+    [markActiveDocumentDirty, templateId, updateActiveDocument],
   );
 
   const handleCreateDocument = useCallback(() => {
@@ -548,7 +578,7 @@ export function useStudioPageState(): StudioPageState {
     (id: string) => {
       setActiveDocumentIds((prev) => ({ ...prev, [documentMode]: id }));
     },
-    [documentMode]
+    [documentMode],
   );
 
   const handleRenameDocument = useCallback((id: string, name: string) => {
@@ -570,7 +600,7 @@ export function useStudioPageState(): StudioPageState {
         [documentMode]: result.activeDocumentId,
       }));
     },
-    [documentMode, documents]
+    [documentMode, documents],
   );
 
   const saveManualVersion = useCallback(
@@ -611,7 +641,7 @@ export function useStudioPageState(): StudioPageState {
       linkedOpportunityId,
       markActiveDocumentSaved,
       showErrorToast,
-    ]
+    ],
   );
 
   const handleSaveManualVersion = useCallback(() => {
@@ -636,7 +666,7 @@ export function useStudioPageState(): StudioPageState {
         templateId: version.state.templateId,
       });
     },
-    [markActiveDocumentSaved, updateActiveDocument, versions]
+    [markActiveDocumentSaved, updateActiveDocument, versions],
   );
 
   const getPrintableHtml = useCallback(() => {
@@ -651,7 +681,7 @@ export function useStudioPageState(): StudioPageState {
     return createPrintableEditorHtml(
       bodyHtml,
       selectedTemplate.styles as TemplateStyles,
-      `${selectedTemplate.name} Resume`
+      `${selectedTemplate.name} Resume`,
     );
   }, [content, documentMode, html, selectedTemplate]);
 
@@ -665,8 +695,8 @@ export function useStudioPageState(): StudioPageState {
         printableHtml,
         createDocumentFilename(
           documentMode === "cover_letter" ? "cover-letter" : "resume",
-          selectedTemplate?.name
-        )
+          selectedTemplate?.name,
+        ),
       );
     } catch (err) {
       showErrorToast(err, {
@@ -697,6 +727,7 @@ export function useStudioPageState(): StudioPageState {
     generating,
     content,
     handleContentChange,
+    handleCoverLetterGenerated,
     handleCopyHtml,
     handleCreateDocument,
     handleDeleteDocument,

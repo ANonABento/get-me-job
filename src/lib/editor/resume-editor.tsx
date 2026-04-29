@@ -4,7 +4,7 @@ import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import { useEffect } from "react";
 import type { MouseEvent } from "react";
 import type { TemplateStyles } from "@/lib/resume/template-types";
-import { getResumeEditorStyles } from "./styles";
+import { getCoverLetterEditorStyles, getResumeEditorStyles } from "./styles";
 import { resumeEditorExtensions } from "./extensions";
 import type { TipTapJSONContent } from "./types";
 
@@ -13,6 +13,7 @@ interface ResumeEditorProps {
   templateStyles: TemplateStyles;
   editable?: boolean;
   className?: string;
+  variant?: "resume" | "cover_letter";
   onUpdate?: (content: TipTapJSONContent) => void;
   onEditorReady?: (editor: Editor | null) => void;
 }
@@ -22,6 +23,7 @@ export function ResumeEditor({
   templateStyles,
   editable = true,
   className,
+  variant = "resume",
   onUpdate,
   onEditorReady,
 }: ResumeEditorProps) {
@@ -57,7 +59,12 @@ export function ResumeEditor({
     editor?.setEditable(editable);
   }, [editable, editor]);
 
-  const editorClassName = ["resume-editor", className].filter(Boolean).join(" ");
+  const editorClassName = [
+    variant === "cover_letter" ? "cover-letter-editor" : "resume-editor",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   function handleShellClick(event: MouseEvent<HTMLDivElement>) {
     if (!editable || !editor) return;
@@ -70,7 +77,12 @@ export function ResumeEditor({
 
   return (
     <div className={editorClassName} onClick={handleShellClick}>
-      <style>{getResumeEditorStyles(templateStyles)}</style>
+      {variant === "cover_letter" && (
+        <style>{getCoverLetterEditorStyles(templateStyles)}</style>
+      )}
+      {variant === "resume" && (
+        <style>{getResumeEditorStyles(templateStyles)}</style>
+      )}
       <EditorContent editor={editor} />
     </div>
   );

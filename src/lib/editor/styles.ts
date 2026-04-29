@@ -12,16 +12,20 @@ function selector(rootSelector: string, childSelector: string): string {
 function bulletListStyles(
   styles: TemplateStyles,
   rootSelector: string,
-  markerListSelector = "ul"
+  markerListSelector = "ul",
 ): string {
-  const listStyle = styles.bulletStyle === "disc" ? "" : "list-style-type: none;";
-  const markerSelector = selector(rootSelector, `${markerListSelector} li::before`);
+  const listStyle =
+    styles.bulletStyle === "disc" ? "" : "list-style-type: none;";
+  const markerSelector = selector(
+    rootSelector,
+    `${markerListSelector} li::before`,
+  );
   const markerStyle =
     styles.bulletStyle === "arrow"
       ? `${markerSelector} { content: "\\2192 "; color: ${styles.accentColor}; }`
       : styles.bulletStyle === "dash"
-      ? `${markerSelector} { content: "\\2013 "; }`
-      : "";
+        ? `${markerSelector} { content: "\\2013 "; }`
+        : "";
 
   return `
     ${selector(rootSelector, "ul")} {
@@ -39,14 +43,14 @@ function bulletListStyles(
 function singleColumnStyles(
   styles: TemplateStyles,
   rootSelector: string,
-  includePrintStyles: boolean
+  includePrintStyles: boolean,
 ): string {
   const headerAlignment =
     styles.headerStyle === "centered"
       ? "text-align: center;"
       : styles.headerStyle === "minimal"
-      ? ""
-      : "text-align: left;";
+        ? ""
+        : "text-align: left;";
 
   const sectionBorder =
     styles.sectionDivider === "line"
@@ -146,7 +150,7 @@ function singleColumnStyles(
 function twoColumnStyles(
   styles: TemplateStyles,
   rootSelector: string,
-  includePrintStyles: boolean
+  includePrintStyles: boolean,
 ): string {
   const sidebarBg = `${styles.accentColor}0d`;
 
@@ -273,7 +277,7 @@ function printStyles(
   rootSelector: string,
   includePrintStyles: boolean,
   pageMargin: string,
-  includeTwoColumnContainer: boolean
+  includeTwoColumnContainer: boolean,
 ): string {
   if (!includePrintStyles) return "";
   const twoColumnPrintStyles = includeTwoColumnContainer
@@ -317,7 +321,7 @@ function printStyles(
 
 export function getResumeDocumentStyles(
   styles: TemplateStyles,
-  options: ResumeStyleOptions = {}
+  options: ResumeStyleOptions = {},
 ): string {
   const rootSelector = options.rootSelector ?? "body";
   const includePrintStyles = options.includePrintStyles ?? true;
@@ -329,7 +333,7 @@ export function getResumeDocumentStyles(
 
 function editorInteractionStyles(
   rootSelector: string,
-  accentColor: string
+  accentColor: string,
 ): string {
   const sectionSelector = selector(rootSelector, ".resume-section");
   const handleSelector = selector(rootSelector, ".resume-section-drag-handle");
@@ -413,6 +417,38 @@ export function getResumeEditorStyles(styles: TemplateStyles): string {
   });
   return `${documentStyles}\n${editorInteractionStyles(
     rootSelector,
-    styles.accentColor
+    styles.accentColor,
   )}`.trim();
+}
+
+export function getCoverLetterEditorStyles(styles: TemplateStyles): string {
+  const rootSelector = ".cover-letter-editor .ProseMirror";
+  const documentStyles = getResumeDocumentStyles(
+    {
+      ...styles,
+      layout: "single-column",
+      bulletStyle: "disc",
+      sectionDivider: "none",
+    },
+    {
+      rootSelector,
+      includePrintStyles: false,
+    },
+  );
+
+  return `${documentStyles}
+    ${rootSelector} {
+      padding: 0.7in;
+    }
+    ${selector(rootSelector, "p")} {
+      margin-bottom: 12px;
+    }
+    ${selector(rootSelector, "h2")} {
+      margin: 0 0 12px;
+      text-transform: none;
+    }
+    ${selector(rootSelector, "ul")} {
+      margin-bottom: 12px;
+    }
+${editorInteractionStyles(rootSelector, styles.accentColor)}`.trim();
 }
