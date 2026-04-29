@@ -38,6 +38,13 @@ function formatBankContext(bankEntries: GroupedBankEntries): string {
     );
   }
 
+  if (bankEntries.hackathon.length > 0) {
+    sections.push(
+      "## Hackathons\n" +
+        bankEntries.hackathon.map((e) => formatEntryContent(e)).join("\n"),
+    );
+  }
+
   if (bankEntries.education.length > 0) {
     sections.push(
       "## Education\n" +
@@ -136,6 +143,7 @@ export function filterBankEntriesByIds(
     experience: [],
     skill: [],
     project: [],
+    hackathon: [],
     education: [],
     achievement: [],
     certification: [],

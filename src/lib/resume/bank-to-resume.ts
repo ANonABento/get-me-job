@@ -1,6 +1,7 @@
 import type { BankEntry } from "@/types";
 import type { TailoredResume } from "./generator";
 import type { ContactInfo } from "@/types";
+import { formatHackathonHighlights } from "./hackathon-highlights";
 
 /**
  * Convert selected bank entries into the TailoredResume structure
@@ -60,6 +61,14 @@ export function bankEntriesToResume(
             : c.description
             ? [String(c.description)]
             : [],
+        });
+        break;
+      case "hackathon":
+        experiences.push({
+          company: String(c.organizer || "Hackathon"),
+          title: String(c.name || ""),
+          dates: formatExperienceDates(c),
+          highlights: formatHackathonHighlights(c),
         });
         break;
     }

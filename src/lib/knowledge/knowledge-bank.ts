@@ -51,6 +51,26 @@ export function bankEntryToText(entry: Pick<BankEntry, "category" | "content">):
         parts.push(c.highlights.map(String).join(" "));
       }
       break;
+    case "hackathon":
+      if (c.name) parts.push(String(c.name));
+      if (c.organizer) parts.push(String(c.organizer));
+      if (c.location) parts.push(String(c.location));
+      if (c.notes) parts.push(String(c.notes));
+      if (c.submissionUrl) parts.push(String(c.submissionUrl));
+      if (c.eventUrl) parts.push(String(c.eventUrl));
+      if (Array.isArray(c.prizes)) {
+        parts.push(c.prizes.map(String).join(" "));
+      }
+      if (Array.isArray(c.tracks)) {
+        parts.push(c.tracks.map(String).join(" "));
+      }
+      if (Array.isArray(c.themes)) {
+        parts.push(c.themes.map(String).join(" "));
+      }
+      if (Array.isArray(c.technologies)) {
+        parts.push(c.technologies.map(String).join(" "));
+      }
+      break;
     case "education":
       if (c.institution) parts.push(String(c.institution));
       if (c.degree) parts.push(String(c.degree));

@@ -10,6 +10,7 @@ const CATEGORY_LABELS: Record<BankCategory, string> = {
   experience: "Experience",
   skill: "Skills",
   project: "Projects",
+  hackathon: "Hackathons",
   education: "Education",
   achievement: "Achievements",
   certification: "Certifications",

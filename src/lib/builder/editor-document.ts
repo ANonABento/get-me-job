@@ -162,10 +162,16 @@ export function editableDocumentToResume(
       switch (section.id) {
         case "experience":
         case "project":
+        case "hackathon":
           experiences.push({
             title: entry.heading,
             company:
-              entry.subtitle || (section.id === "project" ? "Project" : ""),
+              entry.subtitle ||
+              (section.id === "project"
+                ? "Project"
+                : section.id === "hackathon"
+                  ? "Hackathon"
+                  : ""),
             dates: entry.meta,
             highlights:
               entry.bullets.length > 0 ? entry.bullets : compact([entry.body]),
@@ -242,6 +248,19 @@ function createEditableEntry(entry: BankEntry): EditableDocumentEntry {
         meta: readStringArray(content.technologies).join(", "),
         body: readString(content.description),
         bullets: readStringArray(content.highlights),
+      };
+    case "hackathon":
+      return {
+        id: entry.id,
+        heading: readString(content.name),
+        subtitle: readString(content.organizer),
+        meta: formatDateRange(content),
+        body: readString(content.notes) || readString(content.submissionUrl),
+        bullets: [
+          ...readStringArray(content.prizes).map((prize) => `Prize: ${prize}`),
+          ...readStringArray(content.tracks).map((track) => `Track: ${track}`),
+          ...readStringArray(content.themes).map((theme) => `Theme: ${theme}`),
+        ],
       };
     case "achievement":
       return {

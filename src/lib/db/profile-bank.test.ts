@@ -24,6 +24,7 @@ import {
   deleteBankEntriesBySource,
   clearBankEntries,
   findDuplicateEntry,
+  getDeduplicationKey,
   updateBankEntry,
   getSourceDocuments,
   deleteSourceDocument,
@@ -172,6 +173,7 @@ describe("Profile Bank DB Functions", () => {
       expect(result.skill).toHaveLength(1);
       expect(result.experience).toHaveLength(1);
       expect(result.project).toHaveLength(0);
+      expect(result.hackathon).toHaveLength(0);
       expect(result.education).toHaveLength(0);
       expect(result.achievement).toHaveLength(0);
       expect(result.certification).toHaveLength(0);
@@ -237,6 +239,17 @@ describe("Profile Bank DB Functions", () => {
       const result = findDuplicateEntry("skill", "unknown-skill");
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe("getDeduplicationKey", () => {
+    it("uses hackathon name and submission URL for duplicate detection", () => {
+      expect(
+        getDeduplicationKey("hackathon", {
+          name: "AI Build Weekend",
+          submissionUrl: "https://example.devpost.com/submissions/1",
+        })
+      ).toBe("ai build weekend|https://example.devpost.com/submissions/1");
     });
   });
 

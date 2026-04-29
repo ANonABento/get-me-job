@@ -9,7 +9,7 @@ const defaultProps = {
   onCategoryChange: vi.fn(),
   sortBy: "date" as const,
   onSortChange: vi.fn(),
-  counts: { experience: 5, skill: 3, project: 2, education: 1, achievement: 0, certification: 1 },
+  counts: { experience: 5, skill: 3, project: 2, hackathon: 4, education: 1, achievement: 0, certification: 1 },
 };
 
 describe("SearchBar", () => {
@@ -22,7 +22,7 @@ describe("SearchBar", () => {
     render(<SearchBar {...defaultProps} />);
     const allTab = screen.getByRole("tab", { name: /All/i });
     expect(allTab).toBeInTheDocument();
-    expect(allTab).toHaveTextContent("12");
+    expect(allTab).toHaveTextContent("16");
   });
 
   it("should render category chips with count badges", () => {
@@ -35,6 +35,9 @@ describe("SearchBar", () => {
 
     const projTab = screen.getByRole("tab", { name: /Projects/i });
     expect(projTab).toHaveTextContent("2");
+
+    const hackTab = screen.getByRole("tab", { name: /Hackathons/i });
+    expect(hackTab).toHaveTextContent("4");
 
     const eduTab = screen.getByRole("tab", { name: /Education/i });
     expect(eduTab).toHaveTextContent("1");
@@ -101,6 +104,7 @@ describe("SearchBar", () => {
     expect(CATEGORY_LABELS.experience).toBe("Experience");
     expect(CATEGORY_LABELS.skill).toBe("Skills");
     expect(CATEGORY_LABELS.project).toBe("Projects");
+    expect(CATEGORY_LABELS.hackathon).toBe("Hackathons");
     expect(CATEGORY_LABELS.education).toBe("Education");
     expect(CATEGORY_LABELS.achievement).toBe("Achievements");
     expect(CATEGORY_LABELS.certification).toBe("Certifications");

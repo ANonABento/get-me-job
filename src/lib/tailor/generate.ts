@@ -1,5 +1,6 @@
 import type { BankEntry, GroupedBankEntries, LLMConfig, ContactInfo } from "@/types";
 import type { TailoredResume } from "@/lib/resume/generator";
+import { formatHackathonHighlights } from "@/lib/resume/hackathon-highlights";
 import type { BankMatch } from "./analyze";
 import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
 
@@ -37,6 +38,7 @@ async function generateWithLLM(
   const skillEntries = formatBankCategory(input.bankEntries.skill);
   const educationEntries = formatBankCategory(input.bankEntries.education);
   const projectEntries = formatBankCategory(input.bankEntries.project);
+  const hackathonEntries = formatBankCategory(input.bankEntries.hackathon);
   const achievementEntries = formatBankCategory(input.bankEntries.achievement);
 
   const response = await client.complete({
@@ -65,6 +67,9 @@ ${educationEntries}
 
 KNOWLEDGE BANK - PROJECTS:
 ${projectEntries}
+
+KNOWLEDGE BANK - HACKATHONS:
+${hackathonEntries}
 
 KNOWLEDGE BANK - ACHIEVEMENTS:
 ${achievementEntries}
@@ -127,38 +132,22 @@ Return ONLY a JSON object:
 
 function generateBasicFromBank(input: BankResumeInput): TailoredResume {
   // Use matched entries sorted by relevance
+  const usedEntryIds = new Set<string>();
   const topExperiences = input.matchedEntries
-    .filter((m) => m.entry.category === "experience")
+    .filter((m) => m.entry.category === "experience" || m.entry.category === "hackathon")
     .slice(0, 3)
     .map((m) => {
-      const c = m.entry.content as Record<string, unknown>;
-      return {
-        company: String(c.company || ""),
-        title: String(c.title || ""),
-        dates: `${c.startDate || ""} - ${c.endDate || "Present"}`,
-        highlights: Array.isArray(c.highlights)
-          ? (c.highlights as string[]).slice(0, 4)
-          : [],
-      };
+      usedEntryIds.add(m.entry.id);
+      return entryToResumeExperience(m.entry);
     });
 
   // If not enough matched experiences, fill from bank
   if (topExperiences.length < 2) {
-    for (const entry of input.bankEntries.experience) {
+    for (const entry of [...input.bankEntries.experience, ...input.bankEntries.hackathon]) {
       if (topExperiences.length >= 3) break;
-      const alreadyIncluded = topExperiences.some(
-        (e) => e.company === String(entry.content.company)
-      );
-      if (!alreadyIncluded) {
-        const c = entry.content;
-        topExperiences.push({
-          company: String(c.company || ""),
-          title: String(c.title || ""),
-          dates: `${c.startDate || ""} - ${c.endDate || "Present"}`,
-          highlights: Array.isArray(c.highlights)
-            ? (c.highlights as string[]).slice(0, 4)
-            : [],
-        });
+      if (!usedEntryIds.has(entry.id)) {
+        topExperiences.push(entryToResumeExperience(entry));
+        usedEntryIds.add(entry.id);
       }
     }
   }
@@ -205,4 +194,33 @@ function formatBankCategory(entries: BankEntry[]): string {
   return entries
     .map((e, i) => `${i + 1}. ${JSON.stringify(e.content)}`)
     .join("\n");
+}
+
+function entryToResumeExperience(entry: BankEntry): TailoredResume["experiences"][number] {
+  const c = entry.content;
+  if (entry.category === "hackathon") {
+    return {
+      company: String(c.organizer || "Hackathon"),
+      title: String(c.name || ""),
+      dates: formatDateRange(c),
+      highlights: formatHackathonHighlights(c).slice(0, 4),
+    };
+  }
+
+  return {
+    company: String(c.company || ""),
+    title: String(c.title || ""),
+    dates: formatDateRange(c),
+    highlights: Array.isArray(c.highlights)
+      ? c.highlights.map(String).slice(0, 4)
+      : [],
+  };
+}
+
+function formatDateRange(content: Record<string, unknown>): string {
+  const start = content.startDate ? String(content.startDate) : "";
+  const end = content.endDate ? String(content.endDate) : "";
+  if (start && end) return `${start} - ${end}`;
+  if (start) return `${start} - Present`;
+  return end;
 }

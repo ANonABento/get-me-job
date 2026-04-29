@@ -61,6 +61,7 @@ function makeBank(): GroupedBankEntries {
       }),
     ],
     project: [],
+    hackathon: [],
     achievement: [],
     certification: [],
   };
@@ -148,6 +149,51 @@ describe("generateFromBank", () => {
 
     // Should still have experiences pulled from bank
     expect(result.experiences.length).toBeGreaterThan(0);
+  });
+
+  it("should use hackathons as resume experiences in the non-LLM fallback", async () => {
+    const bank = makeBank();
+    bank.experience = [];
+    bank.hackathon = [
+      makeBankEntry({
+        id: "h1",
+        category: "hackathon",
+        content: {
+          name: "AI Build Weekend",
+          organizer: "Devpost",
+          startDate: "2026-05-10",
+          endDate: "2026-05-12",
+          prizes: ["Best AI App"],
+          tracks: ["AI/ML"],
+          themes: ["Accessibility"],
+          notes: "Submitted a working demo",
+        },
+      }),
+    ];
+
+    const result = await generateFromBank(
+      {
+        bankEntries: bank,
+        matchedEntries: [],
+        contact: { name: "Jane Doe" },
+        jobTitle: "Frontend Engineer",
+        company: "Test Corp",
+        jobDescription: "React developer needed",
+      },
+      null
+    );
+
+    expect(result.experiences[0]).toEqual({
+      company: "Devpost",
+      title: "AI Build Weekend",
+      dates: "2026-05-10 - 2026-05-12",
+      highlights: [
+        "Prizes: Best AI App",
+        "Tracks: AI/ML",
+        "Themes: Accessibility",
+        "Submitted a working demo",
+      ],
+    });
   });
 
   it("should prioritize matched skills", async () => {

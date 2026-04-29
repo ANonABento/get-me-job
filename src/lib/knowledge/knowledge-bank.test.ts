@@ -83,6 +83,22 @@ const mockEntries: BankEntry[] = [
     confidenceScore: 0.75,
     createdAt: "2024-01-06",
   },
+  {
+    id: "entry-7",
+    userId: "default",
+    category: "hackathon",
+    content: {
+      name: "AI Build Weekend",
+      organizer: "Devpost",
+      prizes: ["Best AI App"],
+      tracks: ["AI/ML"],
+      themes: ["Accessibility"],
+      technologies: ["React", "OpenAI API"],
+      notes: "Submitted a working demo",
+    },
+    confidenceScore: 0.82,
+    createdAt: "2024-01-07",
+  },
 ];
 
 describe("bankEntryToText", () => {
@@ -127,6 +143,16 @@ describe("bankEntryToText", () => {
     const text = bankEntryToText(mockEntries[5]);
     expect(text).toContain("hackathon");
     expect(text).toContain("AI-powered");
+  });
+
+  it("should extract hackathon fields", () => {
+    const text = bankEntryToText(mockEntries[6]);
+    expect(text).toContain("AI Build Weekend");
+    expect(text).toContain("Devpost");
+    expect(text).toContain("Best AI App");
+    expect(text).toContain("AI/ML");
+    expect(text).toContain("Accessibility");
+    expect(text).toContain("OpenAI API");
   });
 
   it("should fallback to string values for unknown structure", () => {

@@ -23,7 +23,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get("q");
-    const category = searchParams.get("category") as BankCategory | null;
+    const type = searchParams.get("type");
+    const category = (searchParams.get("category") ||
+      (type === "hackathon" ? "hackathon" : null)) as BankCategory | null;
     const validCategory =
       category && BANK_CATEGORIES.includes(category) ? category : null;
 

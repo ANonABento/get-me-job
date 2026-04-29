@@ -87,6 +87,7 @@ export function getGroupedBankEntries(userId: string = "default"): GroupedBankEn
     experience: [],
     skill: [],
     project: [],
+    hackathon: [],
     education: [],
     achievement: [],
     certification: [],
@@ -243,6 +244,8 @@ export function getDeduplicationKey(
       return `${content.institution}|${content.degree}`.toLowerCase();
     case "project":
       return `${content.name}`.toLowerCase();
+    case "hackathon":
+      return `${content.name}|${content.submissionUrl || content.eventUrl}`.toLowerCase();
     case "certification":
       return `${content.name}|${content.issuer}`.toLowerCase();
     case "achievement":

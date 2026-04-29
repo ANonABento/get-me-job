@@ -17,7 +17,9 @@ export {
   cleanContent,
   getDateRange,
   getEntryTitle,
+  getHackathonTeamSize,
   getHighlights,
+  getStringList,
   getTechnologies,
   listToText,
   textToList,
@@ -73,6 +75,8 @@ export function ChunkCard({
     <div
       className={cn(
         "group rounded-xl border bg-card transition-all hover:border-primary/30 hover:shadow-md",
+        entry.category === "hackathon" &&
+          "border-warning/40 bg-warning/5 hover:border-warning/60",
         highlighted && "ring-2 ring-primary",
         selected && "border-primary bg-primary/5"
       )}
