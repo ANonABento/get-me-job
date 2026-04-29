@@ -1,7 +1,9 @@
 // Core profile types for Taida
 import type { DocumentType } from "@/lib/constants/documents";
+import type { JobStatus, JobType } from "@/lib/constants/jobs";
 
 export type { DocumentType };
+export type { JobStatus, JobType } from "@/lib/constants/jobs";
 
 export interface ContactInfo {
   name: string;
@@ -113,15 +115,12 @@ export interface Document {
   uploadedAt: string;
 }
 
-// Job application types
-export type JobStatus = 'pending' | 'saved' | 'dismissed' | 'applied' | 'interviewing' | 'offered' | 'rejected' | 'withdrawn';
-
 export interface JobDescription {
   id: string;
   title: string;
   company: string;
   location?: string;
-  type?: 'full-time' | 'part-time' | 'contract' | 'internship';
+  type?: JobType;
   remote?: boolean;
   salary?: string;
   description: string;

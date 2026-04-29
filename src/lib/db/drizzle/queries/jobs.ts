@@ -1,26 +1,26 @@
 import { db, jobs, eq, and, desc } from '../index';
 import { generateId } from '@/lib/utils';
-import type { JobDescription } from '@/types';
+import { JOB_STATUSES, JOB_TYPES } from '@/lib/constants/jobs';
+import type { JobDescription, JobStatus, JobType } from '@/types';
 
-// Valid job types
-const validJobTypes = ['full-time', 'part-time', 'contract', 'internship'] as const;
-type ValidJobType = typeof validJobTypes[number];
+function isJobType(value: string | null): value is JobType {
+  return JOB_TYPES.includes(value as JobType);
+}
 
-// Valid job statuses
-const validJobStatuses = ['pending', 'saved', 'dismissed', 'applied', 'interviewing', 'offered', 'rejected', 'withdrawn'] as const;
-type ValidJobStatus = typeof validJobStatuses[number];
+function isJobStatus(value: string): value is JobStatus {
+  return JOB_STATUSES.includes(value as JobStatus);
+}
 
 // Map database row to JobDescription type
 function mapRowToJob(row: typeof jobs.$inferSelect): JobDescription {
-  const jobType = row.type as ValidJobType | null;
-  const jobStatus = (row.status ?? 'saved') as ValidJobStatus;
+  const jobStatus = row.status ?? 'saved';
 
   return {
     id: row.id,
     title: row.title,
     company: row.company,
     location: row.location ?? undefined,
-    type: jobType && validJobTypes.includes(jobType) ? jobType : undefined,
+    type: isJobType(row.type) ? row.type : undefined,
     remote: row.remote ?? false,
     salary: row.salary ?? undefined,
     description: row.description,
@@ -28,7 +28,7 @@ function mapRowToJob(row: typeof jobs.$inferSelect): JobDescription {
     responsibilities: row.responsibilitiesJson ? JSON.parse(row.responsibilitiesJson) : [],
     keywords: row.keywordsJson ? JSON.parse(row.keywordsJson) : [],
     url: row.url ?? undefined,
-    status: validJobStatuses.includes(jobStatus) ? jobStatus : 'saved',
+    status: isJobStatus(jobStatus) ? jobStatus : 'saved',
     appliedAt: row.appliedAt ?? undefined,
     deadline: row.deadline ?? undefined,
     notes: row.notes ?? undefined,
@@ -123,7 +123,7 @@ export async function updateJob(
 export async function updateJobStatus(
   userId: string,
   jobId: string,
-  status: string,
+  status: JobStatus,
   appliedAt?: string
 ): Promise<JobDescription | null> {
   const now = new Date().toISOString();
@@ -146,7 +146,7 @@ export async function deleteJob(userId: string, jobId: string): Promise<void> {
 }
 
 // Get jobs by status for a user
-export async function getJobsByStatus(userId: string, status: string): Promise<JobDescription[]> {
+export async function getJobsByStatus(userId: string, status: JobStatus): Promise<JobDescription[]> {
   const rows = await db.select().from(jobs)
     .where(and(eq(jobs.userId, userId), eq(jobs.status, status)))
     .orderBy(desc(jobs.createdAt));
@@ -159,19 +159,14 @@ export async function countJobsByStatus(userId: string): Promise<Record<string, 
   const rows = await db.select().from(jobs)
     .where(eq(jobs.userId, userId));
 
-  const counts: Record<string, number> = {
-    pending: 0,
-    saved: 0,
-    dismissed: 0,
-    applied: 0,
-    interviewing: 0,
-    offered: 0,
-    rejected: 0,
-  };
+  const counts = Object.fromEntries(
+    JOB_STATUSES.map((status) => [status, 0])
+  ) as Record<JobStatus, number>;
 
   for (const row of rows) {
     const status = row.status ?? 'saved';
-    counts[status] = (counts[status] ?? 0) + 1;
+    const countStatus = isJobStatus(status) ? status : 'saved';
+    counts[countStatus] += 1;
   }
 
   return counts;

@@ -1,6 +1,6 @@
-import type { JobDescription } from "@/types";
+import type { JobDescription, JobStatus } from "@/types";
 
-export type JobStatusFilter = "all" | "pending" | "saved" | "dismissed" | "applied" | "interviewing" | "offered" | "rejected" | "withdrawn";
+export type JobStatusFilter = "all" | JobStatus;
 export type JobTypeFilter = "all" | "full-time" | "part-time" | "contract" | "internship";
 export type JobRemoteFilter = "all" | "remote" | "onsite";
 export type JobSortOption = "newest" | "oldest" | "company" | "title";
@@ -22,7 +22,7 @@ export const DEFAULT_JOB_FILTERS: JobFilters = {
 };
 
 export function getJobStatusValue(job: Pick<JobDescription, "status">): JobStatusFilter {
-  return (job.status ?? "saved") as JobStatusFilter;
+  return job.status ?? "saved";
 }
 
 export function filterJobs(jobs: JobDescription[], filters: JobFilters): JobDescription[] {
