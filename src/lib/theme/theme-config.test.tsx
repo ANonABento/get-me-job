@@ -132,6 +132,7 @@ describe("theme config", () => {
     expect(variables["--glow-color"]).toBe(
       "hsl(var(--primary) / var(--glow-primary-opacity))"
     );
+    expect(variables["--glow-color-secondary"]).toBe("hsl(var(--accent) / 0.14)");
   });
 
   it("returns CSS custom properties with custom color overrides", () => {
