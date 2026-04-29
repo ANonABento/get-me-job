@@ -64,12 +64,12 @@ const SAMPLE_LETTER = {
 export function getTemplateThumbnailTraits(
   styles: TemplateStyles | CoverLetterTemplate["styles"]
 ): TemplateThumbnailTraits {
-  if ("headerAlign" in styles) {
+  if ("layout" in styles && styles.layout === "letter") {
     return {
       accentColor: styles.accentColor,
       fontFamily: styles.fontFamily,
       headerAlignmentClass:
-        styles.headerAlign === "center"
+        styles.headerStyle === "centered"
           ? "items-center text-center"
           : "items-start",
       sectionRuleClass: "",
