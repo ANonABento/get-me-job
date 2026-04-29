@@ -27,6 +27,7 @@ import {
   type BuilderDraftState,
   type BuilderVersion,
 } from "@/lib/builder/version-history";
+import { getCoverLetterTemplate } from "@/lib/builder/cover-letter-document";
 import { createDocumentFilename, downloadHtmlAsPdf } from "@/lib/builder/document-export";
 import { generateCoverLetterPreviewFallbackHTML } from "@/lib/builder/cover-letter-preview-fallback";
 import { generateResumePreviewFallbackHTML } from "@/lib/builder/resume-preview-fallback";
@@ -127,6 +128,10 @@ function areSectionsEqual(
         section.visible === next[index]?.visible
     )
   );
+}
+
+function getDefaultTemplateIdForDocumentMode(mode: DocumentMode): string {
+  return mode === "cover_letter" ? "formal" : "classic";
 }
 
 export function isDraftSavedForDocument(
@@ -270,7 +275,10 @@ export function useStudioPageState(): StudioPageState {
   }, [entries, selectedIds, visibleCategoryIds]);
 
   const selectedTemplate = useMemo(
-    () => getTemplateForDocumentMode(documentMode, templateId),
+    () =>
+      documentMode === "cover_letter"
+        ? getCoverLetterTemplate(templateId)
+        : TEMPLATES.find((template) => template.id === templateId),
     [documentMode, templateId]
   );
 
@@ -312,7 +320,9 @@ export function useStudioPageState(): StudioPageState {
     }
 
     if (documentMode === "cover_letter") {
-      setHtml(generateCoverLetterPreviewFallbackHTML(orderedEntries, templateId));
+      setHtml(
+        generateCoverLetterPreviewFallbackHTML(orderedEntries, templateId)
+      );
       setContent(undefined);
       setGenerating(false);
       return;
@@ -568,18 +578,9 @@ export function useStudioPageState(): StudioPageState {
     const bodyHtml = content ? createEditorBodyHtml(content) : html;
     if (!bodyHtml) return "";
 
-    if (documentMode === "cover_letter") {
-      if (!content) return bodyHtml;
-      if (selectedTemplate.styles.layout !== "letter") return bodyHtml;
+    if (documentMode === "cover_letter") return bodyHtml;
 
-      return createPrintableEditorHtml(
-        bodyHtml,
-        coverLetterStylesToEditorTemplateStyles(selectedTemplate.styles),
-        `${selectedTemplate.name} Cover Letter`
-      );
-    }
-
-    if (selectedTemplate.styles.layout === "letter") return bodyHtml;
+    if (!("layout" in selectedTemplate.styles)) return bodyHtml;
 
     return createPrintableEditorHtml(
       bodyHtml,
@@ -598,7 +599,7 @@ export function useStudioPageState(): StudioPageState {
         printableHtml,
         createDocumentFilename(
           documentMode === "cover_letter" ? "cover-letter" : "resume",
-          selectedTemplate.name
+          selectedTemplate?.name
         )
       );
     } catch (err) {

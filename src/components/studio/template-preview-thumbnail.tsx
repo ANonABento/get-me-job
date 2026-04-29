@@ -1,15 +1,12 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import type {
-  CoverLetterTemplateStyles,
-  DocumentTemplate,
-  TemplateStyles,
-} from "@/lib/resume/template-data";
+import type { CoverLetterTemplate } from "@/lib/builder/cover-letter-document";
+import type { ResumeTemplate, TemplateStyles } from "@/lib/resume/template-data";
 import { cn } from "@/lib/utils";
 
 interface TemplatePreviewThumbnailProps {
-  template: DocumentTemplate;
+  template: ResumeTemplate | CoverLetterTemplate;
   className?: string;
 }
 
@@ -65,13 +62,16 @@ const SAMPLE_LETTER = {
 };
 
 export function getTemplateThumbnailTraits(
-  styles: TemplateStyles | CoverLetterTemplateStyles
+  styles: TemplateStyles | CoverLetterTemplate["styles"]
 ): TemplateThumbnailTraits {
-  if (styles.layout === "letter") {
+  if ("headerAlign" in styles) {
     return {
       accentColor: styles.accentColor,
       fontFamily: styles.fontFamily,
-      headerAlignmentClass: HEADER_ALIGNMENT_CLASS_BY_STYLE[styles.headerStyle],
+      headerAlignmentClass:
+        styles.headerAlign === "center"
+          ? "items-center text-center"
+          : "items-start",
       sectionRuleClass: "",
       bulletLabel: "",
       isTwoColumn: false,

@@ -11,9 +11,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  getTemplateForDocumentMode,
-  getTemplatesForDocumentMode,
-} from "@/lib/resume/template-data";
+  COVER_LETTER_TEMPLATES,
+  getCoverLetterTemplate,
+} from "@/lib/builder/cover-letter-document";
+import { getTemplate, TEMPLATES } from "@/lib/resume/template-data";
 import { cn } from "@/lib/utils";
 import {
   DOCUMENT_MODE_LABELS,
@@ -49,11 +50,15 @@ export function StudioHeader({
 }: StudioHeaderProps) {
   const [templateOpen, setTemplateOpen] = useState(false);
   const templates = useMemo(
-    () => getTemplatesForDocumentMode(documentMode),
+    () =>
+      documentMode === "cover_letter" ? COVER_LETTER_TEMPLATES : TEMPLATES,
     [documentMode]
   );
   const selectedTemplate = useMemo(
-    () => getTemplateForDocumentMode(documentMode, templateId),
+    () =>
+      documentMode === "cover_letter"
+        ? getCoverLetterTemplate(templateId)
+        : getTemplate(templateId),
     [documentMode, templateId]
   );
   const modeLabel = DOCUMENT_MODE_LABELS[documentMode];

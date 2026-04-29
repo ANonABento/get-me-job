@@ -101,19 +101,19 @@ describe("builder version history", () => {
     });
   });
 
-  it("parses cover letter draft state with cover letter template fallback", () => {
+  it("preserves cover letter draft mode with its default template", () => {
     const parsed = parseBuilderDraftState({
       documentMode: "cover_letter",
       selectedIds: ["entry-1"],
       sections: [{ id: "experience", visible: true }],
-      html: "<p>Cover letter</p>",
+      html: "<main>Letter</main>",
     });
 
     expect(parsed).toMatchObject({
       documentMode: "cover_letter",
       selectedIds: ["entry-1"],
       templateId: "formal",
-      html: "<p>Cover letter</p>",
+      html: "<main>Letter</main>",
     });
   });
 

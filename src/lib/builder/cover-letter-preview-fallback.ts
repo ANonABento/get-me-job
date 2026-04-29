@@ -1,5 +1,5 @@
 import type { BankEntry } from "@/types";
-import { generateCoverLetterHTML } from "@/lib/resume/pdf";
+import { generateCoverLetterHTML } from "@/lib/builder/cover-letter-document";
 
 function stringifyValue(value: unknown): string {
   if (typeof value === "string") return value.trim();
@@ -32,10 +32,7 @@ function getEntryHighlights(entry: BankEntry): string[] {
   const highlights = entry.content.highlights;
   if (!Array.isArray(highlights)) return [];
 
-  return highlights
-    .map(stringifyValue)
-    .filter(Boolean)
-    .slice(0, 2);
+  return highlights.map(stringifyValue).filter(Boolean).slice(0, 2);
 }
 
 function formatList(items: string[]): string {

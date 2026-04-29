@@ -1,10 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { COVER_LETTER_TEMPLATES, TEMPLATES } from "@/lib/resume/template-data";
-import type {
-  CoverLetterTemplate,
-  ResumeTemplate,
-} from "@/lib/resume/template-data";
+import { getCoverLetterTemplate } from "@/lib/builder/cover-letter-document";
+import { TEMPLATES } from "@/lib/resume/template-data";
+import type { ResumeTemplate } from "@/lib/resume/template-data";
 import {
   getTemplateThumbnailTraits,
   TemplatePreviewThumbnail,
@@ -55,12 +53,12 @@ describe("getTemplateThumbnailTraits", () => {
 
   it("maps cover letter templates to letter thumbnail traits", () => {
     const traits = getTemplateThumbnailTraits(
-      findCoverLetterTemplate("formal").styles
+      getCoverLetterTemplate("modern").styles
     );
 
     expect(traits).toMatchObject({
-      accentColor: "#1f2937",
-      bulletLabel: "",
+      accentColor: "#2563eb",
+      headerAlignmentClass: "items-center text-center",
       isLetter: true,
       isTwoColumn: false,
     });
@@ -78,15 +76,16 @@ describe("TemplatePreviewThumbnail", () => {
     expect(within(thumbnail).getByText("Experience")).toBeInTheDocument();
   });
 
-  it("renders a miniature cover letter for a cover letter template", () => {
+  it("renders an accessible-hidden miniature letter for a cover letter template", () => {
     render(
-      <TemplatePreviewThumbnail template={findCoverLetterTemplate("formal")} />
+      <TemplatePreviewThumbnail template={getCoverLetterTemplate("formal")} />
     );
 
     const thumbnail = screen.getByTestId("template-thumbnail-formal");
     expect(thumbnail).toHaveAttribute("aria-hidden", "true");
-    expect(within(thumbnail).getByText("Alex Morgan")).toBeInTheDocument();
-    expect(within(thumbnail).getByText("Dear Hiring Team,")).toBeInTheDocument();
+    expect(
+      within(thumbnail).getByText("Product Designer at Northstar")
+    ).toBeInTheDocument();
     expect(within(thumbnail).queryByText("Experience")).not.toBeInTheDocument();
   });
 });

@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { COVER_LETTER_TEMPLATES, TEMPLATES } from "@/lib/resume/template-data";
+import { COVER_LETTER_TEMPLATES } from "@/lib/builder/cover-letter-document";
+import { TEMPLATES } from "@/lib/resume/template-data";
 import { StudioHeader } from "./studio-header";
 
 function createStudioHeaderProps(
@@ -112,6 +113,32 @@ describe("StudioHeader", () => {
 
     expect(onTemplateSelect).toHaveBeenCalledWith("modern");
     expect(screen.queryByRole("listbox", { name: /resume templates/i })).not.toBeInTheDocument();
+  });
+
+  it("uses cover letter templates and labels in cover letter mode", () => {
+    renderStudioHeader({ documentMode: "cover_letter", templateId: "modern" });
+
+    expect(screen.getByRole("button", { name: /select cover letter template/i }))
+      .toHaveTextContent("Modern");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /select cover letter template/i })
+    );
+
+    const picker = screen.getByRole("listbox", {
+      name: /cover letter templates/i,
+    });
+    expect(within(picker).getAllByRole("option")).toHaveLength(
+      COVER_LETTER_TEMPLATES.length
+    );
+    expect(
+      within(picker).getByTestId("template-thumbnail-formal")
+    ).toBeInTheDocument();
+    expect(
+      within(picker).queryByTestId("template-thumbnail-classic")
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /copy cover letter html/i }))
+      .toBeInTheDocument();
   });
 
   it("closes the template grid on Escape", () => {
