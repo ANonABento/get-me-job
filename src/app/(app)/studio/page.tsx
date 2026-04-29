@@ -111,7 +111,12 @@ function StudioPageContent() {
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             )}
-            <ResumePreview templateId={studio.templateId} html={studio.html} />
+            <ResumePreview
+              templateId={studio.templateId}
+              html={studio.html}
+              documentMode={studio.documentMode}
+              onAddFromBank={() => studio.setEntryPickerOpen(true)}
+            />
           </div>
 
           <AiAssistantPanel

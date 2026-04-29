@@ -1,11 +1,12 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Plus } from "lucide-react";
+import { CheckCircle2, FileText, PenLine, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResumeEditor } from "@/lib/editor/resume-editor";
 import { TEMPLATES } from "@/lib/resume/template-data";
 import type { TipTapJSONContent } from "@/lib/editor/types";
+import type { DocumentMode } from "./studio-documents";
 
 const PAGE_WIDTH_PX = 816; // 8.5in at 96dpi
 const PAGE_HEIGHT_PX = 1056; // 11in at 96dpi
@@ -14,16 +15,57 @@ export interface ResumePreviewProps {
   templateId: string;
   html?: string;
   content?: TipTapJSONContent;
+  documentMode?: DocumentMode;
   onContentChange?: (content: TipTapJSONContent) => void;
   onAddSection?: () => void;
+  onAddFromBank?: () => void;
+}
+
+interface PreviewEmptyStateContent {
+  eyebrow: string;
+  heading: string;
+  description: string;
+  steps: string[];
+}
+
+export function getPreviewEmptyStateContent(
+  documentMode: DocumentMode = "resume"
+): PreviewEmptyStateContent {
+  if (documentMode === "cover_letter") {
+    return {
+      eyebrow: "Cover Letter",
+      heading: "Get started",
+      description:
+        "Select bank entries to draft a focused cover letter with your strongest experience ready to edit.",
+      steps: [
+        "Select entries from the bank",
+        "Choose a template",
+        "Preview and edit your cover letter",
+      ],
+    };
+  }
+
+  return {
+    eyebrow: "Resume",
+    heading: "Get started",
+    description:
+      "Build a polished preview from the experience, skills, and projects already saved in your bank.",
+    steps: [
+      "Select entries from the bank",
+      "Choose a template",
+      "Preview and edit your resume",
+    ],
+  };
 }
 
 export function ResumePreview({
   templateId,
   html,
   content,
+  documentMode = "resume",
   onContentChange,
   onAddSection,
+  onAddFromBank,
 }: ResumePreviewProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [fitScale, setFitScale] = useState(1);
@@ -53,6 +95,8 @@ export function ResumePreview({
 
   const zoomPercent = 100;
   const scale = fitScale * (zoomPercent / 100);
+  const emptyStateContent = getPreviewEmptyStateContent(documentMode);
+  const EmptyStateIcon = documentMode === "cover_letter" ? PenLine : FileText;
 
   return (
     <div ref={wrapperRef} className="h-full overflow-auto bg-muted/30 p-4">
@@ -99,8 +143,49 @@ export function ResumePreview({
               dangerouslySetInnerHTML={{ __html: html }}
             />
           ) : (
-            <div className="flex h-64 items-center justify-center px-14 py-12 text-sm text-muted-foreground">
-              Select entries and a template to see a preview.
+            <div className="flex min-h-[11in] items-center justify-center px-14 py-16 text-slate-950">
+              <div className="w-full max-w-md text-center">
+                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <EmptyStateIcon className="h-8 w-8" aria-hidden="true" />
+                </div>
+                <p className="text-xs font-semibold uppercase text-primary">
+                  {emptyStateContent.eyebrow}
+                </p>
+                <h2 className="mt-2 text-2xl font-bold">
+                  {emptyStateContent.heading}
+                </h2>
+                <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">
+                  {emptyStateContent.description}
+                </p>
+
+                <ol className="mt-7 space-y-3 text-left">
+                  {emptyStateContent.steps.map((step, index) => (
+                    <li
+                      key={step}
+                      className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700"
+                    >
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-primary shadow-sm">
+                        {index + 1}
+                      </span>
+                      <span className="min-w-0 flex-1">{step}</span>
+                      <CheckCircle2
+                        className="h-4 w-4 shrink-0 text-primary"
+                        aria-hidden="true"
+                      />
+                    </li>
+                  ))}
+                </ol>
+
+                <Button
+                  type="button"
+                  size="lg"
+                  className="mt-7 gradient-bg text-white hover:opacity-90"
+                  onClick={onAddFromBank}
+                >
+                  <Plus className="mr-2 h-5 w-5" />
+                  Add from bank
+                </Button>
+              </div>
             </div>
           )}
         </article>
