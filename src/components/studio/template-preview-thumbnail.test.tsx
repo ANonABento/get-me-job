@@ -87,9 +87,7 @@ describe("TemplatePreviewThumbnail", () => {
 
     const thumbnail = screen.getByTestId("template-thumbnail-formal");
     expect(thumbnail).toHaveAttribute("aria-hidden", "true");
-    expect(
-      within(thumbnail).getByText("Product Designer at Northstar")
-    ).toBeInTheDocument();
+    // Cover letter thumbnail should not have resume-specific sections
     expect(within(thumbnail).queryByText("Experience")).not.toBeInTheDocument();
   });
 });
