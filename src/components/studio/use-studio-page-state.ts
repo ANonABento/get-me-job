@@ -123,7 +123,6 @@ export function useStudioPageState(): StudioPageState {
   const [versions, setVersions] = useState<BuilderVersion[]>([]);
   const [manualVersionName, setManualVersionName] = useState("");
   const [previewVersionId, setPreviewVersionId] = useState<string | null>(null);
-  const [draftIsSaved, setDraftIsSaved] = useState(true);
   const [dirtyDocumentIds, setDirtyDocumentIds] = useState<Set<string>>(
     new Set()
   );
@@ -248,16 +247,16 @@ export function useStudioPageState(): StudioPageState {
     [html, sections, selectedIds, templateId]
   );
 
-  useEffect(() => {
-    setDraftIsSaved(
+  const draftIsSaved = useMemo(
+    () =>
       isDraftSavedForDocument(
         dirtyDocumentIds,
         activeDocument.id,
         versions,
         currentDraftState
-      )
-    );
-  }, [activeDocument.id, currentDraftState, dirtyDocumentIds, versions]);
+      ),
+    [activeDocument.id, currentDraftState, dirtyDocumentIds, versions]
+  );
 
   useEffect(() => {
     if (previewVersionId) setGenerating(false);
@@ -460,7 +459,6 @@ export function useStudioPageState(): StudioPageState {
       setManualVersionName("");
       setPreviewVersionId(version.id);
       markActiveDocumentSaved();
-      setDraftIsSaved(true);
     },
     [activeDocument.id, currentDraftState, markActiveDocumentSaved]
   );
