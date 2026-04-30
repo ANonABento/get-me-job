@@ -32,7 +32,7 @@ interface PreviewEmptyStateContent {
 }
 
 export function getPreviewEmptyStateContent(
-  documentMode: DocumentMode = "resume"
+  documentMode: DocumentMode = "resume",
 ): PreviewEmptyStateContent {
   if (documentMode === "cover_letter") {
     return {
@@ -104,7 +104,10 @@ export function ResumePreview({
   const isCoverLetter = documentMode === "cover_letter";
 
   return (
-    <div ref={wrapperRef} className="h-full overflow-auto bg-muted/30 p-4">
+    <div
+      ref={wrapperRef}
+      className="h-full overflow-auto bg-muted/30 p-4 [backdrop-filter:var(--backdrop-blur)]"
+    >
       <div
         className="mx-auto"
         style={{
@@ -113,7 +116,7 @@ export function ResumePreview({
         }}
       >
         <article
-          className="min-h-[11in] bg-white text-slate-950 shadow-lg"
+          className="min-h-[11in] bg-white text-slate-950 shadow-[var(--shadow-elevated)]"
           style={{
             width: `${PAGE_WIDTH_PX}px`,
             fontFamily,
@@ -135,7 +138,7 @@ export function ResumePreview({
                   <Button
                     type="button"
                     variant="ghost"
-                    className="h-10 w-full border border-dashed border-slate-300 text-slate-500 hover:border-primary hover:bg-primary/5 hover:text-primary"
+                    className="h-10 w-full border-[length:var(--border-width)] border-dashed border-border text-muted-foreground hover:border-primary hover:bg-primary/5 hover:text-primary"
                     onClick={onAddSection}
                   >
                     <Plus className="mr-2 h-4 w-4" />
@@ -152,7 +155,7 @@ export function ResumePreview({
           ) : (
             <div className="flex min-h-[11in] items-center justify-center px-14 py-16 text-slate-950">
               <div className="w-full max-w-md text-center">
-                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-[calc(var(--radius)_+_8px)] bg-primary/10 text-primary">
                   <EmptyStateIcon className="h-8 w-8" aria-hidden="true" />
                 </div>
                 <p className="text-xs font-semibold uppercase text-primary">
@@ -169,9 +172,9 @@ export function ResumePreview({
                   {emptyStateContent.steps.map((step, index) => (
                     <li
                       key={step}
-                      className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700"
+                      className="flex items-center gap-3 rounded-[var(--radius)] border-[length:var(--border-width)] border-border bg-card px-4 py-3 text-sm font-medium text-card-foreground shadow-[var(--shadow-card)]"
                     >
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-primary shadow-sm">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius)] bg-background text-xs font-bold text-primary shadow-[var(--shadow-sm)]">
                         {index + 1}
                       </span>
                       <span className="min-w-0 flex-1">{step}</span>

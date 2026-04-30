@@ -110,9 +110,7 @@ describe("AiAssistantPanel", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Tailor to JD" }));
 
-    expect(
-      screen.getByRole("button", { name: "Tailoring..." }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Tailoring..." })).toBeDisabled();
     resolveStatus(statusResponse(false));
 
     expect(
@@ -127,7 +125,9 @@ describe("AiAssistantPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Tailor to JD" }));
 
-    expect(screen.getByText("Paste a job description first.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Paste a job description first."),
+    ).toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -149,9 +149,7 @@ describe("AiAssistantPanel", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Tailor to JD" }));
 
-    expect(
-      screen.getByRole("button", { name: "Tailoring..." }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Tailoring..." })).toBeDisabled();
     expect(
       screen.getByRole("button", { name: "Generate from Bank" }),
     ).toBeDisabled();
@@ -273,7 +271,9 @@ describe("AiAssistantPanel", () => {
         },
       ]),
     );
-    expect(screen.getByText("Built reliable APIs quickly.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Built reliable APIs quickly."),
+    ).toBeInTheDocument();
   });
 
   it("opens the bank picker from the generate action after setup passes", async () => {
@@ -285,6 +285,64 @@ describe("AiAssistantPanel", () => {
     await waitFor(() => expect(onOpenBank).toHaveBeenCalledTimes(1));
     expect(
       screen.getByText("Bank entries are ready for the next generation step."),
+    ).toBeInTheDocument();
+  });
+
+  it("generates cover letter content from the JD and selected bank entries", async () => {
+    const onCoverLetterGenerated = vi.fn();
+    const requests: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url === "/api/settings/status") return statusResponse(true);
+        if (url === "/api/cover-letter/generate") {
+          requests.push(JSON.parse(String(init?.body)));
+          return new Response(
+            JSON.stringify({
+              success: true,
+              content: "Dear Hiring Team,\n\nI match this role.",
+            }),
+            { status: 200 },
+          );
+        }
+        return new Response("Not found", { status: 404 });
+      }),
+    );
+
+    render(
+      <AiAssistantPanel
+        documentContent=""
+        documentMode="cover_letter"
+        selectedEntryCount={2}
+        selectedEntryIds={["entry-1", "entry-2"]}
+        onCoverLetterGenerated={onCoverLetterGenerated}
+        onOpenBank={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Job description"), {
+      target: {
+        value:
+          "We need a frontend engineer who can improve reliable React workflows.",
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "AI Generate" }));
+
+    await waitFor(() =>
+      expect(onCoverLetterGenerated).toHaveBeenCalledWith(
+        "Dear Hiring Team,\n\nI match this role.",
+      ),
+    );
+    expect(requests).toEqual([
+      {
+        action: "generate",
+        jobDescription:
+          "We need a frontend engineer who can improve reliable React workflows.",
+        selectedBankEntryIds: ["entry-1", "entry-2"],
+      },
+    ]);
+    expect(
+      screen.getByText("Generated a cover letter draft."),
     ).toBeInTheDocument();
   });
 
@@ -319,8 +377,12 @@ describe("AiAssistantPanel", () => {
     );
     renderWithSelectableText("Built APIs quickly.", { onOpportunitySelect });
 
-    fireEvent.click(screen.getByRole("button", { name: "Select from Job Bank" }));
-    fireEvent.click(await screen.findByRole("button", { name: /frontend engineer/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Select from Job Bank" }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: /frontend engineer/i }),
+    );
 
     expect(screen.getByLabelText("Job description")).toHaveValue(
       "Build accessible React workflows.",
@@ -400,13 +462,19 @@ describe("AiAssistantPanel", () => {
     );
     renderWithSelectableText("Built APIs quickly.", { onOpportunityClear });
 
-    fireEvent.click(screen.getByRole("button", { name: "Select from Job Bank" }));
-    fireEvent.click(await screen.findByRole("button", { name: /frontend engineer/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Select from Job Bank" }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: /frontend engineer/i }),
+    );
     fireEvent.change(screen.getByLabelText("Job description"), {
       target: { value: "Manual JD override" },
     });
 
     expect(onOpportunityClear).toHaveBeenCalledTimes(1);
-    expect(screen.queryByText("Frontend Engineer at Acme")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Frontend Engineer at Acme"),
+    ).not.toBeInTheDocument();
   });
 });

@@ -51,13 +51,15 @@ describe("getTemplateThumbnailTraits", () => {
     const twoColumn = findTemplate("two-column");
 
     expect(getTemplateThumbnailTraits(modern.styles).bulletLabel).toBe("-");
-    expect(getTemplateThumbnailTraits(executive.styles).bulletLabel).toBe("\u2192");
+    expect(getTemplateThumbnailTraits(executive.styles).bulletLabel).toBe(
+      "\u2192",
+    );
     expect(getTemplateThumbnailTraits(twoColumn.styles).isTwoColumn).toBe(true);
   });
 
   it("maps cover letter templates to letter thumbnail traits", () => {
     const traits = getTemplateThumbnailTraits(
-      getCoverLetterTemplate("modern").styles
+      getCoverLetterTemplate("modern").styles,
     );
 
     expect(traits).toMatchObject({
@@ -75,14 +77,21 @@ describe("TemplatePreviewThumbnail", () => {
 
     const thumbnail = screen.getByTestId("template-thumbnail-modern");
     expect(thumbnail).toHaveAttribute("aria-hidden", "true");
-    expect(thumbnail).toHaveStyle({ fontFamily: "'Inter', 'Segoe UI', sans-serif" });
+    expect(thumbnail.className).toContain("rounded-[var(--radius)]");
+    expect(thumbnail.className).toContain(
+      "border-[length:var(--border-width)]",
+    );
+    expect(thumbnail.className).toContain("shadow-[var(--shadow-card)]");
+    expect(thumbnail).toHaveStyle({
+      fontFamily: "'Inter', 'Segoe UI', sans-serif",
+    });
     expect(within(thumbnail).getByText("Alex Morgan")).toBeInTheDocument();
     expect(within(thumbnail).getByText("Experience")).toBeInTheDocument();
   });
 
   it("renders an accessible-hidden miniature letter for a cover letter template", () => {
     render(
-      <TemplatePreviewThumbnail template={getCoverLetterTemplate("formal")} />
+      <TemplatePreviewThumbnail template={getCoverLetterTemplate("formal")} />,
     );
 
     const thumbnail = screen.getByTestId("template-thumbnail-formal");

@@ -11,6 +11,8 @@ function makeEditorMock() {
     toggleBold: vi.fn(() => chain),
     toggleItalic: vi.fn(() => chain),
     toggleUnderline: vi.fn(() => chain),
+    toggleHeading: vi.fn(() => chain),
+    toggleBulletList: vi.fn(() => chain),
     undo: vi.fn(() => chain),
     redo: vi.fn(() => chain),
     run,
@@ -40,21 +42,25 @@ describe("EditorToolbar", () => {
         onZoomChange={vi.fn()}
         onDownloadPdf={vi.fn()}
         onPrint={vi.fn()}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Bold" }));
     fireEvent.click(screen.getByRole("button", { name: "Italic" }));
     fireEvent.click(screen.getByRole("button", { name: "Underline" }));
+    fireEvent.click(screen.getByRole("button", { name: "Heading" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bullet list" }));
     fireEvent.click(screen.getByRole("button", { name: "Undo" }));
     fireEvent.click(screen.getByRole("button", { name: "Redo" }));
 
     expect(chain.toggleBold).toHaveBeenCalledTimes(1);
     expect(chain.toggleItalic).toHaveBeenCalledTimes(1);
     expect(chain.toggleUnderline).toHaveBeenCalledTimes(1);
+    expect(chain.toggleHeading).toHaveBeenCalledWith({ level: 2 });
+    expect(chain.toggleBulletList).toHaveBeenCalledTimes(1);
     expect(chain.undo).toHaveBeenCalledTimes(1);
     expect(chain.redo).toHaveBeenCalledTimes(1);
-    expect(chain.run).toHaveBeenCalledTimes(5);
+    expect(chain.run).toHaveBeenCalledTimes(7);
   });
 
   it("emits template, zoom, print, and download actions", () => {
@@ -75,12 +81,15 @@ describe("EditorToolbar", () => {
         onZoomChange={onZoomChange}
         onDownloadPdf={onDownloadPdf}
         onPrint={onPrint}
-      />
+      />,
     );
 
-    fireEvent.change(screen.getByRole("combobox", { name: /resume template/i }), {
-      target: { value: "modern" },
-    });
+    fireEvent.change(
+      screen.getByRole("combobox", { name: /resume template/i }),
+      {
+        target: { value: "modern" },
+      },
+    );
     fireEvent.change(screen.getByRole("slider", { name: /preview zoom/i }), {
       target: { value: "150" },
     });

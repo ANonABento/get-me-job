@@ -37,6 +37,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { Opportunity } from "@/types";
+import type { DocumentMode } from "./studio-documents";
 
 type AssistantRunAction =
   | DocumentAssistantAction
@@ -45,7 +46,10 @@ type AssistantRunAction =
 
 interface AiAssistantPanelProps {
   documentContent: string;
+  documentMode?: DocumentMode;
   selectedEntryCount: number;
+  selectedEntryIds?: string[];
+  onCoverLetterGenerated?: (content: string) => void;
   onOpenBank: () => void;
   onOpportunityClear?: () => void;
   onOpportunitySelect?: (opportunityId: string) => void;
@@ -95,7 +99,10 @@ async function readApiError(
 
 export function AiAssistantPanel({
   documentContent,
+  documentMode = "resume",
   selectedEntryCount,
+  selectedEntryIds = [],
+  onCoverLetterGenerated,
   onOpenBank,
   onOpportunityClear,
   onOpportunitySelect,
@@ -110,9 +117,7 @@ export function AiAssistantPanel({
   const [opportunitiesLoading, setOpportunitiesLoading] = useState(false);
   const [opportunityError, setOpportunityError] = useState("");
   const [selectedText, setSelectedText] = useState("");
-  const [rewriteSection, setRewriteSection] = useState<RewriteSection | "">(
-    "",
-  );
+  const [rewriteSection, setRewriteSection] = useState<RewriteSection | "">("");
   const [runningAction, setRunningAction] = useState<AssistantRunAction | null>(
     null,
   );
@@ -164,9 +169,13 @@ export function AiAssistantPanel({
 
     async function preloadOpportunity() {
       try {
-        const response = await fetch(`/api/opportunities/${encodedOpportunityId}`);
+        const response = await fetch(
+          `/api/opportunities/${encodedOpportunityId}`,
+        );
         if (!response.ok) {
-          throw new Error(await readApiError(response, "Opportunity not found."));
+          throw new Error(
+            await readApiError(response, "Opportunity not found."),
+          );
         }
         const data = (await response.json()) as OpportunitiesResponse;
         if (!data.opportunity) throw new Error("Opportunity not found.");
@@ -247,16 +256,21 @@ export function AiAssistantPanel({
     void loadOpportunities();
   }, [loadOpportunities]);
 
-  const handleSelectOpportunity = useCallback((opportunity: Opportunity) => {
-    setJobDescription(opportunity.summary);
-    setSelectedOpportunityId(opportunity.id);
-    setSelectedOpportunityLabel(`${opportunity.title} at ${opportunity.company}`);
-    onOpportunitySelect?.(opportunity.id);
-    setOpportunityPickerOpen(false);
-    setOpportunityError("");
-    setStatusMessage(`Loaded ${opportunity.title} from the job bank.`);
-    setAssistantResult("");
-  }, [onOpportunitySelect]);
+  const handleSelectOpportunity = useCallback(
+    (opportunity: Opportunity) => {
+      setJobDescription(opportunity.summary);
+      setSelectedOpportunityId(opportunity.id);
+      setSelectedOpportunityLabel(
+        `${opportunity.title} at ${opportunity.company}`,
+      );
+      onOpportunitySelect?.(opportunity.id);
+      setOpportunityPickerOpen(false);
+      setOpportunityError("");
+      setStatusMessage(`Loaded ${opportunity.title} from the job bank.`);
+      setAssistantResult("");
+    },
+    [onOpportunitySelect],
+  );
 
   const runRewrite = useCallback(
     async (action: DocumentAssistantAction, fallbackText: string) => {
@@ -297,10 +311,67 @@ export function AiAssistantPanel({
 
       const data = (await response.json()) as AssistantResponse;
       setAssistantResult(data.content ?? "");
-      setStatusMessage("Review the rewrite before applying it to the document.");
+      setStatusMessage(
+        "Review the rewrite before applying it to the document.",
+      );
     },
     [documentContent, jobDescription, selectedOpportunityId, selectedText],
   );
+
+  const runCoverLetterGenerate = useCallback(async () => {
+    if (!jobDescription.trim()) {
+      setStatusMessage("Paste a job description first.");
+      return;
+    }
+
+    if (selectedEntryIds.length === 0) {
+      onOpenBank();
+      setStatusMessage("Choose bank entries to generate a stronger draft.");
+      return;
+    }
+
+    const response = await fetch("/api/cover-letter/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "generate",
+        jobDescription,
+        selectedBankEntryIds: selectedEntryIds,
+        ...(selectedOpportunityId
+          ? { opportunityId: selectedOpportunityId }
+          : {}),
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await readApiError(
+        response,
+        "Could not generate cover letter.",
+      );
+      if (isMissingLLMSetupError(error)) {
+        setSetupPrompt(true);
+        setStatusMessage("");
+      } else {
+        setStatusMessage(error);
+      }
+      return;
+    }
+
+    const data = (await response.json()) as AssistantResponse;
+    if (!data.content?.trim()) {
+      setStatusMessage("The assistant returned an empty cover letter.");
+      return;
+    }
+
+    onCoverLetterGenerated?.(data.content);
+    setStatusMessage("Generated a cover letter draft.");
+  }, [
+    jobDescription,
+    onCoverLetterGenerated,
+    onOpenBank,
+    selectedEntryIds,
+    selectedOpportunityId,
+  ]);
 
   const handleAssistantAction = useCallback(
     async (action: AssistantRunAction) => {
@@ -339,6 +410,11 @@ export function AiAssistantPanel({
         if (!configured) return;
 
         if (action === "generate-from-bank") {
+          if (documentMode === "cover_letter") {
+            await runCoverLetterGenerate();
+            return;
+          }
+
           onOpenBank();
           setStatusMessage(
             selectedEntryCount > 0
@@ -375,10 +451,12 @@ export function AiAssistantPanel({
     },
     [
       documentContent,
+      documentMode,
       ensureLLMConfigured,
       jobDescription,
       onOpenBank,
       rewriteSection,
+      runCoverLetterGenerate,
       runRewrite,
       selectedEntryCount,
       selectedText,
@@ -392,20 +470,25 @@ export function AiAssistantPanel({
   return (
     <aside
       ref={panelRef}
-      className="hidden w-[360px] shrink-0 flex-col border-l bg-background md:flex"
+      className="hidden w-[360px] shrink-0 flex-col border-l-[length:var(--border-width)] bg-background md:flex"
     >
-      <div className="flex items-center justify-between border-b px-4 py-3">
+      <div className="flex items-center justify-between border-b-[length:var(--border-width)] px-4 py-3">
         <h2 className="text-sm font-semibold">AI Assistant</h2>
-        <Sparkles className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+        <Sparkles
+          className="h-4 w-4 text-muted-foreground"
+          aria-hidden="true"
+        />
       </div>
 
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4">
         {setupPrompt && (
           <div
-            className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm"
+            className="rounded-[var(--radius)] border-[length:var(--border-width)] border-primary/30 bg-primary/5 p-3 text-sm"
             role="status"
           >
-            <p className="font-medium">Set up an LLM provider to use AI tools.</p>
+            <p className="font-medium">
+              Set up an LLM provider to use AI tools.
+            </p>
             <Link
               href="/settings"
               className="mt-2 inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline"
@@ -475,8 +558,12 @@ export function AiAssistantPanel({
               <FileText className="mr-2 h-4 w-4" />
             )}
             {isRunning("generate-from-bank")
-              ? "Preparing..."
-              : "Generate from Bank"}
+              ? documentMode === "cover_letter"
+                ? "Generating..."
+                : "Preparing..."
+              : documentMode === "cover_letter"
+                ? "AI Generate"
+                : "Generate from Bank"}
           </Button>
         </section>
 
@@ -523,7 +610,7 @@ export function AiAssistantPanel({
 
         {hasSelection && (
           <section
-            className="space-y-3 rounded-md border bg-muted/30 p-3"
+            className="space-y-3 rounded-[var(--radius)] border-[length:var(--border-width)] bg-muted/30 p-3"
             aria-label="Selected text quick actions"
           >
             <div>
@@ -564,7 +651,7 @@ export function AiAssistantPanel({
               <p className="text-muted-foreground">{statusMessage}</p>
             )}
             {assistantResult && (
-              <div className="rounded-md border bg-muted/30 p-3 text-foreground">
+              <div className="rounded-[var(--radius)] border-[length:var(--border-width)] bg-muted/30 p-3 text-foreground">
                 {assistantResult}
               </div>
             )}
@@ -586,20 +673,20 @@ export function AiAssistantPanel({
 
           <div className="max-h-[420px] space-y-2 overflow-y-auto">
             {opportunitiesLoading && (
-              <div className="flex items-center gap-2 rounded-md border p-3 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 rounded-[var(--radius)] border-[length:var(--border-width)] p-3 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading opportunities...
               </div>
             )}
             {opportunityError && (
-              <p className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+              <p className="rounded-[var(--radius)] border-[length:var(--border-width)] border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
                 {opportunityError}
               </p>
             )}
             {!opportunitiesLoading &&
               !opportunityError &&
               opportunities.length === 0 && (
-                <p className="rounded-md border p-3 text-sm text-muted-foreground">
+                <p className="rounded-[var(--radius)] border-[length:var(--border-width)] p-3 text-sm text-muted-foreground">
                   No saved or applied opportunities found.
                 </p>
               )}
@@ -607,7 +694,7 @@ export function AiAssistantPanel({
               <button
                 key={opportunity.id}
                 type="button"
-                className="w-full rounded-md border p-3 text-left transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full rounded-[var(--radius)] border-[length:var(--border-width)] p-3 text-left transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                 onClick={() => handleSelectOpportunity(opportunity)}
               >
                 <span className="block text-sm font-medium">

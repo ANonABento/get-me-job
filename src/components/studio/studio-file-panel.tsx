@@ -40,7 +40,7 @@ export function StudioFilePanel({
   }, [draftName, onRename, renamingId]);
 
   return (
-    <div className="border-b">
+    <div className="border-b-[length:var(--border-width)]">
       <div className="flex items-center justify-between px-4 py-3">
         <h2 className="text-sm font-semibold">Files</h2>
         <Button size="sm" variant="outline" onClick={onCreate}>
@@ -58,10 +58,10 @@ export function StudioFilePanel({
             <div
               key={document.id}
               className={cn(
-                "group flex min-h-10 items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+                "group flex min-h-10 items-center gap-2 rounded-[var(--radius)] px-2 py-1.5 text-sm transition-colors",
                 isActive
                   ? "bg-primary/10 text-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
               <FileText className="h-4 w-4 shrink-0" />
@@ -77,7 +77,7 @@ export function StudioFilePanel({
                       setDraftName("");
                     }
                   }}
-                  className="min-w-0 flex-1 rounded border bg-background px-2 py-1 text-sm text-foreground"
+                  className="min-w-0 flex-1 rounded-[var(--radius)] border-[length:var(--border-width)] bg-background px-2 py-1 text-sm text-foreground"
                   autoFocus
                 />
               ) : (
@@ -94,7 +94,7 @@ export function StudioFilePanel({
               <button
                 type="button"
                 onClick={() => onDelete(document.id)}
-                className="rounded p-1 text-muted-foreground opacity-70 transition hover:bg-destructive/10 hover:text-destructive md:opacity-0 md:group-hover:opacity-100"
+                className="rounded-[var(--radius)] p-1 text-muted-foreground opacity-70 transition hover:bg-destructive/10 hover:text-destructive md:opacity-0 md:group-hover:opacity-100"
                 aria-label={`Delete ${document.name}`}
               >
                 <Trash2 className="h-3.5 w-3.5" />

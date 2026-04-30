@@ -1,9 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  ResumePreview,
-  getPreviewEmptyStateContent,
-} from "./resume-preview";
+import { ResumePreview, getPreviewEmptyStateContent } from "./resume-preview";
 import type { TipTapJSONContent } from "@/lib/editor/types";
 
 const content: TipTapJSONContent = {
@@ -41,11 +38,11 @@ describe("ResumePreview", () => {
         templateId="classic"
         content={content}
         onAddSection={handleAddSection}
-      />
+      />,
     );
 
     expect(
-      await screen.findByText("Focused product engineer")
+      await screen.findByText("Focused product engineer"),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /add section/i }));
@@ -85,15 +82,31 @@ describe("ResumePreview", () => {
         templateId="classic"
         documentMode="resume"
         onAddFromBank={handleAddFromBank}
-      />
+      />,
     );
 
     expect(
-      screen.getByRole("heading", { name: "Get started" })
+      screen.getByRole("heading", { name: "Get started" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Select entries from the bank")).toBeInTheDocument();
+    expect(
+      screen.getByText("Select entries from the bank"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Choose a template")).toBeInTheDocument();
-    expect(screen.getByText("Preview and edit your resume")).toBeInTheDocument();
+    expect(
+      screen.getByText("Preview and edit your resume"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Select entries from the bank").closest("li")?.className,
+    ).toContain("rounded-[var(--radius)]");
+    expect(
+      screen.getByText("Select entries from the bank").closest("li")?.className,
+    ).toContain("border-[length:var(--border-width)]");
+    expect(
+      screen.getByText("Select entries from the bank").closest("li")?.className,
+    ).toContain("shadow-[var(--shadow-card)]");
+    expect(screen.getByText("1").className).toContain(
+      "rounded-[var(--radius)]",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: /add from bank/i }));
 
@@ -101,13 +114,11 @@ describe("ResumePreview", () => {
   });
 
   it("renders cover letter empty state steps", () => {
-    render(
-      <ResumePreview templateId="classic" documentMode="cover_letter" />
-    );
+    render(<ResumePreview templateId="classic" documentMode="cover_letter" />);
 
     expect(screen.getByText("Cover Letter")).toBeInTheDocument();
     expect(
-      screen.getByText("Preview and edit your cover letter")
+      screen.getByText("Preview and edit your cover letter"),
     ).toBeInTheDocument();
   });
 
@@ -117,7 +128,7 @@ describe("ResumePreview", () => {
         templateId="formal"
         documentMode="cover_letter"
         html='<article class="cover-letter-document">Letter body</article>'
-      />
+      />,
     );
 
     const letter = document.querySelector(".cover-letter-document");
@@ -126,6 +137,7 @@ describe("ResumePreview", () => {
 
     expect(letter).toHaveTextContent("Letter body");
     expect(htmlWrapper).not.toHaveClass("px-14");
+    expect(previewPage?.className).toContain("shadow-[var(--shadow-elevated)]");
     expect(previewPage).not.toHaveStyle("border-top: 4px solid #1f2937");
   });
 });

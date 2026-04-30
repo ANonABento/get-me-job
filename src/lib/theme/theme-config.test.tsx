@@ -121,6 +121,10 @@ describe("theme config", () => {
     expect(variables["--primary"]).toBe("246 100% 45%");
     expect(variables["--border-width"]).toBe("2px");
     expect(variables["--font-sans"]).toContain("Aptos");
+    expect(variables["--shadow-card"]).toBe(variables["--shadow"]);
+    expect(variables["--shadow-elevated"]).toBe(variables["--shadow-lg"]);
+    expect(variables["--shadow-button"]).toBe(variables["--shadow-sm"]);
+    expect(variables["--backdrop-blur"]).toBe("blur(16px)");
   });
 
   it("returns CSS custom properties with custom color overrides", () => {
@@ -173,7 +177,7 @@ describe("theme config", () => {
     expect(document.documentElement.dataset.themeMode).toBe("dark");
     expect(document.documentElement.dataset.themeCustom).toBe("true");
     expect(document.documentElement.style.getPropertyValue("--backdrop-blur")).toBe(
-      "28px"
+      "blur(28px)"
     );
     expect(document.documentElement.style.getPropertyValue("--accent")).toBe(
       "278 64% 56%"

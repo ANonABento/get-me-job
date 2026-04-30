@@ -2,7 +2,10 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import type { CoverLetterTemplate } from "@/lib/builder/cover-letter-document";
-import type { ResumeTemplate, TemplateStyles } from "@/lib/resume/template-data";
+import type {
+  ResumeTemplate,
+  TemplateStyles,
+} from "@/lib/resume/template-data";
 import { cn } from "@/lib/utils";
 
 interface TemplatePreviewThumbnailProps {
@@ -62,7 +65,7 @@ const SAMPLE_LETTER = {
 };
 
 export function getTemplateThumbnailTraits(
-  styles: TemplateStyles | CoverLetterTemplate["styles"]
+  styles: TemplateStyles | CoverLetterTemplate["styles"],
 ): TemplateThumbnailTraits {
   if ("layout" in styles && styles.layout === "letter") {
     return {
@@ -83,8 +86,10 @@ export function getTemplateThumbnailTraits(
   return {
     accentColor: styles.accentColor,
     fontFamily: styles.fontFamily,
-    headerAlignmentClass: HEADER_ALIGNMENT_CLASS_BY_STYLE[resumeStyles.headerStyle],
-    sectionRuleClass: SECTION_RULE_CLASS_BY_DIVIDER[resumeStyles.sectionDivider],
+    headerAlignmentClass:
+      HEADER_ALIGNMENT_CLASS_BY_STYLE[resumeStyles.headerStyle],
+    sectionRuleClass:
+      SECTION_RULE_CLASS_BY_DIVIDER[resumeStyles.sectionDivider],
     bulletLabel: BULLET_LABEL_BY_STYLE[resumeStyles.bulletStyle],
     isTwoColumn: resumeStyles.layout === "two-column",
     isLetter: false,
@@ -106,8 +111,8 @@ export function TemplatePreviewThumbnail({
       aria-hidden="true"
       data-testid={`template-thumbnail-${template.id}`}
       className={cn(
-        "h-28 w-full overflow-hidden rounded border bg-white text-slate-950 shadow-sm",
-        className
+        "h-28 w-full overflow-hidden rounded-[var(--radius)] border-[length:var(--border-width)] bg-white text-slate-950 shadow-[var(--shadow-card)]",
+        className,
       )}
       style={style}
     >
@@ -141,14 +146,16 @@ function ResumeThumbnail({ traits }: { traits: TemplateThumbnailTraits }) {
       <div
         className={cn(
           "pt-0.5",
-          traits.isTwoColumn && "grid grid-cols-[0.9fr_1.5fr] gap-1.5"
+          traits.isTwoColumn && "grid grid-cols-[0.9fr_1.5fr] gap-1.5",
         )}
       >
         {traits.isTwoColumn && <ThumbnailSidebar traits={traits} />}
 
         <div className="space-y-1">
           <PreviewSection traits={traits} title="Summary">
-            <p className="line-clamp-2 text-slate-500">{SAMPLE_RESUME.summary}</p>
+            <p className="line-clamp-2 text-slate-500">
+              {SAMPLE_RESUME.summary}
+            </p>
           </PreviewSection>
           <PreviewSection traits={traits} title="Experience">
             {SAMPLE_RESUME.experience.map((item) => (
@@ -169,7 +176,7 @@ function LetterThumbnail({ traits }: { traits: TemplateThumbnailTraits }) {
       <header
         className={cn(
           "flex flex-col gap-0.5 border-b border-[var(--template-accent)] pb-1",
-          traits.headerAlignmentClass
+          traits.headerAlignmentClass,
         )}
       >
         <p className="text-[7px] font-semibold leading-none text-[var(--template-accent)]">
@@ -193,7 +200,7 @@ function LetterThumbnail({ traits }: { traits: TemplateThumbnailTraits }) {
 function ThumbnailSidebar({ traits }: { traits: TemplateThumbnailTraits }) {
   return (
     <aside
-      className="space-y-1 rounded-sm p-1"
+      className="space-y-1 rounded-[calc(var(--radius)_-_4px)] p-1"
       style={{ backgroundColor: `${traits.accentColor}14` }}
     >
       <PreviewSection traits={traits} title="Skills" compact>
@@ -224,7 +231,7 @@ function PreviewSection({
         className={cn(
           "border-[var(--template-accent)] text-[5px] font-semibold uppercase leading-tight text-[var(--template-accent)]",
           traits.sectionRuleClass,
-          compact ? "w-9" : "w-16"
+          compact ? "w-9" : "w-16",
         )}
       >
         {title}

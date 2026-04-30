@@ -62,14 +62,14 @@ export function StudioHeader({
   const templates = useMemo(
     () =>
       documentMode === "cover_letter" ? COVER_LETTER_TEMPLATES : TEMPLATES,
-    [documentMode]
+    [documentMode],
   );
   const selectedTemplate = useMemo(
     () =>
       documentMode === "cover_letter"
         ? getCoverLetterTemplate(templateId)
         : getTemplate(templateId),
-    [documentMode, templateId]
+    [documentMode, templateId],
   );
   const modeLabel = DOCUMENT_MODE_LABELS[documentMode];
   const documentLabel = modeLabel.toLowerCase();
@@ -132,12 +132,12 @@ export function StudioHeader({
         };
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 md:px-6">
+    <div className="flex flex-wrap items-center justify-between gap-2 border-b-[length:var(--border-width)] bg-background/95 px-4 py-3 [backdrop-filter:var(--backdrop-blur)] md:px-6">
       <div className="flex flex-wrap items-center gap-3">
         <FileText className="h-5 w-5 text-primary" />
         <h1 className="text-lg font-semibold">Document Studio</h1>
 
-        <div className="ml-2 flex rounded-md border">
+        <div className="ml-2 flex rounded-[var(--radius)] border-[length:var(--border-width)] bg-card">
           {DOCUMENT_MODE_OPTIONS.map(({ mode, label }) => (
             <button
               key={mode}
@@ -146,8 +146,8 @@ export function StudioHeader({
               className={cn(
                 "px-3 py-1 text-sm font-medium transition-colors",
                 documentMode === mode
-                  ? "rounded-md bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "rounded-md bg-primary text-primary-foreground shadow-[var(--shadow-button)]"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               {label}
@@ -163,11 +163,11 @@ export function StudioHeader({
             aria-expanded={templateOpen}
             aria-haspopup="listbox"
             onClick={() => setTemplateOpen((prev) => !prev)}
-            className="flex min-w-[15rem] items-center gap-3 rounded-md border bg-background px-3 py-2 text-left text-sm transition-colors hover:bg-muted"
+            className="flex min-w-[15rem] items-center gap-2 rounded-[var(--radius)] border-[length:var(--border-width)] bg-card px-3 py-1.5 text-left text-sm transition-colors hover:bg-muted"
           >
             <TemplatePreviewThumbnail
               template={selectedTemplate}
-              className="h-20 w-14 shrink-0 rounded-sm"
+              className="h-20 w-14 shrink-0 rounded-[calc(var(--radius)_-_4px)]"
             />
             <span className="min-w-0 flex-1">
               <span className="block font-medium leading-tight">
@@ -189,8 +189,8 @@ export function StudioHeader({
               <div
                 role="listbox"
                 aria-label={templateListLabel}
-                className="fixed z-50 grid grid-cols-2 gap-3 overflow-auto rounded-lg border bg-popover p-3 shadow-lg sm:grid-cols-3 lg:grid-cols-4"
                 style={templatePickerStyle}
+                className="fixed left-0 top-full z-50 mt-2 grid max-h-[70vh] w-[min(26rem,calc(100vw-2rem))] grid-cols-2 gap-2 overflow-auto rounded-[var(--radius)] border-[length:var(--border-width)] bg-popover p-2 text-popover-foreground shadow-[var(--shadow-elevated)] [backdrop-filter:var(--backdrop-blur)] sm:grid-cols-3"
               >
                 {templates.map((template) => {
                   const isSelected = template.id === selectedTemplate.id;
@@ -206,10 +206,10 @@ export function StudioHeader({
                         setTemplateOpen(false);
                       }}
                       className={cn(
-                        "group relative rounded-md border p-2 text-left text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        "rounded-[var(--radius)] border-[length:var(--border-width)] p-2 text-left text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         isSelected
                           ? "border-primary bg-primary/5"
-                          : "border-border bg-background"
+                          : "border-border bg-background",
                       )}
                     >
                       <TemplatePreviewThumbnail
@@ -239,10 +239,10 @@ export function StudioHeader({
 
         <span
           className={cn(
-            "rounded-full border px-2 py-0.5 text-xs font-medium",
+            "rounded-[var(--radius)] border-[length:var(--border-width)] px-2 py-0.5 text-xs font-medium",
             draftIsSaved
               ? "border-success/20 bg-success/10 text-success"
-              : "border-warning/20 bg-warning/10 text-warning"
+              : "border-warning/20 bg-warning/10 text-warning",
           )}
         >
           {draftIsSaved ? "Saved" : "Unsaved"}

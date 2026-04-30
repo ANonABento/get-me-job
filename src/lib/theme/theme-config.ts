@@ -160,19 +160,6 @@ const defaultDark = {
     "linear-gradient(135deg, hsl(var(--primary) / 0.08) 0%, hsl(350 80% 72% / 0.04) 100%)",
 } as const;
 
-type ThemeTokenName = keyof typeof defaultLight;
-
-const layoutShadowTokenAliases = {
-  "--shadow-card": "shadow",
-  "--shadow-button": "shadow-sm",
-  "--shadow-elevated": "shadow-lg",
-} as const satisfies Record<`--${string}`, ThemeTokenName>;
-
-const layoutGlowVariables = {
-  "--glow-color": "hsl(var(--primary) / var(--glow-primary-opacity))",
-  "--glow-color-secondary": "hsl(var(--accent) / 0.14)",
-} as const satisfies Record<`--${string}`, string>;
-
 export const themePresets: Record<ThemePresetName, ThemePreset> = {
   default: {
     name: "default",
@@ -580,24 +567,12 @@ export function getThemeVariables(
   customColors: ThemeColorOverrides = {}
 ): Record<`--${string}`, string> {
   const preset = getThemePreset(presetName);
-  const tokens = applyCustomThemeColors(preset[resolvedTheme], customColors);
-  const variables = Object.fromEntries(
-    Object.entries(tokens).map(([name, value]) => [`--${name}`, value])
-  ) as Record<`--${string}`, string>;
+  const tokens = withDerivedThemeTokens(
+    applyCustomThemeColors(preset[resolvedTheme], customColors)
+  );
 
-  return {
-    ...variables,
-    ...getLayoutShadowVariables(tokens),
-    ...layoutGlowVariables,
-  };
-}
-
-function getLayoutShadowVariables(tokens: ThemeTokenGroup): Record<`--${string}`, string> {
   return Object.fromEntries(
-    Object.entries(layoutShadowTokenAliases).map(([alias, tokenName]) => [
-      alias,
-      tokens[tokenName],
-    ])
+    Object.entries(tokens).map(([name, value]) => [`--${name}`, value])
   ) as Record<`--${string}`, string>;
 }
 
@@ -761,6 +736,22 @@ function applyCustomThemeColors(
   }
 
   return nextTokens;
+}
+
+function withDerivedThemeTokens(tokens: ThemeTokenGroup): ThemeTokenGroup {
+  return {
+    ...tokens,
+    "backdrop-blur": toBackdropFilterValue(tokens["backdrop-blur"]),
+    "shadow-card": tokens["shadow-card"] ?? tokens.shadow,
+    "shadow-elevated": tokens["shadow-elevated"] ?? tokens["shadow-lg"],
+    "shadow-button": tokens["shadow-button"] ?? tokens["shadow-sm"],
+  };
+}
+
+function toBackdropFilterValue(value: string | undefined): string {
+  if (!value || value === "none") return "none";
+  if (value.includes("(")) return value;
+  return `blur(${value})`;
 }
 
 interface ParsedHsl {
