@@ -85,8 +85,8 @@ function ToastContainer() {
           <div
             key={toast.id}
             className={cn(
-              "flex items-start gap-3 rounded-lg border p-4 shadow-elevated backdrop-blur-xl animate-slide-in-right",
-              toastStyles[toast.type]
+              "flex items-start gap-3 rounded-[var(--radius)] border-[length:var(--border-width)] p-4 shadow-[var(--shadow-elevated)] [backdrop-filter:var(--backdrop-blur)] animate-slide-in-right",
+              toastStyles[toast.type],
             )}
           >
             <Icon className="h-5 w-5 mt-0.5 shrink-0" />
