@@ -567,7 +567,9 @@ export function getThemeVariables(
   customColors: ThemeColorOverrides = {}
 ): Record<`--${string}`, string> {
   const preset = getThemePreset(presetName);
-  const tokens = applyCustomThemeColors(preset[resolvedTheme], customColors);
+  const tokens = withDerivedThemeTokens(
+    applyCustomThemeColors(preset[resolvedTheme], customColors)
+  );
 
   return Object.fromEntries(
     Object.entries(tokens).map(([name, value]) => [`--${name}`, value])
@@ -734,6 +736,22 @@ function applyCustomThemeColors(
   }
 
   return nextTokens;
+}
+
+function withDerivedThemeTokens(tokens: ThemeTokenGroup): ThemeTokenGroup {
+  return {
+    ...tokens,
+    "backdrop-blur": toBackdropFilterValue(tokens["backdrop-blur"]),
+    "shadow-card": tokens["shadow-card"] ?? tokens.shadow,
+    "shadow-elevated": tokens["shadow-elevated"] ?? tokens["shadow-lg"],
+    "shadow-button": tokens["shadow-button"] ?? tokens["shadow-sm"],
+  };
+}
+
+function toBackdropFilterValue(value: string | undefined): string {
+  if (!value || value === "none") return "none";
+  if (value.includes("(")) return value;
+  return `blur(${value})`;
 }
 
 interface ParsedHsl {
