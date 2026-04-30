@@ -16,21 +16,33 @@ describe("Badge", () => {
   });
 
   it("should apply secondary variant classes", () => {
-    render(<Badge variant="secondary" data-testid="badge">Secondary</Badge>);
+    render(
+      <Badge variant="secondary" data-testid="badge">
+        Secondary
+      </Badge>,
+    );
     const badge = screen.getByTestId("badge");
     expect(badge.className).toContain("bg-secondary");
     expect(badge.className).toContain("text-secondary-foreground");
   });
 
   it("should apply destructive variant classes", () => {
-    render(<Badge variant="destructive" data-testid="badge">Error</Badge>);
+    render(
+      <Badge variant="destructive" data-testid="badge">
+        Error
+      </Badge>,
+    );
     const badge = screen.getByTestId("badge");
     expect(badge.className).toContain("bg-destructive");
     expect(badge.className).toContain("text-destructive-foreground");
   });
 
   it("should apply outline variant classes", () => {
-    render(<Badge variant="outline" data-testid="badge">Outline</Badge>);
+    render(
+      <Badge variant="outline" data-testid="badge">
+        Outline
+      </Badge>,
+    );
     const badge = screen.getByTestId("badge");
     expect(badge.className).toContain("text-foreground");
     expect(badge.className).not.toContain("bg-primary");
@@ -49,14 +61,29 @@ describe("Badge", () => {
     expect(badge.className).toContain("py-0.5");
   });
 
+  it("should use theme variable classes for border width and body text", () => {
+    render(<Badge data-testid="badge">Themed</Badge>);
+    const badge = screen.getByTestId("badge");
+    expect(badge.className).toContain("border-[length:var(--border-width)]");
+    expect(badge.className).toContain("[letter-spacing:var(--letter-spacing)]");
+  });
+
   it("should merge custom className", () => {
-    render(<Badge className="custom-badge" data-testid="badge">Custom</Badge>);
+    render(
+      <Badge className="custom-badge" data-testid="badge">
+        Custom
+      </Badge>,
+    );
     const badge = screen.getByTestId("badge");
     expect(badge.className).toContain("custom-badge");
   });
 
   it("should pass through additional HTML attributes", () => {
-    render(<Badge id="my-badge" title="Badge tooltip">Hover me</Badge>);
+    render(
+      <Badge id="my-badge" title="Badge tooltip">
+        Hover me
+      </Badge>,
+    );
     const badge = screen.getByText("Hover me");
     expect(badge).toHaveAttribute("id", "my-badge");
     expect(badge).toHaveAttribute("title", "Badge tooltip");
@@ -66,7 +93,7 @@ describe("Badge", () => {
     render(
       <Badge data-testid="badge">
         <span>Icon</span> Status
-      </Badge>
+      </Badge>,
     );
     const badge = screen.getByTestId("badge");
     expect(badge).toHaveTextContent("Icon Status");

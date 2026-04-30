@@ -127,7 +127,7 @@ interface DocumentVersion {
 
 2. **Add version history to file panel** — Below the file list, show versions for the active document. Auto-version on save (debounced 30s). Manual "Save Version" button. Click to preview, restore.
 
-### Phase 2: Editor Improvements  
+### Phase 2: Editor Improvements
 3. **Add editor toolbar with formatting** — Bold/Italic/Underline, Undo/Redo, Zoom, Template switcher. Float above the preview. Wire to TipTap commands.
 
 4. **Improve inline editing UX** — Click-to-edit with visible cursor, section drag handles, "Add Section" ghost button, placeholder text in empty sections. Polish the editing feel.

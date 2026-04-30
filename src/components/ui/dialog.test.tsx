@@ -38,7 +38,7 @@ describe("Dialog", () => {
           <DialogTitle>Title</DialogTitle>
           <DialogDescription>Description</DialogDescription>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
     expect(screen.queryByText("Title")).not.toBeInTheDocument();
@@ -52,7 +52,7 @@ describe("Dialog", () => {
         <AccessibleDialogContent>
           <DialogTitle>Title</DialogTitle>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
     expect(screen.getByText("Open Dialog")).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe("Dialog", () => {
           <DialogTitle>Test Title</DialogTitle>
           <DialogDescription>Test Description</DialogDescription>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
     fireEvent.click(screen.getByText("Open"));
@@ -83,7 +83,7 @@ describe("Dialog", () => {
         <AccessibleDialogContent>
           <DialogHeader data-testid="header">Header Content</DialogHeader>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
     const header = screen.getByTestId("header");
@@ -98,7 +98,7 @@ describe("Dialog", () => {
         <AccessibleDialogContent>
           <DialogFooter data-testid="footer">Footer Content</DialogFooter>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
     const footer = screen.getByTestId("footer");
@@ -112,12 +112,14 @@ describe("Dialog", () => {
         <AccessibleDialogContent>
           <DialogTitle>My Title</DialogTitle>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
     const title = screen.getByText("My Title");
     expect(title).toHaveClass("text-lg");
     expect(title).toHaveClass("font-semibold");
+    expect(title.className).toContain("[text-transform:var(--text-transform)]");
+    expect(title.className).toContain("[letter-spacing:var(--letter-spacing)]");
   });
 
   it("should render DialogDescription with correct classes", async () => {
@@ -126,12 +128,33 @@ describe("Dialog", () => {
         <AccessibleDialogContent>
           <DialogDescription>My Description</DialogDescription>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
     const description = screen.getByText("My Description");
     expect(description).toHaveClass("text-sm");
     expect(description).toHaveClass("text-muted-foreground");
+    expect(description.className).toContain(
+      "[letter-spacing:var(--letter-spacing)]",
+    );
+  });
+
+  it("should use theme variable classes on DialogContent", async () => {
+    render(
+      <Dialog open>
+        <AccessibleDialogContent>
+          <DialogTitle>Title</DialogTitle>
+        </AccessibleDialogContent>
+      </Dialog>,
+    );
+
+    const content = screen.getByRole("dialog");
+    expect(content.className).toContain("border-[length:var(--border-width)]");
+    expect(content.className).toContain("shadow-[var(--shadow-elevated)]");
+    expect(content.className).toContain(
+      "[backdrop-filter:var(--backdrop-blur)]",
+    );
+    expect(content.className).toContain("sm:rounded-[var(--radius)]");
   });
 
   it("should render close button in DialogContent", async () => {
@@ -140,7 +163,7 @@ describe("Dialog", () => {
         <AccessibleDialogContent>
           <DialogTitle>Title</DialogTitle>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
     // Close button has sr-only text
@@ -154,7 +177,7 @@ describe("Dialog", () => {
         <AccessibleDialogContent>
           <DialogTitle>Title</DialogTitle>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
     const closeButton = screen.getByText("Close").closest("button");
@@ -169,7 +192,7 @@ describe("Dialog", () => {
         <AccessibleDialogContent>
           <DialogTitle>Controlled Title</DialogTitle>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
     expect(screen.queryByText("Controlled Title")).not.toBeInTheDocument();
@@ -179,7 +202,7 @@ describe("Dialog", () => {
         <AccessibleDialogContent>
           <DialogTitle>Controlled Title</DialogTitle>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
     expect(screen.getByText("Controlled Title")).toBeInTheDocument();
@@ -191,10 +214,12 @@ describe("Dialog", () => {
         <AccessibleDialogContent className="custom-dialog">
           <DialogTitle>Title</DialogTitle>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
-    const content = screen.getByText("Title").closest("[class*='custom-dialog']");
+    const content = screen
+      .getByText("Title")
+      .closest("[class*='custom-dialog']");
     expect(content).toBeInTheDocument();
   });
 
@@ -206,7 +231,7 @@ describe("Dialog", () => {
             Header
           </DialogHeader>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
     expect(screen.getByTestId("header")).toHaveClass("custom-header");
@@ -220,7 +245,7 @@ describe("Dialog", () => {
             Footer
           </DialogFooter>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
     expect(screen.getByTestId("footer")).toHaveClass("custom-footer");
@@ -232,7 +257,7 @@ describe("Dialog", () => {
         <AccessibleDialogContent>
           <DialogTitle className="custom-title">Title</DialogTitle>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
     expect(screen.getByText("Title")).toHaveClass("custom-title");
@@ -246,7 +271,7 @@ describe("Dialog", () => {
             Description
           </DialogDescription>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
     expect(screen.getByText("Description")).toHaveClass("custom-description");
@@ -259,7 +284,7 @@ describe("Dialog", () => {
           <DialogTitle>Title</DialogTitle>
           <DialogClose data-testid="custom-close">Close Me</DialogClose>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
     expect(screen.getByTestId("custom-close")).toBeInTheDocument();
@@ -272,7 +297,7 @@ describe("Dialog", () => {
         <AccessibleDialogContent>
           <DialogTitle>Title</DialogTitle>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
     const content = screen.getByRole("dialog");
@@ -297,7 +322,7 @@ describe("Dialog", () => {
         <AccessibleDialogContent>
           <DialogTitle>Title</DialogTitle>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
     const content = screen.getByRole("dialog");
@@ -325,11 +350,13 @@ describe("Dialog", () => {
             <button>Confirm</button>
           </DialogFooter>
         </AccessibleDialogContent>
-      </Dialog>
+      </Dialog>,
     );
 
     expect(screen.getByText("Confirm Action")).toBeInTheDocument();
-    expect(screen.getByText("Are you sure you want to proceed?")).toBeInTheDocument();
+    expect(
+      screen.getByText("Are you sure you want to proceed?"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Dialog body content")).toBeInTheDocument();
     expect(screen.getByText("Cancel")).toBeInTheDocument();
     expect(screen.getByText("Confirm")).toBeInTheDocument();

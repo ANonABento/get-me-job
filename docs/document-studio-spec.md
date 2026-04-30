@@ -76,14 +76,14 @@ Replace all three pages with a single **Document Studio** page at `/studio`.
 ### Right Panel — AI Assistant (Collapsible)
 - **Context-aware**: Shows different UI based on what's selected in the editor
 - **No selection**: General suggestions ("Your summary could be stronger", "Add metrics to experience bullets")
-- **Text selected**: 
+- **Text selected**:
   - "Rewrite" — AI rewrites the selected text
   - "Make more concise" / "Add metrics" / "Match JD keywords" — quick action buttons
   - Shows before/after diff, accept/reject
-- **Section selected**: 
+- **Section selected**:
   - "Generate from bank" — pull matching entries from knowledge bank
   - "Optimize for ATS" — keyword analysis against JD
-- **Gap Analysis** (Tailored mode): 
+- **Gap Analysis** (Tailored mode):
   - Matched keywords (green)
   - Missing keywords (yellow) with suggestions
   - Match score ring
@@ -96,7 +96,7 @@ Replace all three pages with a single **Document Studio** page at `/studio`.
    - `npm install @tiptap/react @tiptap/starter-kit @tiptap/extension-placeholder`
    - Custom extensions for resume structure (sections, entries, contact)
    - Import existing `generateResumeHTML` CSS as TipTap editor styles
-   
+
 2. **Create Document Studio page layout**
    - New route at `/studio` (keep old routes as redirects temporarily)
    - Three-panel responsive layout
@@ -131,7 +131,7 @@ Replace all three pages with a single **Document Studio** page at `/studio`.
 7. **Version history + auto-save**
    - localStorage for drafts
    - Named versions with restore
-   
+
 8. **Cleanup**
    - Remove old `/builder`, `/tailor`, `/cover-letter` routes
    - Update sidebar navigation

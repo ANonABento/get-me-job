@@ -17,7 +17,7 @@ describe("Skeleton", () => {
     render(<Skeleton data-testid="skeleton" />);
     const el = screen.getByTestId("skeleton");
     expect(el.className).toContain("skeleton");
-    expect(el.className).toContain("rounded-md");
+    expect(el.className).toContain("rounded-[var(--radius)]");
   });
 
   it("should merge custom className", () => {
@@ -30,7 +30,10 @@ describe("Skeleton", () => {
 
   it("should pass through HTML attributes", () => {
     render(<Skeleton data-testid="skeleton" aria-label="loading" />);
-    expect(screen.getByTestId("skeleton")).toHaveAttribute("aria-label", "loading");
+    expect(screen.getByTestId("skeleton")).toHaveAttribute(
+      "aria-label",
+      "loading",
+    );
   });
 });
 
@@ -62,8 +65,10 @@ describe("SkeletonCard", () => {
   it("should render card structure", () => {
     render(<SkeletonCard data-testid="card" />);
     const card = screen.getByTestId("card");
-    expect(card.className).toContain("rounded-lg");
-    expect(card.className).toContain("border");
+    expect(card.className).toContain("rounded-[var(--radius)]");
+    expect(card.className).toContain("border-[length:var(--border-width)]");
+    expect(card.className).toContain("shadow-[var(--shadow-card)]");
+    expect(card.className).toContain("[backdrop-filter:var(--backdrop-blur)]");
     expect(card.className).toContain("bg-card");
     // Should contain skeleton elements
     const skeletons = card.querySelectorAll(".skeleton");
@@ -80,8 +85,8 @@ describe("SkeletonStatCard", () => {
   it("should render stat card structure", () => {
     render(<SkeletonStatCard data-testid="stat" />);
     const stat = screen.getByTestId("stat");
-    expect(stat.className).toContain("rounded-2xl");
-    expect(stat.className).toContain("border");
+    expect(stat.className).toContain("rounded-[var(--radius)]");
+    expect(stat.className).toContain("border-[length:var(--border-width)]");
     const skeletons = stat.querySelectorAll(".skeleton");
     expect(skeletons.length).toBeGreaterThan(0);
   });
@@ -91,8 +96,8 @@ describe("SkeletonJobCard", () => {
   it("should render job card structure", () => {
     render(<SkeletonJobCard data-testid="job" />);
     const job = screen.getByTestId("job");
-    expect(job.className).toContain("rounded-xl");
-    expect(job.className).toContain("border");
+    expect(job.className).toContain("rounded-[var(--radius)]");
+    expect(job.className).toContain("border-[length:var(--border-width)]");
     const skeletons = job.querySelectorAll(".skeleton");
     expect(skeletons.length).toBeGreaterThan(0);
   });
@@ -102,7 +107,7 @@ describe("SkeletonInsights", () => {
   it("should render insights structure", () => {
     render(<SkeletonInsights data-testid="insights" />);
     const insights = screen.getByTestId("insights");
-    expect(insights.className).toContain("rounded-2xl");
+    expect(insights.className).toContain("rounded-[var(--radius)]");
     const skeletons = insights.querySelectorAll(".skeleton");
     expect(skeletons.length).toBeGreaterThan(0);
   });
@@ -128,8 +133,8 @@ describe("SkeletonChart", () => {
   it("should render chart structure with header and body", () => {
     render(<SkeletonChart data-testid="chart" />);
     const chart = screen.getByTestId("chart");
-    expect(chart.className).toContain("rounded-lg");
-    expect(chart.className).toContain("border");
+    expect(chart.className).toContain("rounded-[var(--radius)]");
+    expect(chart.className).toContain("border-[length:var(--border-width)]");
     expect(chart.className).toContain("bg-card");
     const skeletons = chart.querySelectorAll(".skeleton");
     // 2 header items + 1 chart body + 3 legend items = 6

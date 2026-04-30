@@ -23,13 +23,17 @@ export function ErrorState({
   if (variant === "inline") {
     return (
       <div
-        className={`flex items-center gap-3 rounded-lg border border-destructive/50 bg-destructive/5 px-4 py-3 ${className}`}
+        className={`flex items-center gap-3 rounded-[var(--radius)] border-[length:var(--border-width)] border-destructive/50 bg-destructive/5 px-4 py-3 ${className}`}
       >
         <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-destructive">{title}</p>
+          <p className="text-sm font-medium text-destructive [letter-spacing:var(--letter-spacing)]">
+            {title}
+          </p>
           {message && (
-            <p className="text-xs text-destructive/80 mt-0.5">{message}</p>
+            <p className="text-xs text-destructive/80 mt-0.5 [letter-spacing:var(--letter-spacing)]">
+              {message}
+            </p>
           )}
         </div>
         {onRetry && (
@@ -61,16 +65,20 @@ export function ErrorState({
   if (variant === "card") {
     return (
       <div
-        className={`rounded-2xl border border-destructive/50 bg-destructive/5 p-6 ${className}`}
+        className={`rounded-[var(--radius)] border-[length:var(--border-width)] border-destructive/50 bg-destructive/5 p-6 ${className}`}
       >
         <div className="flex items-start gap-4">
-          <div className="p-3 rounded-xl bg-destructive/10 text-destructive">
+          <div className="p-3 rounded-[var(--radius)] bg-destructive/10 text-destructive">
             <AlertCircle className="h-6 w-6" />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-destructive">{title}</h3>
+            <h3 className="font-semibold text-destructive [text-transform:var(--text-transform)]">
+              {title}
+            </h3>
             {message && (
-              <p className="text-sm text-muted-foreground mt-1">{message}</p>
+              <p className="text-sm text-muted-foreground mt-1 [letter-spacing:var(--letter-spacing)]">
+                {message}
+              </p>
             )}
             {(onRetry || onDismiss) && (
               <div className="flex gap-2 mt-4">
@@ -99,9 +107,11 @@ export function ErrorState({
       <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10 text-destructive mb-4">
         <AlertCircle className="h-8 w-8" />
       </div>
-      <h3 className="text-lg font-semibold text-destructive">{title}</h3>
+      <h3 className="text-lg font-semibold text-destructive [text-transform:var(--text-transform)]">
+        {title}
+      </h3>
       {message && (
-        <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
+        <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto [letter-spacing:var(--letter-spacing)]">
           {message}
         </p>
       )}
@@ -140,10 +150,16 @@ export function getErrorMessage(error: unknown): string {
     return error;
   }
   if (typeof error === "object" && error !== null) {
-    if ("message" in error && typeof (error as { message: unknown }).message === "string") {
+    if (
+      "message" in error &&
+      typeof (error as { message: unknown }).message === "string"
+    ) {
       return (error as { message: string }).message;
     }
-    if ("error" in error && typeof (error as { error: unknown }).error === "string") {
+    if (
+      "error" in error &&
+      typeof (error as { error: unknown }).error === "string"
+    ) {
       return (error as { error: string }).error;
     }
   }
