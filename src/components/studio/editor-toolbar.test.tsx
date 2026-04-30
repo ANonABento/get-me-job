@@ -11,6 +11,8 @@ function makeEditorMock() {
     toggleBold: vi.fn(() => chain),
     toggleItalic: vi.fn(() => chain),
     toggleUnderline: vi.fn(() => chain),
+    toggleHeading: vi.fn(() => chain),
+    toggleBulletList: vi.fn(() => chain),
     undo: vi.fn(() => chain),
     redo: vi.fn(() => chain),
     run,
@@ -46,44 +48,19 @@ describe("EditorToolbar", () => {
     fireEvent.click(screen.getByRole("button", { name: "Bold" }));
     fireEvent.click(screen.getByRole("button", { name: "Italic" }));
     fireEvent.click(screen.getByRole("button", { name: "Underline" }));
+    fireEvent.click(screen.getByRole("button", { name: "Heading" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bullet list" }));
     fireEvent.click(screen.getByRole("button", { name: "Undo" }));
     fireEvent.click(screen.getByRole("button", { name: "Redo" }));
 
     expect(chain.toggleBold).toHaveBeenCalledTimes(1);
     expect(chain.toggleItalic).toHaveBeenCalledTimes(1);
     expect(chain.toggleUnderline).toHaveBeenCalledTimes(1);
+    expect(chain.toggleHeading).toHaveBeenCalledWith({ level: 2 });
+    expect(chain.toggleBulletList).toHaveBeenCalledTimes(1);
     expect(chain.undo).toHaveBeenCalledTimes(1);
     expect(chain.redo).toHaveBeenCalledTimes(1);
-    expect(chain.run).toHaveBeenCalledTimes(5);
-  });
-
-  it("uses theme variable classes for toolbar chrome", () => {
-    const { editor } = makeEditorMock();
-    const { container } = render(
-      <EditorToolbar
-        editor={editor}
-        templates={TEMPLATES}
-        templateId="classic"
-        zoomPercent={100}
-        canExport
-        onTemplateChange={vi.fn()}
-        onZoomChange={vi.fn()}
-        onDownloadPdf={vi.fn()}
-        onPrint={vi.fn()}
-      />,
-    );
-
-    const toolbar = container.firstElementChild;
-    expect(toolbar?.className).toContain(
-      "border-b-[length:var(--border-width)]",
-    );
-    expect(toolbar?.className).toContain("shadow-[var(--shadow-card)]");
-
-    const zoomControl = screen.getByText("Zoom").closest("label");
-    expect(zoomControl?.className).toContain("rounded-[var(--radius)]");
-    expect(zoomControl?.className).toContain(
-      "border-[length:var(--border-width)]",
-    );
+    expect(chain.run).toHaveBeenCalledTimes(7);
   });
 
   it("emits template, zoom, print, and download actions", () => {

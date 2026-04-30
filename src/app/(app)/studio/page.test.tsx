@@ -224,8 +224,9 @@ describe("StudioPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Toggle entry" }));
 
     await waitFor(() => {
+      expect(screen.getByTestId("resume-content")).toHaveTextContent("editable");
       expect(screen.getByTestId("resume-html")).toHaveTextContent(
-        "cover-letter-document"
+        "Dear Hiring Team"
       );
       expect(screen.getByTestId("resume-html")).toHaveTextContent("Engineer");
     });

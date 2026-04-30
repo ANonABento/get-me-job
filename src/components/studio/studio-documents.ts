@@ -1,4 +1,5 @@
 import type { SectionState } from "@/lib/builder/section-manager";
+import type { TipTapJSONContent } from "@/lib/editor/types";
 
 export const RESUME_DOCUMENT_ID = "resume";
 export const COVER_LETTER_DOCUMENT_ID = "cover-letter";
@@ -12,6 +13,8 @@ export interface StudioDocument {
   templateId?: string;
   selectedEntryIds?: string[];
   sections?: SectionState[];
+  html?: string;
+  content?: TipTapJSONContent;
 }
 
 export const DOCUMENT_MODE_LABELS: Record<DocumentMode, string> = {

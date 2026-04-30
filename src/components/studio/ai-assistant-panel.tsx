@@ -37,6 +37,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { Opportunity } from "@/types";
+import type { DocumentMode } from "./studio-documents";
 
 type AssistantRunAction =
   | DocumentAssistantAction
@@ -45,7 +46,10 @@ type AssistantRunAction =
 
 interface AiAssistantPanelProps {
   documentContent: string;
+  documentMode?: DocumentMode;
   selectedEntryCount: number;
+  selectedEntryIds?: string[];
+  onCoverLetterGenerated?: (content: string) => void;
   onOpenBank: () => void;
   onOpportunityClear?: () => void;
   onOpportunitySelect?: (opportunityId: string) => void;
@@ -95,7 +99,10 @@ async function readApiError(
 
 export function AiAssistantPanel({
   documentContent,
+  documentMode = "resume",
   selectedEntryCount,
+  selectedEntryIds = [],
+  onCoverLetterGenerated,
   onOpenBank,
   onOpportunityClear,
   onOpportunitySelect,
@@ -311,6 +318,61 @@ export function AiAssistantPanel({
     [documentContent, jobDescription, selectedOpportunityId, selectedText],
   );
 
+  const runCoverLetterGenerate = useCallback(async () => {
+    if (!jobDescription.trim()) {
+      setStatusMessage("Paste a job description first.");
+      return;
+    }
+
+    if (selectedEntryIds.length === 0) {
+      onOpenBank();
+      setStatusMessage("Choose bank entries to generate a stronger draft.");
+      return;
+    }
+
+    const response = await fetch("/api/cover-letter/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "generate",
+        jobDescription,
+        selectedBankEntryIds: selectedEntryIds,
+        ...(selectedOpportunityId
+          ? { opportunityId: selectedOpportunityId }
+          : {}),
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await readApiError(
+        response,
+        "Could not generate cover letter.",
+      );
+      if (isMissingLLMSetupError(error)) {
+        setSetupPrompt(true);
+        setStatusMessage("");
+      } else {
+        setStatusMessage(error);
+      }
+      return;
+    }
+
+    const data = (await response.json()) as AssistantResponse;
+    if (!data.content?.trim()) {
+      setStatusMessage("The assistant returned an empty cover letter.");
+      return;
+    }
+
+    onCoverLetterGenerated?.(data.content);
+    setStatusMessage("Generated a cover letter draft.");
+  }, [
+    jobDescription,
+    onCoverLetterGenerated,
+    onOpenBank,
+    selectedEntryIds,
+    selectedOpportunityId,
+  ]);
+
   const handleAssistantAction = useCallback(
     async (action: AssistantRunAction) => {
       if (runningActionRef.current) return;
@@ -348,6 +410,11 @@ export function AiAssistantPanel({
         if (!configured) return;
 
         if (action === "generate-from-bank") {
+          if (documentMode === "cover_letter") {
+            await runCoverLetterGenerate();
+            return;
+          }
+
           onOpenBank();
           setStatusMessage(
             selectedEntryCount > 0
@@ -384,10 +451,12 @@ export function AiAssistantPanel({
     },
     [
       documentContent,
+      documentMode,
       ensureLLMConfigured,
       jobDescription,
       onOpenBank,
       rewriteSection,
+      runCoverLetterGenerate,
       runRewrite,
       selectedEntryCount,
       selectedText,
@@ -489,8 +558,12 @@ export function AiAssistantPanel({
               <FileText className="mr-2 h-4 w-4" />
             )}
             {isRunning("generate-from-bank")
-              ? "Preparing..."
-              : "Generate from Bank"}
+              ? documentMode === "cover_letter"
+                ? "Generating..."
+                : "Preparing..."
+              : documentMode === "cover_letter"
+                ? "AI Generate"
+                : "Generate from Bank"}
           </Button>
         </section>
 

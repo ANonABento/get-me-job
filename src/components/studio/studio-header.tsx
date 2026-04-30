@@ -146,7 +146,7 @@ export function StudioHeader({
               className={cn(
                 "px-3 py-1 text-sm font-medium transition-colors",
                 documentMode === mode
-                  ? "rounded-[var(--radius)] bg-primary text-primary-foreground shadow-[var(--shadow-button)]"
+                  ? "rounded-md bg-primary text-primary-foreground shadow-[var(--shadow-button)]"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -163,11 +163,11 @@ export function StudioHeader({
             aria-expanded={templateOpen}
             aria-haspopup="listbox"
             onClick={() => setTemplateOpen((prev) => !prev)}
-            className="flex items-center gap-2 rounded-[var(--radius)] border-[length:var(--border-width)] bg-card px-3 py-1.5 text-sm transition-colors hover:bg-muted"
+            className="flex min-w-[15rem] items-center gap-2 rounded-[var(--radius)] border-[length:var(--border-width)] bg-card px-3 py-1.5 text-left text-sm transition-colors hover:bg-muted"
           >
             <TemplatePreviewThumbnail
               template={selectedTemplate}
-              className="h-7 w-5 shrink-0 rounded-[calc(var(--radius)_-_4px)]"
+              className="h-20 w-14 shrink-0 rounded-[calc(var(--radius)_-_4px)]"
             />
             <span className="min-w-0 flex-1">
               <span className="block font-medium leading-tight">
@@ -189,7 +189,8 @@ export function StudioHeader({
               <div
                 role="listbox"
                 aria-label={templateListLabel}
-                className="absolute left-0 top-full z-50 mt-2 grid max-h-[70vh] w-[min(26rem,calc(100vw-2rem))] grid-cols-2 gap-2 overflow-auto rounded-[var(--radius)] border-[length:var(--border-width)] bg-popover p-2 text-popover-foreground shadow-[var(--shadow-elevated)] [backdrop-filter:var(--backdrop-blur)] sm:grid-cols-3"
+                style={templatePickerStyle}
+                className="fixed left-0 top-full z-50 mt-2 grid max-h-[70vh] w-[min(26rem,calc(100vw-2rem))] grid-cols-2 gap-2 overflow-auto rounded-[var(--radius)] border-[length:var(--border-width)] bg-popover p-2 text-popover-foreground shadow-[var(--shadow-elevated)] [backdrop-filter:var(--backdrop-blur)] sm:grid-cols-3"
               >
                 {templates.map((template) => {
                   const isSelected = template.id === selectedTemplate.id;

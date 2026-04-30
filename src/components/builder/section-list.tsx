@@ -54,6 +54,7 @@ interface SectionListProps {
   onAiRewrite?: (categoryId: BankCategory) => void;
   pickerOpen?: boolean;
   onPickerOpenChange?: (open: boolean) => void;
+  showSections?: boolean;
 }
 
 export function SectionList({
@@ -66,9 +67,10 @@ export function SectionList({
   onAiRewrite,
   pickerOpen = false,
   onPickerOpenChange,
+  showSections = true,
 }: SectionListProps) {
   const [expandedSections, setExpandedSections] = useState<Set<BankCategory>>(
-    new Set()
+    new Set(),
   );
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -154,7 +156,7 @@ export function SectionList({
         className={cn(
           "w-full text-left transition-colors",
           sizeClasses,
-          selected ? selectedClasses : unselectedClasses
+          selected ? selectedClasses : unselectedClasses,
         )}
       >
         <span
@@ -163,7 +165,7 @@ export function SectionList({
             compact ? "h-3.5 w-3.5" : "h-4 w-4",
             selected
               ? "border-primary bg-primary text-primary-foreground"
-              : "border-border"
+              : "border-border",
           )}
         >
           {selected && (
@@ -208,114 +210,118 @@ export function SectionList({
         </DialogContent>
       </Dialog>
 
-      <div className="flex items-center justify-between px-4 py-3 border-b">
-        <h3 className="text-sm font-semibold">Sections</h3>
-        <span className="text-xs text-muted-foreground">Drag to reorder</span>
-      </div>
+      {showSections && (
+        <>
+          <div className="flex items-center justify-between px-4 py-3 border-b">
+            <h3 className="text-sm font-semibold">Sections</h3>
+            <span className="text-xs text-muted-foreground">
+              Drag to reorder
+            </span>
+          </div>
 
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
-        {sections.map((section, index) => {
-          const Icon = SECTION_ICONS[section.id];
-          const sectionEntries = entriesByCategory.get(section.id) || [];
-          const selectedCount = sectionEntries.filter((e) =>
-            selectedIds.has(e.id)
-          ).length;
-          const isExpanded = expandedSections.has(section.id);
-          const isDragging = dragIndex === index;
-          const isDragOver = dragOverIndex === index && dragIndex !== index;
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            {sections.map((section, index) => {
+              const Icon = SECTION_ICONS[section.id];
+              const sectionEntries = entriesByCategory.get(section.id) || [];
+              const selectedCount = sectionEntries.filter((e) =>
+                selectedIds.has(e.id),
+              ).length;
+              const isExpanded = expandedSections.has(section.id);
+              const isDragging = dragIndex === index;
+              const isDragOver = dragOverIndex === index && dragIndex !== index;
 
-          if (sectionEntries.length === 0) return null;
+              if (sectionEntries.length === 0) return null;
 
-          return (
-            <div
-              key={section.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, index)}
-              onDragOver={(e) => handleDragOver(e, index)}
-              onDragEnter={handleDragEnter}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, index)}
-              onDragEnd={handleDragEnd}
-              className={cn(
-                "rounded-lg border transition-all",
-                isDragging && "opacity-50",
-                isDragOver && "border-primary ring-1 ring-primary",
-                !section.visible && "opacity-60"
-              )}
-            >
-              {/* Section header */}
-              <div className="flex items-center gap-1 px-2 py-2">
-                <div className="cursor-grab active:cursor-grabbing p-1 text-muted-foreground hover:text-foreground">
-                  <GripVertical className="h-4 w-4" />
+              return (
+                <div
+                  key={section.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnter={handleDragEnter}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, index)}
+                  onDragEnd={handleDragEnd}
+                  className={cn(
+                    "rounded-lg border transition-all",
+                    isDragging && "opacity-50",
+                    isDragOver && "border-primary ring-1 ring-primary",
+                    !section.visible && "opacity-60",
+                  )}
+                >
+                  <div className="flex items-center gap-1 px-2 py-2">
+                    <div className="cursor-grab active:cursor-grabbing p-1 text-muted-foreground hover:text-foreground">
+                      <GripVertical className="h-4 w-4" />
+                    </div>
+
+                    <button
+                      onClick={() => toggleExpanded(section.id)}
+                      className="p-0.5 text-muted-foreground hover:text-foreground"
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      ) : (
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+
+                    <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+
+                    <button
+                      onClick={() => toggleExpanded(section.id)}
+                      className="flex-1 text-left text-sm font-medium truncate"
+                    >
+                      {SECTION_LABELS[section.id]}
+                    </button>
+
+                    <span className="text-xs text-muted-foreground mr-1">
+                      {selectedCount}/{sectionEntries.length}
+                    </span>
+
+                    {onAiRewrite && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() => onAiRewrite(section.id)}
+                        title="AI Rewrite"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+
+                    <button
+                      onClick={() => onToggleVisibility(section.id)}
+                      className="p-1 text-muted-foreground hover:text-foreground"
+                      title={section.visible ? "Hide section" : "Show section"}
+                    >
+                      {section.visible ? (
+                        <Eye className="h-4 w-4" />
+                      ) : (
+                        <EyeOff className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="px-2 pb-2 space-y-0.5">
+                      {sectionEntries.map((entry) =>
+                        renderEntryToggle(entry, true),
+                      )}
+                    </div>
+                  )}
                 </div>
+              );
+            })}
+          </div>
 
-                <button
-                  onClick={() => toggleExpanded(section.id)}
-                  className="p-0.5 text-muted-foreground hover:text-foreground"
-                >
-                  {isExpanded ? (
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  ) : (
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  )}
-                </button>
-
-                <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-
-                <button
-                  onClick={() => toggleExpanded(section.id)}
-                  className="flex-1 text-left text-sm font-medium truncate"
-                >
-                  {SECTION_LABELS[section.id]}
-                </button>
-
-                <span className="text-xs text-muted-foreground mr-1">
-                  {selectedCount}/{sectionEntries.length}
-                </span>
-
-                {onAiRewrite && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0"
-                    onClick={() => onAiRewrite(section.id)}
-                    title="AI Rewrite"
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                  </Button>
-                )}
-
-                <button
-                  onClick={() => onToggleVisibility(section.id)}
-                  className="p-1 text-muted-foreground hover:text-foreground"
-                  title={section.visible ? "Hide section" : "Show section"}
-                >
-                  {section.visible ? (
-                    <Eye className="h-4 w-4" />
-                  ) : (
-                    <EyeOff className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-
-              {/* Expanded entries */}
-              {isExpanded && (
-                <div className="px-2 pb-2 space-y-0.5">
-                  {sectionEntries.map((entry) =>
-                    renderEntryToggle(entry, true)
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="border-t px-4 py-2">
-        <p className="text-xs text-muted-foreground">
-          {selectedIds.size} of {entries.length} entries selected
-        </p>
-      </div>
+          <div className="border-t px-4 py-2">
+            <p className="text-xs text-muted-foreground">
+              {selectedIds.size} of {entries.length} entries selected
+            </p>
+          </div>
+        </>
+      )}
     </div>
   );
 }
