@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   Check,
   ChevronDown,
@@ -36,6 +36,13 @@ interface StudioHeaderProps {
   onDownloadPdf: () => void;
 }
 
+interface TemplatePickerPosition {
+  left: number;
+  top: number;
+  width: number;
+  maxHeight: number;
+}
+
 export function StudioHeader({
   documentMode,
   draftIsSaved,
@@ -49,6 +56,9 @@ export function StudioHeader({
   onDownloadPdf,
 }: StudioHeaderProps) {
   const [templateOpen, setTemplateOpen] = useState(false);
+  const [templatePickerPosition, setTemplatePickerPosition] =
+    useState<TemplatePickerPosition | null>(null);
+  const templateButtonRef = useRef<HTMLButtonElement>(null);
   const templates = useMemo(
     () =>
       documentMode === "cover_letter" ? COVER_LETTER_TEMPLATES : TEMPLATES,
@@ -68,15 +78,58 @@ export function StudioHeader({
   useEffect(() => {
     if (!templateOpen) return;
 
+    const positionTemplatePicker = () => {
+      const trigger = templateButtonRef.current;
+      if (!trigger) return;
+
+      const viewportGutter = 16;
+      const maxPickerWidth = 736;
+      const triggerRect = trigger.getBoundingClientRect();
+      const width = Math.min(
+        maxPickerWidth,
+        window.innerWidth - viewportGutter * 2
+      );
+      const left = Math.min(
+        Math.max(triggerRect.left, viewportGutter),
+        window.innerWidth - width - viewportGutter
+      );
+      const top = triggerRect.bottom + 8;
+
+      setTemplatePickerPosition({
+        left,
+        top,
+        width,
+        maxHeight: Math.max(240, window.innerHeight - top - viewportGutter),
+      });
+    };
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setTemplateOpen(false);
       }
     };
 
+    positionTemplatePicker();
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("resize", positionTemplatePicker);
+    window.addEventListener("scroll", positionTemplatePicker, true);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("resize", positionTemplatePicker);
+      window.removeEventListener("scroll", positionTemplatePicker, true);
+    };
   }, [templateOpen]);
+
+  const templatePickerStyle: CSSProperties | undefined =
+    templatePickerPosition === null
+      ? undefined
+      : {
+          left: templatePickerPosition.left,
+          top: templatePickerPosition.top,
+          width: templatePickerPosition.width,
+          maxHeight: templatePickerPosition.maxHeight,
+        };
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 md:px-6">
@@ -104,19 +157,27 @@ export function StudioHeader({
 
         <div className="relative md:ml-4">
           <button
+            ref={templateButtonRef}
             type="button"
             aria-label={`Select ${documentLabel} template`}
             aria-expanded={templateOpen}
             aria-haspopup="listbox"
             onClick={() => setTemplateOpen((prev) => !prev)}
-            className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors hover:bg-muted"
+            className="flex min-w-[15rem] items-center gap-3 rounded-md border bg-background px-3 py-2 text-left text-sm transition-colors hover:bg-muted"
           >
             <TemplatePreviewThumbnail
               template={selectedTemplate}
-              className="h-7 w-5 shrink-0 rounded-sm"
+              className="h-20 w-14 shrink-0 rounded-sm"
             />
-            <span>{selectedTemplate.name}</span>
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium leading-tight">
+                {selectedTemplate.name}
+              </span>
+              <span className="mt-1 line-clamp-2 block text-xs leading-snug text-muted-foreground">
+                {selectedTemplate.description}
+              </span>
+            </span>
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
           </button>
 
           {templateOpen && (
@@ -128,7 +189,8 @@ export function StudioHeader({
               <div
                 role="listbox"
                 aria-label={templateListLabel}
-                className="absolute left-0 top-full z-50 mt-2 grid max-h-[70vh] w-[min(26rem,calc(100vw-2rem))] grid-cols-2 gap-2 overflow-auto rounded-lg border bg-popover p-2 shadow-lg sm:grid-cols-3"
+                className="fixed z-50 grid grid-cols-2 gap-3 overflow-auto rounded-lg border bg-popover p-3 shadow-lg sm:grid-cols-3 lg:grid-cols-4"
+                style={templatePickerStyle}
               >
                 {templates.map((template) => {
                   const isSelected = template.id === selectedTemplate.id;
@@ -137,26 +199,35 @@ export function StudioHeader({
                       key={template.id}
                       type="button"
                       role="option"
+                      aria-label={`${template.name} template`}
                       aria-selected={isSelected}
                       onClick={() => {
                         onTemplateSelect(template.id);
                         setTemplateOpen(false);
                       }}
                       className={cn(
-                        "rounded-md border p-2 text-left text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        "group relative rounded-md border p-2 text-left text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         isSelected
                           ? "border-primary bg-primary/5"
                           : "border-border bg-background"
                       )}
                     >
-                      <TemplatePreviewThumbnail template={template} />
-                      <span className="mt-2 flex items-center gap-1.5 font-medium">
-                        <span className="min-w-0 flex-1 truncate">
-                          {template.name}
+                      <TemplatePreviewThumbnail
+                        template={template}
+                        className="h-36 transition-all duration-150 group-hover:h-56 group-hover:shadow-xl group-focus-visible:h-56 group-focus-visible:shadow-xl"
+                      />
+                      <span className="mt-2 block">
+                        <span className="flex items-center gap-1.5 font-medium leading-tight">
+                          <span className="min-w-0 flex-1 truncate">
+                            {template.name}
+                          </span>
+                          {isSelected && (
+                            <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
+                          )}
                         </span>
-                        {isSelected && (
-                          <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
-                        )}
+                        <span className="mt-1 line-clamp-2 block text-xs leading-snug text-muted-foreground">
+                          {template.description}
+                        </span>
                       </span>
                     </button>
                   );
