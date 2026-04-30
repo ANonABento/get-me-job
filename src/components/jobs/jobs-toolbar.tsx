@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/page-layout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { JobRemoteFilter, JobSortOption, JobStatusFilter, JobTypeFilter } from "@/app/(app)/jobs/filter-jobs";
+import { cn } from "@/lib/utils";
 import { TRACKED_JOB_STATUSES, TRACKED_JOB_STATUS_LABELS } from "@/lib/constants/jobs";
 
 interface JobsToolbarProps {

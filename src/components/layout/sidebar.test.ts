@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   navigationGroups,
   bottomNavigation,
+  getSidebarNavItemClassName,
+  getSidebarNavItemState,
   type NavGroup,
   type NavItem,
 } from "./sidebar";
@@ -68,7 +70,7 @@ describe("navigationGroups", () => {
     expect(interviewPrep.icon).toBeDefined();
   });
 
-  it("should have job tracker support items in Job Tracker group", () => {
+  it("should have job tracker items in Job Tracker group", () => {
     const jobTracker = getGroup("Job Tracker");
     const items = jobTracker.items.map((i) => [i.name, i.href]);
     expect(items).toEqual([
@@ -97,7 +99,6 @@ describe("navigationGroups", () => {
       ["Dashboard", "/dashboard"],
       ["Documents", "/bank"],
       ["Document Studio", "/studio"],
-      ["Opportunities", "/opportunities"],
       ["Calendar", "/calendar"],
       ["Email Templates", "/emails"],
       ["Interview Prep", "/interview"],
@@ -108,12 +109,6 @@ describe("navigationGroups", () => {
     for (const [name, href] of expectedHrefs) {
       expect(getItem(allItems, name).href).toBe(href);
     }
-  });
-
-  it("does not expose legacy jobs or review queue navigation", () => {
-    const allNames = getItemNames(navigationGroups.flatMap((g) => g.items));
-    expect(allNames).not.toContain("Jobs");
-    expect(allNames).not.toContain("Review Queue");
   });
 
   it("should have icons for all nav items", () => {

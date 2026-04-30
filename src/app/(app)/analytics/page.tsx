@@ -272,56 +272,16 @@ export default function AnalyticsPage() {
               </SelectContent>
             </Select>
 
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-            <div className="space-y-4 animate-enter">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
-                <BarChart3 className="h-4 w-4" />
-                Insights
-              </div>
-              <h1 className="text-4xl font-bold tracking-tight">
-                Analytics Dashboard
-              </h1>
-              <p className="text-lg text-muted-foreground max-w-xl">
-                Track your job search progress and identify areas for
-                improvement.
-              </p>
-            </div>
-
-            {/* Export Controls */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0">
-              <Select value={exportRange} onValueChange={setExportRange}>
-                <SelectTrigger className="w-36">
-                  <SelectValue placeholder="Date range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7d">Last 7 Days</SelectItem>
-                  <SelectItem value="30d">Last 30 Days</SelectItem>
-                  <SelectItem value="90d">Last 90 Days</SelectItem>
-                  <SelectItem value="1y">Last Year</SelectItem>
-                  <SelectItem value="all">All Time</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleExport("csv")}
-                  disabled={exporting}
-                >
-                  {exporting ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4 mr-2" />
-                  )}
-                  CSV
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleExport("json")}
-                  disabled={exporting}
-                >
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleExport("csv")}
+                disabled={exporting}
+              >
+                {exporting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
                   <Download className="h-4 w-4 mr-2" />
                 )}
                 CSV
@@ -572,7 +532,7 @@ export default function AnalyticsPage() {
                   return (
                     <Link
                       key={job.id}
-                      href={`/opportunities?highlight=${job.id}`}
+                      href={`/jobs?highlight=${job.id}`}
                       className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
                     >
                       <div className="flex items-center gap-4">
@@ -605,16 +565,16 @@ export default function AnalyticsPage() {
                 })}
               </div>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Briefcase className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                <p>No opportunities tracked yet</p>
-                <Link
-                  href="/opportunities"
-                  className="text-primary hover:underline text-sm"
-                >
-                  Add your first opportunity
-                </Link>
-              </div>
+              <StandardEmptyState
+                icon={Briefcase}
+                title="No jobs tracked yet"
+                action={
+                  <Button asChild variant="outline">
+                    <Link href="/jobs">Add your first job</Link>
+                  </Button>
+                }
+                className="min-h-64"
+              />
             )}
           </div>
 
