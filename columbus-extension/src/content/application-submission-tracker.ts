@@ -11,6 +11,7 @@ const SUCCESS_TEXT_PATTERN =
   /(application submitted|your application has been submitted|thanks for applying|thank you for applying|we('ve| have)? received your application)/i;
 const SUBMIT_TEXT_PATTERN = /\b(submit application|send application|apply|apply now)\b/i;
 const NON_FINAL_ACTION_PATTERN = /\b(save|start|next|continue|review|preview|back)\b/i;
+const SUBMISSION_CHECK_DELAY_MS = 1500;
 
 export function detectTrackedSite(url: string): SubmissionSignal['site'] | null {
   let parsed: URL;
@@ -119,12 +120,12 @@ export class ApplicationSubmissionTracker {
   }
 
   private readonly handleSubmit = () => {
-    window.setTimeout(() => this.checkCurrentPage(), 1500);
+    window.setTimeout(() => this.checkCurrentPage(), SUBMISSION_CHECK_DELAY_MS);
   };
 
   private readonly handleClick = (event: MouseEvent) => {
     if (isLikelyFinalSubmitElement(event.target)) {
-      window.setTimeout(() => this.checkCurrentPage(), 1500);
+      window.setTimeout(() => this.checkCurrentPage(), SUBMISSION_CHECK_DELAY_MS);
     }
   };
 

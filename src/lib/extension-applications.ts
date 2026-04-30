@@ -60,14 +60,14 @@ export function buildAppliedJobFromExtension(
   };
 }
 
-function buildApplicationNotes(application: ExtensionApplicationInput): string | undefined {
+function buildApplicationNotes(application: ExtensionApplicationInput): string {
   const notes = [
     "Application submitted via extension.",
     application.source ? `Source: ${application.source}` : undefined,
     application.sourceJobId ? `Source job ID: ${application.sourceJobId}` : undefined,
     application.submissionUrl ? `Submission URL: ${application.submissionUrl}` : undefined,
     application.detectionMethod ? `Detected by: ${application.detectionMethod}` : undefined,
-  ].filter(Boolean);
+  ].filter((note): note is string => Boolean(note));
 
   return notes.join("\n");
 }

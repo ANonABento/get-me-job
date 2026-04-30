@@ -146,22 +146,7 @@ export interface ScrapedJob {
   keywords?: string[];
 }
 
-export interface ApplicationSubmission {
-  title: string;
-  company: string;
-  location?: string;
-  description: string;
-  requirements: string[];
-  responsibilities?: string[];
-  salary?: string;
-  type?: 'full-time' | 'part-time' | 'contract' | 'internship';
-  remote?: boolean;
-  url: string;
-  source: string;
-  sourceJobId?: string;
-  deadline?: string;
-  postedAt?: string;
-  keywords?: string[];
+export interface ApplicationSubmission extends ScrapedJob {
   submittedAt: string;
   submissionUrl: string;
   detectionMethod: string;
