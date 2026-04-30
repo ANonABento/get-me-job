@@ -159,12 +159,7 @@ export function StudioHeader({
                     >
                       <TemplatePreviewThumbnail
                         template={template}
-                        className="h-36"
-                      />
-                      <TemplatePreviewThumbnail
-                        template={template}
-                        className="pointer-events-none absolute left-1/2 top-2 z-10 hidden h-56 w-40 -translate-x-1/2 rounded-md shadow-2xl ring-1 ring-border group-hover:block group-focus-visible:block"
-                        testIdSuffix="enlarged"
+                        className="h-36 transition-all duration-150 group-hover:h-56 group-hover:shadow-xl group-focus-visible:h-56 group-focus-visible:shadow-xl"
                       />
                       <span className="mt-2 block">
                         <span className="flex items-center gap-1.5 font-medium leading-tight">

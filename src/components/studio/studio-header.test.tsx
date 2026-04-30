@@ -89,7 +89,7 @@ describe("StudioHeader", () => {
       .toHaveAttribute("aria-selected", "true");
   });
 
-  it("shows template descriptions and enlarged hover previews in the grid", () => {
+  it("shows template descriptions and enlarges thumbnails on hover in the grid", () => {
     renderStudioHeader();
 
     fireEvent.click(screen.getByRole("button", { name: /select resume template/i }));
@@ -101,8 +101,8 @@ describe("StudioHeader", () => {
       "Contemporary design with subtle accent colors"
     );
     expect(
-      within(modernOption).getByTestId("template-thumbnail-modern-enlarged")
-    ).toHaveClass("group-hover:block", "h-56", "w-40");
+      within(modernOption).getByTestId("template-thumbnail-modern")
+    ).toHaveClass("group-hover:h-56", "group-focus-visible:h-56");
   });
 
   it("uses cover letter templates in cover letter mode", () => {
