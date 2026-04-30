@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useId } from "react";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import type { ProfileCompletenessResult } from "@/lib/profile-completeness";
 
@@ -17,6 +18,7 @@ export function ProfileCompletenessRing({
   data,
 }: ProfileCompletenessRingProps) {
   const { percentage, sections, nextAction } = data;
+  const gradientId = `profile-completeness-ring-${useId().replace(/:/g, "")}`;
   const offset = CIRCUMFERENCE - (percentage / 100) * CIRCUMFERENCE;
 
   return (
@@ -53,7 +55,7 @@ export function ProfileCompletenessRing({
                 cy={RING_SIZE / 2}
                 r={RADIUS}
                 fill="none"
-                stroke="url(#ring-gradient)"
+                stroke={`url(#${gradientId})`}
                 strokeWidth={STROKE_WIDTH}
                 strokeLinecap="round"
                 strokeDasharray={CIRCUMFERENCE}
@@ -62,7 +64,7 @@ export function ProfileCompletenessRing({
               />
               <defs>
                 <linearGradient
-                  id="ring-gradient"
+                  id={gradientId}
                   x1="0%"
                   y1="0%"
                   x2="100%"

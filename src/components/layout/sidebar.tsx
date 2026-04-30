@@ -34,6 +34,15 @@ export interface NavGroup {
   items: NavItem[];
 }
 
+interface SidebarNavItemClassNameOptions {
+  isActive: boolean;
+  collapsed: boolean;
+}
+
+type SidebarNavItemState = {
+  "data-active": "true" | "false";
+};
+
 export const navigationGroups: NavGroup[] = [
   {
     label: "Overview",
@@ -77,21 +86,18 @@ export const bottomNavigation: NavItem[] = [
 export function getSidebarNavItemClassName({
   isActive,
   collapsed,
-}: {
-  isActive: boolean;
-  collapsed: boolean;
-}) {
+}: SidebarNavItemClassNameOptions): string {
   return cn(
     "app-sidebar-nav-item group relative flex min-h-[44px] items-center gap-3 rounded-lg border-l px-3 py-3 text-sm font-medium transition-all duration-200",
     isActive
       ? "border-l-primary bg-primary text-primary-foreground shadow-button"
       : "border-l-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
-    collapsed && "justify-center px-2"
+    collapsed && "justify-center px-2",
   );
 }
 
-export function getSidebarNavItemState(isActive: boolean) {
-  return { "data-active": isActive ? "true" : "false" } as const;
+export function getSidebarNavItemState(isActive: boolean): SidebarNavItemState {
+  return { "data-active": isActive ? "true" : "false" };
 }
 
 export function Sidebar() {
@@ -252,7 +258,12 @@ export function Sidebar() {
                 {...getSidebarNavItemState(isActive)}
               >
                 <div className="relative shrink-0">
-                  <item.icon className={cn("h-5 w-5", isActive && "text-primary-foreground")} />
+                  <item.icon
+                    className={cn(
+                      "h-5 w-5",
+                      isActive && "text-primary-foreground",
+                    )}
+                  />
                   {item.href === "/settings" && (
                     <span
                       className={cn(
