@@ -1,4 +1,5 @@
 import type { TailoredResume } from "./generator";
+import { getCoverLetterDocumentStyles } from "./cover-letter-styles";
 import {
   COVER_LETTER_TEMPLATES,
   getCoverLetterTemplate,
@@ -107,46 +108,12 @@ export function generateCoverLetterHTML({
   <meta charset="UTF-8">
   <title>${escapeHtml(title)}</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      background: white;
-      color: #1f2937;
-      font-family: ${styles.fontFamily};
-      font-size: ${styles.fontSize};
-      line-height: ${styles.lineHeight};
-      margin: 0 auto;
-      max-width: 8.5in;
-    }
-    .cover-letter-document {
-      color: #1f2937;
-      font-family: ${styles.fontFamily};
-      font-size: ${styles.fontSize};
-      line-height: ${styles.lineHeight};
-      margin: 0 auto;
-      max-width: 8.5in;
-      min-height: 11in;
-      padding: ${styles.pagePadding};
-    }
-    .letter-page {
-      margin: 0 auto;
-      max-width: ${styles.bodyMaxWidth};
-    }
+${getCoverLetterDocumentStyles(styles)}
     .letter-header {
       ${headerBorder}
       margin-bottom: 28px;
       padding-bottom: ${styles.headerStyle === "minimal" ? "8px" : "14px"};
       text-align: ${headerAlignment};
-    }
-    h1 {
-      color: ${styles.accentColor};
-      font-size: ${styles.headerSize};
-      font-weight: 600;
-      line-height: 1.15;
-      margin-bottom: 6px;
     }
     .letter-target,
     .letter-date {
@@ -155,30 +122,6 @@ export function generateCoverLetterHTML({
     }
     .letter-date {
       margin-bottom: 22px;
-    }
-    .letter-body p {
-      margin-bottom: ${styles.paragraphSpacing};
-    }
-    .letter-body p:last-child {
-      margin-top: ${styles.signatureSpacing};
-    }
-    @media print {
-      @page {
-        size: letter;
-        margin: 0.6in;
-      }
-      body {
-        padding: 0;
-        print-color-adjust: exact;
-        -webkit-print-color-adjust: exact;
-      }
-      .cover-letter-document {
-        min-height: auto;
-        padding: 0;
-      }
-      .no-print {
-        display: none !important;
-      }
     }
   </style>
 </head>
