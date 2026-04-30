@@ -13,7 +13,13 @@ const SUBMIT_TEXT_PATTERN = /\b(submit application|send application|apply|apply 
 const NON_FINAL_ACTION_PATTERN = /\b(save|start|next|continue|review|preview|back)\b/i;
 
 export function detectTrackedSite(url: string): SubmissionSignal['site'] | null {
-  const parsed = new URL(url);
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+
   const host = parsed.hostname.toLowerCase();
 
   if (host.endsWith('linkedin.com')) return 'linkedin';
@@ -77,6 +83,7 @@ export class ApplicationSubmissionTracker {
   private previousUrl = window.location.href;
   private lastAutoFillAt = 0;
   private logged = false;
+  private restoreHistoryMethods: (() => void) | null = null;
 
   constructor(
     private readonly getScrapedJob: () => ScrapedJob | null,
@@ -94,6 +101,7 @@ export class ApplicationSubmissionTracker {
     document.addEventListener('click', this.handleClick, true);
     window.addEventListener('popstate', this.handleUrlChange);
     window.addEventListener('hashchange', this.handleUrlChange);
+    this.patchHistoryMethods();
   }
 
   stop(): void {
@@ -101,6 +109,8 @@ export class ApplicationSubmissionTracker {
     document.removeEventListener('click', this.handleClick, true);
     window.removeEventListener('popstate', this.handleUrlChange);
     window.removeEventListener('hashchange', this.handleUrlChange);
+    this.restoreHistoryMethods?.();
+    this.restoreHistoryMethods = null;
   }
 
   checkCurrentPage(): void {
@@ -124,6 +134,44 @@ export class ApplicationSubmissionTracker {
     this.previousUrl = currentUrl;
     this.maybeLog(signal);
   };
+
+  private patchHistoryMethods(): void {
+    if (this.restoreHistoryMethods) return;
+
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+    const notifyUrlChange = () => window.setTimeout(this.handleUrlChange, 0);
+
+    const patchedPushState = function pushState(
+      data: unknown,
+      unused: string,
+      url?: string | URL | null
+    ): void {
+      originalPushState.call(this, data, unused, url);
+      notifyUrlChange();
+    };
+
+    const patchedReplaceState = function replaceState(
+      data: unknown,
+      unused: string,
+      url?: string | URL | null
+    ): void {
+      originalReplaceState.call(this, data, unused, url);
+      notifyUrlChange();
+    };
+
+    history.pushState = patchedPushState;
+    history.replaceState = patchedReplaceState;
+
+    this.restoreHistoryMethods = () => {
+      if (history.pushState === patchedPushState) {
+        history.pushState = originalPushState;
+      }
+      if (history.replaceState === patchedReplaceState) {
+        history.replaceState = originalReplaceState;
+      }
+    };
+  }
 
   private maybeLog(signal: SubmissionSignal | null): void {
     const job = this.getScrapedJob();

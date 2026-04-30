@@ -39,6 +39,23 @@ describe("parseExtensionApplicationPayload", () => {
       });
     }
   });
+
+  it("rejects invalid submittedAt values", () => {
+    const result = parseExtensionApplicationPayload({
+      title: "Frontend Engineer",
+      company: "Acme",
+      description: "Build UI",
+      submittedAt: "not-a-date",
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.errors).toContainEqual({
+        field: "submittedAt",
+        message: expect.stringContaining("Invalid"),
+      });
+    }
+  });
 });
 
 describe("buildAppliedJobFromExtension", () => {

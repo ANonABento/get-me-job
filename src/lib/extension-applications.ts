@@ -3,7 +3,7 @@ import { extensionOpportunitySchema } from "./extension-opportunities";
 import { z } from "zod";
 
 const extensionApplicationSchema = extensionOpportunitySchema.extend({
-  submittedAt: z.string().trim().max(80).optional(),
+  submittedAt: z.string().trim().datetime({ offset: true }).optional(),
   submissionUrl: z
     .preprocess(
       (value) => (typeof value === "string" ? value.trim() : value),

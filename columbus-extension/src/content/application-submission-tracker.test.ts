@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
+  ApplicationSubmissionTracker,
   buildApplicationSubmission,
   detectSubmissionFromText,
   detectSubmissionFromUrl,
@@ -14,6 +15,7 @@ describe('application submission detection', () => {
     expect(detectTrackedSite('https://boards.greenhouse.io/acme/jobs/123')).toBe('greenhouse');
     expect(detectTrackedSite('https://jobs.lever.co/acme/123')).toBe('lever');
     expect(detectTrackedSite('https://example.com/jobs/123')).toBeNull();
+    expect(detectTrackedSite('not a url')).toBeNull();
   });
 
   it('detects success URL changes for three supported sites', () => {
@@ -80,5 +82,37 @@ describe('application submission detection', () => {
       submissionUrl: 'https://www.linkedin.com/jobs/view/123/application-submitted',
       detectionMethod: 'linkedin-confirmation-text',
     });
+  });
+
+  it('detects SPA history URL changes after auto-fill', async () => {
+    const job: ScrapedJob = {
+      title: 'Frontend Engineer',
+      company: 'Acme',
+      description: 'Build UI',
+      requirements: ['React'],
+      url: window.location.href,
+      source: 'generic',
+    };
+    const logApplication = vi.fn().mockResolvedValue(undefined);
+    const tracker = new ApplicationSubmissionTracker(() => job, logApplication, 1000);
+
+    history.replaceState({}, '', '/jobs/123');
+    tracker.markAutoFilled();
+    tracker.start();
+
+    try {
+      history.pushState({}, '', '/jobs/123/application-submitted');
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+
+      expect(logApplication).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Frontend Engineer',
+          detectionMethod: 'generic-url',
+          submissionUrl: expect.stringContaining('/jobs/123/application-submitted'),
+        })
+      );
+    } finally {
+      tracker.stop();
+    }
   });
 });
