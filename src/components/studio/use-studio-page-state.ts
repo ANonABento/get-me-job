@@ -40,6 +40,7 @@ import {
 } from "@/lib/editor/cover-letter-tiptap";
 import {
   createEditorBodyHtml,
+  createPrintableCoverLetterEditorHtml,
   createPrintableEditorHtml,
 } from "@/lib/editor/document-html";
 import type { TipTapJSONContent } from "@/lib/editor/types";
@@ -736,7 +737,17 @@ export function useStudioPageState(): StudioPageState {
     const bodyHtml = content ? createEditorBodyHtml(content) : html;
     if (!bodyHtml) return "";
 
-    if (documentMode === "cover_letter") return bodyHtml;
+    if (documentMode === "cover_letter") {
+      if (!selectedTemplate || selectedTemplate.styles.layout !== "letter") {
+        return bodyHtml;
+      }
+
+      return createPrintableCoverLetterEditorHtml(
+        bodyHtml,
+        selectedTemplate.styles,
+        `${selectedTemplate.name} Cover Letter`,
+      );
+    }
 
     if (!selectedTemplate || !("layout" in selectedTemplate.styles))
       return bodyHtml;

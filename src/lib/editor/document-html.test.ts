@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { TEMPLATES } from "@/lib/resume/templates";
-import { createEditorBodyHtml, createPrintableEditorHtml } from "./document-html";
+import { COVER_LETTER_TEMPLATES, TEMPLATES } from "@/lib/resume/templates";
+import {
+  createEditorBodyHtml,
+  createPrintableCoverLetterEditorHtml,
+  createPrintableEditorHtml,
+} from "./document-html";
 import type { TipTapJSONContent } from "./types";
 
 describe("createEditorBodyHtml", () => {
@@ -44,5 +48,27 @@ describe("createPrintableEditorHtml", () => {
     expect(html).toContain("@media print");
     expect(html).toContain(".resume-section-drag-handle");
     expect(html).toContain("<p>Resume body</p>");
+  });
+});
+
+describe("createPrintableCoverLetterEditorHtml", () => {
+  it("wraps freeform cover letter editor HTML in a printable letter document", () => {
+    const template = COVER_LETTER_TEMPLATES.find(
+      (item) => item.id === "formal"
+    )!;
+    const html = createPrintableCoverLetterEditorHtml(
+      "<p>Dear Hiring Team,</p>",
+      template.styles,
+      "Jane <Cover Letter>"
+    );
+
+    expect(html).toContain("<!DOCTYPE html>");
+    expect(html).toContain("<title>Jane &lt;Cover Letter&gt;</title>");
+    expect(html).toContain('class="cover-letter-document"');
+    expect(html).toContain('class="letter-page"');
+    expect(html).toContain(template.styles.pagePadding);
+    expect(html).toContain(template.styles.bodyMaxWidth);
+    expect(html).toContain("@page");
+    expect(html).toContain("<p>Dear Hiring Team,</p>");
   });
 });
