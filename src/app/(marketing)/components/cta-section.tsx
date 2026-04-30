@@ -38,7 +38,7 @@ export function CTASection() {
               size="lg"
               className="gradient-bg text-white hover:opacity-90 shadow-lg shadow-primary/25"
             >
-              <Link href="/ats-scanner">
+              <Link href="/ats-scanner" prefetch={false}>
                 Scan My Resume
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
@@ -78,7 +78,7 @@ export function CTASection() {
               size="lg"
               variant="outline"
             >
-              <Link href="/sign-up?redirect_url=/dashboard">
+              <Link href="/sign-up?redirect_url=/dashboard" prefetch={false}>
                 Get Started Free
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>

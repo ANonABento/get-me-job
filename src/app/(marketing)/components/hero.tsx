@@ -40,7 +40,7 @@ export function Hero() {
               size="lg"
               variant="outline"
             >
-              <Link href="/ats-scanner">
+              <Link href="/ats-scanner" prefetch={false}>
                 <ScanSearch className="mr-2 h-5 w-5" />
                 Try Free ATS Scanner
               </Link>
@@ -50,7 +50,7 @@ export function Hero() {
               size="lg"
               className="gradient-bg text-white hover:opacity-90 shadow-lg shadow-primary/25"
             >
-              <Link href="/sign-up?redirect_url=/dashboard">
+              <Link href="/sign-up?redirect_url=/dashboard" prefetch={false}>
                 Get Started
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
