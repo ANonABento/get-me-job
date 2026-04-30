@@ -33,9 +33,17 @@ describe("StudioHeader", () => {
   it("shows the selected template as a thumbnail trigger", () => {
     renderStudioHeader({ templateId: "modern" });
 
-    expect(screen.getByRole("button", { name: /select resume template/i }))
-      .toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByTestId("template-thumbnail-modern")).toBeInTheDocument();
+    const trigger = screen.getByRole("button", {
+      name: /select resume template/i,
+    });
+
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(trigger).toHaveClass("min-w-[15rem]");
+    expect(within(trigger).getByTestId("template-thumbnail-modern")).toHaveClass(
+      "h-20",
+      "w-14"
+    );
+    expect(trigger).toHaveTextContent("Contemporary design");
   });
 
   it("falls back to the classic template when the selected id is missing", () => {
@@ -71,10 +79,30 @@ describe("StudioHeader", () => {
 
     const picker = screen.getByRole("listbox", { name: /resume templates/i });
     expect(within(picker).getAllByRole("option")).toHaveLength(TEMPLATES.length);
-    expect(within(picker).getByTestId("template-thumbnail-classic")).toBeInTheDocument();
-    expect(within(picker).getByTestId("template-thumbnail-two-column")).toBeInTheDocument();
+    expect(within(picker).getByTestId("template-thumbnail-classic")).toHaveClass(
+      "h-36"
+    );
+    expect(
+      within(picker).getByTestId("template-thumbnail-two-column")
+    ).toBeInTheDocument();
     expect(within(picker).getByRole("option", { name: /classic/i }))
       .toHaveAttribute("aria-selected", "true");
+  });
+
+  it("shows template descriptions and enlarged hover previews in the grid", () => {
+    renderStudioHeader();
+
+    fireEvent.click(screen.getByRole("button", { name: /select resume template/i }));
+
+    const picker = screen.getByRole("listbox", { name: /resume templates/i });
+    const modernOption = within(picker).getByRole("option", { name: /modern/i });
+
+    expect(modernOption).toHaveTextContent(
+      "Contemporary design with subtle accent colors"
+    );
+    expect(
+      within(modernOption).getByTestId("template-thumbnail-modern-enlarged")
+    ).toHaveClass("group-hover:block", "h-56", "w-40");
   });
 
   it("uses cover letter templates in cover letter mode", () => {

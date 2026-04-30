@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 interface TemplatePreviewThumbnailProps {
   template: ResumeTemplate | CoverLetterTemplate;
   className?: string;
+  testIdSuffix?: string;
 }
 
 interface TemplateThumbnailTraits {
@@ -94,17 +95,21 @@ export function getTemplateThumbnailTraits(
 export function TemplatePreviewThumbnail({
   template,
   className,
+  testIdSuffix,
 }: TemplatePreviewThumbnailProps) {
   const traits = getTemplateThumbnailTraits(template.styles);
   const style = {
     "--template-accent": traits.accentColor,
     fontFamily: traits.fontFamily,
   } as CSSProperties;
+  const testId = `template-thumbnail-${template.id}${
+    testIdSuffix ? `-${testIdSuffix}` : ""
+  }`;
 
   return (
     <div
       aria-hidden="true"
-      data-testid={`template-thumbnail-${template.id}`}
+      data-testid={testId}
       className={cn(
         "h-28 w-full overflow-hidden rounded border bg-white text-slate-950 shadow-sm",
         className

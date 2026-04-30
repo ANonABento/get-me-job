@@ -109,14 +109,21 @@ export function StudioHeader({
             aria-expanded={templateOpen}
             aria-haspopup="listbox"
             onClick={() => setTemplateOpen((prev) => !prev)}
-            className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors hover:bg-muted"
+            className="flex min-w-[15rem] items-center gap-3 rounded-md border bg-background px-3 py-2 text-left text-sm transition-colors hover:bg-muted"
           >
             <TemplatePreviewThumbnail
               template={selectedTemplate}
-              className="h-7 w-5 shrink-0 rounded-sm"
+              className="h-20 w-14 shrink-0 rounded-sm"
             />
-            <span>{selectedTemplate.name}</span>
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium leading-tight">
+                {selectedTemplate.name}
+              </span>
+              <span className="mt-1 line-clamp-2 block text-xs leading-snug text-muted-foreground">
+                {selectedTemplate.description}
+              </span>
+            </span>
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
           </button>
 
           {templateOpen && (
@@ -128,7 +135,7 @@ export function StudioHeader({
               <div
                 role="listbox"
                 aria-label={templateListLabel}
-                className="absolute left-0 top-full z-50 mt-2 grid max-h-[70vh] w-[min(26rem,calc(100vw-2rem))] grid-cols-2 gap-2 overflow-auto rounded-lg border bg-popover p-2 shadow-lg sm:grid-cols-3"
+                className="absolute left-0 top-full z-50 mt-2 grid max-h-[76vh] w-[min(46rem,calc(100vw-2rem))] grid-cols-2 gap-3 overflow-auto rounded-lg border bg-popover p-3 shadow-lg sm:grid-cols-3 lg:grid-cols-4"
               >
                 {templates.map((template) => {
                   const isSelected = template.id === selectedTemplate.id;
@@ -137,26 +144,40 @@ export function StudioHeader({
                       key={template.id}
                       type="button"
                       role="option"
+                      aria-label={`${template.name} template`}
                       aria-selected={isSelected}
                       onClick={() => {
                         onTemplateSelect(template.id);
                         setTemplateOpen(false);
                       }}
                       className={cn(
-                        "rounded-md border p-2 text-left text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        "group relative rounded-md border p-2 text-left text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         isSelected
                           ? "border-primary bg-primary/5"
                           : "border-border bg-background"
                       )}
                     >
-                      <TemplatePreviewThumbnail template={template} />
-                      <span className="mt-2 flex items-center gap-1.5 font-medium">
-                        <span className="min-w-0 flex-1 truncate">
-                          {template.name}
+                      <TemplatePreviewThumbnail
+                        template={template}
+                        className="h-36"
+                      />
+                      <TemplatePreviewThumbnail
+                        template={template}
+                        className="pointer-events-none absolute left-1/2 top-2 z-10 hidden h-56 w-40 -translate-x-1/2 rounded-md shadow-2xl ring-1 ring-border group-hover:block group-focus-visible:block"
+                        testIdSuffix="enlarged"
+                      />
+                      <span className="mt-2 block">
+                        <span className="flex items-center gap-1.5 font-medium leading-tight">
+                          <span className="min-w-0 flex-1 truncate">
+                            {template.name}
+                          </span>
+                          {isSelected && (
+                            <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
+                          )}
                         </span>
-                        {isSelected && (
-                          <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
-                        )}
+                        <span className="mt-1 line-clamp-2 block text-xs leading-snug text-muted-foreground">
+                          {template.description}
+                        </span>
                       </span>
                     </button>
                   );
