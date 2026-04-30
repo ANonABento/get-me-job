@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { BuilderVersion } from "@/lib/builder/version-history";
@@ -29,11 +30,11 @@ export function VersionHistorySection({
         {versions.length === 0 && (
           <p className="text-xs text-muted-foreground">No versions yet</p>
         )}
-        {versions.map((version) => (
+        {versions.map((version, index) => (
           <div
             key={version.id}
             className={cn(
-              "flex items-center justify-between rounded-[var(--radius)] px-2 py-1.5 text-xs",
+              "flex items-center justify-between gap-2 rounded-[var(--radius)] px-2 py-1.5 text-xs",
               previewVersionId === version.id
                 ? "bg-primary/10 text-foreground"
                 : "text-muted-foreground hover:bg-muted",
@@ -46,6 +47,14 @@ export function VersionHistorySection({
             >
               {version.name || formatVersionTimestamp(version.savedAt)}
             </button>
+            {versions[0] && index > 0 && (
+              <Link
+                href={`/studio/compare?a=${encodeURIComponent(version.id)}&b=${encodeURIComponent(versions[0].id)}`}
+                className="shrink-0 text-[11px] font-medium text-primary hover:underline"
+              >
+                Compare
+              </Link>
+            )}
           </div>
         ))}
       </div>

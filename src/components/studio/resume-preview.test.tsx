@@ -50,6 +50,24 @@ describe("ResumePreview", () => {
     expect(handleAddSection).toHaveBeenCalledTimes(1);
   });
 
+  it("renders readonly TipTap content without editing controls", async () => {
+    render(
+      <ResumePreview
+        templateId="classic"
+        content={content}
+        editable={false}
+        onAddSection={vi.fn()}
+      />,
+    );
+
+    expect(
+      await screen.findByText("Focused product engineer"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /add section/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it("returns resume empty state content by default", () => {
     expect(getPreviewEmptyStateContent()).toMatchObject({
       eyebrow: "Resume",

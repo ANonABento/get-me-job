@@ -39,6 +39,7 @@ export interface ResumePreviewProps {
   html?: string;
   content?: TipTapJSONContent;
   documentMode?: DocumentMode;
+  editable?: boolean;
   onContentChange?: (content: TipTapJSONContent) => void;
   onAddSection?: () => void;
   onAddFromBank?: () => void;
@@ -86,6 +87,7 @@ export function ResumePreview({
   html,
   content,
   documentMode = "resume",
+  editable = true,
   onContentChange,
   onAddSection,
   onAddFromBank,
@@ -128,7 +130,7 @@ export function ResumePreview({
 
   return (
     <div ref={wrapperRef} className="h-full overflow-auto bg-muted/30 p-4">
-      {content && (
+      {content && editable && (
         <div className="sticky top-0 z-20 mx-auto mb-3 flex w-fit flex-wrap items-center gap-2 rounded-md border bg-background/95 p-2 shadow-sm backdrop-blur">
           <EditorFormattingControls editor={editor} />
         </div>
@@ -156,11 +158,11 @@ export function ResumePreview({
                 content={content}
                 templateStyles={templateStyles}
                 variant={isCoverLetter ? "cover_letter" : "resume"}
-                editable
+                editable={editable}
                 onUpdate={onContentChange}
                 onEditorReady={setEditor}
               />
-              {onAddSection && (
+              {editable && onAddSection && (
                 <div className="px-12 pb-12">
                   <Button
                     type="button"
