@@ -88,7 +88,7 @@ export function getSidebarNavItemClassName({
     isActive
       ? "border-l-primary bg-primary text-primary-foreground shadow-button"
       : "border-l-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
-    collapsed && "justify-center px-2"
+    collapsed && "justify-center px-2",
   );
 }
 
@@ -152,7 +152,7 @@ export function Sidebar() {
             collapsed ? "justify-center px-3" : "justify-between px-4",
           )}
         >
-          <Link href="/dashboard" className="flex items-center gap-3">
+          <Link href="/dashboard" className="flex min-h-11 items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl gradient-bg text-primary-foreground font-bold text-lg shadow-md">
               <Rocket className="h-5 w-5" />
             </div>
@@ -167,7 +167,7 @@ export function Sidebar() {
           {/* Mobile close button */}
           <button
             onClick={() => setMobileOpen(false)}
-            className="lg:hidden p-2.5 text-muted-foreground hover:text-foreground"
+            className="flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-foreground lg:hidden"
             aria-label="Close menu"
           >
             <X className="h-5 w-5" />
@@ -208,7 +208,12 @@ export function Sidebar() {
                       })}
                       {...getSidebarNavItemState(isActive)}
                     >
-                      <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-primary-foreground")} />
+                      <item.icon
+                        className={cn(
+                          "h-5 w-5 shrink-0",
+                          isActive && "text-primary-foreground",
+                        )}
+                      />
                       {!collapsed && <span>{item.name}</span>}
 
                       {/* Tooltip for collapsed state */}
@@ -249,14 +254,19 @@ export function Sidebar() {
                 {...getSidebarNavItemState(isActive)}
               >
                 <div className="relative shrink-0">
-                  <item.icon className={cn("h-5 w-5", isActive && "text-primary-foreground")} />
+                  <item.icon
+                    className={cn(
+                      "h-5 w-5",
+                      isActive && "text-primary-foreground",
+                    )}
+                  />
                   {item.href === "/settings" && (
                     <span
                       className={cn(
                         "absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background",
                         llmStatus.configured
                           ? "bg-success"
-                          : "bg-muted-foreground/40"
+                          : "bg-muted-foreground/40",
                       )}
                       title={
                         llmStatus.configured

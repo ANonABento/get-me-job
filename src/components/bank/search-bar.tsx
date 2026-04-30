@@ -70,13 +70,13 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
               placeholder="Search your knowledge bank..."
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
-              className="pl-10 pr-10"
+              className="pl-10 pr-12"
               title="Press / to focus"
             />
             {query && (
               <button
                 onClick={() => onQueryChange("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground"
                 aria-label="Clear search"
               >
                 <X className="h-4 w-4" />
@@ -105,7 +105,7 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
             aria-selected={activeCategory === "all"}
             onClick={() => onCategoryChange("all")}
             className={cn(
-              "px-3 py-1.5 rounded-[var(--radius)] text-sm font-medium transition-all duration-200",
+              "min-h-11 px-3 py-2 rounded-[var(--radius)] text-sm font-medium transition-all duration-200",
               activeCategory === "all"
                 ? "bg-[image:var(--gradient-primary)] text-primary-foreground shadow-[var(--shadow-button)] scale-105"
                 : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80",
@@ -121,7 +121,7 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
               key={cat}
               onClick={() => onCategoryChange(cat)}
               className={cn(
-                "px-3 py-1.5 rounded-[var(--radius)] text-sm font-medium transition-all duration-200",
+                "min-h-11 px-3 py-2 rounded-[var(--radius)] text-sm font-medium transition-all duration-200",
                 activeCategory === cat
                   ? "bg-[image:var(--gradient-primary)] text-primary-foreground shadow-[var(--shadow-button)] scale-105"
                   : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80",

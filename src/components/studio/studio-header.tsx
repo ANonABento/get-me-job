@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import {
   Check,
   ChevronDown,
@@ -87,11 +93,11 @@ export function StudioHeader({
       const triggerRect = trigger.getBoundingClientRect();
       const width = Math.min(
         maxPickerWidth,
-        window.innerWidth - viewportGutter * 2
+        window.innerWidth - viewportGutter * 2,
       );
       const left = Math.min(
         Math.max(triggerRect.left, viewportGutter),
-        window.innerWidth - width - viewportGutter
+        window.innerWidth - width - viewportGutter,
       );
       const top = triggerRect.bottom + 8;
 
@@ -144,7 +150,7 @@ export function StudioHeader({
               type="button"
               onClick={() => onDocumentModeChange(mode)}
               className={cn(
-                "px-3 py-1 text-sm font-medium transition-colors",
+                "min-h-11 px-3 py-2 text-sm font-medium transition-colors",
                 documentMode === mode
                   ? "rounded-md bg-primary text-primary-foreground shadow-[var(--shadow-button)]"
                   : "text-muted-foreground hover:text-foreground",
@@ -163,7 +169,7 @@ export function StudioHeader({
             aria-expanded={templateOpen}
             aria-haspopup="listbox"
             onClick={() => setTemplateOpen((prev) => !prev)}
-            className="flex min-w-[15rem] items-center gap-2 rounded-[var(--radius)] border-[length:var(--border-width)] bg-card px-3 py-1.5 text-left text-sm transition-colors hover:bg-muted"
+            className="flex min-h-11 w-full min-w-0 items-center gap-2 rounded-[var(--radius)] border-[length:var(--border-width)] bg-card px-3 py-2 text-left text-sm transition-colors hover:bg-muted sm:min-w-[15rem]"
           >
             <TemplatePreviewThumbnail
               template={selectedTemplate}
@@ -242,7 +248,7 @@ export function StudioHeader({
             "rounded-[var(--radius)] border-[length:var(--border-width)] px-2 py-0.5 text-xs font-medium",
             draftIsSaved
               ? "border-success/20 bg-success/10 text-success"
-              : "border-warning/20 bg-warning/10 text-warning"
+              : "border-warning/20 bg-warning/10 text-warning",
           )}
         >
           {draftIsSaved ? "Saved" : "Unsaved"}

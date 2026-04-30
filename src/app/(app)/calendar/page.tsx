@@ -388,7 +388,7 @@ export default function CalendarPage() {
       <PageContent>
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Calendar Grid */}
-          <div className="lg:col-span-2 rounded-2xl border bg-card p-6">
+          <div className="rounded-2xl border bg-card p-2 sm:p-6 lg:col-span-2">
             {/* Calendar Header */}
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold">
@@ -418,7 +418,7 @@ export default function CalendarPage() {
             </div>
 
             {/* Day Headers */}
-            <div className="grid grid-cols-7 gap-1 mb-2">
+            <div className="mb-2 grid grid-cols-7 gap-0 sm:gap-1">
               {DAYS.map((day) => (
                 <div
                   key={day}
@@ -430,7 +430,7 @@ export default function CalendarPage() {
             </div>
 
             {/* Calendar Days */}
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-7 gap-0 sm:gap-1">
               {calendarDays.map((date, i) => {
                 if (!date) {
                   return <div key={`empty-${i}`} className="aspect-square" />;
@@ -447,7 +447,7 @@ export default function CalendarPage() {
                   <button
                     key={date.toISOString()}
                     onClick={() => setSelectedDate(date)}
-                    className={`aspect-square p-1 rounded-lg text-sm transition-colors relative ${
+                    className={`relative min-h-11 rounded-lg p-1 text-sm transition-colors ${
                       isSelected
                         ? "bg-primary text-primary-foreground"
                         : isToday(date)

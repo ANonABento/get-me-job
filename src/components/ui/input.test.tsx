@@ -53,7 +53,7 @@ describe("Input", () => {
     render(<Input data-testid="input" />);
     const input = screen.getByTestId("input");
     expect(input.className).toContain("flex");
-    expect(input.className).toContain("h-10");
+    expect(input.className).toContain("h-11");
     expect(input.className).toContain("w-full");
     expect(input.className).toContain("rounded-[var(--radius)]");
     expect(input.className).toContain("border-[length:var(--border-width)]");
