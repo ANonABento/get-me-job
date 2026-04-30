@@ -13,7 +13,6 @@ import {
   DEFAULT_THEME_MODE,
   DEFAULT_THEME_PRESET,
   THEME_CUSTOM_COLORS_STORAGE_KEY,
-  THEME_DARK_STORAGE_KEY,
   THEME_PRESET_STORAGE_KEY,
   THEME_STORAGE_KEY,
   applyThemeVariables,
@@ -65,21 +64,6 @@ function persistValue(key: string, value: string): void {
   } catch {
     // Ignore storage errors and keep the in-memory value.
   }
-}
-
-function readStoredTheme(): ThemeMode | null {
-  const storedTheme = readStoredValue(THEME_STORAGE_KEY, isThemeMode);
-  if (storedTheme) return storedTheme;
-
-  try {
-    const legacyDarkTheme = localStorage.getItem(THEME_DARK_STORAGE_KEY);
-    if (legacyDarkTheme === "true") return "dark";
-    if (legacyDarkTheme === "false") return "light";
-  } catch {
-    // Ignore storage errors and fall back to the default theme.
-  }
-
-  return null;
 }
 
 function readStoredCustomColors(): ThemeColorOverrides {
