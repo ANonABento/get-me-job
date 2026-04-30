@@ -16,7 +16,8 @@ import { createContact, getContacts } from "@/lib/db/contacts";
 
 function parsePositiveInt(value: string | null): number | undefined {
   if (!value) return undefined;
-  const parsed = Number.parseInt(value, 10);
+  if (!/^\d+$/.test(value)) return undefined;
+  const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 

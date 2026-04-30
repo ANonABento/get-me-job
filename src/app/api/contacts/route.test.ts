@@ -84,6 +84,20 @@ describe("contacts route", () => {
     );
   });
 
+  it("ignores malformed pagination parameters", async () => {
+    await GET(contactsRequest("/api/contacts?page=2abc&pageSize=8.5"));
+
+    expect(mocks.getContacts).toHaveBeenCalledWith(
+      {
+        page: undefined,
+        pageSize: undefined,
+        query: undefined,
+        followUpFilter: "all",
+      },
+      "user-1"
+    );
+  });
+
   it("creates a valid contact", async () => {
     const response = await POST(
       createRequest({
@@ -114,6 +128,19 @@ describe("contacts route", () => {
 
   it("rejects contacts without a name", async () => {
     const response = await POST(createRequest({ name: "" }));
+
+    expect(response.status).toBe(400);
+    expect(mocks.createContact).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid contact dates", async () => {
+    const response = await POST(
+      createRequest({
+        name: "Avery Lee",
+        lastContacted: "2026-02-31",
+        nextFollowup: "tomorrow",
+      })
+    );
 
     expect(response.status).toBe(400);
     expect(mocks.createContact).not.toHaveBeenCalled();

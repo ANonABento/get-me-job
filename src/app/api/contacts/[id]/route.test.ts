@@ -66,6 +66,15 @@ describe("contact detail route", () => {
     expect(response.status).toBe(404);
   });
 
+  it("rejects invalid update dates", async () => {
+    const response = await PATCH(patchRequest({ nextFollowup: "2026-13-01" }), {
+      params: { id: "contact-1" },
+    });
+
+    expect(response.status).toBe(400);
+    expect(mocks.updateContact).not.toHaveBeenCalled();
+  });
+
   it("deletes a contact", async () => {
     const response = await DELETE(
       new NextRequest("http://localhost/api/contacts/contact-1"),
