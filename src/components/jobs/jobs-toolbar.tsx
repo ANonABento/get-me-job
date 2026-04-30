@@ -3,8 +3,13 @@
 import { Filter, Search, SortAsc, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  getPageWidthClassName,
+  type PageWidth,
+} from "@/components/ui/page-layout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { JobRemoteFilter, JobSortOption, JobStatusFilter, JobTypeFilter } from "@/app/(app)/jobs/filter-jobs";
+import { cn } from "@/lib/utils";
 import { TRACKED_JOB_STATUSES, TRACKED_JOB_STATUS_LABELS } from "@/lib/constants/jobs";
 
 interface JobsToolbarProps {
@@ -22,6 +27,7 @@ interface JobsToolbarProps {
   onRemoteChange: (value: JobRemoteFilter) => void;
   onSortChange: (value: JobSortOption) => void;
   onClearFilters: () => void;
+  width?: PageWidth;
 }
 
 export function JobsToolbar(props: JobsToolbarProps) {
@@ -40,10 +46,16 @@ export function JobsToolbar(props: JobsToolbarProps) {
     onRemoteChange,
     onSortChange,
     onClearFilters,
+    width = "wide",
   } = props;
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-6 border-b">
+    <div
+      className={cn(
+        "border-b px-5 py-6 sm:px-8",
+        getPageWidthClassName(width),
+      )}
+    >
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

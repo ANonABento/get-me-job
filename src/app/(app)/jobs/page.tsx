@@ -13,6 +13,11 @@ import { ImportJobDialog } from "@/components/jobs/import-job-dialog";
 import { JobsNoResults } from "@/components/jobs/jobs-no-results";
 import { JobsToolbar } from "@/components/jobs/jobs-toolbar";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import {
+  AppPage,
+  PageContent,
+  type PageWidth,
+} from "@/components/ui/page-layout";
 import { SkeletonJobCard } from "@/components/ui/skeleton";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import type { ATSAnalysisResult } from "@/lib/ats/analyzer";
@@ -212,10 +217,11 @@ export default function JobsPage() {
   const filteredJobs = filterJobs(jobs, { searchQuery, statusFilter, typeFilter, remoteFilter, sortBy });
   const hasActiveFilters = hasActiveJobFilters({ searchQuery, statusFilter, typeFilter, remoteFilter });
   const clearFilters = () => { setSearchQuery(""); setStatusFilter("all"); setTypeFilter("all"); setRemoteFilter("all"); };
+  const pageWidth: PageWidth = viewMode === "kanban" ? "full" : "wide";
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen">
+      <AppPage>
         <JobsHero
           jobsCount={jobs.length}
           viewMode={viewMode}
@@ -223,6 +229,7 @@ export default function JobsPage() {
           onAddClick={() => setShowAddDialog(true)}
           onViewModeChange={handleViewModeChange}
           onGmailImportSuccess={fetchJobs}
+          width={pageWidth}
         />
 
         {jobs.length > 0 && (
@@ -231,10 +238,11 @@ export default function JobsPage() {
             hasActiveFilters={hasActiveFilters} filteredCount={filteredJobs.length} totalCount={jobs.length}
             onSearchChange={setSearchQuery} onStatusChange={setStatusFilter} onTypeChange={setTypeFilter}
             onRemoteChange={setRemoteFilter} onSortChange={setSortBy} onClearFilters={clearFilters}
+            width={pageWidth}
           />
         )}
 
-        <div className="max-w-6xl mx-auto px-6 py-8">
+        <PageContent width={pageWidth}>
           {loading ? (
             <div className="grid gap-6 lg:grid-cols-2">
               {Array.from({ length: 4 }).map((_, index) => (
@@ -265,7 +273,7 @@ export default function JobsPage() {
               </div>
             )
           )}
-        </div>
+        </PageContent>
 
         {atsDialogJob && atsResults[atsDialogJob] && (
           <ATSScoreBreakdown result={atsResults[atsDialogJob]} open={!!atsDialogJob} onOpenChange={(open) => !open && setAtsDialogJob(null)} />
@@ -280,7 +288,7 @@ export default function JobsPage() {
 
         <ImportJobDialog open={showImportDialog} onOpenChange={setShowImportDialog} onJobImported={fetchJobs} />
         <AddJobDialog open={showAddDialog} onOpenChange={setShowAddDialog} onCreated={(job) => setJobs((prev) => [job, ...prev])} />
-      </div>
+      </AppPage>
     </ErrorBoundary>
   );
 }

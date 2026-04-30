@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { InterviewActiveSession } from "@/components/interview/interview-active-session";
 import { InterviewJobSelection } from "@/components/interview/interview-job-selection";
 import { InterviewSummary } from "@/components/interview/interview-summary";
+import { AppPage, PageContent, PageHeader } from "@/components/ui/page-layout";
 import { useFollowUp } from "@/hooks/useFollowUp";
 import { useInterviewSession } from "@/hooks/useInterviewSession";
 import type { InterviewDifficulty } from "@/lib/constants";
@@ -22,7 +22,7 @@ export default function InterviewPage() {
   });
 
   const selectedJobData = interview.jobs.find(
-    (job) => job.id === interview.selectedJob
+    (job) => job.id === interview.selectedJob,
   );
   const isComplete =
     interview.session &&
@@ -38,7 +38,7 @@ export default function InterviewPage() {
       followUp.resetFollowUp();
       void interview.startInterview(jobId, mode, difficulty);
     },
-    [difficulty, followUp, interview]
+    [difficulty, followUp, interview],
   );
 
   const handleResumeSession = useCallback(
@@ -46,7 +46,7 @@ export default function InterviewPage() {
       followUp.resetFollowUp();
       interview.resumeSession(pastSession);
     },
-    [followUp, interview]
+    [followUp, interview],
   );
 
   if (interview.loading) {
@@ -61,34 +61,16 @@ export default function InterviewPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="hero-gradient border-b">
-        <div className="mx-auto max-w-4xl px-6 py-12">
-          <Link
-            href="/dashboard"
-            className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
-          </Link>
+    <AppPage className="pb-0">
+      <PageHeader
+        width="wide"
+        icon={Sparkles}
+        eyebrow="AI Interview Coach"
+        title="Interview Preparation"
+        description="Practice with AI-generated questions tailored to your target jobs and receive instant feedback."
+      />
 
-          <div className="space-y-4 animate-enter">
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-              <Sparkles className="h-4 w-4" />
-              AI Interview Coach
-            </div>
-            <h1 className="text-4xl font-bold tracking-tight">
-              Interview Preparation
-            </h1>
-            <p className="max-w-xl text-lg text-muted-foreground">
-              Practice with AI-generated questions tailored to your target jobs
-              and receive instant feedback.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-4xl px-6 py-8">
+      <PageContent>
         {!interview.session ? (
           <InterviewJobSelection
             jobs={interview.jobs}
@@ -99,7 +81,9 @@ export default function InterviewPage() {
             onDifficultyChange={setDifficulty}
             pastSessions={interview.pastSessions}
             onResumeSession={handleResumeSession}
-            onDeleteSession={(sessionId) => void interview.deleteSession(sessionId)}
+            onDeleteSession={(sessionId) =>
+              void interview.deleteSession(sessionId)
+            }
           />
         ) : isComplete ? (
           <InterviewSummary
@@ -124,7 +108,7 @@ export default function InterviewPage() {
             onSkipFollowUp={followUp.skipFollowUp}
           />
         )}
-      </div>
-    </div>
+      </PageContent>
+    </AppPage>
   );
 }

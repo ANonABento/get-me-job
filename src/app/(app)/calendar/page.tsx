@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import {
-  ArrowLeft,
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
@@ -39,13 +37,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AppPage,
+  PageContent,
+  PageHeader,
+  StandardEmptyState,
+} from "@/components/ui/page-layout";
 import { SkeletonButton } from "@/components/ui/skeleton";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import type { JobDescription } from "@/types";
 
 const CalendarSyncButton = dynamic(
   () => import("@/components/google").then((m) => m.CalendarSyncButton),
-  { loading: () => <SkeletonButton className="w-32" />, ssr: false }
+  { loading: () => <SkeletonButton className="w-32" />, ssr: false },
 );
 
 interface Reminder {
@@ -69,8 +73,18 @@ interface CalendarEvent {
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 const EVENT_COLORS = {
@@ -228,11 +242,15 @@ export default function CalendarPage() {
   const selectedEvents = selectedDate ? getEventsForDate(selectedDate) : [];
 
   const goToPreviousMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    setCurrentDate(
+      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1),
+    );
   };
 
   const goToNextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    setCurrentDate(
+      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1),
+    );
   };
 
   const goToToday = () => {
@@ -315,66 +333,59 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="min-h-screen pb-24">
-      {/* Hero Section */}
-      <div className="hero-gradient border-b">
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
-          </Link>
+    <AppPage>
+      <PageHeader
+        icon={CalendarIcon}
+        eyebrow="Schedule"
+        title="Calendar"
+        description="Track interviews, deadlines, and reminders in one place."
+        actions={
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="Filter" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Events</SelectItem>
+                <SelectItem value="interview">Interviews</SelectItem>
+                <SelectItem value="deadline">Deadlines</SelectItem>
+                <SelectItem value="reminder">Reminders</SelectItem>
+              </SelectContent>
+            </Select>
 
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-            <div className="space-y-4 animate-enter">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
-                <CalendarIcon className="h-4 w-4" />
-                Schedule
-              </div>
-              <h1 className="text-4xl font-bold tracking-tight">Calendar</h1>
-              <p className="text-lg text-muted-foreground max-w-xl">
-                Track interviews, deadlines, and reminders in one place.
-              </p>
-            </div>
-
-            {/* Export Controls */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-36">
-                  <SelectValue placeholder="Filter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Events</SelectItem>
-                  <SelectItem value="interview">Interviews</SelectItem>
-                  <SelectItem value="deadline">Deadlines</SelectItem>
-                  <SelectItem value="reminder">Reminders</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" onClick={openCreateDialog} className="gradient-bg text-white">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Event
-                </Button>
-                <CalendarSyncButton compact />
-                <Button variant="outline" size="sm" onClick={() => setShowSubscribeDialog(true)}>
-                  <Link2 className="h-4 w-4 mr-2" />
-                  Subscribe
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => exportCalendar("all")}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Export .ics
-                </Button>
-              </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                onClick={openCreateDialog}
+                className="gradient-bg text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Event
+              </Button>
+              <CalendarSyncButton compact />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSubscribeDialog(true)}
+              >
+                <Link2 className="h-4 w-4 mr-2" />
+                Subscribe
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => exportCalendar("all")}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export .ics
+              </Button>
             </div>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Calendar Content */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <PageContent>
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Calendar Grid */}
           <div className="lg:col-span-2 rounded-2xl border bg-card p-6">
@@ -387,10 +398,20 @@ export default function CalendarPage() {
                 <Button variant="outline" size="sm" onClick={goToToday}>
                   Today
                 </Button>
-                <Button variant="ghost" size="icon" onClick={goToPreviousMonth} aria-label="Previous month">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={goToPreviousMonth}
+                  aria-label="Previous month"
+                >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={goToNextMonth} aria-label="Next month">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={goToNextMonth}
+                  aria-label="Next month"
+                >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -399,7 +420,10 @@ export default function CalendarPage() {
             {/* Day Headers */}
             <div className="grid grid-cols-7 gap-1 mb-2">
               {DAYS.map((day) => (
-                <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
+                <div
+                  key={day}
+                  className="text-center text-sm font-medium text-muted-foreground py-2"
+                >
                   {day}
                 </div>
               ))}
@@ -427,8 +451,8 @@ export default function CalendarPage() {
                       isSelected
                         ? "bg-primary text-primary-foreground"
                         : isToday(date)
-                        ? "bg-primary/20 font-bold"
-                        : "hover:bg-muted"
+                          ? "bg-primary/20 font-bold"
+                          : "hover:bg-muted"
                     }`}
                   >
                     <span className="block">{date.getDate()}</span>
@@ -484,7 +508,9 @@ export default function CalendarPage() {
                     className="p-3 rounded-lg border bg-muted/30"
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-lg ${EVENT_COLORS[event.type]}/20`}>
+                      <div
+                        className={`p-2 rounded-lg ${EVENT_COLORS[event.type]}/20`}
+                      >
                         {event.type === "interview" && (
                           <Briefcase className={`h-4 w-4 text-primary`} />
                         )}
@@ -526,13 +552,17 @@ export default function CalendarPage() {
                 ))}
               </div>
             ) : selectedDate ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                No events scheduled for this day
-              </p>
+              <StandardEmptyState
+                icon={CalendarIcon}
+                title="No events scheduled for this day"
+                className="min-h-48"
+              />
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Click on a date to view events
-              </p>
+              <StandardEmptyState
+                icon={CalendarIcon}
+                title="Click on a date to view events"
+                className="min-h-48"
+              />
             )}
 
             {/* Upcoming Events */}
@@ -546,7 +576,9 @@ export default function CalendarPage() {
                     key={event.id}
                     className="flex items-center gap-2 py-2 text-sm"
                   >
-                    <span className={`w-2 h-2 rounded-full ${EVENT_COLORS[event.type]}`} />
+                    <span
+                      className={`w-2 h-2 rounded-full ${EVENT_COLORS[event.type]}`}
+                    />
                     <span className="flex-1 truncate">{event.title}</span>
                     <span className="text-xs text-muted-foreground">
                       {event.date.toLocaleDateString("en-US", {
@@ -557,12 +589,16 @@ export default function CalendarPage() {
                   </div>
                 ))}
               {events.filter((e) => e.date >= new Date()).length === 0 && (
-                <p className="text-sm text-muted-foreground">No upcoming events</p>
+                <StandardEmptyState
+                  icon={CalendarIcon}
+                  title="No upcoming events"
+                  className="min-h-40"
+                />
               )}
             </div>
           </div>
         </div>
-      </div>
+      </PageContent>
 
       {/* Create Event Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -581,7 +617,9 @@ export default function CalendarPage() {
                 id="event-title"
                 placeholder="e.g., Follow up with recruiter"
                 value={newEvent.title}
-                onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                onChange={(e) =>
+                  setNewEvent({ ...newEvent, title: e.target.value })
+                }
               />
             </div>
 
@@ -591,7 +629,9 @@ export default function CalendarPage() {
                 id="event-job"
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                 value={newEvent.jobId}
-                onChange={(e) => setNewEvent({ ...newEvent, jobId: e.target.value })}
+                onChange={(e) =>
+                  setNewEvent({ ...newEvent, jobId: e.target.value })
+                }
               >
                 <option value="">Select a job...</option>
                 {jobs.map((job) => (
@@ -608,7 +648,12 @@ export default function CalendarPage() {
                 id="event-type"
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                 value={newEvent.type}
-                onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as typeof newEvent.type })}
+                onChange={(e) =>
+                  setNewEvent({
+                    ...newEvent,
+                    type: e.target.value as typeof newEvent.type,
+                  })
+                }
               >
                 <option value="follow_up">Follow Up</option>
                 <option value="interview">Interview</option>
@@ -624,7 +669,9 @@ export default function CalendarPage() {
                   id="event-date"
                   type="date"
                   value={newEvent.dueDate}
-                  onChange={(e) => setNewEvent({ ...newEvent, dueDate: e.target.value })}
+                  onChange={(e) =>
+                    setNewEvent({ ...newEvent, dueDate: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -633,7 +680,9 @@ export default function CalendarPage() {
                   id="event-time"
                   type="time"
                   value={newEvent.dueTime}
-                  onChange={(e) => setNewEvent({ ...newEvent, dueTime: e.target.value })}
+                  onChange={(e) =>
+                    setNewEvent({ ...newEvent, dueTime: e.target.value })
+                  }
                 />
               </div>
             </div>
@@ -644,19 +693,29 @@ export default function CalendarPage() {
                 id="event-description"
                 placeholder="Add notes or details..."
                 value={newEvent.description}
-                onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                onChange={(e) =>
+                  setNewEvent({ ...newEvent, description: e.target.value })
+                }
                 rows={3}
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowCreateDialog(false)}
+            >
               Cancel
             </Button>
             <Button
               onClick={createEvent}
-              disabled={creating || !newEvent.title || !newEvent.dueDate || !newEvent.jobId}
+              disabled={
+                creating ||
+                !newEvent.title ||
+                !newEvent.dueDate ||
+                !newEvent.jobId
+              }
               className="gradient-bg text-white"
             >
               {creating ? (
@@ -691,14 +750,17 @@ export default function CalendarPage() {
           <div className="space-y-6 py-4">
             {/* Webcal Link */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Calendar Subscription URL</Label>
+              <Label className="text-sm font-medium">
+                Calendar Subscription URL
+              </Label>
               <div className="flex gap-2">
-                <Input
-                  value={feedUrl}
-                  readOnly
-                  className="text-sm font-mono"
-                />
-                <Button variant="outline" size="icon" onClick={copyFeedUrl} aria-label="Copy URL">
+                <Input value={feedUrl} readOnly className="text-sm font-mono" />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={copyFeedUrl}
+                  aria-label="Copy URL"
+                >
                   {copiedUrl ? (
                     <Check className="h-4 w-4 text-success" />
                   ) : (
@@ -738,20 +800,32 @@ export default function CalendarPage() {
             <div className="rounded-lg bg-muted/50 p-4 space-y-2">
               <h4 className="text-sm font-medium">How to Subscribe</h4>
               <ul className="text-xs text-muted-foreground space-y-1">
-                <li><span className="font-medium">Apple Calendar:</span> Click the button above or add URL in File → New Calendar Subscription</li>
-                <li><span className="font-medium">Google Calendar:</span> Click the button or paste URL in Settings → Add Calendar → From URL</li>
-                <li><span className="font-medium">Outlook:</span> Add URL in Calendar → Add Calendar → Subscribe from web</li>
+                <li>
+                  <span className="font-medium">Apple Calendar:</span> Click the
+                  button above or add URL in File → New Calendar Subscription
+                </li>
+                <li>
+                  <span className="font-medium">Google Calendar:</span> Click
+                  the button or paste URL in Settings → Add Calendar → From URL
+                </li>
+                <li>
+                  <span className="font-medium">Outlook:</span> Add URL in
+                  Calendar → Add Calendar → Subscribe from web
+                </li>
               </ul>
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSubscribeDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowSubscribeDialog(false)}
+            >
               Close
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </AppPage>
   );
 }
