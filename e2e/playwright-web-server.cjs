@@ -3,10 +3,11 @@ const { rmSync } = require("fs");
 
 const distDir = ".next/e2e";
 const port = process.env.PORT || "8888";
+const nextBin = require.resolve("next/dist/bin/next");
 let child;
 
 function run(command, args) {
-  child = spawn(command, args, {
+  const spawned = spawn(command, args, {
     stdio: "inherit",
     shell: process.platform === "win32",
     env: {
@@ -16,12 +17,29 @@ function run(command, args) {
   });
 
   return new Promise((resolve, reject) => {
-    child.once("exit", (code, signal) => {
-      child = undefined;
+    spawned.once("exit", (code, signal) => {
       if (code === 0) {
         resolve();
         return;
       }
+      reject(new Error(`${command} ${args.join(" ")} exited with ${code ?? signal}`));
+    });
+  });
+}
+
+function start(command, args) {
+  child = spawn(command, args, {
+    stdio: "inherit",
+    shell: process.platform === "win32",
+    env: {
+      ...process.env,
+      NEXT_DIST_DIR: distDir,
+    },
+  });
+
+  return new Promise((_, reject) => {
+    child.once("exit", (code, signal) => {
+      child = undefined;
       reject(new Error(`${command} ${args.join(" ")} exited with ${code ?? signal}`));
     });
   });
@@ -38,7 +56,8 @@ process.once("SIGTERM", stop);
 
 (async () => {
   rmSync(distDir, { recursive: true, force: true });
-  await run("npm", ["run", "dev", "--", "-p", port]);
+  await run("node", [nextBin, "build"]);
+  await start("node", [nextBin, "start", "-p", port]);
 })().catch((error) => {
   console.error(error);
   process.exit(1);

@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
 // Define which routes are public (don't require auth)
 const isPublicRoute = createRouteMatcher([
@@ -8,16 +9,19 @@ const isPublicRoute = createRouteMatcher([
   '/api/webhooks(.*)',    // Webhooks (if needed)
 ]);
 
-export default clerkMiddleware(async (auth, request) => {
-  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || !process.env.CLERK_SECRET_KEY) {
-    return;
-  }
+const hasClerkKeys =
+  !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && !!process.env.CLERK_SECRET_KEY;
 
-  // If the route is not public, require authentication
-  if (!isPublicRoute(request)) {
-    await auth.protect();
-  }
-});
+const middleware = hasClerkKeys
+  ? clerkMiddleware(async (auth, request) => {
+      // If the route is not public, require authentication
+      if (!isPublicRoute(request)) {
+        await auth.protect();
+      }
+    })
+  : () => NextResponse.next();
+
+export default middleware;
 
 export const config = {
   matcher: [
