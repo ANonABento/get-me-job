@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -53,6 +54,27 @@ interface TemplatePickerPosition {
   maxHeight: number;
 }
 
+type ResumeScoreVariant = "success" | "warning" | "destructive";
+type ResumeScoreBreakdownItem = readonly [label: string, score: number];
+
+function getResumeScoreVariant(score: number): ResumeScoreVariant {
+  if (score >= 80) return "success";
+  if (score >= 60) return "warning";
+  return "destructive";
+}
+
+function getResumeScoreBreakdown(
+  resumeScore: ResumeScoreResult,
+): ResumeScoreBreakdownItem[] {
+  return [
+    ["Completeness", resumeScore.breakdown.completeness],
+    ["Keywords", resumeScore.breakdown.keywordDensity],
+    ["Length", resumeScore.breakdown.length],
+    ["Action verbs", resumeScore.breakdown.actionVerbs],
+    ["Metrics", resumeScore.breakdown.quantifiedAchievements],
+  ];
+}
+
 export function StudioHeader({
   documentMode,
   draftIsSaved,
@@ -66,6 +88,7 @@ export function StudioHeader({
   onCopyHtml,
   onDownloadPdf,
 }: StudioHeaderProps) {
+  const resumeScoreBreakdownId = useId();
   const [templateOpen, setTemplateOpen] = useState(false);
   const [templatePickerPosition, setTemplatePickerPosition] =
     useState<TemplatePickerPosition | null>(null);
@@ -86,13 +109,7 @@ export function StudioHeader({
   const documentLabel = modeLabel.toLowerCase();
   const templateListLabel = `${modeLabel} templates`;
   const scoreBreakdown = resumeScore
-    ? [
-        ["Completeness", resumeScore.breakdown.completeness],
-        ["Keywords", resumeScore.breakdown.keywordDensity],
-        ["Length", resumeScore.breakdown.length],
-        ["Action verbs", resumeScore.breakdown.actionVerbs],
-        ["Metrics", resumeScore.breakdown.quantifiedAchievements],
-      ]
+    ? getResumeScoreBreakdown(resumeScore)
     : [];
 
   useEffect(() => {
@@ -271,22 +288,16 @@ export function StudioHeader({
         {resumeScore && (
           <div className="group relative">
             <Badge
-              variant={
-                resumeScore.overall >= 80
-                  ? "success"
-                  : resumeScore.overall >= 60
-                    ? "warning"
-                    : "destructive"
-              }
+              variant={getResumeScoreVariant(resumeScore.overall)}
               tabIndex={0}
-              aria-describedby="resume-score-breakdown"
+              aria-describedby={resumeScoreBreakdownId}
               className="gap-1.5"
             >
               <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
               Resume score {resumeScore.overall}
             </Badge>
             <div
-              id="resume-score-breakdown"
+              id={resumeScoreBreakdownId}
               role="tooltip"
               className="pointer-events-none absolute left-0 top-full z-50 mt-2 hidden w-64 rounded-[var(--radius)] border-[length:var(--border-width)] bg-popover p-3 text-xs text-popover-foreground shadow-[var(--shadow-elevated)] group-focus-within:block group-hover:block"
             >

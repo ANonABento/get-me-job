@@ -131,9 +131,7 @@ function StudioPageContent() {
             onCoverLetterGenerated={studio.handleCoverLetterGenerated}
             onJobDescriptionChange={studio.setJobDescription}
             onOpenBank={() => studio.setEntryPickerOpen(true)}
-            onOpportunityClear={() => {
-              studio.setLinkedOpportunityId("");
-            }}
+            onOpportunityClear={() => studio.setLinkedOpportunityId("")}
             onOpportunitySelect={studio.setLinkedOpportunityId}
           />
         </div>

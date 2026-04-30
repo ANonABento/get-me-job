@@ -528,9 +528,11 @@ export function AiAssistantPanel({
               const nextJobDescription = event.target.value;
               setJobDescription(nextJobDescription);
               onJobDescriptionChange?.(nextJobDescription);
-              setSelectedOpportunityId("");
-              setSelectedOpportunityLabel("");
-              onOpportunityClear?.();
+              if (selectedOpportunityId || selectedOpportunityLabel) {
+                setSelectedOpportunityId("");
+                setSelectedOpportunityLabel("");
+                onOpportunityClear?.();
+              }
             }}
             placeholder="Paste the JD here"
             className="min-h-[132px] resize-none"

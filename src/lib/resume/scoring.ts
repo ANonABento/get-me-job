@@ -1,4 +1,4 @@
-import type { BankCategory, BankEntry } from "@/types";
+import { BANK_CATEGORIES, type BankCategory, type BankEntry } from "@/types";
 
 export interface ResumeScoreBreakdown {
   completeness: number;
@@ -44,6 +44,8 @@ const SCORE_WEIGHTS: Record<keyof ResumeScoreBreakdown, number> = {
   quantifiedAchievements: 15,
 };
 
+type ResumeScoreBreakdownKey = keyof ResumeScoreBreakdown;
+
 const ACTION_VERBS = [
   "accelerated",
   "achieved",
@@ -67,6 +69,7 @@ const ACTION_VERBS = [
   "shipped",
   "streamlined",
 ];
+const ACTION_VERB_SET = new Set(ACTION_VERBS);
 
 const STOP_WORDS = new Set([
   "about",
@@ -93,6 +96,14 @@ const STOP_WORDS = new Set([
   "you",
   "your",
 ]);
+
+const SECTION_SIGNAL_PATTERNS = [
+  /experience|employment|work history/,
+  /skills|technologies|tools/,
+  /education|degree|university|college/,
+  /project|portfolio/,
+  /summary|profile|objective/,
+];
 
 function clampScore(score: number): number {
   if (!Number.isFinite(score)) return 0;
@@ -137,8 +148,7 @@ function calculateActionVerbScore(words: string[]): {
   count: number;
   score: number;
 } {
-  const verbSet = new Set(ACTION_VERBS);
-  const count = words.filter((word) => verbSet.has(word)).length;
+  const count = words.filter((word) => ACTION_VERB_SET.has(word)).length;
 
   return {
     count,
@@ -163,22 +173,22 @@ function calculateQuantifiedAchievementScore(text: string): {
   };
 }
 
-function extractEntryText(entry: BankEntry): string {
-  function flatten(value: unknown): string[] {
-    if (typeof value === "string" || typeof value === "number") {
-      return [String(value)];
-    }
-
-    if (Array.isArray(value)) return value.flatMap(flatten);
-
-    if (value && typeof value === "object") {
-      return Object.values(value).flatMap(flatten);
-    }
-
-    return [];
+function flattenEntryContent(value: unknown): string[] {
+  if (typeof value === "string" || typeof value === "number") {
+    return [String(value)];
   }
 
-  return flatten(entry.content).join(" ");
+  if (Array.isArray(value)) return value.flatMap(flattenEntryContent);
+
+  if (value && typeof value === "object") {
+    return Object.values(value).flatMap(flattenEntryContent);
+  }
+
+  return [];
+}
+
+function extractEntryText(entry: BankEntry): string {
+  return flattenEntryContent(entry.content).join(" ");
 }
 
 function calculateCompletenessScore(
@@ -187,27 +197,20 @@ function calculateCompletenessScore(
 ): number {
   if (entries.length > 0) {
     const includedCategories = new Set(entries.map((entry) => entry.category));
-    const weightedScore = Object.entries(SECTION_WEIGHTS).reduce(
-      (sum, [category, weight]) =>
-        includedCategories.has(category as BankCategory) ? sum + weight : sum,
+    const weightedScore = BANK_CATEGORIES.reduce(
+      (sum, category) =>
+        includedCategories.has(category) ? sum + SECTION_WEIGHTS[category] : sum,
       0,
     );
     return clampScore(weightedScore);
   }
 
   const text = normalizeText(resumeText).toLowerCase();
-  const sectionSignals = [
-    /experience|employment|work history/,
-    /skills|technologies|tools/,
-    /education|degree|university|college/,
-    /project|portfolio/,
-    /summary|profile|objective/,
-  ];
-  const matchedSignals = sectionSignals.filter((pattern) =>
+  const matchedSignals = SECTION_SIGNAL_PATTERNS.filter((pattern) =>
     pattern.test(text),
   ).length;
 
-  return clampScore((matchedSignals / sectionSignals.length) * 100);
+  return clampScore((matchedSignals / SECTION_SIGNAL_PATTERNS.length) * 100);
 }
 
 function extractJobKeywords(jobDescription: string): string[] {
@@ -257,11 +260,12 @@ export function calculateResumeScore({
   jobDescription = "",
   resumeText,
 }: CalculateResumeScoreOptions): ResumeScoreResult {
-  const entryText = entries.map(extractEntryText).join(" ");
-  const scoreText = resumeText.trim() ? resumeText : entryText;
+  const scoreText = resumeText.trim()
+    ? resumeText
+    : entries.map(extractEntryText).join(" ");
   const words = getWords(scoreText);
   const wordCount = words.length;
-  const keywordDensity = calculateKeywordDensityScore(
+  const keywordMatch = calculateKeywordDensityScore(
     scoreText,
     jobDescription,
   );
@@ -270,7 +274,7 @@ export function calculateResumeScore({
 
   const breakdown: ResumeScoreBreakdown = {
     completeness: calculateCompletenessScore(scoreText, entries),
-    keywordDensity: keywordDensity.score,
+    keywordDensity: keywordMatch.score,
     length: calculateLengthScore(wordCount),
     actionVerbs: actionVerbs.score,
     quantifiedAchievements: quantifiedAchievements.score,
@@ -279,7 +283,7 @@ export function calculateResumeScore({
   const overall = clampScore(
     Object.entries(breakdown).reduce(
       (sum, [key, score]) =>
-        sum + (score * SCORE_WEIGHTS[key as keyof ResumeScoreBreakdown]) / 100,
+        sum + (score * SCORE_WEIGHTS[key as ResumeScoreBreakdownKey]) / 100,
       0,
     ),
   );
@@ -289,9 +293,9 @@ export function calculateResumeScore({
     breakdown,
     stats: {
       actionVerbCount: actionVerbs.count,
-      matchedKeywordCount: keywordDensity.matchedKeywordCount,
+      matchedKeywordCount: keywordMatch.matchedKeywordCount,
       quantifiedAchievementCount: quantifiedAchievements.count,
-      totalKeywordCount: keywordDensity.totalKeywordCount,
+      totalKeywordCount: keywordMatch.totalKeywordCount,
       wordCount,
     },
   };
