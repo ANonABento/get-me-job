@@ -31,6 +31,7 @@ function StudioPageContent() {
         canCopyHtml={Boolean(studio.content || studio.html)}
         canDownloadPdf={Boolean(studio.content || studio.html)}
         isExporting={studio.isExporting}
+        resumeScore={studio.resumeScore}
         onDocumentModeChange={studio.setDocumentMode}
         onTemplateSelect={studio.handleTemplateSelect}
         onCopyHtml={studio.handleCopyHtml}
@@ -128,8 +129,12 @@ function StudioPageContent() {
             selectedEntryCount={studio.selectedIds.size}
             selectedEntryIds={Array.from(studio.selectedIds)}
             onCoverLetterGenerated={studio.handleCoverLetterGenerated}
+            onJobDescriptionChange={studio.setJobDescription}
             onOpenBank={() => studio.setEntryPickerOpen(true)}
-            onOpportunityClear={() => studio.setLinkedOpportunityId("")}
+            onOpportunityClear={() => {
+              studio.setLinkedOpportunityId("");
+              studio.setJobDescription("");
+            }}
             onOpportunitySelect={studio.setLinkedOpportunityId}
           />
         </div>

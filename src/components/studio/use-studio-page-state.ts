@@ -46,6 +46,10 @@ import {
 import type { TipTapJSONContent } from "@/lib/editor/types";
 import { readJsonResponse } from "@/lib/http";
 import type { TailoredResume } from "@/lib/resume/generator";
+import {
+  calculateResumeScore,
+  type ResumeScoreResult,
+} from "@/lib/resume/scoring";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import type { BankCategory, BankEntry } from "@/types";
 import {
@@ -95,8 +99,10 @@ interface StudioPageState {
   manualVersionName: string;
   mobileView: BuilderPanel;
   previewVersionId: string | null;
+  resumeScore: ResumeScoreResult | null;
   sections: SectionState[];
   selectedIds: Set<string>;
+  setJobDescription: (description: string) => void;
   setLinkedOpportunityId: (opportunityId: string) => void;
   setDocumentMode: (mode: DocumentMode) => void;
   setEntryPickerOpen: (open: boolean) => void;
@@ -214,6 +220,7 @@ export function useStudioPageState(): StudioPageState {
     createStudioDocument("cover_letter", { id: COVER_LETTER_DOCUMENT_ID }),
   ]);
   const [linkedOpportunityId, setLinkedOpportunityId] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
   const [documentMode, setDocumentMode] = useState<DocumentMode>("resume");
   const [activeDocumentIds, setActiveDocumentIds] = useState<
     Record<DocumentMode, string>
@@ -329,6 +336,17 @@ export function useStudioPageState(): StudioPageState {
           (categoryOrder.get(b.category) ?? 999),
       );
   }, [entries, selectedIds, visibleCategoryIds]);
+
+  const resumeScore = useMemo(() => {
+    if (documentMode !== "resume") return null;
+    if (!html.trim() && orderedEntries.length === 0) return null;
+
+    return calculateResumeScore({
+      entries: orderedEntries,
+      jobDescription,
+      resumeText: html,
+    });
+  }, [documentMode, html, jobDescription, orderedEntries]);
 
   const selectedTemplate = useMemo(
     () =>
@@ -820,8 +838,10 @@ export function useStudioPageState(): StudioPageState {
     manualVersionName,
     mobileView,
     previewVersionId,
+    resumeScore,
     sections,
     selectedIds,
+    setJobDescription,
     setLinkedOpportunityId,
     setDocumentMode,
     setEntryPickerOpen,

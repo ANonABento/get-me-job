@@ -50,6 +50,7 @@ interface AiAssistantPanelProps {
   selectedEntryCount: number;
   selectedEntryIds?: string[];
   onCoverLetterGenerated?: (content: string) => void;
+  onJobDescriptionChange?: (description: string) => void;
   onOpenBank: () => void;
   onOpportunityClear?: () => void;
   onOpportunitySelect?: (opportunityId: string) => void;
@@ -103,6 +104,7 @@ export function AiAssistantPanel({
   selectedEntryCount,
   selectedEntryIds = [],
   onCoverLetterGenerated,
+  onJobDescriptionChange,
   onOpenBank,
   onOpportunityClear,
   onOpportunitySelect,
@@ -182,6 +184,7 @@ export function AiAssistantPanel({
         if (cancelled) return;
 
         setJobDescription(data.opportunity.summary);
+        onJobDescriptionChange?.(data.opportunity.summary);
         setSelectedOpportunityId(data.opportunity.id);
         setSelectedOpportunityLabel(
           `${data.opportunity.title} at ${data.opportunity.company}`,
@@ -203,7 +206,7 @@ export function AiAssistantPanel({
     return () => {
       cancelled = true;
     };
-  }, [onOpportunitySelect]);
+  }, [onJobDescriptionChange, onOpportunitySelect]);
 
   const ensureLLMConfigured = useCallback(async () => {
     const response = await fetch("/api/settings/status");
@@ -259,6 +262,7 @@ export function AiAssistantPanel({
   const handleSelectOpportunity = useCallback(
     (opportunity: Opportunity) => {
       setJobDescription(opportunity.summary);
+      onJobDescriptionChange?.(opportunity.summary);
       setSelectedOpportunityId(opportunity.id);
       setSelectedOpportunityLabel(
         `${opportunity.title} at ${opportunity.company}`,
@@ -269,7 +273,7 @@ export function AiAssistantPanel({
       setStatusMessage(`Loaded ${opportunity.title} from the job bank.`);
       setAssistantResult("");
     },
-    [onOpportunitySelect],
+    [onJobDescriptionChange, onOpportunitySelect],
   );
 
   const runRewrite = useCallback(
@@ -521,7 +525,9 @@ export function AiAssistantPanel({
             id="studio-jd-input"
             value={jobDescription}
             onChange={(event) => {
-              setJobDescription(event.target.value);
+              const nextJobDescription = event.target.value;
+              setJobDescription(nextJobDescription);
+              onJobDescriptionChange?.(nextJobDescription);
               setSelectedOpportunityId("");
               setSelectedOpportunityLabel("");
               onOpportunityClear?.();

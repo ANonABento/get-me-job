@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import {
   Check,
   ChevronDown,
@@ -8,13 +14,16 @@ import {
   Download,
   FileText,
   Loader2,
+  ShieldCheck,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   COVER_LETTER_TEMPLATES,
   getCoverLetterTemplate,
 } from "@/lib/builder/cover-letter-document";
 import { getTemplate, TEMPLATES } from "@/lib/resume/template-data";
+import type { ResumeScoreResult } from "@/lib/resume/scoring";
 import { cn } from "@/lib/utils";
 import {
   DOCUMENT_MODE_LABELS,
@@ -30,6 +39,7 @@ interface StudioHeaderProps {
   canCopyHtml: boolean;
   canDownloadPdf: boolean;
   isExporting: boolean;
+  resumeScore?: ResumeScoreResult | null;
   onDocumentModeChange: (mode: DocumentMode) => void;
   onTemplateSelect: (templateId: string) => void;
   onCopyHtml: () => void;
@@ -50,6 +60,7 @@ export function StudioHeader({
   canCopyHtml,
   canDownloadPdf,
   isExporting,
+  resumeScore,
   onDocumentModeChange,
   onTemplateSelect,
   onCopyHtml,
@@ -74,6 +85,15 @@ export function StudioHeader({
   const modeLabel = DOCUMENT_MODE_LABELS[documentMode];
   const documentLabel = modeLabel.toLowerCase();
   const templateListLabel = `${modeLabel} templates`;
+  const scoreBreakdown = resumeScore
+    ? [
+        ["Completeness", resumeScore.breakdown.completeness],
+        ["Keywords", resumeScore.breakdown.keywordDensity],
+        ["Length", resumeScore.breakdown.length],
+        ["Action verbs", resumeScore.breakdown.actionVerbs],
+        ["Metrics", resumeScore.breakdown.quantifiedAchievements],
+      ]
+    : [];
 
   useEffect(() => {
     if (!templateOpen) return;
@@ -87,11 +107,11 @@ export function StudioHeader({
       const triggerRect = trigger.getBoundingClientRect();
       const width = Math.min(
         maxPickerWidth,
-        window.innerWidth - viewportGutter * 2
+        window.innerWidth - viewportGutter * 2,
       );
       const left = Math.min(
         Math.max(triggerRect.left, viewportGutter),
-        window.innerWidth - width - viewportGutter
+        window.innerWidth - width - viewportGutter,
       );
       const top = triggerRect.bottom + 8;
 
@@ -242,11 +262,57 @@ export function StudioHeader({
             "rounded-[var(--radius)] border-[length:var(--border-width)] px-2 py-0.5 text-xs font-medium",
             draftIsSaved
               ? "border-success/20 bg-success/10 text-success"
-              : "border-warning/20 bg-warning/10 text-warning"
+              : "border-warning/20 bg-warning/10 text-warning",
           )}
         >
           {draftIsSaved ? "Saved" : "Unsaved"}
         </span>
+
+        {resumeScore && (
+          <div className="group relative">
+            <Badge
+              variant={
+                resumeScore.overall >= 80
+                  ? "success"
+                  : resumeScore.overall >= 60
+                    ? "warning"
+                    : "destructive"
+              }
+              tabIndex={0}
+              aria-describedby="resume-score-breakdown"
+              className="gap-1.5"
+            >
+              <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+              Resume score {resumeScore.overall}
+            </Badge>
+            <div
+              id="resume-score-breakdown"
+              role="tooltip"
+              className="pointer-events-none absolute left-0 top-full z-50 mt-2 hidden w-64 rounded-[var(--radius)] border-[length:var(--border-width)] bg-popover p-3 text-xs text-popover-foreground shadow-[var(--shadow-elevated)] group-focus-within:block group-hover:block"
+            >
+              <div className="mb-2 flex items-center justify-between gap-2 font-medium">
+                <span>Score breakdown</span>
+                <span>{resumeScore.overall}/100</span>
+              </div>
+              <dl className="space-y-1.5">
+                {scoreBreakdown.map(([label, score]) => (
+                  <div
+                    key={label}
+                    className="flex items-center justify-between"
+                  >
+                    <dt className="text-muted-foreground">{label}</dt>
+                    <dd className="font-medium">{score}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="mt-2 text-muted-foreground">
+                {resumeScore.stats.matchedKeywordCount}/
+                {resumeScore.stats.totalKeywordCount} keywords matched,{" "}
+                {resumeScore.stats.quantifiedAchievementCount} metrics found.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2">

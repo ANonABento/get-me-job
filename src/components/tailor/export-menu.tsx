@@ -101,7 +101,7 @@ function resumeToPlainText(resume: TailoredResume): string {
     lines.push("EDUCATION");
     for (const edu of resume.education) {
       lines.push(
-        `${edu.degree} in ${edu.field}, ${edu.institution} (${edu.date})`
+        `${edu.degree} in ${edu.field}, ${edu.institution} (${edu.date})`,
       );
     }
   }
@@ -112,7 +112,7 @@ function resumeToPlainText(resume: TailoredResume): string {
 async function downloadExport(
   resumeId: string,
   templateId: string,
-  format: "pdf" | "latex" | "html"
+  format: "pdf" | "latex" | "html",
 ): Promise<void> {
   const res = await fetch("/api/resume/export", {
     method: "POST",
@@ -143,6 +143,9 @@ export function ExportMenu({ resumeId, resume, templateId }: ExportMenuProps) {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const copiedResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   // Close menu on outside click
   useEffect(() => {
@@ -156,6 +159,15 @@ export function ExportMenu({ resumeId, resume, templateId }: ExportMenuProps) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
+  useEffect(
+    () => () => {
+      if (copiedResetTimeoutRef.current) {
+        clearTimeout(copiedResetTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
   const handleExport = useCallback(
     async (option: ExportOption) => {
       setError(null);
@@ -165,7 +177,13 @@ export function ExportMenu({ resumeId, resume, templateId }: ExportMenuProps) {
           const text = resumeToPlainText(resume);
           await navigator.clipboard.writeText(text);
           setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
+          if (copiedResetTimeoutRef.current) {
+            clearTimeout(copiedResetTimeoutRef.current);
+          }
+          copiedResetTimeoutRef.current = setTimeout(() => {
+            setCopied(false);
+            copiedResetTimeoutRef.current = null;
+          }, 2000);
         } catch {
           setError("Failed to copy to clipboard");
         }
@@ -184,16 +202,12 @@ export function ExportMenu({ resumeId, resume, templateId }: ExportMenuProps) {
         setLoading(null);
       }
     },
-    [resume, resumeId, templateId]
+    [resume, resumeId, templateId],
   );
 
   return (
     <div className="relative" ref={menuRef}>
-      <Button
-        size="sm"
-        onClick={() => setOpen(!open)}
-        className="gap-1.5"
-      >
+      <Button size="sm" onClick={() => setOpen(!open)} className="gap-1.5">
         {copied ? (
           <Check className="h-4 w-4" />
         ) : (
@@ -218,7 +232,7 @@ export function ExportMenu({ resumeId, resume, templateId }: ExportMenuProps) {
                 "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm",
                 "hover:bg-accent/10 hover:text-accent-foreground",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
-                "transition-colors"
+                "transition-colors",
               )}
             >
               {loading === option.format ? (
