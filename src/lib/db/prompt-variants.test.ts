@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Mock } from "vitest";
 
 vi.mock("./schema", () => {
-  const mockDb = { prepare: vi.fn() };
+  const mockDb = {
+    prepare: vi.fn(),
+    transaction: vi.fn((fn: () => unknown) => fn),
+  };
   return { default: mockDb };
 });
 

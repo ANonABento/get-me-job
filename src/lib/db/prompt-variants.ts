@@ -165,11 +165,13 @@ export function setActivePromptVariant(id: string): boolean {
   if (!variant) return false;
 
   const now = new Date().toISOString();
-  db.prepare("UPDATE prompt_variants SET active = 0, updated_at = ?").run(now);
-  const result = db
-    .prepare("UPDATE prompt_variants SET active = 1, updated_at = ? WHERE id = ?")
-    .run(now, id);
-
+  const activate = db.transaction(() => {
+    db.prepare("UPDATE prompt_variants SET active = 0, updated_at = ?").run(now);
+    return db
+      .prepare("UPDATE prompt_variants SET active = 1, updated_at = ? WHERE id = ?")
+      .run(now, id);
+  });
+  const result = activate();
   return result.changes > 0;
 }
 
