@@ -36,7 +36,8 @@ interface EditorToolbarProps {
 function toolbarButtonClass(isActive = false): string {
   return cn(
     "h-8 w-8 border-border text-foreground hover:bg-muted",
-    isActive && "bg-primary text-primary-foreground hover:bg-primary/90"
+    isActive &&
+      "bg-primary text-primary-foreground shadow-[var(--shadow-button)] hover:bg-primary/90",
   );
 }
 
@@ -56,9 +57,9 @@ export function EditorToolbar({
   const exportDisabled = !canExport || isExporting;
 
   return (
-    <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b bg-background/95 px-4 py-3 shadow-sm backdrop-blur">
+    <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b-[length:var(--border-width)] bg-background/95 px-4 py-3 shadow-[var(--shadow-card)] [backdrop-filter:var(--backdrop-blur)]">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center rounded-md border bg-card p-1">
+        <div className="flex items-center rounded-[var(--radius)] border-[length:var(--border-width)] bg-card p-1">
           <Button
             type="button"
             variant="ghost"
@@ -94,7 +95,7 @@ export function EditorToolbar({
           </Button>
         </div>
 
-        <div className="flex items-center rounded-md border bg-card p-1">
+        <div className="flex items-center rounded-[var(--radius)] border-[length:var(--border-width)] bg-card p-1">
           <Button
             type="button"
             variant="ghost"
@@ -119,7 +120,7 @@ export function EditorToolbar({
           </Button>
         </div>
 
-        <label className="flex h-10 items-center gap-2 rounded-md border bg-card px-3 text-sm">
+        <label className="flex h-10 items-center gap-2 rounded-[var(--radius)] border-[length:var(--border-width)] bg-card px-3 text-sm">
           <span className="font-medium">Zoom</span>
           <input
             type="range"
@@ -138,7 +139,7 @@ export function EditorToolbar({
           </span>
         </label>
 
-        <label className="flex h-10 items-center gap-2 rounded-md border bg-card px-3 text-sm">
+        <label className="flex h-10 items-center gap-2 rounded-[var(--radius)] border-[length:var(--border-width)] bg-card px-3 text-sm">
           <span className="font-medium">Template</span>
           <select
             value={templateId}

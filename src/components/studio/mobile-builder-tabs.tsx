@@ -23,7 +23,11 @@ export function MobileBuilderTabs({
   onMobileViewChange,
 }: MobileBuilderTabsProps) {
   return (
-    <div role="tablist" aria-label="Builder view" className="flex border-b md:hidden">
+    <div
+      role="tablist"
+      aria-label="Builder view"
+      className="flex border-b-[length:var(--border-width)] bg-background md:hidden"
+    >
       {RESUME_MOBILE_TABS.map(({ panel, label, Icon }) => (
         <button
           key={panel}
@@ -37,7 +41,7 @@ export function MobileBuilderTabs({
             "flex flex-1 items-center justify-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors",
             mobileView === panel
               ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground",
           )}
         >
           <Icon className="h-4 w-4" />

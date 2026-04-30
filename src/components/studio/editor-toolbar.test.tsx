@@ -40,7 +40,7 @@ describe("EditorToolbar", () => {
         onZoomChange={vi.fn()}
         onDownloadPdf={vi.fn()}
         onPrint={vi.fn()}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Bold" }));
@@ -55,6 +55,35 @@ describe("EditorToolbar", () => {
     expect(chain.undo).toHaveBeenCalledTimes(1);
     expect(chain.redo).toHaveBeenCalledTimes(1);
     expect(chain.run).toHaveBeenCalledTimes(5);
+  });
+
+  it("uses theme variable classes for toolbar chrome", () => {
+    const { editor } = makeEditorMock();
+    const { container } = render(
+      <EditorToolbar
+        editor={editor}
+        templates={TEMPLATES}
+        templateId="classic"
+        zoomPercent={100}
+        canExport
+        onTemplateChange={vi.fn()}
+        onZoomChange={vi.fn()}
+        onDownloadPdf={vi.fn()}
+        onPrint={vi.fn()}
+      />,
+    );
+
+    const toolbar = container.firstElementChild;
+    expect(toolbar?.className).toContain(
+      "border-b-[length:var(--border-width)]",
+    );
+    expect(toolbar?.className).toContain("shadow-[var(--shadow-card)]");
+
+    const zoomControl = screen.getByText("Zoom").closest("label");
+    expect(zoomControl?.className).toContain("rounded-[var(--radius)]");
+    expect(zoomControl?.className).toContain(
+      "border-[length:var(--border-width)]",
+    );
   });
 
   it("emits template, zoom, print, and download actions", () => {
@@ -75,12 +104,15 @@ describe("EditorToolbar", () => {
         onZoomChange={onZoomChange}
         onDownloadPdf={onDownloadPdf}
         onPrint={onPrint}
-      />
+      />,
     );
 
-    fireEvent.change(screen.getByRole("combobox", { name: /resume template/i }), {
-      target: { value: "modern" },
-    });
+    fireEvent.change(
+      screen.getByRole("combobox", { name: /resume template/i }),
+      {
+        target: { value: "modern" },
+      },
+    );
     fireEvent.change(screen.getByRole("slider", { name: /preview zoom/i }), {
       target: { value: "150" },
     });
