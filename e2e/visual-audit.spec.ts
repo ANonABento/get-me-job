@@ -92,6 +92,7 @@ test.describe("Visual Audit - Landing Page States", () => {
     }, THEME_STORAGE_KEY);
     await page.goto("/");
     await expect(page.locator("html")).not.toHaveClass(/dark/);
+    await expect(page.locator("html")).toHaveAttribute("data-theme-mode", "light");
 
     await expect(page).toHaveScreenshot("landing-light.png", {
       fullPage: true,
@@ -110,6 +111,7 @@ test.describe("Visual Audit - Landing Page States", () => {
     }, THEME_STORAGE_KEY);
     await page.goto("/");
     await expect(page.locator("html")).toHaveClass(/dark/);
+    await expect(page.locator("html")).toHaveAttribute("data-theme-mode", "dark");
 
     await expect(page).toHaveScreenshot("landing-dark.png", {
       fullPage: true,

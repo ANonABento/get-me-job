@@ -52,7 +52,7 @@ describe("Notification Database Functions", () => {
         "This is a test",
         "/test",
         expect.any(String),
-        "default"
+        "default",
       );
       expect(result.id).toBe("test-notification-id");
       expect(result.type).toBe("info");
@@ -76,7 +76,7 @@ describe("Notification Database Functions", () => {
         null,
         null,
         expect.any(String),
-        "default"
+        "default",
       );
       expect(result.message).toBeUndefined();
       expect(result.link).toBeUndefined();
@@ -112,7 +112,7 @@ describe("Notification Database Functions", () => {
       const result = getNotifications();
 
       expect(db.prepare).toHaveBeenCalledWith(
-        "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT ?"
+        "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT ?",
       );
       expect(mockAll).toHaveBeenCalledWith("default", 50);
       expect(result).toHaveLength(2);
@@ -130,7 +130,7 @@ describe("Notification Database Functions", () => {
       getNotifications({ unreadOnly: true });
 
       expect(db.prepare).toHaveBeenCalledWith(
-        "SELECT * FROM notifications WHERE user_id = ? AND read = 0 ORDER BY created_at DESC LIMIT ?"
+        "SELECT * FROM notifications WHERE user_id = ? AND read = 0 ORDER BY created_at DESC LIMIT ?",
       );
     });
 
@@ -161,7 +161,7 @@ describe("Notification Database Functions", () => {
       markNotificationRead("notif-1");
 
       expect(db.prepare).toHaveBeenCalledWith(
-        "UPDATE notifications SET read = 1 WHERE id = ? AND user_id = ?"
+        "UPDATE notifications SET read = 1 WHERE id = ? AND user_id = ?",
       );
       expect(mockRun).toHaveBeenCalledWith("notif-1", "default");
     });
@@ -175,7 +175,7 @@ describe("Notification Database Functions", () => {
       markAllNotificationsRead();
 
       expect(db.prepare).toHaveBeenCalledWith(
-        "UPDATE notifications SET read = 1 WHERE read = 0 AND user_id = ?"
+        "UPDATE notifications SET read = 1 WHERE read = 0 AND user_id = ?",
       );
       expect(mockRun).toHaveBeenCalledWith("default");
     });
@@ -189,7 +189,7 @@ describe("Notification Database Functions", () => {
       deleteNotification("notif-1");
 
       expect(db.prepare).toHaveBeenCalledWith(
-        "DELETE FROM notifications WHERE id = ? AND user_id = ?"
+        "DELETE FROM notifications WHERE id = ? AND user_id = ?",
       );
       expect(mockRun).toHaveBeenCalledWith("notif-1", "default");
     });
@@ -203,7 +203,7 @@ describe("Notification Database Functions", () => {
       deleteReadNotifications();
 
       expect(db.prepare).toHaveBeenCalledWith(
-        "DELETE FROM notifications WHERE read = 1 AND user_id = ?"
+        "DELETE FROM notifications WHERE read = 1 AND user_id = ?",
       );
       expect(mockRun).toHaveBeenCalledWith("default");
     });
@@ -217,7 +217,7 @@ describe("Notification Database Functions", () => {
       const result = getUnreadNotificationCount();
 
       expect(db.prepare).toHaveBeenCalledWith(
-        "SELECT COUNT(*) as count FROM notifications WHERE read = 0 AND user_id = ?"
+        "SELECT COUNT(*) as count FROM notifications WHERE read = 0 AND user_id = ?",
       );
       expect(mockGet).toHaveBeenCalledWith("default");
       expect(result).toBe(5);
@@ -243,13 +243,13 @@ describe("Notification Database Functions", () => {
         "Follow up",
         "Software Engineer",
         false,
-        "job-123"
+        "job-123",
       );
 
       expect(result.type).toBe("reminder_due");
       expect(result.title).toBe("Reminder Due");
       expect(result.message).toBe("Follow up for Software Engineer");
-      expect(result.link).toBe("/jobs?id=job-123");
+      expect(result.link).toBe("/opportunities?id=job-123");
     });
 
     it("should create an overdue reminder notification", () => {
@@ -260,7 +260,7 @@ describe("Notification Database Functions", () => {
         "Submit application",
         "Data Analyst",
         true,
-        "job-456"
+        "job-456",
       );
 
       expect(result.type).toBe("reminder_overdue");
@@ -276,13 +276,13 @@ describe("Notification Database Functions", () => {
       const result = createApplicationUpdateNotification(
         "Frontend Developer",
         "interviewing",
-        "job-789"
+        "job-789",
       );
 
       expect(result.type).toBe("application_update");
       expect(result.title).toBe("Application Status Updated");
       expect(result.message).toBe('Frontend Developer is now "interviewing"');
-      expect(result.link).toBe("/jobs?id=job-789");
+      expect(result.link).toBe("/opportunities?id=job-789");
     });
   });
 });

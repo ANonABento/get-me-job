@@ -1,14 +1,14 @@
-import { db, notifications, eq, and, desc } from '../index';
-import { generateId } from '@/lib/utils';
+import { db, notifications, eq, and, desc } from "../index";
+import { generateId } from "@/lib/utils";
 
 export type NotificationType =
-  | 'reminder_due'
-  | 'reminder_overdue'
-  | 'application_update'
-  | 'interview_scheduled'
-  | 'job_deadline'
-  | 'system'
-  | 'info';
+  | "reminder_due"
+  | "reminder_overdue"
+  | "application_update"
+  | "interview_scheduled"
+  | "job_deadline"
+  | "system"
+  | "info";
 
 export interface Notification {
   id: string;
@@ -23,7 +23,7 @@ export interface Notification {
 // Create a new notification
 export async function createNotification(
   userId: string,
-  notification: Omit<Notification, 'id' | 'read' | 'createdAt'>
+  notification: Omit<Notification, "id" | "read" | "createdAt">,
 ): Promise<Notification> {
   const id = generateId();
   const now = new Date();
@@ -53,18 +53,24 @@ export async function createNotification(
 // Get all notifications for a user
 export async function getNotifications(
   userId: string,
-  options?: { unreadOnly?: boolean; limit?: number }
+  options?: { unreadOnly?: boolean; limit?: number },
 ): Promise<Notification[]> {
   const { unreadOnly = false, limit = 50 } = options ?? {};
 
   let query;
   if (unreadOnly) {
-    query = db.select().from(notifications)
-      .where(and(eq(notifications.userId, userId), eq(notifications.read, false)))
+    query = db
+      .select()
+      .from(notifications)
+      .where(
+        and(eq(notifications.userId, userId), eq(notifications.read, false)),
+      )
       .orderBy(desc(notifications.createdAt))
       .limit(limit);
   } else {
-    query = db.select().from(notifications)
+    query = db
+      .select()
+      .from(notifications)
       .where(eq(notifications.userId, userId))
       .orderBy(desc(notifications.createdAt))
       .limit(limit);
@@ -79,40 +85,68 @@ export async function getNotifications(
     message: row.message ?? undefined,
     link: row.link ?? undefined,
     read: row.read ?? false,
-    createdAt: row.createdAt?.toISOString() ?? '',
+    createdAt: row.createdAt?.toISOString() ?? "",
   }));
 }
 
 // Mark notification as read
-export async function markNotificationRead(userId: string, notificationId: string): Promise<void> {
-  await db.update(notifications)
+export async function markNotificationRead(
+  userId: string,
+  notificationId: string,
+): Promise<void> {
+  await db
+    .update(notifications)
     .set({ read: true })
-    .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
+    .where(
+      and(
+        eq(notifications.id, notificationId),
+        eq(notifications.userId, userId),
+      ),
+    );
 }
 
 // Mark all notifications as read
 export async function markAllNotificationsRead(userId: string): Promise<void> {
-  await db.update(notifications)
+  await db
+    .update(notifications)
     .set({ read: true })
-    .where(and(eq(notifications.userId, userId), eq(notifications.read, false)));
+    .where(
+      and(eq(notifications.userId, userId), eq(notifications.read, false)),
+    );
 }
 
 // Delete a notification
-export async function deleteNotification(userId: string, notificationId: string): Promise<void> {
-  await db.delete(notifications)
-    .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
+export async function deleteNotification(
+  userId: string,
+  notificationId: string,
+): Promise<void> {
+  await db
+    .delete(notifications)
+    .where(
+      and(
+        eq(notifications.id, notificationId),
+        eq(notifications.userId, userId),
+      ),
+    );
 }
 
 // Delete all read notifications
 export async function deleteReadNotifications(userId: string): Promise<void> {
-  await db.delete(notifications)
+  await db
+    .delete(notifications)
     .where(and(eq(notifications.userId, userId), eq(notifications.read, true)));
 }
 
 // Get unread notification count
-export async function getUnreadNotificationCount(userId: string): Promise<number> {
-  const rows = await db.select().from(notifications)
-    .where(and(eq(notifications.userId, userId), eq(notifications.read, false)));
+export async function getUnreadNotificationCount(
+  userId: string,
+): Promise<number> {
+  const rows = await db
+    .select()
+    .from(notifications)
+    .where(
+      and(eq(notifications.userId, userId), eq(notifications.read, false)),
+    );
 
   return rows.length;
 }
@@ -123,13 +157,13 @@ export async function createReminderNotification(
   reminderTitle: string,
   jobTitle: string,
   isOverdue: boolean,
-  jobId: string
+  jobId: string,
 ): Promise<Notification> {
   return createNotification(userId, {
-    type: isOverdue ? 'reminder_overdue' : 'reminder_due',
-    title: isOverdue ? 'Overdue Reminder' : 'Reminder Due',
+    type: isOverdue ? "reminder_overdue" : "reminder_due",
+    title: isOverdue ? "Overdue Reminder" : "Reminder Due",
     message: `${reminderTitle} for ${jobTitle}`,
-    link: `/jobs?id=${jobId}`,
+    link: `/opportunities?id=${jobId}`,
   });
 }
 
@@ -138,12 +172,12 @@ export async function createApplicationUpdateNotification(
   userId: string,
   jobTitle: string,
   newStatus: string,
-  jobId: string
+  jobId: string,
 ): Promise<Notification> {
   return createNotification(userId, {
-    type: 'application_update',
-    title: 'Application Status Updated',
+    type: "application_update",
+    title: "Application Status Updated",
     message: `${jobTitle} is now "${newStatus}"`,
-    link: `/jobs?id=${jobId}`,
+    link: `/opportunities?id=${jobId}`,
   });
 }

@@ -59,30 +59,23 @@ function readStoredValue<T>(
   }
 }
 
+function readLegacyThemeMode(): ThemeMode | null {
+  try {
+    const stored = localStorage.getItem(THEME_DARK_STORAGE_KEY);
+    if (stored === "true") return "dark";
+    if (stored === "false") return "light";
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function persistValue(key: string, value: string): void {
   try {
     localStorage.setItem(key, value);
   } catch {
     // Ignore storage errors and keep the in-memory value.
   }
-}
-
-function readStoredTheme(): ThemeMode | null {
-  const storedTheme = readStoredValue(THEME_STORAGE_KEY, isThemeMode);
-  if (storedTheme) {
-    return storedTheme;
-  }
-
-  const legacyDarkMode = readStoredValue(
-    THEME_DARK_STORAGE_KEY,
-    (value): value is "true" | "false" => value === "true" || value === "false"
-  );
-
-  if (!legacyDarkMode) {
-    return null;
-  }
-
-  return legacyDarkMode === "true" ? "dark" : "light";
 }
 
 function readStoredCustomColors(): ThemeColorOverrides {
@@ -139,10 +132,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setMounted(true);
 
-    const storedTheme = readStoredTheme();
-    if (storedTheme) {
-      setThemeState(storedTheme);
-    }
+    const storedTheme = readStoredValue(THEME_STORAGE_KEY, isThemeMode);
+    setThemeState(storedTheme ?? readLegacyThemeMode() ?? DEFAULT_THEME_MODE);
 
     const storedPreset = readStoredValue(
       THEME_PRESET_STORAGE_KEY,

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_OPPORTUNITY_FILTERS,
   buildOpportunityTeamSize,
@@ -7,10 +7,14 @@ import {
   formatOpportunityLocation,
   formatOpportunitySalary,
   getOpportunityFilterOptions,
+  groupOpportunitiesByStatus,
   hasActiveOpportunityFilters,
   parseOptionalNumber,
+  parseOpportunityViewMode,
+  readOpportunityViewMode,
   splitDelimitedList,
   trimToUndefined,
+  writeOpportunityViewMode,
   type Opportunity,
 } from "./utils";
 
@@ -76,41 +80,118 @@ const opportunities: Opportunity[] = [
 
 describe("filterOpportunities", () => {
   it("sorts default results by nearest deadline", () => {
-    expect(filterOpportunities(opportunities, DEFAULT_OPPORTUNITY_FILTERS).map((opportunity) => opportunity.id)).toEqual([
-      "2",
-      "1",
-      "3",
-    ]);
+    expect(
+      filterOpportunities(opportunities, DEFAULT_OPPORTUNITY_FILTERS).map(
+        (opportunity) => opportunity.id,
+      ),
+    ).toEqual(["2", "1", "3"]);
   });
 
   it("searches title, company, summary, skills, tech stack, and tags", () => {
-    expect(filterOpportunities(opportunities, { ...DEFAULT_OPPORTUNITY_FILTERS, searchQuery: "climate" }).map((opportunity) => opportunity.id)).toEqual(["2"]);
-    expect(filterOpportunities(opportunities, { ...DEFAULT_OPPORTUNITY_FILTERS, searchQuery: "postgre" }).map((opportunity) => opportunity.id)).toEqual(["3"]);
-    expect(filterOpportunities(opportunities, { ...DEFAULT_OPPORTUNITY_FILTERS, searchQuery: "PLATFORM" }).map((opportunity) => opportunity.id)).toEqual(["1", "3"]);
+    expect(
+      filterOpportunities(opportunities, {
+        ...DEFAULT_OPPORTUNITY_FILTERS,
+        searchQuery: "climate",
+      }).map((opportunity) => opportunity.id),
+    ).toEqual(["2"]);
+    expect(
+      filterOpportunities(opportunities, {
+        ...DEFAULT_OPPORTUNITY_FILTERS,
+        searchQuery: "postgre",
+      }).map((opportunity) => opportunity.id),
+    ).toEqual(["3"]);
+    expect(
+      filterOpportunities(opportunities, {
+        ...DEFAULT_OPPORTUNITY_FILTERS,
+        searchQuery: "PLATFORM",
+      }).map((opportunity) => opportunity.id),
+    ).toEqual(["1", "3"]);
   });
 
   it("filters by tab, status, source, remote type, tag, and tech stack", () => {
-    expect(filterOpportunities(opportunities, { ...DEFAULT_OPPORTUNITY_FILTERS, typeTab: "hackathon" }).map((opportunity) => opportunity.id)).toEqual(["2"]);
-    expect(filterOpportunities(opportunities, { ...DEFAULT_OPPORTUNITY_FILTERS, status: "interviewing" }).map((opportunity) => opportunity.id)).toEqual(["3"]);
-    expect(filterOpportunities(opportunities, { ...DEFAULT_OPPORTUNITY_FILTERS, source: "greenhouse" }).map((opportunity) => opportunity.id)).toEqual(["1"]);
-    expect(filterOpportunities(opportunities, { ...DEFAULT_OPPORTUNITY_FILTERS, remoteType: "remote" }).map((opportunity) => opportunity.id)).toEqual(["2"]);
-    expect(filterOpportunities(opportunities, { ...DEFAULT_OPPORTUNITY_FILTERS, tag: "backend" }).map((opportunity) => opportunity.id)).toEqual(["3"]);
-    expect(filterOpportunities(opportunities, { ...DEFAULT_OPPORTUNITY_FILTERS, techStack: "React" }).map((opportunity) => opportunity.id)).toEqual(["2", "1"]);
+    expect(
+      filterOpportunities(opportunities, {
+        ...DEFAULT_OPPORTUNITY_FILTERS,
+        typeTab: "hackathon",
+      }).map((opportunity) => opportunity.id),
+    ).toEqual(["2"]);
+    expect(
+      filterOpportunities(opportunities, {
+        ...DEFAULT_OPPORTUNITY_FILTERS,
+        status: "interviewing",
+      }).map((opportunity) => opportunity.id),
+    ).toEqual(["3"]);
+    expect(
+      filterOpportunities(opportunities, {
+        ...DEFAULT_OPPORTUNITY_FILTERS,
+        source: "greenhouse",
+      }).map((opportunity) => opportunity.id),
+    ).toEqual(["1"]);
+    expect(
+      filterOpportunities(opportunities, {
+        ...DEFAULT_OPPORTUNITY_FILTERS,
+        remoteType: "remote",
+      }).map((opportunity) => opportunity.id),
+    ).toEqual(["2"]);
+    expect(
+      filterOpportunities(opportunities, {
+        ...DEFAULT_OPPORTUNITY_FILTERS,
+        tag: "backend",
+      }).map((opportunity) => opportunity.id),
+    ).toEqual(["3"]);
+    expect(
+      filterOpportunities(opportunities, {
+        ...DEFAULT_OPPORTUNITY_FILTERS,
+        techStack: "React",
+      }).map((opportunity) => opportunity.id),
+    ).toEqual(["2", "1"]);
   });
 
   it("sorts by scraped date, company, and salary", () => {
-    expect(filterOpportunities(opportunities, { ...DEFAULT_OPPORTUNITY_FILTERS, sortBy: "scrapedAt" }).map((opportunity) => opportunity.id)).toEqual(["2", "1", "3"]);
-    expect(filterOpportunities(opportunities, { ...DEFAULT_OPPORTUNITY_FILTERS, sortBy: "company" }).map((opportunity) => opportunity.id)).toEqual(["1", "3", "2"]);
-    expect(filterOpportunities(opportunities, { ...DEFAULT_OPPORTUNITY_FILTERS, sortBy: "salary" }).map((opportunity) => opportunity.id)).toEqual(["3", "1", "2"]);
+    expect(
+      filterOpportunities(opportunities, {
+        ...DEFAULT_OPPORTUNITY_FILTERS,
+        sortBy: "scrapedAt",
+      }).map((opportunity) => opportunity.id),
+    ).toEqual(["2", "1", "3"]);
+    expect(
+      filterOpportunities(opportunities, {
+        ...DEFAULT_OPPORTUNITY_FILTERS,
+        sortBy: "company",
+      }).map((opportunity) => opportunity.id),
+    ).toEqual(["1", "3", "2"]);
+    expect(
+      filterOpportunities(opportunities, {
+        ...DEFAULT_OPPORTUNITY_FILTERS,
+        sortBy: "salary",
+      }).map((opportunity) => opportunity.id),
+    ).toEqual(["3", "1", "2"]);
   });
 });
 
 describe("hasActiveOpportunityFilters", () => {
   it("detects default and non-default filter states", () => {
-    expect(hasActiveOpportunityFilters(DEFAULT_OPPORTUNITY_FILTERS)).toBe(false);
-    expect(hasActiveOpportunityFilters({ ...DEFAULT_OPPORTUNITY_FILTERS, searchQuery: "react" })).toBe(true);
-    expect(hasActiveOpportunityFilters({ ...DEFAULT_OPPORTUNITY_FILTERS, typeTab: "job" })).toBe(true);
-    expect(hasActiveOpportunityFilters({ ...DEFAULT_OPPORTUNITY_FILTERS, status: "saved" })).toBe(true);
+    expect(hasActiveOpportunityFilters(DEFAULT_OPPORTUNITY_FILTERS)).toBe(
+      false,
+    );
+    expect(
+      hasActiveOpportunityFilters({
+        ...DEFAULT_OPPORTUNITY_FILTERS,
+        searchQuery: "react",
+      }),
+    ).toBe(true);
+    expect(
+      hasActiveOpportunityFilters({
+        ...DEFAULT_OPPORTUNITY_FILTERS,
+        typeTab: "job",
+      }),
+    ).toBe(true);
+    expect(
+      hasActiveOpportunityFilters({
+        ...DEFAULT_OPPORTUNITY_FILTERS,
+        status: "saved",
+      }),
+    ).toBe(true);
   });
 });
 
@@ -123,27 +204,108 @@ describe("getOpportunityFilterOptions", () => {
   });
 });
 
+describe("opportunity view mode helpers", () => {
+  it("parses unsupported view modes as list", () => {
+    expect(parseOpportunityViewMode("kanban")).toBe("kanban");
+    expect(parseOpportunityViewMode("list")).toBe("list");
+    expect(parseOpportunityViewMode("grid")).toBe("list");
+    expect(parseOpportunityViewMode(null)).toBe("list");
+  });
+
+  it("reads and writes view mode defensively", () => {
+    const storage = {
+      getItem: () => "kanban",
+      setItem: vi.fn(),
+    };
+
+    expect(readOpportunityViewMode(storage)).toBe("kanban");
+
+    writeOpportunityViewMode(storage, "list");
+    expect(storage.setItem).toHaveBeenCalledWith(
+      "get_me_job_opportunities_view",
+      "list",
+    );
+
+    expect(
+      readOpportunityViewMode({
+        getItem: () => {
+          throw new Error("blocked");
+        },
+      }),
+    ).toBe("list");
+    expect(() =>
+      writeOpportunityViewMode(
+        {
+          setItem: () => {
+            throw new Error("blocked");
+          },
+        },
+        "kanban",
+      ),
+    ).not.toThrow();
+  });
+});
+
+describe("groupOpportunitiesByStatus", () => {
+  it("returns every kanban status bucket and preserves item order", () => {
+    const grouped = groupOpportunitiesByStatus(opportunities);
+
+    expect(Object.keys(grouped)).toEqual([
+      "pending",
+      "saved",
+      "applied",
+      "interviewing",
+      "offer",
+      "rejected",
+      "expired",
+      "dismissed",
+    ]);
+    expect(grouped.pending.map((opportunity) => opportunity.id)).toEqual(["2"]);
+    expect(grouped.saved.map((opportunity) => opportunity.id)).toEqual(["1"]);
+    expect(grouped.interviewing.map((opportunity) => opportunity.id)).toEqual([
+      "3",
+    ]);
+    expect(grouped.applied).toEqual([]);
+  });
+});
+
 describe("formatOpportunity helpers", () => {
   it("formats location from available pieces and falls back to remote type", () => {
-    expect(formatOpportunityLocation(opportunities[0])).toBe("Toronto, ON, Canada");
+    expect(formatOpportunityLocation(opportunities[0])).toBe(
+      "Toronto, ON, Canada",
+    );
     expect(formatOpportunityLocation(opportunities[1])).toBe("Remote");
-    expect(formatOpportunityLocation({ ...opportunities[1], remoteType: undefined })).toBe("Location TBD");
+    expect(
+      formatOpportunityLocation({ ...opportunities[1], remoteType: undefined }),
+    ).toBe("Location TBD");
   });
 
   it("formats salary ranges, bounds, and missing salary", () => {
-    expect(formatOpportunitySalary(opportunities[0])).toBe("CA$120,000 - CA$150,000");
+    expect(formatOpportunitySalary(opportunities[0])).toBe(
+      "CA$120,000 - CA$150,000",
+    );
     expect(formatOpportunitySalary(opportunities[2])).toBe("From $170,000");
     expect(formatOpportunitySalary(opportunities[1])).toBe("Compensation TBD");
   });
 
   it("handles zero salary values and invalid currency input", () => {
-    expect(formatOpportunitySalary({ ...opportunities[2], salaryMin: 0, salaryMax: undefined })).toBe("From $0");
-    expect(formatOpportunitySalary({ ...opportunities[2], salaryCurrency: "US" })).toBe("From $170,000");
+    expect(
+      formatOpportunitySalary({
+        ...opportunities[2],
+        salaryMin: 0,
+        salaryMax: undefined,
+      }),
+    ).toBe("From $0");
+    expect(
+      formatOpportunitySalary({ ...opportunities[2], salaryCurrency: "US" }),
+    ).toBe("From $170,000");
   });
 
   it("formats date-only deadlines without timezone drift", () => {
     expect(formatOpportunityDate("2026-05-18")).toBe("May 18, 2026");
-    expect(formatOpportunityDate("2026-05-18T14:00:00.000Z")).toBe("May 18, 2026");
+    expect(formatOpportunityDate("2026-05-18T14:00:00.000Z")).toBe(
+      "May 18, 2026",
+    );
     expect(formatOpportunityDate("not-a-date")).toBe("Invalid date");
   });
 });
@@ -158,7 +320,9 @@ describe("form value helpers", () => {
   });
 
   it("trims optional strings to undefined when blank", () => {
-    expect(trimToUndefined("  https://example.com ")).toBe("https://example.com");
+    expect(trimToUndefined("  https://example.com ")).toBe(
+      "https://example.com",
+    );
     expect(trimToUndefined("   ")).toBeUndefined();
   });
 

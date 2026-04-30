@@ -14,6 +14,9 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 vi.mock("@/lib/opportunities", () => ({
+  getJobStatusForOpportunityStatus: (status: string) =>
+    status === "offer" ? "offered" : status,
+  jobToOpportunity: (job: unknown) => job,
   listOpportunities: mocks.listOpportunities,
 }));
 
@@ -41,7 +44,7 @@ describe("opportunities route", () => {
 
   it("lists opportunities for the authenticated user with parsed filters", async () => {
     const request = new NextRequest(
-      "http://localhost/api/opportunities?status=saved"
+      "http://localhost/api/opportunities?status=saved",
     );
 
     const response = await GET(request);
@@ -68,7 +71,7 @@ describe("opportunities route", () => {
         company: "Acme",
         source: "manual",
         summary: "Build user interfaces.",
-      })
+      }),
     );
 
     expect(response.status).toBe(201);
@@ -79,9 +82,58 @@ describe("opportunities route", () => {
         description: "Build user interfaces.",
         status: "pending",
       }),
-      "user-1"
+      "user-1",
     );
     await expect(response.json()).resolves.toEqual({ opportunity: job });
+  });
+
+  it("maps opportunity create fields onto the tracked job record", async () => {
+    const job = {
+      id: "job-1",
+      title: "Frontend Engineer",
+      company: "Acme",
+      description: "Build user interfaces.",
+      status: "offered",
+      createdAt: "2026-04-29T12:00:00.000Z",
+    };
+    mocks.createJob.mockReturnValueOnce(job);
+
+    const response = await POST(
+      jsonRequest({
+        type: "job",
+        title: "Frontend Engineer",
+        company: "Acme",
+        source: "manual",
+        sourceUrl: "https://example.com/job",
+        city: "Toronto",
+        province: "ON",
+        country: "Canada",
+        remoteType: "remote",
+        jobType: "co-op",
+        summary: "Build user interfaces.",
+        requiredSkills: ["React"],
+        techStack: ["TypeScript"],
+        tags: ["frontend"],
+        salaryMin: 100000,
+        salaryMax: 120000,
+        status: "offer",
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(mocks.createJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        location: "Toronto, ON, Canada",
+        remote: true,
+        type: "internship",
+        keywords: ["TypeScript", "frontend"],
+        requirements: ["React"],
+        salary: "100000 - 120000",
+        status: "offered",
+        url: "https://example.com/job",
+      }),
+      "user-1",
+    );
   });
 
   it("rejects invalid create payloads", async () => {

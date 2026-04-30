@@ -48,20 +48,20 @@ export default function CompanyResearchPage() {
       <div className="min-h-screen">
         <div className="max-w-4xl mx-auto px-6 py-12">
           <Link
-            href="/jobs"
+            href="/opportunities"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Jobs
+            Back to Opportunities
           </Link>
           <div className="rounded-2xl border bg-card p-12 text-center">
             <p className="text-red-500">{error || "Job not found"}</p>
             <Link
-              href="/jobs"
+              href="/opportunities"
               className="inline-flex items-center gap-2 mt-4 text-primary hover:underline"
             >
               <ArrowLeft className="h-4 w-4" />
-              Return to Jobs
+              Return to Opportunities
             </Link>
           </div>
         </div>
@@ -75,11 +75,11 @@ export default function CompanyResearchPage() {
       <div className="hero-gradient border-b">
         <div className="max-w-4xl mx-auto px-6 py-12">
           <Link
-            href="/jobs"
+            href="/opportunities"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Jobs
+            Back to Opportunities
           </Link>
 
           <div className="flex items-start gap-4">

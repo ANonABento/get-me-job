@@ -18,7 +18,11 @@ import {
   ExternalLink,
   Star,
 } from "lucide-react";
-import type { RecommendationResult, JobRecommendation, SkillMatch } from "@/lib/recommendations/job-matcher";
+import type {
+  RecommendationResult,
+  JobRecommendation,
+  SkillMatch,
+} from "@/lib/recommendations/job-matcher";
 
 function ScoreRing({ score }: { score: number }) {
   const radius = 18;
@@ -29,8 +33,8 @@ function ScoreRing({ score }: { score: number }) {
     score >= 70
       ? "stroke-green-500"
       : score >= 50
-      ? "stroke-amber-500"
-      : "stroke-red-400";
+        ? "stroke-amber-500"
+        : "stroke-red-400";
 
   return (
     <div className="relative w-12 h-12">
@@ -70,8 +74,8 @@ function SkillMatchBadge({ match }: { match: SkillMatch }) {
         match.matched
           ? "bg-success/10 text-success"
           : match.relevance === "high"
-          ? "bg-destructive/10 text-destructive"
-          : "bg-muted text-muted-foreground"
+            ? "bg-destructive/10 text-destructive"
+            : "bg-muted text-muted-foreground",
       )}
     >
       {match.matched ? (
@@ -84,12 +88,21 @@ function SkillMatchBadge({ match }: { match: SkillMatch }) {
   );
 }
 
-function RecommendationCard({ recommendation }: { recommendation: JobRecommendation }) {
+function RecommendationCard({
+  recommendation,
+}: {
+  recommendation: JobRecommendation;
+}) {
   const [expanded, setExpanded] = useState(false);
-  const { job, score, skillMatches, skillGaps, matchExplanation, reasons } = recommendation;
+  const { job, score, skillMatches, skillGaps, matchExplanation, reasons } =
+    recommendation;
 
-  const highRelevanceSkills = skillMatches.filter((m) => m.relevance === "high");
-  const mediumRelevanceSkills = skillMatches.filter((m) => m.relevance === "medium");
+  const highRelevanceSkills = skillMatches.filter(
+    (m) => m.relevance === "high",
+  );
+  const mediumRelevanceSkills = skillMatches.filter(
+    (m) => m.relevance === "medium",
+  );
 
   return (
     <div className="border rounded-xl overflow-hidden bg-card">
@@ -109,7 +122,9 @@ function RecommendationCard({ recommendation }: { recommendation: JobRecommendat
                 </span>
               )}
             </div>
-            <p className="text-sm text-muted-foreground mt-2">{matchExplanation}</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              {matchExplanation}
+            </p>
           </div>
         </div>
 
@@ -181,9 +196,7 @@ function RecommendationCard({ recommendation }: { recommendation: JobRecommendat
                   <AlertCircle className="h-3 w-3" />
                   Skills to Develop
                 </p>
-                <p className="text-sm text-warning">
-                  {skillGaps.join(", ")}
-                </p>
+                <p className="text-sm text-warning">{skillGaps.join(", ")}</p>
               </div>
             )}
           </div>
@@ -191,11 +204,11 @@ function RecommendationCard({ recommendation }: { recommendation: JobRecommendat
           {/* Actions */}
           <div className="flex items-center gap-2">
             <Link
-              href={`/jobs?id=${job.id}`}
+              href={`/opportunities?id=${job.id}`}
               className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
             >
               <Briefcase className="h-4 w-4" />
-              View Job
+              View Opportunity
             </Link>
             {job.url && (
               <a
@@ -233,7 +246,9 @@ export function JobRecommendations() {
 
         setResult(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load recommendations");
+        setError(
+          err instanceof Error ? err.message : "Failed to load recommendations",
+        );
       } finally {
         setLoading(false);
       }

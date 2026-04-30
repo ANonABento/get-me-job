@@ -31,6 +31,20 @@ const JOB_STATUS_TO_OPPORTUNITY_STATUS: Record<
   dismissed: "dismissed",
 };
 
+const OPPORTUNITY_STATUS_TO_JOB_STATUS: Record<
+  OpportunityStatus,
+  NonNullable<JobDescription["status"]>
+> = {
+  pending: "pending",
+  saved: "saved",
+  applied: "applied",
+  interviewing: "interviewing",
+  offer: "offered",
+  rejected: "rejected",
+  expired: "withdrawn",
+  dismissed: "dismissed",
+};
+
 function normalizeStatus(status: JobDescription["status"]): OpportunityStatus {
   return status ? JOB_STATUS_TO_OPPORTUNITY_STATUS[status] : "saved";
 }
@@ -83,8 +97,7 @@ export function listOpportunities(
   return getJobs(userId)
     .map(jobToOpportunity)
     .filter(
-      (opportunity) =>
-        !shouldFilter || allowedStatuses.has(opportunity.status),
+      (opportunity) => !shouldFilter || allowedStatuses.has(opportunity.status),
     );
 }
 
@@ -111,8 +124,7 @@ export function linkOpportunityDocument(
     id,
     {
       linkedResumeId: resumeId || existing.linkedResumeId,
-      linkedCoverLetterId:
-        coverLetterId || existing.linkedCoverLetterId,
+      linkedCoverLetterId: coverLetterId || existing.linkedCoverLetterId,
     },
     userId,
   );
@@ -128,12 +140,16 @@ export function changeOpportunityStatus(
   const existing = getJob(id, userId);
   if (!existing) return null;
 
-  // Map opportunity status back to job status
-  const statusMap: Record<string, string> = {
-    offer: "offered",
-    dismissed: "withdrawn",
-  };
-  const jobStatus = (statusMap[status] || status) as import("@/types").JobStatus;
+  const opportunityStatus = normalizeStatusFilter(status);
+  if (!opportunityStatus) return null;
+
+  const jobStatus = OPPORTUNITY_STATUS_TO_JOB_STATUS[opportunityStatus];
   updateJobStatus(id, jobStatus, undefined, userId);
   return getOpportunity(id, userId);
+}
+
+export function getJobStatusForOpportunityStatus(
+  status: OpportunityStatus,
+): NonNullable<JobDescription["status"]> {
+  return OPPORTUNITY_STATUS_TO_JOB_STATUS[status];
 }

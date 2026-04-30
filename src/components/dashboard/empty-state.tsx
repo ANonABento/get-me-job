@@ -16,8 +16,8 @@ export function EmptyState({ variant }: EmptyStateProps) {
         </div>
         <h3 className="text-xl font-bold">Get started: upload your resume</h3>
         <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-          Upload your existing resume and we&apos;ll extract your professional info automatically.
-          Then you can tailor it for every job application.
+          Upload your existing resume and we&apos;ll extract your professional
+          info automatically. Then you can tailor it for every job application.
         </p>
         <Link
           href="/bank"
@@ -38,10 +38,11 @@ export function EmptyState({ variant }: EmptyStateProps) {
       </div>
       <h3 className="text-xl font-bold">Build your first resume</h3>
       <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-        Add a job description and we&apos;ll generate a tailored resume that highlights your most relevant experience.
+        Add a job description and we&apos;ll generate a tailored resume that
+        highlights your most relevant experience.
       </p>
       <Link
-        href="/jobs"
+        href="/opportunities"
         className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary/10 px-6 py-3 font-medium text-primary hover:bg-primary/20 transition-colors"
       >
         <FileText className="h-4 w-4" />

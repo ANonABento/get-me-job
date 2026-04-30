@@ -75,14 +75,15 @@ export function InterviewJobSelection({
         </div>
         <h2 className="text-2xl font-bold">No Jobs to Practice For</h2>
         <p className="text-muted-foreground mt-2 max-w-md mx-auto">
-          Add a job description first to get personalized interview questions based on the role.
+          Add a job description first to get personalized interview questions
+          based on the role.
         </p>
         <Link
-          href="/jobs"
+          href="/opportunities"
           className="inline-flex items-center justify-center gap-2 px-6 py-3 mt-6 rounded-xl gradient-bg text-primary-foreground font-medium hover:opacity-90 transition-opacity"
         >
           <Briefcase className="h-5 w-5" />
-          Add a Job
+          Add an Opportunity
         </Link>
 
         <div className="mt-12 grid gap-4 sm:grid-cols-3 text-left">
@@ -239,7 +240,9 @@ function Tip({
 
   return (
     <div className="p-4 rounded-xl bg-muted/50">
-      <div className={`p-2 w-10 h-10 rounded-lg ${colorClasses[color]} flex items-center justify-center mb-3`}>
+      <div
+        className={`p-2 w-10 h-10 rounded-lg ${colorClasses[color]} flex items-center justify-center mb-3`}
+      >
         {icon}
       </div>
       <h3 className="font-medium">{title}</h3>

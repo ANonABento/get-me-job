@@ -1,5 +1,7 @@
 import {
+  JOB_STATUS_LABELS,
   JOB_STATUSES,
+  JOB_TYPE_LABELS,
   JOB_TYPES,
   type JobStatus,
   type JobType,
@@ -63,33 +65,15 @@ export interface OpportunityFieldSection {
   fields: OpportunityFieldConfig[];
 }
 
-const OPPORTUNITY_STATUS_LABELS = {
-  pending: "Pending",
-  saved: "Saved",
-  applied: "Applied",
-  interviewing: "Interviewing",
-  offered: "Offered",
-  rejected: "Rejected",
-  withdrawn: "Withdrawn",
-  dismissed: "Dismissed",
-} satisfies Record<JobStatus, string>;
-
-const OPPORTUNITY_TYPE_LABELS = {
-  "full-time": "Full-time",
-  "part-time": "Part-time",
-  contract: "Contract",
-  internship: "Internship",
-} satisfies Record<JobType, string>;
-
 export const OPPORTUNITY_STATUS_OPTIONS: OpportunityFieldOption[] =
   JOB_STATUSES.map((status) => ({
-    label: OPPORTUNITY_STATUS_LABELS[status],
+    label: JOB_STATUS_LABELS[status],
     value: status,
   }));
 
 export const OPPORTUNITY_TYPE_OPTIONS: OpportunityFieldOption[] = JOB_TYPES.map(
   (type) => ({
-    label: OPPORTUNITY_TYPE_LABELS[type],
+    label: JOB_TYPE_LABELS[type],
     value: type,
   })
 );
