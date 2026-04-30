@@ -3,6 +3,11 @@
 import type React from "react";
 import { FileSpreadsheet, Upload } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import {
+  THEME_DASHED_SURFACE_CLASSES,
+  THEME_MUTED_SURFACE_CLASSES,
+} from "@/lib/theme/component-classes";
+import { cn } from "@/lib/utils";
 import { ImportJobActions } from "./import-job-actions";
 
 interface ImportJobCsvModeProps {
@@ -26,7 +31,12 @@ export function ImportJobCsvMode({
     <div className="space-y-4">
       <div className="space-y-2">
         <Label>Upload CSV File</Label>
-        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+        <div
+          className={cn(
+            THEME_DASHED_SURFACE_CLASSES,
+            "border-muted-foreground/25 p-6 text-center",
+          )}
+        >
           <input
             type="file"
             accept=".csv,text/csv"
@@ -53,12 +63,23 @@ export function ImportJobCsvMode({
         </div>
       </div>
 
-      <div className="rounded-lg bg-muted/50 p-3 text-sm">
+      <div className={cn(THEME_MUTED_SURFACE_CLASSES, "p-3 text-sm")}>
         <p className="font-medium mb-2">Expected columns:</p>
         <ul className="text-muted-foreground text-xs space-y-1">
-          <li><span className="font-medium text-foreground">title</span> (required) - Job title or position</li>
-          <li><span className="font-medium text-foreground">company</span> (required) - Company name</li>
-          <li><span className="text-muted-foreground">location, type, remote, salary, description, url</span> - optional</li>
+          <li>
+            <span className="font-medium text-foreground">title</span>{" "}
+            (required) - Job title or position
+          </li>
+          <li>
+            <span className="font-medium text-foreground">company</span>{" "}
+            (required) - Company name
+          </li>
+          <li>
+            <span className="text-muted-foreground">
+              location, type, remote, salary, description, url
+            </span>{" "}
+            - optional
+          </li>
         </ul>
       </div>
 

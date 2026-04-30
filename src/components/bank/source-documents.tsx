@@ -13,6 +13,8 @@ import {
 import { FileText, Loader2, Trash2 } from "lucide-react";
 import type { SourceDocument } from "@/lib/db/profile-bank";
 import { useErrorToast } from "@/hooks/use-error-toast";
+import { cn } from "@/lib/utils";
+import { THEME_INTERACTIVE_SURFACE_CLASSES } from "@/lib/theme/component-classes";
 
 interface SourceDocumentsProps {
   refreshKey: number;
@@ -38,7 +40,7 @@ export function SourceDocuments({
   const [deleteTarget, setDeleteTarget] = useState<SourceDocument | null>(null);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [deleting, setDeleting] = useState(false);
   const selectAllRef = useRef<HTMLInputElement>(null);
@@ -73,7 +75,8 @@ export function SourceDocuments({
   }, [documents]);
 
   const selectedCount = selectedDocumentIds.size;
-  const allSelected = documents.length > 0 && selectedCount === documents.length;
+  const allSelected =
+    documents.length > 0 && selectedCount === documents.length;
   const someSelected = selectedCount > 0 && !allSelected;
 
   useEffect(() => {
@@ -96,7 +99,7 @@ export function SourceDocuments({
 
   function toggleAllDocuments() {
     setSelectedDocumentIds(
-      allSelected ? new Set() : new Set(documents.map((doc) => doc.id))
+      allSelected ? new Set() : new Set(documents.map((doc) => doc.id)),
     );
   }
 
@@ -190,11 +193,11 @@ export function SourceDocuments({
         {documents.map((doc) => (
           <div
             key={doc.id}
-            className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors hover:bg-accent/50 ${
-              activeDocumentId === doc.id
-                ? "border-primary bg-accent/30"
-                : ""
-            }`}
+            className={cn(
+              "flex items-center gap-3 p-3 cursor-pointer hover:bg-accent/50",
+              THEME_INTERACTIVE_SURFACE_CLASSES,
+              activeDocumentId === doc.id ? "border-primary bg-accent/30" : "",
+            )}
             onClick={() =>
               onFilterByDocument(activeDocumentId === doc.id ? null : doc.id)
             }

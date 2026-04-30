@@ -9,13 +9,23 @@ const defaultProps = {
   onCategoryChange: vi.fn(),
   sortBy: "date" as const,
   onSortChange: vi.fn(),
-  counts: { experience: 5, skill: 3, project: 2, hackathon: 4, education: 1, achievement: 0, certification: 1 },
+  counts: {
+    experience: 5,
+    skill: 3,
+    project: 2,
+    hackathon: 4,
+    education: 1,
+    achievement: 0,
+    certification: 1,
+  },
 };
 
 describe("SearchBar", () => {
   it("should render search input", () => {
     render(<SearchBar {...defaultProps} />);
-    expect(screen.getByPlaceholderText("Search your knowledge bank...")).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText("Search your knowledge bank..."),
+    ).toBeInTheDocument();
   });
 
   it("should render All chip with total count badge", () => {
@@ -52,9 +62,12 @@ describe("SearchBar", () => {
   it("should call onQueryChange when typing", () => {
     const onQueryChange = vi.fn();
     render(<SearchBar {...defaultProps} onQueryChange={onQueryChange} />);
-    fireEvent.change(screen.getByPlaceholderText("Search your knowledge bank..."), {
-      target: { value: "react" },
-    });
+    fireEvent.change(
+      screen.getByPlaceholderText("Search your knowledge bank..."),
+      {
+        target: { value: "react" },
+      },
+    );
     expect(onQueryChange).toHaveBeenCalledWith("react");
   });
 
@@ -74,15 +87,23 @@ describe("SearchBar", () => {
 
   it("should show clear button when query is non-empty", () => {
     render(<SearchBar {...defaultProps} query="test" />);
-    const clearButton = screen.getByPlaceholderText("Search your knowledge bank...")
+    const clearButton = screen
+      .getByPlaceholderText("Search your knowledge bank...")
       .parentElement?.querySelector("button");
     expect(clearButton).toBeInTheDocument();
   });
 
   it("should call onQueryChange with empty string when clear is clicked", () => {
     const onQueryChange = vi.fn();
-    render(<SearchBar {...defaultProps} query="test" onQueryChange={onQueryChange} />);
-    const clearButton = screen.getByPlaceholderText("Search your knowledge bank...")
+    render(
+      <SearchBar
+        {...defaultProps}
+        query="test"
+        onQueryChange={onQueryChange}
+      />,
+    );
+    const clearButton = screen
+      .getByPlaceholderText("Search your knowledge bank...")
       .parentElement?.querySelector("button");
     fireEvent.click(clearButton!);
     expect(onQueryChange).toHaveBeenCalledWith("");
@@ -98,6 +119,10 @@ describe("SearchBar", () => {
     render(<SearchBar {...defaultProps} />);
     const sortSelect = screen.getByRole("combobox", { name: "Sort order" });
     expect(sortSelect).toBeInTheDocument();
+    expect(sortSelect.className).toContain("rounded-[var(--radius)]");
+    expect(sortSelect.className).toContain(
+      "border-[length:var(--border-width)]",
+    );
   });
 
   it("should export CATEGORY_LABELS", () => {
@@ -114,6 +139,11 @@ describe("SearchBar", () => {
     render(<SearchBar {...defaultProps} activeCategory="experience" />);
     const expTab = screen.getByRole("tab", { name: /Experience/i });
     expect(expTab).toHaveAttribute("aria-selected", "true");
+    expect(expTab.className).toContain("rounded-[var(--radius)]");
+    expect(expTab.className).toContain("shadow-[var(--shadow-button)]");
+    expect(expTab.querySelector("span")?.className).toContain(
+      "rounded-[var(--radius)]",
+    );
 
     const allTab = screen.getByRole("tab", { name: /All/i });
     expect(allTab).toHaveAttribute("aria-selected", "false");

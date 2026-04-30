@@ -2,8 +2,20 @@
 
 import type { DragEvent } from "react";
 import { useMemo, useState } from "react";
-import { Briefcase, CalendarClock, CircleDollarSign, GripVertical, MapPin, Tag } from "lucide-react";
+import {
+  Briefcase,
+  CalendarClock,
+  CircleDollarSign,
+  GripVertical,
+  MapPin,
+  Tag,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  THEME_DASHED_SURFACE_CLASSES,
+  THEME_INTERACTIVE_SURFACE_CLASSES,
+  THEME_MUTED_SURFACE_CLASSES,
+} from "@/lib/theme/component-classes";
 import { cn } from "@/lib/utils";
 import type { JobDescription } from "@/types";
 import {
@@ -20,12 +32,12 @@ interface JobKanbanViewProps {
 }
 
 const COLUMN_STYLES: Record<JobKanbanStatus, string> = {
-  pending: "border-slate-200 bg-slate-50/70 dark:border-slate-800 dark:bg-slate-950/30",
-  saved: "border-cyan-200 bg-cyan-50/60 dark:border-cyan-900/60 dark:bg-cyan-950/20",
-  applied: "border-blue-200 bg-blue-50/60 dark:border-blue-900/60 dark:bg-blue-950/20",
-  interviewing: "border-amber-200 bg-amber-50/70 dark:border-amber-900/60 dark:bg-amber-950/20",
-  offered: "border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/60 dark:bg-emerald-950/20",
-  rejected: "border-red-200 bg-red-50/60 dark:border-red-900/60 dark:bg-red-950/20",
+  pending: "border-muted-foreground/25",
+  saved: "border-info/30",
+  applied: "border-primary/30",
+  interviewing: "border-warning/35",
+  offered: "border-success/35",
+  rejected: "border-destructive/30",
 };
 
 export function JobKanbanView({ jobs, onStatusChange }: JobKanbanViewProps) {
@@ -38,7 +50,10 @@ export function JobKanbanView({ jobs, onStatusChange }: JobKanbanViewProps) {
     setDraggedJobId(jobId);
   };
 
-  const handleDrop = (event: DragEvent<HTMLElement>, status: JobKanbanStatus) => {
+  const handleDrop = (
+    event: DragEvent<HTMLElement>,
+    status: JobKanbanStatus,
+  ) => {
     event.preventDefault();
     const jobId = event.dataTransfer.getData("text/plain") || draggedJobId;
     const job = jobs.find((candidate) => candidate.id === jobId);
@@ -59,7 +74,11 @@ export function JobKanbanView({ jobs, onStatusChange }: JobKanbanViewProps) {
             <section
               key={column.value}
               aria-label={`${column.label} jobs`}
-              className={cn("flex min-h-[520px] flex-col rounded-lg border p-3", COLUMN_STYLES[column.value])}
+              className={cn(
+                "flex min-h-[520px] flex-col p-3",
+                THEME_MUTED_SURFACE_CLASSES,
+                COLUMN_STYLES[column.value],
+              )}
               onDragOver={(event) => {
                 event.preventDefault();
                 event.dataTransfer.dropEffect = "move";
@@ -75,7 +94,12 @@ export function JobKanbanView({ jobs, onStatusChange }: JobKanbanViewProps) {
 
               <div className="flex flex-1 flex-col gap-3">
                 {columnJobs.length === 0 ? (
-                  <div className="grid min-h-28 place-items-center rounded-lg border border-dashed bg-background/50 px-3 text-center text-sm text-muted-foreground">
+                  <div
+                    className={cn(
+                      "grid min-h-28 place-items-center px-3 text-center text-sm text-muted-foreground",
+                      THEME_DASHED_SURFACE_CLASSES,
+                    )}
+                  >
                     Drop jobs here
                   </div>
                 ) : (
@@ -105,7 +129,12 @@ interface JobKanbanCardProps {
   onDragEnd: () => void;
 }
 
-function JobKanbanCard({ job, isDragging, onDragStart, onDragEnd }: JobKanbanCardProps) {
+function JobKanbanCard({
+  job,
+  isDragging,
+  onDragStart,
+  onDragEnd,
+}: JobKanbanCardProps) {
   const deadlineLabel = formatJobDeadline(job.deadline);
   const tags = job.keywords.slice(0, 4);
 
@@ -115,21 +144,32 @@ function JobKanbanCard({ job, isDragging, onDragStart, onDragEnd }: JobKanbanCar
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       className={cn(
-        "cursor-grab rounded-lg border bg-card p-3 shadow-sm transition hover:border-primary/30 hover:shadow-md active:cursor-grabbing",
-        isDragging && "opacity-50"
+        "cursor-grab p-3 active:cursor-grabbing",
+        THEME_INTERACTIVE_SURFACE_CLASSES,
+        isDragging && "opacity-50",
       )}
     >
       <div className="mb-3 flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="line-clamp-2 text-sm font-semibold leading-5">{job.title}</h3>
-          <p className="mt-1 truncate text-sm text-muted-foreground">{job.company}</p>
+          <h3 className="line-clamp-2 text-sm font-semibold leading-5">
+            {job.title}
+          </h3>
+          <p className="mt-1 truncate text-sm text-muted-foreground">
+            {job.company}
+          </p>
         </div>
-        <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <GripVertical
+          className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"
+          aria-hidden="true"
+        />
       </div>
 
       <div className="space-y-2 text-xs text-muted-foreground">
         {deadlineLabel && (
-          <Badge variant="outline" className="gap-1 border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+          <Badge
+            variant="outline"
+            className="gap-1 border-warning/35 bg-warning/10 text-warning"
+          >
             <CalendarClock className="h-3 w-3" />
             {deadlineLabel}
           </Badge>
@@ -152,7 +192,11 @@ function JobKanbanCard({ job, isDragging, onDragStart, onDragEnd }: JobKanbanCar
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-1">
             {tags.map((tag) => (
-              <Badge key={tag} variant="secondary" className="max-w-full gap-1 truncate text-[11px]">
+              <Badge
+                key={tag}
+                variant="secondary"
+                className="max-w-full gap-1 truncate text-[11px]"
+              >
                 <Tag className="h-3 w-3 shrink-0" />
                 <span className="truncate">{tag}</span>
               </Badge>

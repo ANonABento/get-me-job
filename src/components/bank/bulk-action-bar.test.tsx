@@ -15,14 +15,20 @@ const defaultProps = {
 describe("BulkActionBar", () => {
   it("should render nothing when no items selected", () => {
     const { container } = render(
-      <BulkActionBar {...defaultProps} selectedCount={0} />
+      <BulkActionBar {...defaultProps} selectedCount={0} />,
     );
     expect(container.innerHTML).toBe("");
   });
 
   it("should show selected count", () => {
-    render(<BulkActionBar {...defaultProps} />);
+    const { container } = render(<BulkActionBar {...defaultProps} />);
     expect(screen.getByText("3 selected")).toBeInTheDocument();
+    expect(container.firstElementChild?.className).toContain(
+      "rounded-[var(--radius)]",
+    );
+    expect(container.firstElementChild?.className).toContain(
+      "shadow-[var(--shadow-card)]",
+    );
   });
 
   it("should show Select All when not all selected", () => {
@@ -31,7 +37,9 @@ describe("BulkActionBar", () => {
   });
 
   it("should show Deselect All when all selected", () => {
-    render(<BulkActionBar {...defaultProps} selectedCount={10} totalCount={10} />);
+    render(
+      <BulkActionBar {...defaultProps} selectedCount={10} totalCount={10} />,
+    );
     expect(screen.getByText("Deselect All")).toBeInTheDocument();
   });
 
@@ -50,7 +58,7 @@ describe("BulkActionBar", () => {
         selectedCount={10}
         totalCount={10}
         onDeselectAll={onDeselectAll}
-      />
+      />,
     );
     fireEvent.click(screen.getByText("Deselect All"));
     expect(onDeselectAll).toHaveBeenCalled();

@@ -3,12 +3,19 @@
 import { useState } from "react";
 import { Briefcase, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import { readJsonResponse } from "@/lib/http";
+import { THEME_PRIMARY_GRADIENT_BUTTON_CLASSES } from "@/lib/theme/component-classes";
 import type { JobDescription } from "@/types";
 
 interface AddJobDialogProps {
@@ -35,7 +42,11 @@ const EMPTY_FORM: NewJobForm = {
   url: "",
 };
 
-export function AddJobDialog({ open, onOpenChange, onCreated }: AddJobDialogProps) {
+export function AddJobDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: AddJobDialogProps) {
   const [form, setForm] = useState<NewJobForm>(EMPTY_FORM);
   const [addingJob, setAddingJob] = useState(false);
   const showErrorToast = useErrorToast();
@@ -55,7 +66,7 @@ export function AddJobDialog({ open, onOpenChange, onCreated }: AddJobDialogProp
       });
       const data = await readJsonResponse<CreateJobResponse>(
         response,
-        "Failed to add job"
+        "Failed to add job",
       );
 
       if (!data.job) {
@@ -84,7 +95,8 @@ export function AddJobDialog({ open, onOpenChange, onCreated }: AddJobDialogProp
             Add New Job
           </DialogTitle>
           <DialogDescription>
-            Paste the job description to analyze your match and generate a tailored resume.
+            Paste the job description to analyze your match and generate a
+            tailored resume.
           </DialogDescription>
         </DialogHeader>
 
@@ -94,7 +106,9 @@ export function AddJobDialog({ open, onOpenChange, onCreated }: AddJobDialogProp
               <Label>Job Title</Label>
               <Input
                 value={form.title}
-                onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, title: event.target.value }))
+                }
                 placeholder="Software Engineer"
               />
             </div>
@@ -102,7 +116,9 @@ export function AddJobDialog({ open, onOpenChange, onCreated }: AddJobDialogProp
               <Label>Company</Label>
               <Input
                 value={form.company}
-                onChange={(event) => setForm((prev) => ({ ...prev, company: event.target.value }))}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, company: event.target.value }))
+                }
                 placeholder="Acme Corp"
               />
             </div>
@@ -111,7 +127,9 @@ export function AddJobDialog({ open, onOpenChange, onCreated }: AddJobDialogProp
             <Label>Job URL (optional)</Label>
             <Input
               value={form.url}
-              onChange={(event) => setForm((prev) => ({ ...prev, url: event.target.value }))}
+              onChange={(event) =>
+                setForm((prev) => ({ ...prev, url: event.target.value }))
+              }
               placeholder="https://..."
             />
           </div>
@@ -120,7 +138,12 @@ export function AddJobDialog({ open, onOpenChange, onCreated }: AddJobDialogProp
             <Textarea
               rows={10}
               value={form.description}
-              onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
+              onChange={(event) =>
+                setForm((prev) => ({
+                  ...prev,
+                  description: event.target.value,
+                }))
+              }
               placeholder="Paste the full job description here..."
               className="resize-none"
             />
@@ -133,8 +156,10 @@ export function AddJobDialog({ open, onOpenChange, onCreated }: AddJobDialogProp
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={addingJob || !form.title || !form.company || !form.description}
-            className="gradient-bg text-primary-foreground hover:opacity-90"
+            disabled={
+              addingJob || !form.title || !form.company || !form.description
+            }
+            className={THEME_PRIMARY_GRADIENT_BUTTON_CLASSES}
           >
             {addingJob && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Add Job

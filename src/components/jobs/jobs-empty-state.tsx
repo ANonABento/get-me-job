@@ -3,6 +3,7 @@
 import { Briefcase, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StandardEmptyState } from "@/components/ui/page-layout";
+import { THEME_PRIMARY_GRADIENT_BUTTON_CLASSES } from "@/lib/theme/component-classes";
 
 export function JobsEmptyState({ onAdd }: { onAdd: () => void }) {
   return (
@@ -14,7 +15,7 @@ export function JobsEmptyState({ onAdd }: { onAdd: () => void }) {
         <Button
           onClick={onAdd}
           size="lg"
-          className="gradient-bg text-primary-foreground hover:opacity-90"
+          className={THEME_PRIMARY_GRADIENT_BUTTON_CLASSES}
         >
           <Plus className="h-5 w-5 mr-2" />
           Add Your First Job

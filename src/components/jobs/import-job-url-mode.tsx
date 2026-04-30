@@ -30,12 +30,14 @@ export function ImportJobUrlMode({
           placeholder="https://linkedin.com/jobs/... or https://indeed.com/..."
         />
         <p className="text-xs text-muted-foreground">
-          We&apos;ll fetch the job posting and extract the details automatically.
+          We&apos;ll fetch the job posting and extract the details
+          automatically.
         </p>
       </div>
 
-      <div className="rounded-lg bg-warning/10 border border-warning/20 p-3 text-sm text-warning">
-        Note: Some sites may block automated fetching. If the import fails, try pasting the job content directly.
+      <div className="rounded-[var(--radius)] bg-warning/10 border-[length:var(--border-width)] border-warning/20 p-3 text-sm text-warning">
+        Note: Some sites may block automated fetching. If the import fails, try
+        pasting the job content directly.
       </div>
 
       <ImportJobActions

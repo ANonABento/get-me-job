@@ -1,6 +1,7 @@
 "use client";
 
 import { FileSpreadsheet, FileText, Link, type LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { ImportMode } from "./import-job-dialog.types";
 
 interface ImportModeTabsProps {
@@ -16,7 +17,7 @@ export function ImportModeTabs({ value, onChange }: ImportModeTabsProps) {
   ];
 
   return (
-    <div className="flex gap-1 p-1 bg-muted rounded-lg">
+    <div className="flex gap-1 p-1 bg-muted rounded-[var(--radius)]">
       {modes.map((mode) => {
         const Icon = mode.icon;
         return (
@@ -24,11 +25,12 @@ export function ImportModeTabs({ value, onChange }: ImportModeTabsProps) {
             key={mode.value}
             type="button"
             onClick={() => onChange(mode.value)}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-[var(--radius)] text-sm font-medium transition-colors",
               value === mode.value
-                ? "bg-background shadow-sm text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+                ? "bg-background shadow-[var(--shadow-button)] text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
           >
             <Icon className="h-4 w-4" />
             {mode.label}

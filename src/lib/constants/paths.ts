@@ -5,7 +5,9 @@ import path from "path";
  */
 export const PATHS = {
   /** SQLite database file location */
-  DATABASE: path.join(process.cwd(), "data", "get-me-job.db"),
+  DATABASE:
+    process.env.GET_ME_JOB_SQLITE_PATH ||
+    path.join(process.cwd(), "data", "get-me-job.db"),
   /** Upload directory for user files */
   UPLOADS: path.join(process.cwd(), "uploads"),
   /** Generated resumes output directory */

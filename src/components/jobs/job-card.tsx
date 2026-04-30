@@ -25,15 +25,38 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CircularProgress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { ATSAnalysisResult } from "@/lib/ats/analyzer";
-import { TRACKED_JOB_STATUSES, TRACKED_JOB_STATUS_LABELS, type TrackedJobStatus } from "@/lib/constants/jobs";
+import {
+  TRACKED_JOB_STATUSES,
+  TRACKED_JOB_STATUS_LABELS,
+  type TrackedJobStatus,
+} from "@/lib/constants/jobs";
+import {
+  THEME_INTERACTIVE_SURFACE_CLASSES,
+  THEME_MUTED_SURFACE_CLASSES,
+  THEME_PRIMARY_GRADIENT_BUTTON_CLASSES,
+} from "@/lib/theme/component-classes";
+import { cn } from "@/lib/utils";
 import type { JobDescription, JobMatch } from "@/types";
 import { getJobStatusValue } from "@/app/(app)/jobs/filter-jobs";
 
 const ATSScoreBadge = dynamic(
-  () => import("@/components/ats/score-breakdown").then((module) => module.ATSScoreBadge),
-  { loading: () => <div className="h-6 w-16 animate-pulse rounded bg-muted" /> }
+  () =>
+    import("@/components/ats/score-breakdown").then(
+      (module) => module.ATSScoreBadge,
+    ),
+  {
+    loading: () => (
+      <div className="h-6 w-16 animate-pulse rounded-[var(--radius)] bg-muted" />
+    ),
+  },
 );
 
 export interface ResumeTemplate {
@@ -43,12 +66,12 @@ export interface ResumeTemplate {
 }
 
 const STATUS_STYLES: Record<TrackedJobStatus, { bg: string; text: string }> = {
-  pending: { bg: "bg-slate-100 dark:bg-slate-800", text: "text-slate-600 dark:text-slate-300" },
-  saved: { bg: "bg-slate-100 dark:bg-slate-800", text: "text-slate-600 dark:text-slate-300" },
-  applied: { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-600 dark:text-blue-400" },
-  interviewing: { bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-600 dark:text-amber-400" },
-  offered: { bg: "bg-emerald-100 dark:bg-emerald-900/30", text: "text-success dark:text-emerald-400" },
-  rejected: { bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-600 dark:text-red-400" },
+  pending: { bg: "bg-muted", text: "text-muted-foreground" },
+  saved: { bg: "bg-muted", text: "text-muted-foreground" },
+  applied: { bg: "bg-info/10", text: "text-info" },
+  interviewing: { bg: "bg-warning/10", text: "text-warning" },
+  offered: { bg: "bg-success/10", text: "text-success" },
+  rejected: { bg: "bg-destructive/10", text: "text-destructive" },
 };
 
 interface JobCardProps {
@@ -98,18 +121,22 @@ export function JobCard(props: JobCardProps) {
   const statusStyle = STATUS_STYLES[status];
 
   return (
-    <div className="group rounded-2xl border bg-card overflow-hidden transition-all hover:shadow-lg hover:border-primary/20">
-      <div className="p-5 border-b bg-muted/30">
+    <div
+      className={cn("group overflow-hidden", THEME_INTERACTIVE_SURFACE_CLASSES)}
+    >
+      <div className="p-5 border-b-[length:var(--border-width)] bg-muted/30 [backdrop-filter:var(--backdrop-blur)]">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-4 min-w-0">
-            <div className="p-3 rounded-xl bg-primary/10 text-primary shrink-0">
+            <div className="p-3 rounded-[var(--radius)] bg-primary/10 text-primary shrink-0">
               <Briefcase className="h-6 w-6" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <h3 className="font-semibold text-lg truncate">{job.title}</h3>
                 <Select value={status} onValueChange={onStatusChange}>
-                  <SelectTrigger className={`h-6 w-auto px-2 text-xs border-0 ${statusStyle.bg} ${statusStyle.text}`}>
+                  <SelectTrigger
+                    className={`h-6 w-auto px-2 text-xs border-0 ${statusStyle.bg} ${statusStyle.text}`}
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -120,7 +147,12 @@ export function JobCard(props: JobCardProps) {
                     ))}
                   </SelectContent>
                 </Select>
-                {atsResult && <ATSScoreBadge score={atsResult.score.overall} onClick={onAtsDialogOpen} />}
+                {atsResult && (
+                  <ATSScoreBadge
+                    score={atsResult.score.overall}
+                    onClick={onAtsDialogOpen}
+                  />
+                )}
               </div>
               <div className="flex items-center gap-3 text-muted-foreground">
                 <span className="flex items-center gap-1.5">
@@ -143,7 +175,14 @@ export function JobCard(props: JobCardProps) {
             </div>
           </div>
 
-          {analysis && <CircularProgress value={analysis.overallScore} size={56} strokeWidth={5} className="shrink-0" />}
+          {analysis && (
+            <CircularProgress
+              value={analysis.overallScore}
+              size={56}
+              strokeWidth={5}
+              className="shrink-0"
+            />
+          )}
         </div>
 
         {job.url && (
@@ -162,8 +201,13 @@ export function JobCard(props: JobCardProps) {
       <div className="p-5 space-y-4">
         <div>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-muted-foreground">Description</p>
-            <button onClick={onToggleExpand} className="text-xs text-primary hover:underline flex items-center gap-1">
+            <p className="text-sm font-medium text-muted-foreground">
+              Description
+            </p>
+            <button
+              onClick={onToggleExpand}
+              className="text-xs text-primary hover:underline flex items-center gap-1"
+            >
               {expanded ? (
                 <>
                   <EyeOff className="h-3 w-3" /> Show less
@@ -175,12 +219,18 @@ export function JobCard(props: JobCardProps) {
               )}
             </button>
           </div>
-          <p className={`text-sm text-muted-foreground ${expanded ? "" : "line-clamp-3"}`}>{job.description}</p>
+          <p
+            className={`text-sm text-muted-foreground ${expanded ? "" : "line-clamp-3"}`}
+          >
+            {job.description}
+          </p>
         </div>
 
         {job.keywords && job.keywords.length > 0 && (
           <div>
-            <p className="text-sm font-medium text-muted-foreground mb-2">Key Skills</p>
+            <p className="text-sm font-medium text-muted-foreground mb-2">
+              Key Skills
+            </p>
             <div className="flex flex-wrap gap-1.5">
               {job.keywords.slice(0, 8).map((keyword, index) => (
                 <Badge key={index} variant="secondary" className="text-xs">
@@ -197,7 +247,7 @@ export function JobCard(props: JobCardProps) {
         )}
 
         {analysis && (
-          <div className="rounded-xl bg-muted/50 p-4 space-y-3">
+          <div className={cn(THEME_MUTED_SURFACE_CLASSES, "p-4 space-y-3")}>
             <div className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-primary" />
               <span className="font-medium">Match Analysis</span>
@@ -230,11 +280,25 @@ export function JobCard(props: JobCardProps) {
         )}
 
         <div className="flex flex-wrap items-center gap-2 pt-2">
-          <Button variant="outline" size="sm" onClick={onAnalyze} disabled={analyzing}>
-            {analyzing ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1.5" />}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onAnalyze}
+            disabled={analyzing}
+          >
+            {analyzing ? (
+              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-1.5" />
+            )}
             {analysis ? "Re-analyze" : "Analyze Match"}
           </Button>
-          <Button variant="outline" size="sm" onClick={onAtsCheck} disabled={atsAnalyzing}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onAtsCheck}
+            disabled={atsAnalyzing}
+          >
             {atsAnalyzing ? (
               <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
             ) : (
@@ -254,8 +318,17 @@ export function JobCard(props: JobCardProps) {
               ))}
             </SelectContent>
           </Select>
-          <Button size="sm" onClick={onGenerate} disabled={generating} className="gradient-bg text-white hover:opacity-90">
-            {generating ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Download className="h-4 w-4 mr-1.5" />}
+          <Button
+            size="sm"
+            onClick={onGenerate}
+            disabled={generating}
+            className={THEME_PRIMARY_GRADIENT_BUTTON_CLASSES}
+          >
+            {generating ? (
+              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-1.5" />
+            )}
             Resume
           </Button>
           <Button
@@ -271,14 +344,14 @@ export function JobCard(props: JobCardProps) {
         <div className="flex flex-wrap items-center gap-2 border-t pt-3 mt-1">
           <Link
             href={`/jobs/research/${job.id}`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border hover:bg-muted transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-[var(--radius)] border-[length:var(--border-width)] hover:bg-muted transition-colors"
           >
             <Info className="h-3.5 w-3.5" />
             Company Research
           </Link>
           <button
             onClick={onCoverLetter}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border hover:bg-muted transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-[var(--radius)] border-[length:var(--border-width)] hover:bg-muted transition-colors"
           >
             <FileEdit className="h-3.5 w-3.5" />
             Cover Letter
@@ -287,7 +360,7 @@ export function JobCard(props: JobCardProps) {
           {status === "interviewing" && (
             <Link
               href={`/interview?jobId=${job.id}`}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-warning/10 text-warning hover:bg-warning/20 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-[var(--radius)] bg-warning/10 text-warning hover:bg-warning/20 transition-colors"
             >
               <MessageSquare className="h-3.5 w-3.5" />
               Interview Prep

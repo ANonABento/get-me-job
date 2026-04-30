@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { THEME_PRIMARY_GRADIENT_BUTTON_CLASSES } from "@/lib/theme/component-classes";
 import type { ParsedJobPreview } from "./import-job-dialog.types";
 
 interface ImportJobEditFormProps {
@@ -18,7 +19,7 @@ interface ImportJobEditFormProps {
   saving: boolean;
   onFieldChange: <K extends keyof ParsedJobPreview>(
     field: K,
-    value: ParsedJobPreview[K]
+    value: ParsedJobPreview[K],
   ) => void;
   onBack: () => void;
   onCancel: () => void;
@@ -126,7 +127,7 @@ export function ImportJobEditForm({
           <Button
             onClick={onSave}
             disabled={saving || !preview.title || !preview.company}
-            className="gradient-bg text-primary-foreground hover:opacity-90"
+            className={THEME_PRIMARY_GRADIENT_BUTTON_CLASSES}
           >
             {saving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />

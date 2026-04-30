@@ -1,6 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { THEME_SURFACE_CLASSES } from "@/lib/theme/component-classes";
+import { cn } from "@/lib/utils";
 import { Trash2, FileText, CheckSquare, XSquare, Download } from "lucide-react";
 
 interface BulkActionBarProps {
@@ -27,10 +29,13 @@ export function BulkActionBar({
   const allSelected = selectedCount === totalCount;
 
   return (
-    <div className="sticky top-0 z-10 flex items-center gap-3 rounded-lg border bg-card p-3 shadow-md">
-      <span className="text-sm font-medium">
-        {selectedCount} selected
-      </span>
+    <div
+      className={cn(
+        "sticky top-0 z-10 flex items-center gap-3 p-3",
+        THEME_SURFACE_CLASSES,
+      )}
+    >
+      <span className="text-sm font-medium">{selectedCount} selected</span>
       <div className="h-4 w-px bg-border" />
       <Button
         variant="ghost"

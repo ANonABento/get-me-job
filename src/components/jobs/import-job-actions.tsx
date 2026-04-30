@@ -3,6 +3,7 @@
 import type { LucideIcon } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { THEME_PRIMARY_GRADIENT_BUTTON_CLASSES } from "@/lib/theme/component-classes";
 
 interface ImportJobActionsProps {
   disabled: boolean;
@@ -29,7 +30,7 @@ export function ImportJobActions({
       <Button
         onClick={onSubmit}
         disabled={disabled}
-        className="gradient-bg text-primary-foreground hover:opacity-90"
+        className={THEME_PRIMARY_GRADIENT_BUTTON_CLASSES}
       >
         {loading ? (
           <Loader2 className="h-4 w-4 mr-2 animate-spin" />

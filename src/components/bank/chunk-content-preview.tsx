@@ -31,7 +31,9 @@ export function ChunkContentPreview({ entry }: { entry: BankEntry }) {
           {highlights.length > 0 && (
             <ul className="text-xs text-muted-foreground list-disc list-inside">
               {highlights.map((h, i) => (
-                <li key={i} className="truncate">{h}</li>
+                <li key={i} className="truncate">
+                  {h}
+                </li>
               ))}
             </ul>
           )}
@@ -46,7 +48,9 @@ export function ChunkContentPreview({ entry }: { entry: BankEntry }) {
             <p className="text-sm text-muted-foreground">{String(c.field)}</p>
           ) : null}
           <p className="text-xs text-muted-foreground">
-            {[dateRange, c.gpa ? `GPA: ${c.gpa}` : ""].filter(Boolean).join(" · ")}
+            {[dateRange, c.gpa ? `GPA: ${c.gpa}` : ""]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
         </div>
       );
@@ -57,7 +61,12 @@ export function ChunkContentPreview({ entry }: { entry: BankEntry }) {
       return (
         <div className="mt-1 flex items-center gap-1.5 flex-wrap">
           {cat && (
-            <span className={cn("text-2xs px-1.5 py-0.5 rounded-full font-medium", SKILL_CATEGORY_COLORS[cat] || SKILL_CATEGORY_COLORS.other)}>
+            <span
+              className={cn(
+                "text-2xs px-1.5 py-0.5 rounded-[var(--radius)] font-medium",
+                SKILL_CATEGORY_COLORS[cat] || SKILL_CATEGORY_COLORS.other,
+              )}
+            >
               {cat}
             </span>
           )}
@@ -79,12 +88,17 @@ export function ChunkContentPreview({ entry }: { entry: BankEntry }) {
           {techs.length > 0 && (
             <div className="flex gap-1 flex-wrap">
               {techs.slice(0, 5).map((t, i) => (
-                <span key={i} className="text-2xs px-1.5 py-0.5 rounded-full bg-accent/10 text-accent font-medium">
+                <span
+                  key={i}
+                  className="text-2xs px-1.5 py-0.5 rounded-[var(--radius)] bg-accent/10 text-accent font-medium"
+                >
                   {t}
                 </span>
               ))}
               {techs.length > 5 && (
-                <span className="text-2xs text-muted-foreground">+{techs.length - 5} more</span>
+                <span className="text-2xs text-muted-foreground">
+                  +{techs.length - 5} more
+                </span>
               )}
             </div>
           )}
@@ -102,13 +116,15 @@ export function ChunkContentPreview({ entry }: { entry: BankEntry }) {
       return (
         <div className="mt-2 space-y-2">
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="rounded-md border border-warning/25 bg-background/70 px-2 py-1">
+            <div className="rounded-[var(--radius)] border-[length:var(--border-width)] border-warning/25 bg-background/70 px-2 py-1">
               <span className="block text-muted-foreground">Prizes</span>
               <span className="font-medium">
-                {prizes.length > 0 ? prizes.slice(0, 2).join(" · ") : "Not listed"}
+                {prizes.length > 0
+                  ? prizes.slice(0, 2).join(" · ")
+                  : "Not listed"}
               </span>
             </div>
-            <div className="rounded-md border border-warning/25 bg-background/70 px-2 py-1">
+            <div className="rounded-[var(--radius)] border-[length:var(--border-width)] border-warning/25 bg-background/70 px-2 py-1">
               <span className="block text-muted-foreground">Team</span>
               <span className="font-medium">{teamSize || "Flexible"}</span>
             </div>
@@ -121,12 +137,17 @@ export function ChunkContentPreview({ entry }: { entry: BankEntry }) {
           {tags.length > 0 && (
             <div className="flex gap-1 flex-wrap">
               {tags.slice(0, 5).map((tag, i) => (
-                <span key={`${tag}-${i}`} className="text-2xs px-1.5 py-0.5 rounded-full bg-warning/15 text-warning font-medium">
+                <span
+                  key={`${tag}-${i}`}
+                  className="text-2xs px-1.5 py-0.5 rounded-[var(--radius)] bg-warning/15 text-warning font-medium"
+                >
                   {tag}
                 </span>
               ))}
               {tags.length > 5 && (
-                <span className="text-2xs text-muted-foreground">+{tags.length - 5} more</span>
+                <span className="text-2xs text-muted-foreground">
+                  +{tags.length - 5} more
+                </span>
               )}
             </div>
           )}

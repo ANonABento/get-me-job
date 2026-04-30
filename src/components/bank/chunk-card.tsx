@@ -5,14 +5,23 @@ import { Badge } from "@/components/ui/badge";
 import type { ChunkCardProps } from "./chunk-card.types";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn, formatRelativeTime } from "@/lib/utils";
+import { THEME_INTERACTIVE_SURFACE_CLASSES } from "@/lib/theme/component-classes";
 import { CATEGORY_CONFIG, CATEGORY_FIELDS } from "./chunk-card-config";
 import { cleanContent, getEntryTitle } from "./chunk-card-utils";
 import { ChunkContentPreview } from "./chunk-content-preview";
 import { ChunkEditForm } from "./chunk-edit-form";
 import { ChunkExpandedContent } from "./chunk-expanded-content";
 
-export type { ChunkCardProps, FieldDef, FieldEditorProps } from "./chunk-card.types";
-export { CATEGORY_CONFIG, CATEGORY_FIELDS, SKILL_CATEGORY_COLORS } from "./chunk-card-config";
+export type {
+  ChunkCardProps,
+  FieldDef,
+  FieldEditorProps,
+} from "./chunk-card.types";
+export {
+  CATEGORY_CONFIG,
+  CATEGORY_FIELDS,
+  SKILL_CATEGORY_COLORS,
+} from "./chunk-card-config";
 export {
   cleanContent,
   getDateRange,
@@ -74,11 +83,12 @@ export function ChunkCard({
   return (
     <div
       className={cn(
-        "group rounded-xl border bg-card transition-all hover:border-primary/30 hover:shadow-md",
+        "group",
+        THEME_INTERACTIVE_SURFACE_CLASSES,
         entry.category === "hackathon" &&
           "border-warning/40 bg-warning/5 hover:border-warning/60",
         highlighted && "ring-2 ring-primary",
-        selected && "border-primary bg-primary/5"
+        selected && "border-primary bg-primary/5",
       )}
       data-entry-id={entry.id}
     >
@@ -87,7 +97,9 @@ export function ChunkCard({
           <div
             className={cn(
               "shrink-0 pt-1 transition-opacity",
-              anySelected ? "opacity-100" : "opacity-0 group-hover:opacity-100 [div:hover>&]:opacity-100"
+              anySelected
+                ? "opacity-100"
+                : "opacity-0 group-hover:opacity-100 [div:hover>&]:opacity-100",
             )}
           >
             <input
@@ -107,7 +119,9 @@ export function ChunkCard({
           onClick={() => !editing && setExpanded(!expanded)}
           className="flex flex-1 items-start gap-3 text-left min-w-0"
         >
-          <div className={cn("p-2 rounded-lg shrink-0", config.color)}>
+          <div
+            className={cn("p-2 rounded-[var(--radius)] shrink-0", config.color)}
+          >
             <Icon className="h-4 w-4" />
           </div>
           <div className="flex-1 min-w-0">

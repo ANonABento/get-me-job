@@ -1,9 +1,22 @@
 "use client";
 
-import { Briefcase, Building2, Check, Edit2, ExternalLink, Loader2, MapPin } from "lucide-react";
+import {
+  Briefcase,
+  Building2,
+  Check,
+  Edit2,
+  ExternalLink,
+  Loader2,
+  MapPin,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import {
+  THEME_MUTED_SURFACE_CLASSES,
+  THEME_PRIMARY_GRADIENT_BUTTON_CLASSES,
+} from "@/lib/theme/component-classes";
+import { cn } from "@/lib/utils";
 import type { ParsedJobPreview } from "./import-job-dialog.types";
 
 interface ImportJobPreviewProps {
@@ -25,7 +38,7 @@ export function ImportJobPreview({
 }: ImportJobPreviewProps) {
   return (
     <div className="space-y-4 py-4">
-      <div className="rounded-xl border bg-muted/30 p-4">
+      <div className={cn(THEME_MUTED_SURFACE_CLASSES, "p-4")}>
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">
             <h3 className="text-lg font-semibold">{preview.title}</h3>
@@ -53,7 +66,9 @@ export function ImportJobPreview({
               )}
             </div>
             {preview.salary && (
-              <p className="text-sm font-medium text-success">{preview.salary}</p>
+              <p className="text-sm font-medium text-success">
+                {preview.salary}
+              </p>
             )}
           </div>
           <Button variant="outline" size="sm" onClick={onEdit}>
@@ -87,7 +102,10 @@ export function ImportJobPreview({
           <Label className="text-sm font-medium">Requirements</Label>
           <ul className="mt-1 space-y-1">
             {preview.requirements.slice(0, 5).map((req, i) => (
-              <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+              <li
+                key={i}
+                className="text-sm text-muted-foreground flex items-start gap-2"
+              >
                 <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                 {req}
               </li>
@@ -131,7 +149,7 @@ export function ImportJobPreview({
           <Button
             onClick={onSave}
             disabled={saving}
-            className="gradient-bg text-primary-foreground hover:opacity-90"
+            className={THEME_PRIMARY_GRADIENT_BUTTON_CLASSES}
           >
             {saving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />

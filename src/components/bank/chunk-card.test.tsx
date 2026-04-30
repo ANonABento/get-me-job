@@ -21,7 +21,11 @@ function makeBankEntry(overrides: Partial<BankEntry> = {}): BankEntry {
     id: "test-1",
     userId: "default",
     category: "experience",
-    content: { title: "Engineer", company: "Acme Corp", description: "Built things" },
+    content: {
+      title: "Engineer",
+      company: "Acme Corp",
+      description: "Built things",
+    },
     confidenceScore: 0.9,
     createdAt: new Date().toISOString(),
     ...overrides,
@@ -93,11 +97,15 @@ describe("getEntryTitle", () => {
 
 describe("getDateRange", () => {
   it("should return start — end for full range", () => {
-    expect(getDateRange({ startDate: "2020", endDate: "2023" })).toBe("2020 — 2023");
+    expect(getDateRange({ startDate: "2020", endDate: "2023" })).toBe(
+      "2020 — 2023",
+    );
   });
 
   it("should return start — Present for current", () => {
-    expect(getDateRange({ startDate: "2020", current: true })).toBe("2020 — Present");
+    expect(getDateRange({ startDate: "2020", current: true })).toBe(
+      "2020 — Present",
+    );
   });
 
   it("should return empty string for no dates", () => {
@@ -111,7 +119,9 @@ describe("getDateRange", () => {
 
 describe("getHighlights", () => {
   it("should return first N highlights", () => {
-    const content = { highlights: ["Built API", "Led team", "Shipped v2", "Won award"] };
+    const content = {
+      highlights: ["Built API", "Led team", "Shipped v2", "Won award"],
+    };
     expect(getHighlights(content, 2)).toEqual(["Built API", "Led team"]);
   });
 
@@ -146,10 +156,9 @@ describe("getTechnologies", () => {
 
 describe("getStringList", () => {
   it("should return trimmed string values for list fields", () => {
-    expect(getStringList({ prizes: [" $5,000 ", "Best AI"] }, "prizes")).toEqual([
-      "$5,000",
-      "Best AI",
-    ]);
+    expect(
+      getStringList({ prizes: [" $5,000 ", "Best AI"] }, "prizes"),
+    ).toEqual(["$5,000", "Best AI"]);
   });
 
   it("should return empty array for missing or non-list fields", () => {
@@ -160,7 +169,9 @@ describe("getStringList", () => {
 
 describe("getHackathonTeamSize", () => {
   it("should return a min-max team size label", () => {
-    expect(getHackathonTeamSize({ teamSizeMin: "1", teamSizeMax: "4" })).toBe("1-4 people");
+    expect(getHackathonTeamSize({ teamSizeMin: "1", teamSizeMax: "4" })).toBe(
+      "1-4 people",
+    );
   });
 
   it("should return a max-only team size label", () => {
@@ -168,8 +179,12 @@ describe("getHackathonTeamSize", () => {
   });
 
   it("should pluralize fixed team sizes", () => {
-    expect(getHackathonTeamSize({ teamSizeMin: "1", teamSizeMax: "1" })).toBe("1 person");
-    expect(getHackathonTeamSize({ teamSizeMin: "2", teamSizeMax: "2" })).toBe("2 people");
+    expect(getHackathonTeamSize({ teamSizeMin: "1", teamSizeMax: "1" })).toBe(
+      "1 person",
+    );
+    expect(getHackathonTeamSize({ teamSizeMin: "2", teamSizeMax: "2" })).toBe(
+      "2 people",
+    );
   });
 
   it("should return empty string when no team size is set", () => {
@@ -220,7 +235,10 @@ describe("textToList", () => {
 describe("cleanContent", () => {
   it("should filter empty list items", () => {
     const fields = CATEGORY_FIELDS.experience;
-    const content = { title: "Engineer", highlights: ["Built API", "", "Led team", ""] };
+    const content = {
+      title: "Engineer",
+      highlights: ["Built API", "", "Led team", ""],
+    };
     const cleaned = cleanContent(content, fields);
     expect(cleaned.highlights).toEqual(["Built API", "Led team"]);
   });
@@ -246,9 +264,20 @@ describe("cleanContent", () => {
 describe("ChunkCard", () => {
   it("should render entry title and category badge", () => {
     const entry = makeBankEntry();
-    render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
+    const { container } = render(
+      <ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />,
+    );
     expect(screen.getByText("Engineer at Acme Corp")).toBeInTheDocument();
     expect(screen.getByText("Experience")).toBeInTheDocument();
+    expect(container.firstElementChild?.className).toContain(
+      "rounded-[var(--radius)]",
+    );
+    expect(container.firstElementChild?.className).toContain(
+      "shadow-[var(--shadow-card)]",
+    );
+    expect(container.firstElementChild?.className).toContain(
+      "[backdrop-filter:var(--backdrop-blur)]",
+    );
   });
 
   it("should show high confidence badge when score >= 0.9", () => {
@@ -310,10 +339,13 @@ describe("ChunkCard", () => {
     });
     fireEvent.click(screen.getByText("Save"));
 
-    expect(onUpdate).toHaveBeenCalledWith("test-1", expect.objectContaining({
-      title: "Senior Engineer",
-      company: "Acme Corp",
-    }));
+    expect(onUpdate).toHaveBeenCalledWith(
+      "test-1",
+      expect.objectContaining({
+        title: "Senior Engineer",
+        company: "Acme Corp",
+      }),
+    );
   });
 
   it("should cancel edit mode", () => {
@@ -428,7 +460,11 @@ describe("ChunkCard", () => {
   it("should show skill preview with category badge", () => {
     const entry = makeBankEntry({
       category: "skill",
-      content: { name: "TypeScript", category: "technical", proficiency: "advanced" },
+      content: {
+        name: "TypeScript",
+        category: "technical",
+        proficiency: "advanced",
+      },
     });
     render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
     expect(screen.getByText("technical")).toBeInTheDocument();
@@ -445,7 +481,9 @@ describe("ChunkCard", () => {
       },
     });
     render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
-    expect(screen.getByText("A great project that does things")).toBeInTheDocument();
+    expect(
+      screen.getByText("A great project that does things"),
+    ).toBeInTheDocument();
     expect(screen.getByText("React")).toBeInTheDocument();
     expect(screen.getByText("Node.js")).toBeInTheDocument();
     expect(screen.getByText("PostgreSQL")).toBeInTheDocument();
@@ -468,9 +506,13 @@ describe("ChunkCard", () => {
     });
     render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
 
-    expect(screen.getByText("$5,000 Grand Prize · Best AI App")).toBeInTheDocument();
+    expect(
+      screen.getByText("$5,000 Grand Prize · Best AI App"),
+    ).toBeInTheDocument();
     expect(screen.getByText("1-4 people")).toBeInTheDocument();
-    expect(screen.getByText("Online · 2026-05-10 — 2026-05-12")).toBeInTheDocument();
+    expect(
+      screen.getByText("Online · 2026-05-10 — 2026-05-12"),
+    ).toBeInTheDocument();
     expect(screen.getByText("AI/ML")).toBeInTheDocument();
     expect(screen.getByText("Developer Tools")).toBeInTheDocument();
     expect(screen.getByText("Accessibility")).toBeInTheDocument();
@@ -481,7 +523,15 @@ describe("ChunkCard", () => {
       category: "project",
       content: {
         name: "Big App",
-        technologies: ["React", "Node", "Postgres", "Redis", "Docker", "K8s", "Terraform"],
+        technologies: [
+          "React",
+          "Node",
+          "Postgres",
+          "Redis",
+          "Docker",
+          "K8s",
+          "Terraform",
+        ],
       },
     });
     render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
@@ -491,7 +541,11 @@ describe("ChunkCard", () => {
   it("should render skill fields correctly in edit mode", () => {
     const entry = makeBankEntry({
       category: "skill",
-      content: { name: "TypeScript", category: "technical", proficiency: "advanced" },
+      content: {
+        name: "TypeScript",
+        category: "technical",
+        proficiency: "advanced",
+      },
     });
     render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
 
@@ -514,9 +568,11 @@ describe("ChunkCard", () => {
         onToggleSelect={vi.fn()}
         selected={false}
         anySelected={false}
-      />
+      />,
     );
-    expect(screen.getByRole("checkbox", { name: /Select Engineer at Acme Corp/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", { name: /Select Engineer at Acme Corp/ }),
+    ).toBeInTheDocument();
   });
 
   it("should not render checkbox when onToggleSelect is not provided", () => {
@@ -536,7 +592,7 @@ describe("ChunkCard", () => {
         onToggleSelect={onToggleSelect}
         selected={false}
         anySelected={false}
-      />
+      />,
     );
     fireEvent.click(screen.getByRole("checkbox"));
     expect(onToggleSelect).toHaveBeenCalledWith("test-1");
@@ -552,7 +608,7 @@ describe("ChunkCard", () => {
         onToggleSelect={vi.fn()}
         selected={true}
         anySelected={true}
-      />
+      />,
     );
     expect(screen.getByRole("checkbox")).toBeChecked();
   });
@@ -565,7 +621,7 @@ describe("ChunkCard", () => {
         onUpdate={vi.fn()}
         onDelete={vi.fn()}
         highlighted={true}
-      />
+      />,
     );
     const card = container.querySelector("[data-entry-id]");
     expect(card?.className).toContain("ring-2");
@@ -574,8 +630,10 @@ describe("ChunkCard", () => {
   it("should have data-entry-id attribute", () => {
     const entry = makeBankEntry();
     const { container } = render(
-      <ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />
+      <ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />,
     );
-    expect(container.querySelector('[data-entry-id="test-1"]')).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-entry-id="test-1"]'),
+    ).toBeInTheDocument();
   });
 });

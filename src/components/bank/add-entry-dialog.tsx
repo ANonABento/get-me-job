@@ -13,6 +13,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { BANK_CATEGORIES, type BankCategory } from "@/types";
+import { THEME_CONTROL_CLASSES } from "@/lib/theme/component-classes";
+import { cn } from "@/lib/utils";
 import {
   CATEGORY_CONFIG,
   CATEGORY_FIELDS,
@@ -94,7 +96,7 @@ export function AddEntryDialog({ onCreate }: AddEntryDialogProps) {
                     key={cat}
                     type="button"
                     onClick={() => handleCategoryChange(cat)}
-                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                    className={`flex items-center gap-1.5 rounded-[var(--radius)] px-3 py-1.5 text-xs font-medium transition-colors ${
                       isActive
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -110,14 +112,19 @@ export function AddEntryDialog({ onCreate }: AddEntryDialogProps) {
 
           {category === "hackathon" && (
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Hackathon Templates</Label>
+              <Label className="text-xs text-muted-foreground">
+                Hackathon Templates
+              </Label>
               <div className="grid gap-2 sm:grid-cols-3">
                 {HACKATHON_TEMPLATES.map((template) => (
                   <button
                     key={template.id}
                     type="button"
                     onClick={() => handleTemplateSelect(template.id)}
-                    className="rounded-lg border bg-background px-3 py-2 text-left text-xs transition-colors hover:border-warning/60 hover:bg-warning/5"
+                    className={cn(
+                      THEME_CONTROL_CLASSES,
+                      "px-3 py-2 text-left text-xs transition-colors hover:border-warning/60 hover:bg-warning/5",
+                    )}
                   >
                     <span className="block font-medium text-foreground">
                       {template.label}

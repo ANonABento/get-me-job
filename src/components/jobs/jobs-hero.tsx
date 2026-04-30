@@ -7,6 +7,11 @@ import { PageHeader, type PageWidth } from "@/components/ui/page-layout";
 import { SkeletonButton } from "@/components/ui/skeleton";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import { readJsonResponse } from "@/lib/http";
+import {
+  THEME_PRIMARY_GRADIENT_BUTTON_CLASSES,
+  THEME_SURFACE_CLASSES,
+} from "@/lib/theme/component-classes";
+import { cn } from "@/lib/utils";
 import type { JobsViewMode } from "./job-kanban-utils";
 
 const GmailImportModal = dynamic(
@@ -44,13 +49,13 @@ export function JobsHero({
       description="Track your target jobs, analyze match scores, and generate tailored resumes."
       actions={
         <>
-          <div className="rounded-lg border bg-card px-4 py-3 text-center">
+          <div className={cn(THEME_SURFACE_CLASSES, "px-4 py-3 text-center")}>
             <p className="text-2xl font-bold text-primary">{jobsCount}</p>
             <p className="text-xs text-muted-foreground">Jobs Tracked</p>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
             <div
-              className="flex rounded-lg border bg-card p-1"
+              className={cn(THEME_SURFACE_CLASSES, "flex p-1")}
               aria-label="Job view mode"
             >
               <Button
@@ -110,7 +115,8 @@ export function JobsHero({
                 } catch (error) {
                   showErrorToast(error, {
                     title: "Could not import Gmail job",
-                    fallbackDescription: "Please try importing the email again.",
+                    fallbackDescription:
+                      "Please try importing the email again.",
                   });
                 }
               }}
@@ -124,7 +130,7 @@ export function JobsHero({
             <Button
               onClick={onAddClick}
               size="lg"
-              className="gradient-bg text-white hover:opacity-90"
+              className={THEME_PRIMARY_GRADIENT_BUTTON_CLASSES}
             >
               <Plus className="h-5 w-5 mr-2" />
               Add Job

@@ -10,7 +10,13 @@ const baseJob: JobDescription = {
   description: "Build product experiences",
   requirements: [],
   responsibilities: [],
-  keywords: ["React", "TypeScript", "Design Systems", "Accessibility", "Testing"],
+  keywords: [
+    "React",
+    "TypeScript",
+    "Design Systems",
+    "Accessibility",
+    "Testing",
+  ],
   status: "saved",
   salary: "$120k - $150k",
   location: "Remote",
@@ -35,7 +41,15 @@ describe("JobKanbanView", () => {
   it("renders expected columns and card details", () => {
     render(<JobKanbanView jobs={[baseJob]} onStatusChange={vi.fn()} />);
 
-    expect(screen.getByLabelText("Pending jobs")).toBeInTheDocument();
+    const pendingColumn = screen.getByLabelText("Pending jobs");
+    expect(pendingColumn).toBeInTheDocument();
+    expect(pendingColumn.className).toContain("rounded-[var(--radius)]");
+    expect(pendingColumn.className).toContain(
+      "border-[length:var(--border-width)]",
+    );
+    expect(pendingColumn.className).toContain(
+      "[backdrop-filter:var(--backdrop-blur)]",
+    );
     expect(screen.getByLabelText("Saved jobs")).toBeInTheDocument();
     expect(screen.getByLabelText("Applied jobs")).toBeInTheDocument();
     expect(screen.getByLabelText("Interviewing jobs")).toBeInTheDocument();
@@ -48,6 +62,9 @@ describe("JobKanbanView", () => {
     expect(screen.getByText("Remote")).toBeInTheDocument();
     expect(screen.getByText("React")).toBeInTheDocument();
     expect(screen.getByText("+1")).toBeInTheDocument();
+
+    const card = screen.getByText("Frontend Engineer").closest("article");
+    expect(card?.className).toContain("shadow-[var(--shadow-card)]");
   });
 
   it("calls onStatusChange when a card is dropped into another column", () => {

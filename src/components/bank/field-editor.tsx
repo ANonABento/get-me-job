@@ -10,7 +10,10 @@ export function FieldEditor({ field, value, onChange }: FieldEditorProps) {
     case "text":
       return (
         <div className="space-y-1">
-          <Label htmlFor={`field-${field.key}`} className="text-xs text-muted-foreground">
+          <Label
+            htmlFor={`field-${field.key}`}
+            className="text-xs text-muted-foreground"
+          >
             {field.label}
           </Label>
           <Input
@@ -25,7 +28,10 @@ export function FieldEditor({ field, value, onChange }: FieldEditorProps) {
     case "textarea":
       return (
         <div className="space-y-1">
-          <Label htmlFor={`field-${field.key}`} className="text-xs text-muted-foreground">
+          <Label
+            htmlFor={`field-${field.key}`}
+            className="text-xs text-muted-foreground"
+          >
             {field.label}
           </Label>
           <textarea
@@ -33,7 +39,7 @@ export function FieldEditor({ field, value, onChange }: FieldEditorProps) {
             value={(value as string) ?? ""}
             onChange={(e) => onChange(field.key, e.target.value)}
             placeholder={field.placeholder}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[80px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full rounded-[var(--radius)] border-[length:var(--border-width)] border-input bg-background px-3 py-2 text-sm min-h-[80px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
       );
@@ -47,7 +53,10 @@ export function FieldEditor({ field, value, onChange }: FieldEditorProps) {
             onChange={(e) => onChange(field.key, e.target.checked)}
             className="h-4 w-4 rounded border-input"
           />
-          <Label htmlFor={`field-${field.key}`} className="text-xs text-muted-foreground">
+          <Label
+            htmlFor={`field-${field.key}`}
+            className="text-xs text-muted-foreground"
+          >
             {field.label}
           </Label>
         </div>
@@ -55,7 +64,10 @@ export function FieldEditor({ field, value, onChange }: FieldEditorProps) {
     case "list":
       return (
         <div className="space-y-1">
-          <Label htmlFor={`field-${field.key}`} className="text-xs text-muted-foreground">
+          <Label
+            htmlFor={`field-${field.key}`}
+            className="text-xs text-muted-foreground"
+          >
             {field.label}
           </Label>
           <textarea
@@ -63,21 +75,24 @@ export function FieldEditor({ field, value, onChange }: FieldEditorProps) {
             value={listToText(value)}
             onChange={(e) => onChange(field.key, textToList(e.target.value))}
             placeholder={field.placeholder}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[60px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full rounded-[var(--radius)] border-[length:var(--border-width)] border-input bg-background px-3 py-2 text-sm min-h-[60px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
       );
     case "select":
       return (
         <div className="space-y-1">
-          <Label htmlFor={`field-${field.key}`} className="text-xs text-muted-foreground">
+          <Label
+            htmlFor={`field-${field.key}`}
+            className="text-xs text-muted-foreground"
+          >
             {field.label}
           </Label>
           <select
             id={`field-${field.key}`}
             value={(value as string) ?? ""}
             onChange={(e) => onChange(field.key, e.target.value)}
-            className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex h-8 w-full rounded-[var(--radius)] border-[length:var(--border-width)] border-input bg-background px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <option value="">Select...</option>
             {field.options?.map((opt) => (

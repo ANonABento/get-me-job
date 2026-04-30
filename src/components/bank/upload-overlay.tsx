@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { THEME_SURFACE_CLASSES } from "@/lib/theme/component-classes";
 
 // ---------------------------------------------------------------------------
 // Constants & helpers (exported for testing)
@@ -88,14 +89,11 @@ export function formatUploadToast(results: FileResult[]): {
   if (totalEntries === 0) {
     return {
       title: "No entries found",
-      description:
-        "Couldn't parse any sections. Try a different format.",
+      description: "Couldn't parse any sections. Try a different format.",
     };
   }
   const fileLabel =
-    results.length === 1
-      ? results[0].fileName
-      : `${results.length} files`;
+    results.length === 1 ? results[0].fileName : `${results.length} files`;
   return {
     title: `Added ${totalEntries} ${totalEntries === 1 ? "entry" : "entries"}`,
     description: `from ${fileLabel}`,
@@ -112,7 +110,10 @@ export interface UploadOverlayProps {
 // Component
 // ---------------------------------------------------------------------------
 
-export function UploadOverlay({ onComplete, onUploadStart }: UploadOverlayProps) {
+export function UploadOverlay({
+  onComplete,
+  onUploadStart,
+}: UploadOverlayProps) {
   const [step, setStep] = useState<OverlayStep>("idle");
   const [dragCount, setDragCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -163,7 +164,8 @@ export function UploadOverlay({ onComplete, onUploadStart }: UploadOverlayProps)
       }
       const uploadData = await uploadRes.json();
       const documentId = uploadData.document?.id;
-      if (!documentId) throw new Error("Upload completed without a document ID");
+      if (!documentId)
+        throw new Error("Upload completed without a document ID");
 
       // Parse
       setStage("extracting");
@@ -193,7 +195,7 @@ export function UploadOverlay({ onComplete, onUploadStart }: UploadOverlayProps)
 
       return { fileName: file.name, entryCount };
     },
-    []
+    [],
   );
 
   const processQueue = useCallback(
@@ -230,7 +232,7 @@ export function UploadOverlay({ onComplete, onUploadStart }: UploadOverlayProps)
         onComplete(completed);
       }, 2000);
     },
-    [onComplete, onUploadStart, processFile]
+    [onComplete, onUploadStart, processFile],
   );
 
   // --- drop handler --------------------------------------------------------
@@ -266,7 +268,7 @@ export function UploadOverlay({ onComplete, onUploadStart }: UploadOverlayProps)
       setFileQueue(validFiles);
       processQueue(validFiles);
     },
-    [processQueue]
+    [processQueue],
   );
 
   // --- window listeners ----------------------------------------------------
@@ -298,24 +300,26 @@ export function UploadOverlay({ onComplete, onUploadStart }: UploadOverlayProps)
     <div
       className={cn(
         "fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-200",
-        "bg-background/80 backdrop-blur-sm",
+        "bg-background/80 [backdrop-filter:var(--backdrop-blur)]",
         isDragging && step === "idle"
           ? "opacity-100"
           : step !== "idle"
             ? "opacity-100"
-            : "opacity-0 pointer-events-none"
+            : "opacity-0 pointer-events-none",
       )}
     >
       {/* Animated dashed border (visible during drag) */}
       {isDragging && step === "idle" && (
-        <div className="absolute inset-4 rounded-2xl border-2 border-dashed border-primary/50 animate-pulse pointer-events-none" />
+        <div className="absolute inset-4 rounded-[var(--radius)] border-[length:var(--border-width)] border-dashed border-primary/50 animate-pulse pointer-events-none" />
       )}
 
-      <div className="rounded-2xl border bg-card p-12 text-center max-w-md mx-4 shadow-xl">
+      <div
+        className={cn(THEME_SURFACE_CLASSES, "p-12 text-center max-w-md mx-4")}
+      >
         {/* ── Dragging ─────────────────────────────────────────────── */}
         {isDragging && step === "idle" && (
           <>
-            <div className="mx-auto w-20 h-20 rounded-2xl gradient-bg text-primary-foreground flex items-center justify-center mb-6 animate-bounce">
+            <div className="mx-auto w-20 h-20 rounded-[var(--radius)] bg-[image:var(--gradient-primary)] text-primary-foreground flex items-center justify-center mb-6 animate-bounce shadow-[var(--shadow-button)]">
               <CloudUpload className="h-10 w-10" />
             </div>
             <h2 className="text-2xl font-bold">Drop to upload</h2>
@@ -323,15 +327,15 @@ export function UploadOverlay({ onComplete, onUploadStart }: UploadOverlayProps)
               Resume, cover letter, or any career document
             </p>
             <div className="mt-4 flex justify-center gap-3">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive text-sm font-medium">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius)] bg-destructive/10 text-destructive text-sm font-medium">
                 <FileText className="h-4 w-4" />
                 PDF
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-info/10 text-info text-sm font-medium">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius)] bg-info/10 text-info text-sm font-medium">
                 <FileText className="h-4 w-4" />
                 DOCX
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-sm font-medium">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius)] bg-muted text-muted-foreground text-sm font-medium">
                 <File className="h-4 w-4" />
                 TXT
               </span>
@@ -342,16 +346,16 @@ export function UploadOverlay({ onComplete, onUploadStart }: UploadOverlayProps)
         {/* ── Processing ───────────────────────────────────────────── */}
         {step === "processing" && (
           <>
-            <div className="mx-auto w-20 h-20 rounded-2xl gradient-bg text-primary-foreground flex items-center justify-center mb-6">
+            <div className="mx-auto w-20 h-20 rounded-[var(--radius)] bg-[image:var(--gradient-primary)] text-primary-foreground flex items-center justify-center mb-6 shadow-[var(--shadow-button)]">
               <Loader2 className="h-10 w-10 animate-spin" />
             </div>
             <h2 className="text-2xl font-bold">{STAGE_LABELS[stage]}</h2>
             <p className="text-muted-foreground mt-2">{currentFile}</p>
 
             {/* Progress bar */}
-            <div className="mt-4 w-full bg-muted rounded-full h-2 overflow-hidden">
+            <div className="mt-4 w-full bg-muted rounded-[var(--radius)] h-2 overflow-hidden">
               <div
-                className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
+                className="h-full bg-primary rounded-[var(--radius)] transition-all duration-500 ease-out"
                 style={{ width: `${stageProgress(stage) * 100}%` }}
               />
             </div>
@@ -363,7 +367,8 @@ export function UploadOverlay({ onComplete, onUploadStart }: UploadOverlayProps)
                   key={s}
                   className={cn(
                     "transition-colors",
-                    stageIndex(s) <= stageIndex(stage) && "text-primary font-medium"
+                    stageIndex(s) <= stageIndex(stage) &&
+                      "text-primary font-medium",
                   )}
                 >
                   {STAGE_LABELS[s]}
@@ -383,7 +388,7 @@ export function UploadOverlay({ onComplete, onUploadStart }: UploadOverlayProps)
         {/* ── Done ─────────────────────────────────────────────────── */}
         {step === "done" && (
           <>
-            <div className="mx-auto w-20 h-20 rounded-2xl bg-success/20 text-success flex items-center justify-center mb-6">
+            <div className="mx-auto w-20 h-20 rounded-[var(--radius)] bg-success/20 text-success flex items-center justify-center mb-6">
               <CheckCircle2 className="h-10 w-10" />
             </div>
             <h2 className="text-2xl font-bold">
@@ -400,7 +405,7 @@ export function UploadOverlay({ onComplete, onUploadStart }: UploadOverlayProps)
         {/* ── Error ────────────────────────────────────────────────── */}
         {step === "error" && (
           <>
-            <div className="mx-auto w-20 h-20 rounded-2xl bg-destructive/20 text-destructive flex items-center justify-center mb-6">
+            <div className="mx-auto w-20 h-20 rounded-[var(--radius)] bg-destructive/20 text-destructive flex items-center justify-center mb-6">
               <X className="h-10 w-10" />
             </div>
             <h2 className="text-2xl font-bold">Upload Failed</h2>
