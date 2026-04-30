@@ -5,6 +5,7 @@ import type {
   ExtensionResponse,
   ExtensionProfile,
   ScrapedJob,
+  ApplicationSubmission,
   LearnedAnswer,
   SimilarAnswer,
   DetectedField
@@ -37,6 +38,10 @@ export const Messages = {
     type: 'IMPORT_JOBS_BATCH',
     payload: jobs,
   }),
+  logApplication: (application: ApplicationSubmission): ExtensionMessage<ApplicationSubmission> => ({
+    type: 'LOG_APPLICATION',
+    payload: application,
+  }),
 
   // Learning messages
   saveAnswer: (data: { question: string; answer: string; url?: string; company?: string }): ExtensionMessage => ({
@@ -61,6 +66,12 @@ export interface ImportJobResponse extends ExtensionResponse<{
   imported: number;
   opportunityIds: string[];
   pendingCount: number;
+}> {}
+
+export interface LogApplicationResponse extends ExtensionResponse<{
+  applicationId: string;
+  status: 'applied';
+  appliedAt?: string;
 }> {}
 
 export interface SearchAnswersResponse extends ExtensionResponse<SimilarAnswer[]> {}

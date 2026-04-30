@@ -1,6 +1,12 @@
 // Columbus API client for extension
 
-import type { ExtensionProfile, ScrapedJob, LearnedAnswer, SimilarAnswer } from '@/shared/types';
+import type {
+  ApplicationSubmission,
+  ExtensionProfile,
+  ScrapedJob,
+  LearnedAnswer,
+  SimilarAnswer,
+} from '@/shared/types';
 import { getStorage, setStorage } from './storage';
 
 export class ColumbusAPIClient {
@@ -101,6 +107,13 @@ export class ColumbusAPIClient {
     return this.authenticatedFetch('/api/opportunities/from-extension', {
       method: 'POST',
       body: JSON.stringify({ jobs }),
+    });
+  }
+
+  async logApplication(application: ApplicationSubmission): Promise<{ applicationId: string; status: 'applied'; appliedAt?: string }> {
+    return this.authenticatedFetch('/api/extension/applications', {
+      method: 'POST',
+      body: JSON.stringify(application),
     });
   }
 

@@ -203,6 +203,7 @@ describe("Job Database Functions", () => {
         "saved",
         null,
         null,
+        null,
         "default"
       );
       expect(result.id).toBe("test-id-123");
@@ -263,6 +264,7 @@ describe("Job Database Functions", () => {
         "saved",
         null,
         null,
+        null,
         "default"
       );
       expect(result.remote).toBe(true);
@@ -305,9 +307,49 @@ describe("Job Database Functions", () => {
 
       const runArgs = mockRun.mock.calls[0];
       expect(runArgs[12]).toBe("pending");
-      expect(runArgs[13]).toBe("2026-05-01");
-      expect(runArgs[14]).toBe("Review later");
+      expect(runArgs[13]).toBeNull();
+      expect(runArgs[14]).toBe("2026-05-01");
+      expect(runArgs[15]).toBe("Review later");
       expect(result.status).toBe("pending");
+    });
+
+    it("persists appliedAt when creating an applied job", () => {
+      const mockRun = vi.fn();
+      const mockGet = vi.fn().mockReturnValue({
+        id: "test-id-123",
+        title: "Applied Job",
+        company: "Company",
+        description: "Desc",
+        requirements_json: "[]",
+        responsibilities_json: "[]",
+        keywords_json: "[]",
+        remote: 0,
+        status: "applied",
+        applied_at: "2026-04-30T12:00:00.000Z",
+      });
+
+      (db.prepare as Mock).mockImplementation((sql: string) => {
+        if (sql.includes("INSERT")) {
+          return { run: mockRun };
+        }
+        return { get: mockGet };
+      });
+
+      const result = createJob({
+        title: "Applied Job",
+        company: "Company",
+        description: "Desc",
+        requirements: [],
+        responsibilities: [],
+        keywords: [],
+        status: "applied",
+        appliedAt: "2026-04-30T12:00:00.000Z",
+      });
+
+      const runArgs = mockRun.mock.calls[0];
+      expect(runArgs[12]).toBe("applied");
+      expect(runArgs[13]).toBe("2026-04-30T12:00:00.000Z");
+      expect(result.appliedAt).toBe("2026-04-30T12:00:00.000Z");
     });
   });
 

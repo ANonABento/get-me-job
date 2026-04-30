@@ -1,6 +1,11 @@
 // Background service worker for Columbus extension
 
-import type { ExtensionMessage, ExtensionResponse, ScrapedJob, DetectedField } from '@/shared/types';
+import type {
+  ApplicationSubmission,
+  ExtensionMessage,
+  ExtensionResponse,
+  ScrapedJob,
+} from '@/shared/types';
 import { getAPIClient, resetAPIClient } from './api-client';
 import {
   getStorage,
@@ -46,6 +51,9 @@ async function handleMessage(
 
     case 'IMPORT_JOBS_BATCH':
       return handleImportJobsBatch(message.payload as ScrapedJob[]);
+
+    case 'LOG_APPLICATION':
+      return handleLogApplication(message.payload as ApplicationSubmission);
 
     case 'SAVE_ANSWER':
       return handleSaveAnswer(message.payload as {
@@ -146,6 +154,16 @@ async function handleImportJobsBatch(jobs: ScrapedJob[]): Promise<ExtensionRespo
   try {
     const client = await getAPIClient();
     const result = await client.importJobsBatch(jobs);
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+async function handleLogApplication(application: ApplicationSubmission): Promise<ExtensionResponse> {
+  try {
+    const client = await getAPIClient();
+    const result = await client.logApplication(application);
     return { success: true, data: result };
   } catch (error) {
     return { success: false, error: (error as Error).message };

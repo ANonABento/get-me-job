@@ -9,6 +9,7 @@ import { AutoFillEngine } from './auto-fill/engine';
 import { getScraperForUrl } from './scrapers/scraper-registry';
 import type { ExtensionProfile, ScrapedJob, DetectedField } from '@/shared/types';
 import { sendMessage, Messages } from '@/shared/messages';
+import { ApplicationSubmissionTracker } from './application-submission-tracker';
 
 // Initialize components
 const fieldDetector = new FieldDetector();
@@ -16,9 +17,19 @@ let autoFillEngine: AutoFillEngine | null = null;
 let cachedProfile: ExtensionProfile | null = null;
 let detectedFields: DetectedField[] = [];
 let scrapedJob: ScrapedJob | null = null;
+const applicationTracker = new ApplicationSubmissionTracker(
+  () => scrapedJob,
+  async (application) => {
+    const response = await sendMessage(Messages.logApplication(application));
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to log application');
+    }
+  }
+);
 
 // Scan page on load
 scanPage();
+applicationTracker.start();
 
 // Re-scan on dynamic content changes
 const observer = new MutationObserver(debounce(scanPage, 500));
@@ -117,6 +128,7 @@ async function handleFillForm() {
 
   // Fill the form
   const result = await autoFillEngine.fillForm(detectedFields);
+  applicationTracker.markAutoFilled();
   return { success: true, data: result };
 }
 
