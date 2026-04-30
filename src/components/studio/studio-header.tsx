@@ -168,7 +168,7 @@ export function StudioHeader({
 
         <span
           className={cn(
-            "rounded-full border px-2 py-0.5 text-xs font-medium",
+            "rounded-[var(--radius)] border-[length:var(--border-width)] px-2 py-0.5 text-xs font-medium",
             draftIsSaved
               ? "border-success/20 bg-success/10 text-success"
               : "border-warning/20 bg-warning/10 text-warning",

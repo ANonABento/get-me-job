@@ -104,6 +104,9 @@ describe("ResumePreview", () => {
     expect(
       screen.getByText("Select entries from the bank").closest("li")?.className,
     ).toContain("shadow-[var(--shadow-card)]");
+    expect(screen.getByText("1").className).toContain(
+      "rounded-[var(--radius)]",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: /add from bank/i }));
 

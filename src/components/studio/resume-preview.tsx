@@ -174,7 +174,7 @@ export function ResumePreview({
                       key={step}
                       className="flex items-center gap-3 rounded-[var(--radius)] border-[length:var(--border-width)] border-border bg-card px-4 py-3 text-sm font-medium text-card-foreground shadow-[var(--shadow-card)]"
                     >
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-background text-xs font-bold text-primary shadow-[var(--shadow-sm)]">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius)] bg-background text-xs font-bold text-primary shadow-[var(--shadow-sm)]">
                         {index + 1}
                       </span>
                       <span className="min-w-0 flex-1">{step}</span>

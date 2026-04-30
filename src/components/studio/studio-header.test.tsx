@@ -68,6 +68,28 @@ describe("StudioHeader", () => {
     expect(coverLetterTab.className).toContain("shadow-[var(--shadow-button)]");
   });
 
+  it("uses theme variables on the save status badge", () => {
+    const { rerender } = renderStudioHeader();
+
+    expect(screen.getByText("Saved").className).toContain(
+      "rounded-[var(--radius)]",
+    );
+    expect(screen.getByText("Saved").className).toContain(
+      "border-[length:var(--border-width)]",
+    );
+
+    rerender(
+      <StudioHeader {...createStudioHeaderProps({ draftIsSaved: false })} />,
+    );
+
+    expect(screen.getByText("Unsaved").className).toContain(
+      "rounded-[var(--radius)]",
+    );
+    expect(screen.getByText("Unsaved").className).toContain(
+      "border-[length:var(--border-width)]",
+    );
+  });
+
   it("opens a grid picker with thumbnails for every template", () => {
     renderStudioHeader();
 
