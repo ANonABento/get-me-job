@@ -454,7 +454,7 @@ export default function OpportunitiesPage() {
               <Stat label="Hackathons" value={counts.hackathon} />
               <Stat label="Pending" value={counts.pending} />
               <div
-                className="flex rounded-[var(--radius)] border bg-card p-1"
+                className="flex rounded-lg border bg-card p-1"
                 aria-label="Opportunity view mode"
               >
                 <Button
@@ -665,16 +665,16 @@ export default function OpportunitiesPage() {
 
         <main className="min-w-0 px-5 py-6 sm:px-8">
           <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="inline-flex w-full rounded-[var(--radius)] border bg-card p-1 sm:w-auto">
+            <div className="inline-flex w-full rounded-lg border bg-card p-1 sm:w-auto">
               {OPPORTUNITY_TYPE_TAB_OPTIONS.map((tab) => (
                 <button
                   key={tab.value}
                   type="button"
                   onClick={() => updateFilter("typeTab", tab.value)}
                   className={cn(
-                    "min-h-10 flex-1 rounded-[calc(var(--radius)_-_2px)] px-4 text-sm font-medium transition-colors sm:flex-none",
+                    "min-h-10 flex-1 rounded-md px-4 text-sm font-medium transition-colors sm:flex-none",
                     filters.typeTab === tab.value
-                      ? "bg-primary text-primary-foreground shadow-[var(--shadow-sm)]"
+                      ? "bg-primary text-primary-foreground shadow-sm"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                 >
@@ -721,7 +721,7 @@ export default function OpportunitiesPage() {
           </div>
 
           {filteredOpportunities.length === 0 ? (
-            <div className="flex min-h-[360px] flex-col items-center justify-center rounded-[var(--radius)] border border-dashed bg-card/50 p-8 text-center">
+            <div className="flex min-h-[360px] flex-col items-center justify-center rounded-lg border border-dashed bg-card/50 p-8 text-center">
               <Briefcase className="mb-4 h-10 w-10 text-muted-foreground" />
               <h2 className="text-lg font-semibold">No opportunities found</h2>
               <Button variant="outline" className="mt-5" onClick={clearFilters}>
@@ -761,16 +761,16 @@ export default function OpportunitiesPage() {
           </DialogHeader>
 
           <form className="space-y-6" onSubmit={handleAddOpportunity}>
-            <div className="inline-flex rounded-[var(--radius)] border bg-muted/40 p-1">
+            <div className="inline-flex rounded-lg border bg-muted/40 p-1">
               {OPPORTUNITY_TYPE_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => updateForm("type", option.value)}
                   className={cn(
-                    "min-h-10 rounded-[calc(var(--radius)_-_2px)] px-4 text-sm font-medium transition-colors",
+                    "min-h-10 rounded-md px-4 text-sm font-medium transition-colors",
                     form.type === option.value
-                      ? "bg-background text-foreground shadow-[var(--shadow-sm)]"
+                      ? "bg-background text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >
@@ -1128,7 +1128,7 @@ function OpportunityRow({
   const isHackathon = opportunity.type === "hackathon";
 
   return (
-    <article className="rounded-[var(--radius)] border bg-card p-5 shadow-[var(--shadow-sm)]">
+    <article className="rounded-lg border bg-card p-5 shadow-sm">
       <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
         <div className="min-w-0 flex-1 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -1280,7 +1280,7 @@ function OpportunityKanbanView({
             <section
               key={column.value}
               aria-label={`${column.label} opportunities`}
-              className="flex min-h-[560px] flex-col rounded-[var(--radius)] border bg-card/70 p-3"
+              className="flex min-h-[560px] flex-col rounded-lg border bg-card/70 p-3"
               onDragOver={(event) => {
                 event.preventDefault();
                 event.dataTransfer.dropEffect = "move";
@@ -1296,7 +1296,7 @@ function OpportunityKanbanView({
 
               <div className="flex flex-1 flex-col gap-3">
                 {columnOpportunities.length === 0 ? (
-                  <div className="grid min-h-28 place-items-center rounded-[var(--radius)] border border-dashed bg-background/50 px-3 text-center text-sm text-muted-foreground">
+                  <div className="grid min-h-28 place-items-center rounded-lg border border-dashed bg-background/50 px-3 text-center text-sm text-muted-foreground">
                     Drop opportunities here
                   </div>
                 ) : (
@@ -1345,7 +1345,7 @@ function OpportunityKanbanCard({
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       className={cn(
-        "cursor-grab rounded-[var(--radius)] border bg-background p-3 shadow-[var(--shadow-sm)] transition hover:border-primary/30 hover:shadow-[var(--shadow-md)] active:cursor-grabbing",
+        "cursor-grab rounded-lg border bg-background p-3 shadow-sm transition hover:border-primary/30 hover:shadow-md active:cursor-grabbing",
         isDragging && "opacity-50",
       )}
     >
@@ -1398,7 +1398,7 @@ function OpportunityKanbanCard({
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="min-w-20 rounded-[var(--radius)] border bg-background px-3 py-2 text-center">
+    <div className="min-w-20 rounded-lg border bg-background px-3 py-2 text-center">
       <div className="text-lg font-semibold text-foreground">{value}</div>
       <div className="text-xs text-muted-foreground">{label}</div>
     </div>
@@ -1426,7 +1426,7 @@ function Field({
 
 function Meta({ icon: Icon, value }: { icon: LucideIcon; value: string }) {
   return (
-    <div className="flex min-h-9 items-center gap-2 rounded-[calc(var(--radius)_-_2px)] bg-muted/60 px-3 py-2">
+    <div className="flex min-h-9 items-center gap-2 rounded-md bg-muted/60 px-3 py-2">
       <Icon className="h-4 w-4 shrink-0 text-primary" />
       <span className="min-w-0 break-words">{value}</span>
     </div>

@@ -106,12 +106,12 @@
   }
 
   .card-hover:hover {
-    @apply shadow-[var(--shadow-lg)] -translate-y-1;
+    @apply shadow-lg -translate-y-1;
   }
 
   /* Elevated card with deeper shadow */
   .card-elevated {
-    @apply rounded-[calc(var(--radius)_+_8px)] border bg-card shadow-[var(--shadow-elevated)];
+    @apply rounded-2xl border bg-card shadow-elevated;
     border-width: var(--border-width);
   }
 

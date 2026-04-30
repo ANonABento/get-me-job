@@ -45,7 +45,7 @@ export default function ATSScannerPage() {
       <div className="max-w-3xl mx-auto">
         {/* Hero */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-[calc(var(--radius)_+_8px)] bg-primary/10 mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-6">
             <ShieldCheck className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-4xl font-bold tracking-tight mb-4">

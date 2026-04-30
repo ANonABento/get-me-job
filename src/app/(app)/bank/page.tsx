@@ -366,7 +366,7 @@ export default function BankPage() {
           variant="card"
         />
       ) : sortedEntries.length === 0 ? (
-        <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-12 text-center">
+        <div className="rounded-2xl border bg-card p-12 text-center">
           <Database className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-xl font-semibold mb-2">
             {query || activeCategory !== "all"

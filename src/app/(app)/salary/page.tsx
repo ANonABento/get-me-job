@@ -299,7 +299,7 @@ ${script.close}
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius)] text-sm font-medium transition-colors",
+                  "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
                   activeTab === tab.id
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted",
@@ -319,7 +319,7 @@ ${script.close}
         {activeTab === "calculator" && (
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Input */}
-            <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-6">
+            <div className="rounded-2xl border bg-card p-6">
               <h2 className="font-semibold mb-6 flex items-center gap-2">
                 <Calculator className="h-5 w-5 text-primary" />
                 Market Rate Calculator
@@ -397,7 +397,7 @@ ${script.close}
             </div>
 
             {/* Results */}
-            <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-6">
+            <div className="rounded-2xl border bg-card p-6">
               <h2 className="font-semibold mb-6">Market Salary Range</h2>
 
               {salaryRange ? (
@@ -415,7 +415,7 @@ ${script.close}
 
                   {/* Stats */}
                   <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center p-4 rounded-[calc(var(--radius)_+_4px)] bg-warning/10 border border-warning/20">
+                    <div className="text-center p-4 rounded-xl bg-warning/10 border border-warning/20">
                       <p className="text-xs text-muted-foreground mb-1">
                         25th Percentile
                       </p>
@@ -423,7 +423,7 @@ ${script.close}
                         {formatCurrency(salaryRange.percentile25)}
                       </p>
                     </div>
-                    <div className="text-center p-4 rounded-[calc(var(--radius)_+_4px)] bg-success/10 border border-success/20">
+                    <div className="text-center p-4 rounded-xl bg-success/10 border border-success/20">
                       <p className="text-xs text-muted-foreground mb-1">
                         Median
                       </p>
@@ -431,7 +431,7 @@ ${script.close}
                         {formatCurrency(salaryRange.median)}
                       </p>
                     </div>
-                    <div className="text-center p-4 rounded-[calc(var(--radius)_+_4px)] bg-info/10 border border-info/20">
+                    <div className="text-center p-4 rounded-xl bg-info/10 border border-info/20">
                       <p className="text-xs text-muted-foreground mb-1">
                         75th Percentile
                       </p>
@@ -442,7 +442,7 @@ ${script.close}
                   </div>
 
                   {/* Insights */}
-                  <div className="p-4 rounded-[calc(var(--radius)_+_4px)] bg-muted/50">
+                  <div className="p-4 rounded-xl bg-muted/50">
                     <p className="text-sm text-muted-foreground">
                       Based on {role} roles in {location} with {yearsExperience}{" "}
                       years of experience. Aim for the median (
@@ -472,7 +472,7 @@ ${script.close}
         {activeTab === "compare" && (
           <div className="space-y-6">
             {/* Add Offer Form */}
-            <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-6">
+            <div className="rounded-2xl border bg-card p-6">
               <h2 className="font-semibold mb-4 flex items-center gap-2">
                 <Plus className="h-5 w-5 text-primary" />
                 Add Offer
@@ -560,7 +560,7 @@ ${script.close}
 
             {/* Offers List */}
             {offers.length > 0 && (
-              <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-6">
+              <div className="rounded-2xl border bg-card p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="font-semibold flex items-center gap-2">
                     <Building2 className="h-5 w-5 text-primary" />
@@ -579,7 +579,7 @@ ${script.close}
                     <div
                       key={offer.id}
                       className={cn(
-                        "p-4 rounded-[calc(var(--radius)_+_4px)] border relative",
+                        "p-4 rounded-xl border relative",
                         comparison?.bestOverall === offer.company
                           ? "border-success bg-success/5"
                           : "bg-muted/30",
@@ -644,7 +644,7 @@ ${script.close}
             )}
 
             {offers.length === 0 && (
-              <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-12 text-center">
+              <div className="rounded-2xl border bg-card p-12 text-center">
                 <div className="p-4 rounded-full bg-muted text-muted-foreground inline-block mb-4">
                   <Building2 className="h-8 w-8" />
                 </div>
@@ -660,7 +660,7 @@ ${script.close}
         {activeTab === "negotiate" && (
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Input */}
-            <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-6">
+            <div className="rounded-2xl border bg-card p-6">
               <h2 className="font-semibold mb-6 flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-primary" />
                 Generate Negotiation Script
@@ -733,7 +733,7 @@ ${script.close}
             </div>
 
             {/* Script */}
-            <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-6">
+            <div className="rounded-2xl border bg-card p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-semibold">Your Negotiation Script</h2>
                 {script && (
@@ -759,7 +759,7 @@ ${script.close}
                     <h3 className="text-sm font-medium text-primary mb-2">
                       Opening
                     </h3>
-                    <p className="text-sm bg-muted/50 p-3 rounded-[var(--radius)]">
+                    <p className="text-sm bg-muted/50 p-3 rounded-lg">
                       {script.opening}
                     </p>
                   </div>
@@ -772,7 +772,7 @@ ${script.close}
                       {script.valuePoints.map((point, i) => (
                         <li
                           key={i}
-                          className="text-sm bg-muted/50 p-3 rounded-[var(--radius)] flex items-start gap-2"
+                          className="text-sm bg-muted/50 p-3 rounded-lg flex items-start gap-2"
                         >
                           <span className="shrink-0 w-5 h-5 rounded-full bg-primary/20 text-primary text-xs flex items-center justify-center">
                             {i + 1}
@@ -787,7 +787,7 @@ ${script.close}
                     <h3 className="text-sm font-medium text-primary mb-2">
                       The Ask
                     </h3>
-                    <p className="text-sm bg-success/10 border border-success/20 p-3 rounded-[var(--radius)]">
+                    <p className="text-sm bg-success/10 border border-success/20 p-3 rounded-lg">
                       {script.theAsk}
                     </p>
                   </div>
@@ -798,7 +798,7 @@ ${script.close}
                     </h3>
                     <div className="space-y-3">
                       {script.pushbackResponses.map((pr, i) => (
-                        <div key={i} className="bg-muted/50 p-3 rounded-[var(--radius)]">
+                        <div key={i} className="bg-muted/50 p-3 rounded-lg">
                           <p className="text-xs text-muted-foreground mb-1">
                             If they say:
                           </p>
@@ -818,7 +818,7 @@ ${script.close}
                     <h3 className="text-sm font-medium text-primary mb-2">
                       Close
                     </h3>
-                    <p className="text-sm bg-muted/50 p-3 rounded-[var(--radius)]">
+                    <p className="text-sm bg-muted/50 p-3 rounded-lg">
                       {script.close}
                     </p>
                   </div>

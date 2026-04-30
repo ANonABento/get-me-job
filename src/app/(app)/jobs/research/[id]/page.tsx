@@ -54,7 +54,7 @@ export default function CompanyResearchPage() {
             <ArrowLeft className="h-4 w-4" />
             Back to Opportunities
           </Link>
-          <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-12 text-center">
+          <div className="rounded-2xl border bg-card p-12 text-center">
             <p className="text-red-500">{error || "Job not found"}</p>
             <Link
               href="/opportunities"
@@ -83,7 +83,7 @@ export default function CompanyResearchPage() {
           </Link>
 
           <div className="flex items-start gap-4">
-            <div className="p-3 rounded-[calc(var(--radius)_+_4px)] bg-primary/10 text-primary">
+            <div className="p-3 rounded-xl bg-primary/10 text-primary">
               <Briefcase className="h-6 w-6" />
             </div>
             <div>

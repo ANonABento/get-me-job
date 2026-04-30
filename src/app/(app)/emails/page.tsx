@@ -469,7 +469,7 @@ export default function EmailTemplatesPage() {
       <PageContent>
         {/* Drafts Section */}
         {drafts.length > 0 && (
-          <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card overflow-hidden mb-8">
+          <div className="rounded-2xl border bg-card overflow-hidden mb-8">
             <button
               onClick={() => setShowDrafts(!showDrafts)}
               className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
@@ -500,7 +500,7 @@ export default function EmailTemplatesPage() {
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <div
-                          className={`p-2 rounded-[var(--radius)] bg-muted ${config.color}`}
+                          className={`p-2 rounded-lg bg-muted ${config.color}`}
                         >
                           <config.icon className="h-4 w-4" />
                         </div>
@@ -553,7 +553,7 @@ export default function EmailTemplatesPage() {
           {/* Left Column - Template Selection & Context */}
           <div className="space-y-6">
             {/* Template Selection */}
-            <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-6">
+            <div className="rounded-2xl border bg-card p-6">
               <h2 className="font-semibold mb-4">Choose Template</h2>
               <div className="grid gap-3">
                 {(Object.keys(TEMPLATE_CONFIG) as EmailTemplateType[]).map(
@@ -569,14 +569,14 @@ export default function EmailTemplatesPage() {
                           setSelectedType(type);
                           setGeneratedEmail(null);
                         }}
-                        className={`flex items-start gap-4 p-4 rounded-[calc(var(--radius)_+_4px)] border text-left transition-all ${
+                        className={`flex items-start gap-4 p-4 rounded-xl border text-left transition-all ${
                           isSelected
                             ? "border-primary bg-primary/5"
                             : "hover:border-primary/50 hover:bg-muted/50"
                         }`}
                       >
                         <div
-                          className={`p-2 rounded-[var(--radius)] bg-muted ${config.color}`}
+                          className={`p-2 rounded-lg bg-muted ${config.color}`}
                         >
                           <Icon className="h-5 w-5" />
                         </div>
@@ -595,7 +595,7 @@ export default function EmailTemplatesPage() {
 
             {/* Context Fields */}
             {selectedType && (
-              <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-6">
+              <div className="rounded-2xl border bg-card p-6">
                 <h2 className="font-semibold mb-4">Customize</h2>
                 {renderContextFields()}
 
@@ -616,7 +616,7 @@ export default function EmailTemplatesPage() {
           </div>
 
           {/* Right Column - Preview */}
-          <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-6">
+          <div className="rounded-2xl border bg-card p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold">Preview</h2>
               {generatedEmail && (
@@ -641,7 +641,7 @@ export default function EmailTemplatesPage() {
                   <Label className="text-xs text-muted-foreground">
                     Subject
                   </Label>
-                  <div className="mt-1 p-3 rounded-[var(--radius)] bg-muted/50 font-medium">
+                  <div className="mt-1 p-3 rounded-lg bg-muted/50 font-medium">
                     {generatedEmail.subject}
                   </div>
                 </div>
@@ -649,7 +649,7 @@ export default function EmailTemplatesPage() {
                 {/* Body */}
                 <div>
                   <Label className="text-xs text-muted-foreground">Body</Label>
-                  <div className="mt-1 p-4 rounded-[var(--radius)] bg-muted/50 whitespace-pre-wrap text-sm leading-relaxed max-h-[400px] overflow-y-auto">
+                  <div className="mt-1 p-4 rounded-lg bg-muted/50 whitespace-pre-wrap text-sm leading-relaxed max-h-[400px] overflow-y-auto">
                     {generatedEmail.body}
                   </div>
                 </div>

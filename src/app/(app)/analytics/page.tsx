@@ -320,9 +320,9 @@ export default function AnalyticsPage() {
           {/* Overview Cards */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {/* Profile Completeness */}
-            <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-6">
+            <div className="rounded-2xl border bg-card p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-2.5 rounded-[calc(var(--radius)_+_4px)] bg-primary/10 text-primary">
+                <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
                   <Target className="h-5 w-5" />
                 </div>
                 <span className="text-2xl font-bold">
@@ -345,9 +345,9 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Total Jobs */}
-            <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-6">
+            <div className="rounded-2xl border bg-card p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-2.5 rounded-[calc(var(--radius)_+_4px)] bg-info/10 text-info">
+                <div className="p-2.5 rounded-xl bg-info/10 text-info">
                   <Briefcase className="h-5 w-5" />
                 </div>
                 <span className="text-2xl font-bold">
@@ -361,9 +361,9 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Interviews */}
-            <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-6">
+            <div className="rounded-2xl border bg-card p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-2.5 rounded-[calc(var(--radius)_+_4px)] bg-warning/10 text-warning">
+                <div className="p-2.5 rounded-xl bg-warning/10 text-warning">
                   <MessageSquare className="h-5 w-5" />
                 </div>
                 <span className="text-2xl font-bold">
@@ -377,9 +377,9 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Resumes */}
-            <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-6">
+            <div className="rounded-2xl border bg-card p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-2.5 rounded-[calc(var(--radius)_+_4px)] bg-success/10 text-success">
+                <div className="p-2.5 rounded-xl bg-success/10 text-success">
                   <FileText className="h-5 w-5" />
                 </div>
                 <span className="text-2xl font-bold">
@@ -396,7 +396,7 @@ export default function AnalyticsPage() {
           {/* Pipeline & Skills Row */}
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Job Pipeline */}
-            <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-6">
+            <div className="rounded-2xl border bg-card p-6">
               <h3 className="font-semibold mb-6 flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-primary" />
                 Application Pipeline
@@ -463,7 +463,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Skills Overview */}
-            <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-6">
+            <div className="rounded-2xl border bg-card p-6">
               <h3 className="font-semibold mb-6 flex items-center gap-2">
                 <Users className="h-5 w-5 text-primary" />
                 Skills Overview
@@ -518,7 +518,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Recent Activity */}
-          <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-6">
+          <div className="rounded-2xl border bg-card p-6">
             <h3 className="font-semibold mb-6 flex items-center gap-2">
               <Clock className="h-5 w-5 text-primary" />
               Recent Job Activity
@@ -533,11 +533,11 @@ export default function AnalyticsPage() {
                     <Link
                       key={job.id}
                       href={`/jobs?highlight=${job.id}`}
-                      className="flex items-center justify-between p-4 rounded-[calc(var(--radius)_+_4px)] bg-muted/50 hover:bg-muted transition-colors"
+                      className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
                     >
                       <div className="flex items-center gap-4">
                         <div
-                          className={`p-2 rounded-[var(--radius)] ${statusConfig.color}/10`}
+                          className={`p-2 rounded-lg ${statusConfig.color}/10`}
                         >
                           <statusConfig.icon
                             className={`h-4 w-4 ${statusConfig.color.replace("bg-", "text-")}`}
@@ -581,7 +581,7 @@ export default function AnalyticsPage() {
           {/* Advanced Analytics Section */}
           <div className="space-y-6 pt-4">
             <div className="flex items-center gap-3 pb-2">
-              <div className="p-2 rounded-[calc(var(--radius)_+_4px)] bg-primary/10 text-primary">
+              <div className="p-2 rounded-xl bg-primary/10 text-primary">
                 <Zap className="h-5 w-5" />
               </div>
               <div>

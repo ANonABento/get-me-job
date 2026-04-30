@@ -110,7 +110,7 @@ function OpportunityFieldSections({
   return (
     <>
       {OPPORTUNITY_FIELD_SECTIONS.map((section) => (
-        <section key={section.id} className="rounded-[var(--radius)] border bg-card">
+        <section key={section.id} className="rounded-lg border bg-card">
           <div className="border-b px-5 py-4">
             <h2 className="text-base font-semibold">{section.title}</h2>
           </div>
@@ -158,7 +158,7 @@ function OpportunityFieldSections({
                             onChange={(event) =>
                               onDraftValueChange(event.target.value)
                             }
-                            className="h-10 w-full rounded-[calc(var(--radius)_-_2px)] border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           >
                             {field.options?.map((option) => (
                               <option key={option.value} value={option.value}>
@@ -459,7 +459,7 @@ export default function OpportunityDetailPage({
           <ArrowLeft className="h-4 w-4" />
           Back to opportunities
         </Link>
-        <div className="rounded-[var(--radius)] border bg-card p-8">
+        <div className="rounded-lg border bg-card p-8">
           <h1 className="text-2xl font-semibold">Opportunity not found</h1>
           <p className="mt-2 text-muted-foreground">
             This opportunity may have been deleted or is no longer available.
@@ -516,7 +516,7 @@ export default function OpportunityDetailPage({
             onCancelEditing={cancelEditing}
           />
 
-          <section className="rounded-[var(--radius)] border bg-card">
+          <section className="rounded-lg border bg-card">
             <div className="flex items-center justify-between border-b px-5 py-4">
               <h2 className="text-base font-semibold">Notes</h2>
               <span className="text-xs text-muted-foreground">
@@ -537,7 +537,7 @@ export default function OpportunityDetailPage({
         </div>
 
         <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
-          <section className="rounded-[var(--radius)] border bg-card p-4">
+          <section className="rounded-lg border bg-card p-4">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Actions
             </h2>
@@ -575,7 +575,7 @@ export default function OpportunityDetailPage({
             </div>
           </section>
 
-          <section className="rounded-[var(--radius)] border bg-card p-4">
+          <section className="rounded-lg border bg-card p-4">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 Linked Documents
@@ -598,7 +598,7 @@ export default function OpportunityDetailPage({
                         href={resume.htmlPath || "#"}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center justify-between gap-3 rounded-[calc(var(--radius)_-_2px)] border px-3 py-2 text-sm hover:bg-muted"
+                        className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm hover:bg-muted"
                       >
                         <span>
                           Resume
@@ -624,7 +624,7 @@ export default function OpportunityDetailPage({
                     coverLetters.map((letter) => (
                       <div
                         key={letter.id}
-                        className="rounded-[calc(var(--radius)_-_2px)] border px-3 py-2 text-sm"
+                        className="rounded-md border px-3 py-2 text-sm"
                       >
                         <div className="font-medium">
                           Version {letter.version}

@@ -151,7 +151,7 @@ export default function Dashboard() {
 
     return (
       <div className="min-h-screen flex items-center justify-center px-6 py-16">
-        <div className="w-full max-w-md rounded-[calc(var(--radius)_+_8px)] border bg-card p-8 text-center shadow-[var(--shadow-sm)]">
+        <div className="w-full max-w-md rounded-2xl border bg-card p-8 text-center shadow-sm">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
             <LogIn className="h-6 w-6" />
           </div>
@@ -163,7 +163,7 @@ export default function Dashboard() {
             {needsSignIn ? (
               <Link
                 href="/sign-in?redirect_url=/dashboard"
-                className="inline-flex items-center gap-2 rounded-[calc(var(--radius)_+_4px)] gradient-bg px-5 py-2.5 font-medium text-primary-foreground shadow-[var(--shadow-lg)] transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-xl gradient-bg px-5 py-2.5 font-medium text-primary-foreground shadow-lg transition-opacity hover:opacity-90"
               >
                 <LogIn className="h-4 w-4" />
                 Sign In
@@ -172,7 +172,7 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => window.location.reload()}
-                className="inline-flex items-center gap-2 rounded-[calc(var(--radius)_+_4px)] border bg-card px-5 py-2.5 font-medium transition-colors hover:bg-muted"
+                className="inline-flex items-center gap-2 rounded-xl border bg-card px-5 py-2.5 font-medium transition-colors hover:bg-muted"
               >
                 Try Again
               </button>
@@ -211,7 +211,7 @@ export default function Dashboard() {
                 <div className="flex flex-wrap gap-3 pt-2">
                   <Link
                     href="/bank"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[calc(var(--radius)_+_4px)] gradient-bg text-primary-foreground font-medium shadow-[var(--shadow-lg)] hover:opacity-90 transition-opacity"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-bg text-primary-foreground font-medium shadow-lg hover:opacity-90 transition-opacity"
                   >
                     <Upload className="h-4 w-4" />
                     Upload Resume
@@ -231,7 +231,7 @@ export default function Dashboard() {
                   <>
                     <div className="col-span-2">
                       {/* Inline compact ring for hero */}
-                      <div className="rounded-[calc(var(--radius)_+_4px)] border bg-card p-4">
+                      <div className="rounded-xl border bg-card p-4">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm text-muted-foreground">
                             Profile Completeness
@@ -335,9 +335,9 @@ export default function Dashboard() {
                   <Link
                     key={job.id}
                     href="/opportunities"
-                    className="flex items-center gap-3 p-4 rounded-[calc(var(--radius)_+_4px)] border bg-card hover:bg-muted/50 transition-colors"
+                    className="flex items-center gap-3 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors"
                   >
-                    <div className="p-2.5 rounded-[var(--radius)] bg-primary/10 text-primary">
+                    <div className="p-2.5 rounded-lg bg-primary/10 text-primary">
                       <Building2 className="h-5 w-5" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -351,7 +351,7 @@ export default function Dashboard() {
                 ))}
                 <Link
                   href="/opportunities"
-                  className="flex items-center justify-center gap-2 p-4 rounded-[calc(var(--radius)_+_4px)] border border-dashed bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+                  className="flex items-center justify-center gap-2 p-4 rounded-xl border border-dashed bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
                 >
                   <Plus className="h-5 w-5" />
                   <span>Add Opportunity</span>
@@ -361,9 +361,9 @@ export default function Dashboard() {
           )}
 
           {/* Getting Started Journey */}
-          <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-6 lg:p-8">
+          <div className="rounded-2xl border bg-card p-6 lg:p-8">
             <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 rounded-[calc(var(--radius)_+_4px)] gradient-bg text-primary-foreground">
+              <div className="p-2 rounded-xl gradient-bg text-primary-foreground">
                 <Rocket className="h-5 w-5" />
               </div>
               <div>
@@ -416,7 +416,7 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="rounded-[calc(var(--radius)_+_4px)] border bg-card p-4 space-y-2">
+    <div className="rounded-xl border bg-card p-4 space-y-2">
       <div className="flex items-center gap-2 text-muted-foreground">
         <Icon className="h-4 w-4" />
         <span className="text-xs font-medium">{label}</span>
@@ -442,10 +442,10 @@ function QuickAction({
   return (
     <Link
       href={href}
-      className="group relative overflow-hidden rounded-[calc(var(--radius)_+_8px)] border bg-card p-6 transition-all duration-300 hover:shadow-[var(--shadow-xl)] hover:-translate-y-1 hover:border-primary/30"
+      className="group relative overflow-hidden rounded-2xl border bg-card p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-primary/30"
     >
       <div
-        className={`inline-flex rounded-[calc(var(--radius)_+_4px)] bg-gradient-to-br ${gradient} p-3 text-primary-foreground shadow-[var(--shadow-lg)]`}
+        className={`inline-flex rounded-xl bg-gradient-to-br ${gradient} p-3 text-primary-foreground shadow-lg`}
       >
         <Icon className="h-6 w-6" />
       </div>
@@ -477,10 +477,10 @@ function Step({
   return (
     <Link
       href={href}
-      className="group flex gap-4 p-4 rounded-[calc(var(--radius)_+_4px)] hover:bg-muted/50 transition-colors"
+      className="group flex gap-4 p-4 rounded-xl hover:bg-muted/50 transition-colors"
     >
       <div
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[calc(var(--radius)_+_4px)] text-sm font-bold transition-all ${
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold transition-all ${
           done
             ? "bg-success text-success-foreground"
             : "bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground"

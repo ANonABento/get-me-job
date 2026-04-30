@@ -388,7 +388,7 @@ export default function CalendarPage() {
       <PageContent>
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Calendar Grid */}
-          <div className="lg:col-span-2 rounded-[calc(var(--radius)_+_8px)] border bg-card p-6">
+          <div className="lg:col-span-2 rounded-2xl border bg-card p-6">
             {/* Calendar Header */}
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold">
@@ -447,7 +447,7 @@ export default function CalendarPage() {
                   <button
                     key={date.toISOString()}
                     onClick={() => setSelectedDate(date)}
-                    className={`aspect-square p-1 rounded-[var(--radius)] text-sm transition-colors relative ${
+                    className={`aspect-square p-1 rounded-lg text-sm transition-colors relative ${
                       isSelected
                         ? "bg-primary text-primary-foreground"
                         : isToday(date)
@@ -489,7 +489,7 @@ export default function CalendarPage() {
           </div>
 
           {/* Event Details */}
-          <div className="rounded-[calc(var(--radius)_+_8px)] border bg-card p-6">
+          <div className="rounded-2xl border bg-card p-6">
             <h3 className="font-semibold mb-4">
               {selectedDate
                 ? selectedDate.toLocaleDateString("en-US", {
@@ -505,11 +505,11 @@ export default function CalendarPage() {
                 {selectedEvents.map((event) => (
                   <div
                     key={event.id}
-                    className="p-3 rounded-[var(--radius)] border bg-muted/30"
+                    className="p-3 rounded-lg border bg-muted/30"
                   >
                     <div className="flex items-start gap-3">
                       <div
-                        className={`p-2 rounded-[var(--radius)] ${EVENT_COLORS[event.type]}/20`}
+                        className={`p-2 rounded-lg ${EVENT_COLORS[event.type]}/20`}
                       >
                         {event.type === "interview" && (
                           <Briefcase className={`h-4 w-4 text-primary`} />
@@ -627,7 +627,7 @@ export default function CalendarPage() {
               <Label htmlFor="event-job">Job *</Label>
               <select
                 id="event-job"
-                className="w-full rounded-[calc(var(--radius)_-_2px)] border bg-background px-3 py-2 text-sm"
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                 value={newEvent.jobId}
                 onChange={(e) =>
                   setNewEvent({ ...newEvent, jobId: e.target.value })
@@ -646,7 +646,7 @@ export default function CalendarPage() {
               <Label htmlFor="event-type">Event Type</Label>
               <select
                 id="event-type"
-                className="w-full rounded-[calc(var(--radius)_-_2px)] border bg-background px-3 py-2 text-sm"
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                 value={newEvent.type}
                 onChange={(e) =>
                   setNewEvent({
@@ -779,7 +779,7 @@ export default function CalendarPage() {
               <div className="grid grid-cols-2 gap-3">
                 <a
                   href={webcalUrl}
-                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-[var(--radius)] border bg-background hover:bg-muted transition-colors text-sm font-medium"
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border bg-background hover:bg-muted transition-colors text-sm font-medium"
                 >
                   <CalendarIcon className="h-4 w-4" />
                   Apple Calendar
@@ -788,7 +788,7 @@ export default function CalendarPage() {
                   href={`https://calendar.google.com/calendar/r?cid=${encodeURIComponent(feedUrl)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-[var(--radius)] border bg-background hover:bg-muted transition-colors text-sm font-medium"
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border bg-background hover:bg-muted transition-colors text-sm font-medium"
                 >
                   <ExternalLink className="h-4 w-4" />
                   Google Calendar
@@ -797,7 +797,7 @@ export default function CalendarPage() {
             </div>
 
             {/* Instructions */}
-            <div className="rounded-[var(--radius)] bg-muted/50 p-4 space-y-2">
+            <div className="rounded-lg bg-muted/50 p-4 space-y-2">
               <h4 className="text-sm font-medium">How to Subscribe</h4>
               <ul className="text-xs text-muted-foreground space-y-1">
                 <li>
