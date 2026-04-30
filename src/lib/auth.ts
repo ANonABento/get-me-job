@@ -1,4 +1,5 @@
 import { auth } from '@clerk/nextjs/server';
+import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 export interface AuthResult {
@@ -13,13 +14,21 @@ export interface AuthError {
 const LOCAL_DEV_USER = 'default';
 const isClerkConfigured = !!(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY);
 
+function getLocalDevUserId(): string {
+  try {
+    return headers().get('x-get-me-job-e2e-user') || LOCAL_DEV_USER;
+  } catch {
+    return LOCAL_DEV_USER;
+  }
+}
+
 /**
  * Get the current user ID from Clerk auth
  * Returns the userId if authenticated, null if not
  * Falls back to local dev user when Clerk is not configured
  */
 export async function getCurrentUserId(): Promise<string | null> {
-  if (!isClerkConfigured) return LOCAL_DEV_USER;
+  if (!isClerkConfigured) return getLocalDevUserId();
   const { userId } = await auth();
   return userId;
 }
@@ -30,7 +39,7 @@ export async function getCurrentUserId(): Promise<string | null> {
  * Falls back to local dev user when Clerk is not configured
  */
 export async function requireAuth(): Promise<AuthResult | NextResponse> {
-  if (!isClerkConfigured) return { userId: LOCAL_DEV_USER };
+  if (!isClerkConfigured) return { userId: getLocalDevUserId() };
 
   const { userId } = await auth();
 
