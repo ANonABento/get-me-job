@@ -593,11 +593,17 @@ ${script.close}
                       )}
                       <button
                         onClick={() => removeOffer(offer.id)}
-                        className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-destructive"
+                        className={cn(
+                          "absolute right-2 flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-destructive",
+                          comparison?.bestOverall === offer.company
+                            ? "top-7"
+                            : "top-2",
+                        )}
+                        aria-label={`Remove ${offer.company} offer`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
-                      <h3 className="font-medium">{offer.company}</h3>
+                      <h3 className="pr-12 font-medium">{offer.company}</h3>
                       <p className="text-sm text-muted-foreground">
                         {offer.role}
                       </p>

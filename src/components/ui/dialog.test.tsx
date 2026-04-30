@@ -150,6 +150,9 @@ describe("Dialog", () => {
 
     const content = screen.getByRole("dialog");
     expect(content.className).toContain("border-[length:var(--border-width)]");
+    expect(content.className).toContain("w-[calc(100vw-2rem)]");
+    expect(content.className).toContain("max-h-[calc(100dvh-2rem)]");
+    expect(content.className).toContain("overflow-y-auto");
     expect(content.className).toContain("shadow-[var(--shadow-elevated)]");
     expect(content.className).toContain(
       "[backdrop-filter:var(--backdrop-blur)]",
@@ -167,7 +170,10 @@ describe("Dialog", () => {
     );
 
     // Close button has sr-only text
-    expect(screen.getByText("Close")).toBeInTheDocument();
+    const closeButton = screen.getByText("Close").closest("button");
+    expect(closeButton).toBeInTheDocument();
+    expect(closeButton?.className).toContain("h-11");
+    expect(closeButton?.className).toContain("w-11");
   });
 
   it("should close dialog when close button is clicked", async () => {

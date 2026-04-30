@@ -63,12 +63,13 @@ export function JobsToolbar(props: JobsToolbarProps) {
             placeholder="Search jobs by title, company, or keywords..."
             value={searchQuery}
             onChange={(event) => onSearchChange(event.target.value)}
-            className="pl-10"
+            className="pl-10 pr-12"
           />
           {searchQuery && (
             <button
+              aria-label="Clear search"
               onClick={() => onSearchChange("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </button>
