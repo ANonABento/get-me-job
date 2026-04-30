@@ -158,13 +158,11 @@ describe("prompt-variants DB module", () => {
 
   describe("createPromptVariant", () => {
     it("inserts new variant with auto-incremented version", () => {
-      const checkStmt = makeStmt({ get: vi.fn().mockReturnValue({ id: "variant-1" }) });
       const maxVersionStmt = makeStmt({ get: vi.fn().mockReturnValue({ max_v: 1 }) });
       const insertStmt = makeStmt();
       const selectStmt = makeStmt({ get: vi.fn().mockReturnValue({ ...mockVariantRow, id: "test-id", version: 2, active: 0 }) });
 
       (db.prepare as Mock)
-        .mockReturnValueOnce(checkStmt) // seed check
         .mockReturnValueOnce(maxVersionStmt)
         .mockReturnValueOnce(insertStmt)
         .mockReturnValueOnce(selectStmt);
@@ -182,12 +180,10 @@ describe("prompt-variants DB module", () => {
     });
 
     it("accepts explicit version", () => {
-      const checkStmt = makeStmt({ get: vi.fn().mockReturnValue({ id: "variant-1" }) });
       const insertStmt = makeStmt();
       const selectStmt = makeStmt({ get: vi.fn().mockReturnValue({ ...mockVariantRow, version: 5 }) });
 
       (db.prepare as Mock)
-        .mockReturnValueOnce(checkStmt)
         .mockReturnValueOnce(insertStmt)
         .mockReturnValueOnce(selectStmt);
 

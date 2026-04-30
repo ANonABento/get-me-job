@@ -1,8 +1,3 @@
-/**
- * @route PATCH /api/prompts/[id]
- * @route DELETE /api/prompts/[id]
- * @description Update or activate a prompt variant (PATCH) or delete it (DELETE)
- */
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import {

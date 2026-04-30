@@ -1,8 +1,3 @@
-/**
- * @route GET /api/prompts
- * @route POST /api/prompts
- * @description List all prompt variants (GET) or create a new one (POST)
- */
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import {

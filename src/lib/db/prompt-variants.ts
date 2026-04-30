@@ -137,16 +137,13 @@ export function createPromptVariant(
   content: string,
   version?: number
 ): PromptVariant {
-  seedDefaultPromptVariant();
-
-  const resolvedVersion =
-    version ??
-    (() => {
-      const max = db
-        .prepare("SELECT MAX(version) as max_v FROM prompt_variants")
-        .get() as { max_v: number | null };
-      return (max.max_v ?? 0) + 1;
-    })();
+  let resolvedVersion = version;
+  if (resolvedVersion === undefined) {
+    const max = db
+      .prepare("SELECT MAX(version) as max_v FROM prompt_variants")
+      .get() as { max_v: number | null };
+    resolvedVersion = (max.max_v ?? 0) + 1;
+  }
 
   const id = generateId();
   const now = new Date().toISOString();

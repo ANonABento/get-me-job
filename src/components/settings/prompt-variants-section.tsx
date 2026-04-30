@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { CheckCircle, FlaskConical, Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { PromptVariant, PromptVariantStats } from "@/lib/db/prompt-variants";
 
 interface VariantWithStats extends PromptVariant {
@@ -208,9 +209,10 @@ function VariantCard({ variant, activating, deleting, onActivate, onDelete }: Va
 
   return (
     <div
-      className={`rounded-xl border p-4 transition-colors ${
+      className={cn(
+        "rounded-xl border p-4 transition-colors",
         variant.active ? "border-primary bg-primary/5" : "bg-muted/30"
-      }`}
+      )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">

@@ -1,7 +1,3 @@
-/**
- * @route GET /api/prompts/results
- * @description Aggregate performance stats per prompt variant
- */
 import { NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { getPromptVariantStats, seedDefaultPromptVariant } from "@/lib/db/prompt-variants";
