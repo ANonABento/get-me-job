@@ -5,14 +5,23 @@ import { DEFAULT_SETTINGS, DEFAULT_API_BASE_URL } from '@/shared/types';
 
 const STORAGE_KEY = 'columbus_extension';
 
+export function mergeSettingsWithDefaults(
+  settings?: Partial<ExtensionSettings>
+): ExtensionSettings {
+  return {
+    ...DEFAULT_SETTINGS,
+    ...settings,
+  };
+}
+
 export async function getStorage(): Promise<ExtensionStorage> {
   return new Promise((resolve) => {
     chrome.storage.local.get(STORAGE_KEY, (result) => {
       const stored = result[STORAGE_KEY] as Partial<ExtensionStorage> | undefined;
       resolve({
         apiBaseUrl: DEFAULT_API_BASE_URL,
-        settings: DEFAULT_SETTINGS,
         ...stored,
+        settings: mergeSettingsWithDefaults(stored?.settings),
       });
     });
   });
@@ -107,7 +116,7 @@ export async function getSettings(): Promise<ExtensionSettings> {
 
 export async function updateSettings(updates: Partial<ExtensionSettings>): Promise<ExtensionSettings> {
   const storage = await getStorage();
-  const updated = { ...storage.settings, ...updates };
+  const updated = mergeSettingsWithDefaults({ ...storage.settings, ...updates });
   await setStorage({ settings: updated });
   return updated;
 }

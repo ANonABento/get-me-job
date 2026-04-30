@@ -208,7 +208,11 @@ export interface ExtensionSettings {
   showConfidenceIndicators: boolean;
   minimumConfidence: number;
   learnFromAnswers: boolean;
+  autoDetectPrompts: boolean;
   notifyOnJobDetected: boolean;
+  showSalaryOverlay: boolean;
+  enableJobScraping: boolean;
+  enabledScraperSources: string[];
 }
 
 export const DEFAULT_SETTINGS: ExtensionSettings = {
@@ -216,7 +220,11 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   showConfidenceIndicators: true,
   minimumConfidence: 0.5,
   learnFromAnswers: true,
+  autoDetectPrompts: true,
   notifyOnJobDetected: true,
+  showSalaryOverlay: true,
+  enableJobScraping: true,
+  enabledScraperSources: ['linkedin', 'indeed', 'greenhouse', 'lever', 'waterlooworks', 'unknown'],
 };
 
 export const DEFAULT_API_BASE_URL = 'http://localhost:3000';

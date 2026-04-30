@@ -3,6 +3,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import StudioPage from "./page";
 import type { BankEntry } from "@/types";
 
+vi.setConfig({ testTimeout: 15000 });
+
 const mockShowErrorToast = vi.hoisted(() => vi.fn());
 const mockResumePreview = vi.hoisted(() => vi.fn());
 

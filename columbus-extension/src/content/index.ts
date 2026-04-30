@@ -9,6 +9,7 @@ import { AutoFillEngine } from './auto-fill/engine';
 import { getScraperForUrl } from './scrapers/scraper-registry';
 import type { ExtensionProfile, ScrapedJob, DetectedField } from '@/shared/types';
 import { sendMessage, Messages } from '@/shared/messages';
+import { getSettings } from '@/background/storage';
 
 // Initialize components
 const fieldDetector = new FieldDetector();
@@ -25,27 +26,44 @@ const observer = new MutationObserver(debounce(scanPage, 500));
 observer.observe(document.body, { childList: true, subtree: true });
 
 async function scanPage() {
+  const settings = await getSettings();
+
   // Detect forms
-  const forms = document.querySelectorAll('form');
-  for (const form of forms) {
-    const fields = fieldDetector.detectFields(form);
-    if (fields.length > 0) {
-      detectedFields = fields;
-      console.log('[Columbus] Detected fields:', fields.length);
+  if (settings.autoFillEnabled) {
+    const forms = document.querySelectorAll('form');
+    for (const form of forms) {
+      const fields = fieldDetector
+        .detectFields(form)
+        .filter((field) => field.confidence >= settings.minimumConfidence)
+        .filter((field) => settings.autoDetectPrompts || field.fieldType !== 'customQuestion');
+      if (fields.length > 0) {
+        detectedFields = fields;
+        console.log('[Columbus] Detected fields:', fields.length);
+      }
     }
+  } else {
+    detectedFields = [];
   }
 
   // Check for job listing
   const scraper = getScraperForUrl(window.location.href);
-  if (scraper.canHandle(window.location.href)) {
+  if (
+    settings.enableJobScraping &&
+    settings.enabledScraperSources.includes(scraper.source) &&
+    scraper.canHandle(window.location.href)
+  ) {
     try {
       scrapedJob = await scraper.scrapeJobListing();
       if (scrapedJob) {
         console.log('[Columbus] Scraped job:', scrapedJob.title);
+        syncSalaryOverlay(scrapedJob, settings.showSalaryOverlay);
       }
     } catch (err) {
       console.error('[Columbus] Scrape error:', err);
     }
+  } else {
+    scrapedJob = null;
+    syncSalaryOverlay(null, false);
   }
 }
 
@@ -98,6 +116,11 @@ async function handleMessage(message: { type: string; payload?: unknown }) {
 }
 
 async function handleFillForm() {
+  const settings = await getSettings();
+  if (!settings.autoFillEnabled) {
+    return { success: false, error: 'Auto-fill is disabled' };
+  }
+
   if (detectedFields.length === 0) {
     return { success: false, error: 'No fields detected' };
   }
@@ -118,6 +141,36 @@ async function handleFillForm() {
   // Fill the form
   const result = await autoFillEngine.fillForm(detectedFields);
   return { success: true, data: result };
+}
+
+function syncSalaryOverlay(job: ScrapedJob | null, enabled: boolean) {
+  const existing = document.getElementById('columbus-salary-overlay');
+
+  if (!enabled || !job?.salary) {
+    existing?.remove();
+    return;
+  }
+
+  const overlay = existing || document.createElement('div');
+  overlay.id = 'columbus-salary-overlay';
+  overlay.textContent = `Salary: ${job.salary}`;
+  overlay.setAttribute('role', 'status');
+  overlay.style.cssText = `
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 999999;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #14b8a6, #0ea5e9);
+    color: white;
+    font: 500 13px -apple-system, BlinkMacSystemFont, sans-serif;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.16);
+  `;
+
+  if (!existing) {
+    document.body.appendChild(overlay);
+  }
 }
 
 // Utility: debounce function
