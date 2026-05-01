@@ -57,6 +57,16 @@ const workStyleOptions = [
   { value: "contract", label: "Contract" },
 ];
 
+function formatSalaryRange(form: ProfileFormValues): string {
+  const min = form.targetSalaryMin.trim();
+  const max = form.targetSalaryMax.trim();
+
+  if (!min && !max) return "No target salary";
+  if (min && max) return `${form.targetSalaryCurrency} ${min}-${max}`;
+  if (min) return `${form.targetSalaryCurrency} ${min}+`;
+  return `Up to ${form.targetSalaryCurrency} ${max}`;
+}
+
 function Field({
   id,
   label,
@@ -179,6 +189,7 @@ export default function ProfilePage() {
   }
 
   const initials = getProfileInitials(form.name);
+  const salaryRange = formatSalaryRange(form);
 
   if (loading) {
     return (
@@ -280,11 +291,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <DollarSign className="h-4 w-4" />
-                    <span className="truncate">
-                      {form.targetSalaryMin || form.targetSalaryMax
-                        ? `${form.targetSalaryCurrency} ${form.targetSalaryMin || "0"}-${form.targetSalaryMax || "open"}`
-                        : "No target salary"}
-                    </span>
+                    <span className="truncate">{salaryRange}</span>
                   </div>
                 </div>
               </CardContent>

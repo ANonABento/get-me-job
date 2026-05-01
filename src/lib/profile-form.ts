@@ -1,4 +1,4 @@
-import type { ContactInfo, Profile } from "@/types";
+import type { ContactInfo, Experience, Profile } from "@/types";
 
 export interface ProfileFormValues {
   avatarUrl: string;
@@ -32,7 +32,7 @@ function cleanList(values: string[] | undefined): string[] {
   );
 }
 
-function mostRecentExperience(profile: Profile | null) {
+function mostRecentExperience(profile: Profile | null): Experience | undefined {
   return [...(profile?.experiences ?? [])].sort((a, b) => {
     if (a.current && !b.current) return -1;
     if (b.current && !a.current) return 1;
@@ -83,6 +83,7 @@ export function buildResumeDefaults(profile: Profile | null): Pick<
 export function profileToFormValues(profile: Profile | null): ProfileFormValues {
   const contact = profile?.contact ?? ({ name: "" } satisfies ContactInfo);
   const resumeDefaults = buildResumeDefaults(profile);
+  const targetRoles = cleanList(contact.targetRoles);
 
   return {
     avatarUrl: contact.avatarUrl ?? "",
@@ -96,9 +97,7 @@ export function profileToFormValues(profile: Profile | null): ProfileFormValues 
     website: contact.website ?? "",
     summary: profile?.summary ?? "",
     workStyle: cleanList(contact.workStyle),
-    targetRoles: cleanList(contact.targetRoles).length > 0
-      ? cleanList(contact.targetRoles)
-      : resumeDefaults.targetRoles,
+    targetRoles: targetRoles.length > 0 ? targetRoles : resumeDefaults.targetRoles,
     targetSalaryMin: contact.targetSalaryMin ?? "",
     targetSalaryMax: contact.targetSalaryMax ?? "",
     targetSalaryCurrency: contact.targetSalaryCurrency ?? DEFAULT_CURRENCY,
