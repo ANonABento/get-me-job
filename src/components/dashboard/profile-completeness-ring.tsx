@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useId } from "react";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import type { ProfileCompletenessResult } from "@/lib/profile-completeness";
 
@@ -13,8 +14,11 @@ const STROKE_WIDTH = 10;
 const RADIUS = (RING_SIZE - STROKE_WIDTH) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-export function ProfileCompletenessRing({ data }: ProfileCompletenessRingProps) {
+export function ProfileCompletenessRing({
+  data,
+}: ProfileCompletenessRingProps) {
   const { percentage, sections, nextAction } = data;
+  const gradientId = `profile-completeness-ring-${useId().replace(/:/g, "")}`;
   const offset = CIRCUMFERENCE - (percentage / 100) * CIRCUMFERENCE;
 
   return (
@@ -26,7 +30,10 @@ export function ProfileCompletenessRing({ data }: ProfileCompletenessRingProps) 
           className="shrink-0 group"
           aria-label={`Profile ${percentage}% complete. Click to complete your profile.`}
         >
-          <div className="relative" style={{ width: RING_SIZE, height: RING_SIZE }}>
+          <div
+            className="relative"
+            style={{ width: RING_SIZE, height: RING_SIZE }}
+          >
             <svg
               width={RING_SIZE}
               height={RING_SIZE}
@@ -48,7 +55,7 @@ export function ProfileCompletenessRing({ data }: ProfileCompletenessRingProps) 
                 cy={RING_SIZE / 2}
                 r={RADIUS}
                 fill="none"
-                stroke="url(#ring-gradient)"
+                stroke={`url(#${gradientId})`}
                 strokeWidth={STROKE_WIDTH}
                 strokeLinecap="round"
                 strokeDasharray={CIRCUMFERENCE}
@@ -56,9 +63,23 @@ export function ProfileCompletenessRing({ data }: ProfileCompletenessRingProps) 
                 className="transition-all duration-700 ease-out"
               />
               <defs>
-                <linearGradient id="ring-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="hsl(var(--success))" />
-                  <stop offset="100%" stopColor="hsl(var(--primary))" />
+                <linearGradient
+                  id={gradientId}
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="0%"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor="currentColor"
+                    className="text-success"
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor="currentColor"
+                    className="text-primary"
+                  />
                 </linearGradient>
               </defs>
             </svg>
@@ -86,7 +107,13 @@ export function ProfileCompletenessRing({ data }: ProfileCompletenessRingProps) 
                   ) : (
                     <AlertCircle className="h-4 w-4 text-muted-foreground shrink-0" />
                   )}
-                  <span className={section.complete ? "text-muted-foreground line-through" : "font-medium"}>
+                  <span
+                    className={
+                      section.complete
+                        ? "text-muted-foreground line-through"
+                        : "font-medium"
+                    }
+                  >
                     {section.label}
                   </span>
                 </Link>

@@ -78,8 +78,8 @@
 @layer components {
   /* Glass morphism effect */
   .glass {
-    border: var(--border-width, 1px) solid hsl(var(--border) / var(--surface-border-opacity));
-    background-color: hsl(var(--card) / var(--surface-glass-opacity));
+    border: var(--border-width, 1px) solid var(--glass-border-color);
+    background-color: var(--glass-background-color);
     backdrop-filter: var(--backdrop-blur);
     -webkit-backdrop-filter: var(--backdrop-blur);
   }
@@ -169,7 +169,7 @@
     background: linear-gradient(
       90deg,
       transparent 0%,
-      hsl(var(--muted-foreground) / 0.1) 50%,
+      var(--skeleton-highlight-color) 50%,
       transparent 100%
     );
     animation: shimmer 2s infinite;

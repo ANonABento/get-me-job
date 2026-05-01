@@ -109,4 +109,7 @@ export const DEFAULT_EFFECT_VARIABLES = {
   "--surface-glass-opacity": "1",
   "--surface-border-opacity": "1",
   "--glow-primary-opacity": "0.15",
+  "--glass-border-color": "hsl(var(--border) / var(--surface-border-opacity))",
+  "--glass-background-color": "hsl(var(--card) / var(--surface-glass-opacity))",
+  "--skeleton-highlight-color": "hsl(var(--muted-foreground) / 0.1)",
 } as const satisfies ThemeCssVariables;

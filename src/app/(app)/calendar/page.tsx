@@ -357,7 +357,7 @@ export default function CalendarPage() {
               <Button
                 size="sm"
                 onClick={openCreateDialog}
-                className="gradient-bg text-white"
+                className="gradient-bg text-primary-foreground"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create Event
@@ -716,7 +716,7 @@ export default function CalendarPage() {
                 !newEvent.dueDate ||
                 !newEvent.jobId
               }
-              className="gradient-bg text-white"
+              className="gradient-bg text-primary-foreground"
             >
               {creating ? (
                 <>

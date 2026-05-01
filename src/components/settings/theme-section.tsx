@@ -146,11 +146,7 @@ interface ThemePresetCardProps {
   onClick: () => void;
 }
 
-function ThemePresetCard({
-  preset,
-  selected,
-  onClick,
-}: ThemePresetCardProps) {
+function ThemePresetCard({ preset, selected, onClick }: ThemePresetCardProps) {
   return (
     <button
       type="button"
@@ -168,7 +164,7 @@ function ThemePresetCard({
           <span
             key={key}
             className="h-7 flex-1"
-            style={{ backgroundColor: `hsl(${preset.preview[key]})` }}
+            style={{ backgroundColor: hslStringToHex(preset.preview[key]) }}
             title={`${preset.label} ${key}`}
             aria-hidden="true"
           />

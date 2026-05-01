@@ -46,7 +46,9 @@ function mockSystemTheme(matchesDark: boolean) {
   });
   const removeEventListener = vi.fn();
 
-  Object.defineProperty(mediaQuery, "addEventListener", { value: addEventListener });
+  Object.defineProperty(mediaQuery, "addEventListener", {
+    value: addEventListener,
+  });
   Object.defineProperty(mediaQuery, "removeEventListener", {
     value: removeEventListener,
   });
@@ -91,7 +93,10 @@ function ThemeProbe() {
       <button type="button" onClick={() => setTheme("dark")}>
         Use dark
       </button>
-      <button type="button" onClick={() => setCustomThemeColor("primary", "142 71% 45%")}>
+      <button
+        type="button"
+        onClick={() => setCustomThemeColor("primary", "142 71% 45%")}
+      >
         Use custom primary
       </button>
     </div>
@@ -125,6 +130,15 @@ describe("theme config", () => {
     expect(variables["--shadow-elevated"]).toBe(variables["--shadow-lg"]);
     expect(variables["--shadow-button"]).toBe(variables["--shadow-sm"]);
     expect(variables["--backdrop-blur"]).toBe("blur(16px)");
+    expect(variables["--glass-border-color"]).toBe(
+      "hsl(var(--border) / var(--surface-border-opacity))",
+    );
+    expect(variables["--glass-background-color"]).toBe(
+      "hsl(var(--card) / var(--surface-glass-opacity))",
+    );
+    expect(variables["--skeleton-highlight-color"]).toBe(
+      "hsl(var(--muted-foreground) / 0.1)",
+    );
   });
 
   it("returns CSS custom properties with custom color overrides", () => {
@@ -164,7 +178,7 @@ describe("theme config", () => {
         primary: "142 71% 45%",
         accent: "not hsl",
         extra: "0 0% 0%",
-      })
+      }),
     ).toEqual({ primary: "142 71% 45%" });
   });
 
@@ -176,11 +190,11 @@ describe("theme config", () => {
     expect(document.documentElement.dataset.themePreset).toBe("glassmorphism");
     expect(document.documentElement.dataset.themeMode).toBe("dark");
     expect(document.documentElement.dataset.themeCustom).toBe("true");
-    expect(document.documentElement.style.getPropertyValue("--backdrop-blur")).toBe(
-      "blur(28px)"
-    );
+    expect(
+      document.documentElement.style.getPropertyValue("--backdrop-blur"),
+    ).toBe("blur(28px)");
     expect(document.documentElement.style.getPropertyValue("--accent")).toBe(
-      "278 64% 56%"
+      "278 64% 56%",
     );
   });
 
@@ -197,7 +211,7 @@ describe("theme config", () => {
     render(
       <ThemeProvider>
         <ThemeProbe />
-      </ThemeProvider>
+      </ThemeProvider>,
     );
 
     await waitFor(() => {
@@ -209,10 +223,10 @@ describe("theme config", () => {
     expect(document.documentElement).toHaveClass("dark");
     expect(document.documentElement.dataset.themePreset).toBe("minimal");
     expect(document.documentElement.style.getPropertyValue("--primary")).toBe(
-      "142 71% 45%"
+      "142 71% 45%",
     );
     expect(screen.getByTestId("preset-count")).toHaveTextContent(
-      String(themePresetNames.length)
+      String(themePresetNames.length),
     );
   });
 
@@ -226,7 +240,7 @@ describe("theme config", () => {
     render(
       <ThemeProvider>
         <ThemeProbe />
-      </ThemeProvider>
+      </ThemeProvider>,
     );
 
     await waitFor(() => {
@@ -245,7 +259,7 @@ describe("theme config", () => {
     render(
       <ThemeProvider>
         <ThemeProbe />
-      </ThemeProvider>
+      </ThemeProvider>,
     );
 
     await waitFor(() => {
@@ -268,7 +282,7 @@ describe("theme config", () => {
     render(
       <ThemeProvider>
         <ThemeProbe />
-      </ThemeProvider>
+      </ThemeProvider>,
     );
 
     await waitFor(() => {
@@ -285,19 +299,19 @@ describe("theme config", () => {
 
     expect(window.localStorage.setItem).toHaveBeenCalledWith(
       THEME_PRESET_STORAGE_KEY,
-      "bold"
+      "bold",
     );
     expect(document.documentElement.dataset.themePreset).toBe("bold");
-    expect(document.documentElement.style.getPropertyValue("--border-width")).toBe(
-      "2px"
-    );
+    expect(
+      document.documentElement.style.getPropertyValue("--border-width"),
+    ).toBe("2px");
   });
 
   it("persists and applies custom color changes from the provider", async () => {
     render(
       <ThemeProvider>
         <ThemeProbe />
-      </ThemeProvider>
+      </ThemeProvider>,
     );
 
     await waitFor(() => {
@@ -310,13 +324,13 @@ describe("theme config", () => {
 
     await waitFor(() => {
       expect(document.documentElement.style.getPropertyValue("--primary")).toBe(
-        "142 71% 45%"
+        "142 71% 45%",
       );
     });
 
     expect(window.localStorage.setItem).toHaveBeenCalledWith(
       THEME_CUSTOM_COLORS_STORAGE_KEY,
-      JSON.stringify({ primary: "142 71% 45%" })
+      JSON.stringify({ primary: "142 71% 45%" }),
     );
   });
 
@@ -324,7 +338,7 @@ describe("theme config", () => {
     render(
       <ThemeProvider>
         <ThemeProbe />
-      </ThemeProvider>
+      </ThemeProvider>,
     );
 
     await waitFor(() => {
@@ -349,7 +363,7 @@ describe("theme config", () => {
     expect(event.defaultPrevented).toBe(true);
     expect(window.localStorage.setItem).toHaveBeenCalledWith(
       THEME_PRESET_STORAGE_KEY,
-      "bold"
+      "bold",
     );
   });
 });

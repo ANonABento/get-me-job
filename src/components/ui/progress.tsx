@@ -24,6 +24,13 @@ const variantClasses = {
   destructive: "bg-destructive",
 };
 
+const circularProgressColorClasses = {
+  success: "text-success",
+  warning: "text-warning",
+  default: "text-primary",
+  destructive: "text-destructive",
+};
+
 function clampProgressValue(value: number, max: number) {
   const safeMax = Number.isFinite(max) && max > 0 ? max : 100;
   const safeValue = Number.isFinite(value) ? value : 0;
@@ -110,11 +117,11 @@ function CircularProgress({
   const circumference = radius * 2 * Math.PI;
   const offset = circumference - (progress.percentage / 100) * circumference;
 
-  const getColor = () => {
-    if (progress.value >= 80) return "hsl(var(--success))";
-    if (progress.value >= 60) return "hsl(var(--warning))";
-    if (progress.value >= 40) return "hsl(var(--primary))";
-    return "hsl(var(--destructive))";
+  const getColorClass = () => {
+    if (progress.value >= 80) return circularProgressColorClasses.success;
+    if (progress.value >= 60) return circularProgressColorClasses.warning;
+    if (progress.value >= 40) return circularProgressColorClasses.default;
+    return circularProgressColorClasses.destructive;
   };
 
   return (
@@ -124,21 +131,25 @@ function CircularProgress({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke="hsl(var(--muted))"
+          stroke="currentColor"
           strokeWidth={strokeWidth}
           fill="none"
+          className="text-muted"
         />
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={getColor()}
+          stroke="currentColor"
           strokeWidth={strokeWidth}
           fill="none"
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          className="transition-all duration-500 ease-out"
+          className={cn(
+            "transition-all duration-500 ease-out",
+            getColorClass(),
+          )}
         />
       </svg>
       {showValue && (

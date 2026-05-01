@@ -1,3 +1,5 @@
+import { DEFAULT_EFFECT_VARIABLES } from "./tokens";
+
 export type ThemeMode = "light" | "dark" | "system";
 export type ResolvedThemeMode = "light" | "dark";
 export type ThemePresetName =
@@ -58,7 +60,8 @@ const baseSpacing = {
 
 const baseTypography = {
   "font-sans": '"Aptos", "Segoe UI", "Helvetica Neue", system-ui, sans-serif',
-  "font-heading": '"Aptos", "Segoe UI", "Helvetica Neue", system-ui, sans-serif',
+  "font-heading":
+    '"Aptos", "Segoe UI", "Helvetica Neue", system-ui, sans-serif',
   "font-mono": '"SFMono-Regular", Consolas, "Liberation Mono", monospace',
 } as const;
 
@@ -149,9 +152,12 @@ const defaultDark = {
   "glow-primary-opacity": "0.2",
   "shadow-sm": "0 1px 2px 0 rgb(0 0 0 / 0.3)",
   shadow: "0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3)",
-  "shadow-md": "0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3)",
-  "shadow-lg": "0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3)",
-  "shadow-xl": "0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3)",
+  "shadow-md":
+    "0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3)",
+  "shadow-lg":
+    "0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3)",
+  "shadow-xl":
+    "0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.3)",
   "gradient-primary":
     "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(350 80% 72%) 100%)",
   "gradient-success":
@@ -550,7 +556,10 @@ export function isThemeMode(value: unknown): value is ThemeMode {
 }
 
 export function isThemePresetName(value: unknown): value is ThemePresetName {
-  return typeof value === "string" && themePresetNames.includes(value as ThemePresetName);
+  return (
+    typeof value === "string" &&
+    themePresetNames.includes(value as ThemePresetName)
+  );
 }
 
 export function isThemeColorKey(value: unknown): value is ThemeColorKey {
@@ -564,15 +573,15 @@ export function getThemePreset(name: unknown): ThemePreset {
 export function getThemeVariables(
   presetName: unknown,
   resolvedTheme: ResolvedThemeMode,
-  customColors: ThemeColorOverrides = {}
+  customColors: ThemeColorOverrides = {},
 ): Record<`--${string}`, string> {
   const preset = getThemePreset(presetName);
   const tokens = withDerivedThemeTokens(
-    applyCustomThemeColors(preset[resolvedTheme], customColors)
+    applyCustomThemeColors(preset[resolvedTheme], customColors),
   );
 
   return Object.fromEntries(
-    Object.entries(tokens).map(([name, value]) => [`--${name}`, value])
+    Object.entries(tokens).map(([name, value]) => [`--${name}`, value]),
   ) as Record<`--${string}`, string>;
 }
 
@@ -580,14 +589,16 @@ export function applyThemeVariables(
   root: HTMLElement,
   presetName: unknown,
   resolvedTheme: ResolvedThemeMode,
-  customColors: ThemeColorOverrides = {}
+  customColors: ThemeColorOverrides = {},
 ): void {
   const preset = getThemePreset(presetName);
   const variables = getThemeVariables(preset.name, resolvedTheme, customColors);
 
   root.dataset.themePreset = preset.name;
   root.dataset.themeMode = resolvedTheme;
-  root.dataset.themeCustom = hasThemeColorOverrides(customColors) ? "true" : "false";
+  root.dataset.themeCustom = hasThemeColorOverrides(customColors)
+    ? "true"
+    : "false";
 
   for (const [name, value] of Object.entries(variables)) {
     root.style.setProperty(name, value);
@@ -596,7 +607,7 @@ export function applyThemeVariables(
 
 export function getThemePreviewColors(
   presetName: unknown,
-  customColors: ThemeColorOverrides = {}
+  customColors: ThemeColorOverrides = {},
 ): Record<ThemeColorKey, string> {
   const preview = { ...getThemePreset(presetName).preview };
 
@@ -610,13 +621,13 @@ export function getThemePreviewColors(
 }
 
 export function hasThemeColorOverrides(
-  customColors: ThemeColorOverrides
+  customColors: ThemeColorOverrides,
 ): boolean {
   return Object.values(customColors).some((value) => isHslString(value));
 }
 
 export function sanitizeThemeColorOverrides(
-  value: unknown
+  value: unknown,
 ): ThemeColorOverrides {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {};
@@ -703,7 +714,7 @@ export function hslStringToHex(hsl: string): string {
 
 function applyCustomThemeColors(
   tokens: ThemeTokenGroup,
-  customColors: ThemeColorOverrides
+  customColors: ThemeColorOverrides,
 ): ThemeTokenGroup {
   const nextTokens = { ...tokens };
   const validCustomColors = sanitizeThemeColorOverrides(customColors);
@@ -714,7 +725,7 @@ function applyCustomThemeColors(
 
   if (validCustomColors.primary) {
     nextTokens["primary-foreground"] = readableForeground(
-      parseHslString(validCustomColors.primary)
+      parseHslString(validCustomColors.primary),
     );
     nextTokens.ring = validCustomColors.primary;
     nextTokens["gradient-primary"] =
@@ -722,12 +733,14 @@ function applyCustomThemeColors(
   }
 
   if (validCustomColors.background) {
-    nextTokens.foreground = readableForeground(parseHslString(validCustomColors.background));
+    nextTokens.foreground = readableForeground(
+      parseHslString(validCustomColors.background),
+    );
   }
 
   if (validCustomColors.accent) {
     nextTokens["accent-foreground"] = readableForeground(
-      parseHslString(validCustomColors.accent)
+      parseHslString(validCustomColors.accent),
     );
     nextTokens["gradient-primary"] =
       "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)";
@@ -745,6 +758,11 @@ function withDerivedThemeTokens(tokens: ThemeTokenGroup): ThemeTokenGroup {
     "shadow-card": tokens["shadow-card"] ?? tokens.shadow,
     "shadow-elevated": tokens["shadow-elevated"] ?? tokens["shadow-lg"],
     "shadow-button": tokens["shadow-button"] ?? tokens["shadow-sm"],
+    "glass-border-color": DEFAULT_EFFECT_VARIABLES["--glass-border-color"],
+    "glass-background-color":
+      DEFAULT_EFFECT_VARIABLES["--glass-background-color"],
+    "skeleton-highlight-color":
+      DEFAULT_EFFECT_VARIABLES["--skeleton-highlight-color"],
   };
 }
 

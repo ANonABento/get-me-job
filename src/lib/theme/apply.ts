@@ -6,7 +6,9 @@ import {
   type ThemeTokens,
 } from "./tokens";
 
-export function themeTokensToCssVariables(tokens: ThemeTokens): ThemeCssVariables {
+export function themeTokensToCssVariables(
+  tokens: ThemeTokens,
+): ThemeCssVariables {
   const fontHeading = tokens.fontHeading ?? tokens.fontFamily;
 
   return {
@@ -56,21 +58,31 @@ export function themeTokensToCssVariables(tokens: ThemeTokens): ThemeCssVariable
     "--font-weight-medium": tokens.fontWeightMedium,
     "--font-weight-bold": tokens.fontWeightBold,
     "--border-width": tokens.borderWidth,
-    "--backdrop-blur": tokens.backdropBlur ?? DEFAULT_EFFECT_VARIABLES["--backdrop-blur"],
-    "--glow-color": tokens.glowColor ?? DEFAULT_EFFECT_VARIABLES["--glow-color"],
+    "--backdrop-blur":
+      tokens.backdropBlur ?? DEFAULT_EFFECT_VARIABLES["--backdrop-blur"],
+    "--glow-color":
+      tokens.glowColor ?? DEFAULT_EFFECT_VARIABLES["--glow-color"],
     "--glow-color-secondary":
-      tokens.glowColorSecondary ?? DEFAULT_EFFECT_VARIABLES["--glow-color-secondary"],
+      tokens.glowColorSecondary ??
+      DEFAULT_EFFECT_VARIABLES["--glow-color-secondary"],
     "--offset-shadow-x":
       tokens.offsetShadowX ?? DEFAULT_EFFECT_VARIABLES["--offset-shadow-x"],
     "--offset-shadow-y":
       tokens.offsetShadowY ?? DEFAULT_EFFECT_VARIABLES["--offset-shadow-y"],
-    "--gradient-bg": tokens.gradientBg ?? DEFAULT_EFFECT_VARIABLES["--gradient-bg"],
+    "--gradient-bg":
+      tokens.gradientBg ?? DEFAULT_EFFECT_VARIABLES["--gradient-bg"],
     "--surface-glass-opacity":
-      tokens.surfaceGlassOpacity ?? DEFAULT_EFFECT_VARIABLES["--surface-glass-opacity"],
+      tokens.surfaceGlassOpacity ??
+      DEFAULT_EFFECT_VARIABLES["--surface-glass-opacity"],
     "--surface-border-opacity":
       tokens.surfaceBorderOpacity ??
       DEFAULT_EFFECT_VARIABLES["--surface-border-opacity"],
     "--glow-primary-opacity": tokens.glowColor ? "0.3" : "0.15",
+    "--glass-border-color": DEFAULT_EFFECT_VARIABLES["--glass-border-color"],
+    "--glass-background-color":
+      DEFAULT_EFFECT_VARIABLES["--glass-background-color"],
+    "--skeleton-highlight-color":
+      DEFAULT_EFFECT_VARIABLES["--skeleton-highlight-color"],
     "--gradient-primary":
       "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)",
     "--gradient-success":
@@ -84,7 +96,7 @@ export function applyThemeTokens(
   tokens: ThemeTokens,
   root: HTMLElement | null | undefined = typeof document === "undefined"
     ? undefined
-    : document.documentElement
+    : document.documentElement,
 ): void {
   if (!root) return;
 

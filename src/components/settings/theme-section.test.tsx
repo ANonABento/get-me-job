@@ -12,7 +12,7 @@ function renderThemeSection() {
   return render(
     <ThemeProvider>
       <ThemeSection />
-    </ThemeProvider>
+    </ThemeProvider>,
   );
 }
 
@@ -33,29 +33,39 @@ describe("ThemeSection", () => {
     expect(screen.getByRole("heading", { name: "Theme" })).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getAllByRole("button", { name: /select .* theme/i })).toHaveLength(7);
+      expect(
+        screen.getAllByRole("button", { name: /select .* theme/i }),
+      ).toHaveLength(7);
     });
 
-    expect(screen.getByRole("button", { name: /select ocean theme/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /select forest theme/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /select sunset theme/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /select ocean theme/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /select forest theme/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /select sunset theme/i }),
+    ).toBeInTheDocument();
   });
 
   it("applies and persists a selected preset", async () => {
     renderThemeSection();
 
-    fireEvent.click(await screen.findByRole("button", { name: /select ocean theme/i }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: /select ocean theme/i }),
+    );
 
     await waitFor(() => {
       expect(document.documentElement.dataset.themePreset).toBe("ocean");
     });
 
     expect(document.documentElement.style.getPropertyValue("--primary")).toBe(
-      "190 86% 38%"
+      "190 86% 38%",
     );
     expect(window.localStorage.setItem).toHaveBeenCalledWith(
       THEME_PRESET_STORAGE_KEY,
-      "ocean"
+      "ocean",
     );
   });
 
@@ -69,7 +79,10 @@ describe("ThemeSection", () => {
     });
 
     expect(document.documentElement).toHaveClass("dark");
-    expect(window.localStorage.setItem).toHaveBeenCalledWith(THEME_STORAGE_KEY, "dark");
+    expect(window.localStorage.setItem).toHaveBeenCalledWith(
+      THEME_STORAGE_KEY,
+      "dark",
+    );
   });
 
   it("applies and persists custom color edits", async () => {
@@ -81,14 +94,14 @@ describe("ThemeSection", () => {
 
     await waitFor(() => {
       expect(document.documentElement.style.getPropertyValue("--primary")).toBe(
-        "142 71% 45%"
+        "142 71% 45%",
       );
     });
 
     expect(document.documentElement.dataset.themeCustom).toBe("true");
     expect(window.localStorage.setItem).toHaveBeenCalledWith(
       THEME_CUSTOM_COLORS_STORAGE_KEY,
-      JSON.stringify({ primary: "142 71% 45%" })
+      JSON.stringify({ primary: "142 71% 45%" }),
     );
   });
 
@@ -101,12 +114,12 @@ describe("ThemeSection", () => {
 
     await waitFor(() => {
       expect(document.documentElement.style.getPropertyValue("--primary")).toBe(
-        "142 71% 45%"
+        "142 71% 45%",
       );
     });
 
     expect(screen.getByTitle("Ocean primary")).toHaveStyle({
-      backgroundColor: "rgb(14, 153, 180)",
+      backgroundColor: "rgb(14, 152, 180)",
     });
   });
 
@@ -126,7 +139,7 @@ describe("ThemeSection", () => {
       expect(document.documentElement.dataset.themePreset).toBe("forest");
       expect(document.documentElement.dataset.themeMode).toBe("dark");
       expect(document.documentElement.style.getPropertyValue("--accent")).toBe(
-        "278 64% 56%"
+        "278 64% 56%",
       );
     });
   });

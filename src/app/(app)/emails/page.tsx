@@ -602,7 +602,7 @@ export default function EmailTemplatesPage() {
                 <Button
                   onClick={generateEmail}
                   disabled={loading}
-                  className="w-full mt-6 gradient-bg text-white hover:opacity-90"
+                  className="w-full mt-6 gradient-bg text-primary-foreground hover:opacity-90"
                 >
                   {loading ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

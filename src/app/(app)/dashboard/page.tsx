@@ -163,7 +163,7 @@ export default function Dashboard() {
             {needsSignIn ? (
               <Link
                 href="/sign-in?redirect_url=/dashboard"
-                className="inline-flex items-center gap-2 rounded-xl gradient-bg px-5 py-2.5 font-medium text-white shadow-lg transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-xl gradient-bg px-5 py-2.5 font-medium text-primary-foreground shadow-lg transition-opacity hover:opacity-90"
               >
                 <LogIn className="h-4 w-4" />
                 Sign In
@@ -211,7 +211,7 @@ export default function Dashboard() {
                 <div className="flex flex-wrap gap-3 pt-2">
                   <Link
                     href="/bank"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-bg text-white font-medium shadow-lg hover:opacity-90 transition-opacity"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-bg text-primary-foreground font-medium shadow-lg hover:opacity-90 transition-opacity"
                   >
                     <Upload className="h-4 w-4" />
                     Upload Resume
@@ -363,7 +363,7 @@ export default function Dashboard() {
           {/* Getting Started Journey */}
           <div className="rounded-2xl border bg-card p-6 lg:p-8">
             <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 rounded-xl gradient-bg text-white">
+              <div className="p-2 rounded-xl gradient-bg text-primary-foreground">
                 <Rocket className="h-5 w-5" />
               </div>
               <div>
@@ -445,7 +445,7 @@ function QuickAction({
       className="group relative overflow-hidden rounded-2xl border bg-card p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-primary/30"
     >
       <div
-        className={`inline-flex rounded-xl bg-gradient-to-br ${gradient} p-3 text-white shadow-lg`}
+        className={`inline-flex rounded-xl bg-gradient-to-br ${gradient} p-3 text-primary-foreground shadow-lg`}
       >
         <Icon className="h-6 w-6" />
       </div>

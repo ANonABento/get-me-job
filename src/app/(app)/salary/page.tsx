@@ -384,7 +384,7 @@ ${script.close}
                   disabled={
                     !role || !location || !yearsExperience || calculatingRange
                   }
-                  className="w-full mt-4 gradient-bg text-white hover:opacity-90"
+                  className="w-full mt-4 gradient-bg text-primary-foreground hover:opacity-90"
                 >
                   {calculatingRange ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -586,7 +586,7 @@ ${script.close}
                       )}
                     >
                       {comparison?.bestOverall === offer.company && (
-                        <div className="absolute -top-2 -right-2 bg-success text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <div className="absolute -top-2 -right-2 bg-success text-success-foreground text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
                           <Award className="h-3 w-3" />
                           Best
                         </div>
@@ -720,7 +720,7 @@ ${script.close}
                     !targetSalary ||
                     generatingScript
                   }
-                  className="w-full mt-4 gradient-bg text-white hover:opacity-90"
+                  className="w-full mt-4 gradient-bg text-primary-foreground hover:opacity-90"
                 >
                   {generatingScript ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
