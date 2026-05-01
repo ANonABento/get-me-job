@@ -39,4 +39,8 @@ describe("theme component classes", () => {
       "text-primary-foreground",
     );
   });
+
+  it("uses a 44px minimum height for themed form controls", () => {
+    expect(THEME_CONTROL_CLASSES).toContain("min-h-11");
+  });
 });

@@ -71,21 +71,21 @@ describe("Button", () => {
   it("should apply default size", () => {
     render(<Button>Default Size</Button>);
     const button = screen.getByRole("button");
-    expect(button.className).toContain("h-10");
+    expect(button.className).toContain("h-11");
     expect(button.className).toContain("px-4");
   });
 
   it("should apply small size", () => {
     render(<Button size="sm">Small</Button>);
     const button = screen.getByRole("button");
-    expect(button.className).toContain("h-9");
+    expect(button.className).toContain("h-11");
     expect(button.className).toContain("px-3");
   });
 
   it("should apply large size", () => {
     render(<Button size="lg">Large</Button>);
     const button = screen.getByRole("button");
-    expect(button.className).toContain("h-11");
+    expect(button.className).toContain("h-12");
     expect(button.className).toContain("rounded-[var(--radius)]");
     expect(button.className).toContain("px-8");
   });
@@ -93,8 +93,8 @@ describe("Button", () => {
   it("should apply icon size", () => {
     render(<Button size="icon">X</Button>);
     const button = screen.getByRole("button");
-    expect(button.className).toContain("h-10");
-    expect(button.className).toContain("w-10");
+    expect(button.className).toContain("h-11");
+    expect(button.className).toContain("w-11");
   });
 
   it("should merge custom className", () => {

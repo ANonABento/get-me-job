@@ -21,11 +21,11 @@ const buttonVariants = cva(
           "bg-[image:var(--gradient-primary)] text-primary-foreground hover:opacity-90 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)] transition-all",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-[var(--radius)] px-3",
-        lg: "h-11 rounded-[var(--radius)] px-8",
+        default: "h-11 px-4 py-2",
+        sm: "h-11 rounded-[var(--radius)] px-3",
+        lg: "h-12 rounded-[var(--radius)] px-8",
         pill: "h-11 rounded-full px-6",
-        icon: "h-10 w-10",
+        icon: "h-11 w-11",
       },
     },
     defaultVariants: {

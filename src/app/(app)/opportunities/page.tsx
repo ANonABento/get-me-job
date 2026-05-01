@@ -463,7 +463,7 @@ export default function OpportunitiesPage() {
                   variant={viewMode === "list" ? "default" : "ghost"}
                   aria-pressed={viewMode === "list"}
                   onClick={() => handleViewModeChange("list")}
-                  className="h-9"
+                  className="h-11"
                 >
                   <List className="mr-2 h-4 w-4" />
                   List
@@ -474,7 +474,7 @@ export default function OpportunitiesPage() {
                   variant={viewMode === "kanban" ? "default" : "ghost"}
                   aria-pressed={viewMode === "kanban"}
                   onClick={() => handleViewModeChange("kanban")}
-                  className="h-9"
+                  className="h-11"
                 >
                   <LayoutGrid className="mr-2 h-4 w-4" />
                   Kanban
@@ -672,7 +672,7 @@ export default function OpportunitiesPage() {
                   type="button"
                   onClick={() => updateFilter("typeTab", tab.value)}
                   className={cn(
-                    "min-h-10 flex-1 rounded-md px-4 text-sm font-medium transition-colors sm:flex-none",
+                    "min-h-11 flex-1 rounded-md px-4 text-sm font-medium transition-colors sm:flex-none",
                     filters.typeTab === tab.value
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -768,7 +768,7 @@ export default function OpportunitiesPage() {
                   type="button"
                   onClick={() => updateForm("type", option.value)}
                   className={cn(
-                    "min-h-10 rounded-md px-4 text-sm font-medium transition-colors",
+                    "min-h-11 rounded-md px-4 text-sm font-medium transition-colors",
                     form.type === option.value
                       ? "bg-background text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground",
@@ -1147,7 +1147,10 @@ function OpportunityRow({
           </div>
 
           <div>
-            <Link href={`/opportunities/${opportunity.id}`} className="group">
+            <Link
+              href={`/opportunities/${opportunity.id}`}
+              className="group inline-flex min-h-11 items-center"
+            >
               <h2 className="break-words text-xl font-semibold tracking-normal text-foreground group-hover:text-primary">
                 {opportunity.title}
               </h2>
@@ -1351,7 +1354,10 @@ function OpportunityKanbanCard({
     >
       <div className="mb-3 flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <Link href={`/opportunities/${opportunity.id}`} className="group">
+          <Link
+            href={`/opportunities/${opportunity.id}`}
+            className="group inline-flex min-h-11 items-center"
+          >
             <h3 className="line-clamp-2 text-sm font-semibold leading-5 group-hover:text-primary">
               {opportunity.title}
             </h3>

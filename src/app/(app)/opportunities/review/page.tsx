@@ -124,7 +124,7 @@ export default function OpportunityReviewPage() {
     <div className="relative min-h-screen">
       <Link
         href="/jobs"
-        className="fixed left-4 top-4 z-30 inline-flex h-10 w-10 items-center justify-center rounded-full border bg-card/90 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground"
+        className="fixed left-4 top-4 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full border bg-card/90 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground"
         aria-label="Back to jobs"
       >
         <ArrowLeft className="h-5 w-5" />

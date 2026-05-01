@@ -28,21 +28,20 @@ export function Navbar() {
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
         scrolled
           ? "bg-background/80 backdrop-blur-lg shadow-sm border-b py-3"
-          : "bg-transparent py-5"
+          : "bg-transparent py-5",
       )}
     >
       <div className="max-w-6xl mx-auto px-6">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="/" className="flex min-h-11 items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl gradient-bg text-white font-bold text-lg shadow-md">
               <Sparkles className="h-5 w-5" />
             </div>
             <div className="flex flex-col">
               <span className="text-lg font-bold gradient-text">Taida</span>
               <span className="text-2xs text-muted-foreground hidden sm:block">
-                Resume Intelligence
-                怠惰
+                Resume Intelligence 怠惰
               </span>
             </div>
           </Link>
@@ -53,7 +52,7 @@ export function Navbar() {
               <a
                 key={link.name}
                 href={link.href}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                className="inline-flex min-h-11 items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
                 {link.name}
               </a>
@@ -77,7 +76,7 @@ export function Navbar() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 text-muted-foreground hover:text-foreground"
+            className="flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-foreground md:hidden"
             aria-label="Toggle menu"
           >
             {mobileOpen ? (
@@ -97,19 +96,28 @@ export function Navbar() {
                   key={link.name}
                   href={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex min-h-11 items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
                   {link.name}
                 </a>
               ))}
               <div className="flex flex-col gap-2 mt-2">
                 <Button variant="outline" asChild>
-                  <Link href="/sign-in?redirect_url=/dashboard" prefetch={false}>
+                  <Link
+                    href="/sign-in?redirect_url=/dashboard"
+                    prefetch={false}
+                  >
                     Sign In
                   </Link>
                 </Button>
-                <Button asChild className="gradient-bg text-white hover:opacity-90">
-                  <Link href="/sign-up?redirect_url=/dashboard" prefetch={false}>
+                <Button
+                  asChild
+                  className="gradient-bg text-white hover:opacity-90"
+                >
+                  <Link
+                    href="/sign-up?redirect_url=/dashboard"
+                    prefetch={false}
+                  >
                     Get Started
                   </Link>
                 </Button>

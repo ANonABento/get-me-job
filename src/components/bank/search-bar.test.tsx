@@ -9,7 +9,15 @@ const defaultProps = {
   onCategoryChange: vi.fn(),
   sortBy: "date" as const,
   onSortChange: vi.fn(),
-  counts: { experience: 5, skill: 3, project: 2, hackathon: 4, education: 1, achievement: 0, certification: 1 },
+  counts: {
+    experience: 5,
+    skill: 3,
+    project: 2,
+    hackathon: 4,
+    education: 1,
+    achievement: 0,
+    certification: 1,
+  },
 };
 
 describe("SearchBar", () => {
@@ -105,6 +113,8 @@ describe("SearchBar", () => {
     render(<SearchBar {...defaultProps} query="test" />);
     const clearButton = screen.getByRole("button", { name: "Clear search" });
     expect(clearButton).toBeInTheDocument();
+    expect(clearButton.className).toContain("h-11");
+    expect(clearButton.className).toContain("w-11");
   });
 
   it("should have aria-label on sort select", () => {
@@ -131,6 +141,7 @@ describe("SearchBar", () => {
     render(<SearchBar {...defaultProps} activeCategory="experience" />);
     const expTab = screen.getByRole("tab", { name: /Experience/i });
     expect(expTab).toHaveAttribute("aria-selected", "true");
+    expect(expTab.className).toContain("min-h-11");
     expect(expTab.className).toContain("rounded-[var(--radius)]");
     expect(expTab.className).toContain("shadow-[var(--shadow-button)]");
     expect(expTab.querySelector("span")?.className).toContain(

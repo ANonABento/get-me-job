@@ -64,7 +64,7 @@ export function JobsHero({
                 variant={viewMode === "list" ? "default" : "ghost"}
                 aria-pressed={viewMode === "list"}
                 onClick={() => onViewModeChange("list")}
-                className="h-9"
+                className="h-11"
               >
                 <List className="h-4 w-4 mr-2" />
                 List
@@ -75,7 +75,7 @@ export function JobsHero({
                 variant={viewMode === "kanban" ? "default" : "ghost"}
                 aria-pressed={viewMode === "kanban"}
                 onClick={() => onViewModeChange("kanban")}
-                className="h-9"
+                className="h-11"
               >
                 <LayoutGrid className="h-4 w-4 mr-2" />
                 Kanban
