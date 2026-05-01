@@ -9,7 +9,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, X, MessageSquare, CheckCircle, Upload, FileText, Briefcase, Rocket } from "lucide-react";
+import { ArrowRight, X, MessageSquare, Upload, FileText, Briefcase, Rocket } from "lucide-react";
 import { STORAGE_KEYS } from "@/lib/constants";
 import {
   WelcomeStep,
@@ -215,29 +215,6 @@ export function OnboardingDialog() {
           )}
         </div>
 
-        {/* Features preview for first step */}
-        {currentStep === 0 && (
-          <div className="mt-6 pt-6 border-t">
-            <p className="text-sm font-medium text-muted-foreground mb-3 text-center">
-              What Taida helps you with:
-            </p>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              {[
-                "AI resume parsing",
-                "Job match scoring",
-                "Document Studio",
-                "Mock interviews",
-                "Resume exports",
-                "Progress tracking",
-              ].map((feature) => (
-                <div key={feature} className="flex items-center gap-2 text-muted-foreground">
-                  <CheckCircle className="h-3 w-3 text-success" />
-                  {feature}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </DialogContent>
     </Dialog>
   );

@@ -1,8 +1,4 @@
-/**
- * Deterministic field extractor for resume sections.
- * Extracts structured data from section text using regex/heuristics.
- * No LLM calls — pure pattern matching.
- */
+/** Deterministic field extractor for resume sections — no LLM calls. */
 
 import type { Experience, Education, Skill, Project } from "@/types";
 import type { Section as DetectedSection } from "./section-detector";
@@ -48,28 +44,24 @@ const DATE_RANGE_REGEX = new RegExp(`${DATE_TOKEN}\\s*[-–—]\\s*${END_TOKEN}`
 // Also match " to " as separator: "January 2020 to Present"
 const DATE_RANGE_TO_REGEX = new RegExp(`${DATE_TOKEN}\\s+to\\s+${END_TOKEN}`, "gi");
 
-/** Test if a line contains a date range */
 export function hasDateRange(line: string): boolean {
   DATE_RANGE_REGEX.lastIndex = 0;
   DATE_RANGE_TO_REGEX.lastIndex = 0;
   return DATE_RANGE_REGEX.test(line) || DATE_RANGE_TO_REGEX.test(line);
 }
 
-/** Extract the first date range from a line */
 export function extractDateRange(line: string): string {
   DATE_RANGE_REGEX.lastIndex = 0;
   DATE_RANGE_TO_REGEX.lastIndex = 0;
   return line.match(DATE_RANGE_REGEX)?.[0] || line.match(DATE_RANGE_TO_REGEX)?.[0] || "";
 }
 
-/** Remove the date range from a line */
 function removeDateRange(line: string): string {
   DATE_RANGE_REGEX.lastIndex = 0;
   DATE_RANGE_TO_REGEX.lastIndex = 0;
   return line.replace(DATE_RANGE_REGEX, "").replace(DATE_RANGE_TO_REGEX, "").replace(/[|•·,]/g, " ").trim();
 }
 
-/** Split a date range string into [start, end] */
 export function splitDateRange(dateStr: string): { start: string; end: string } {
   // Split on dash/em-dash or " to "
   const parts = dateStr.split(/\s*[-–—]\s*|\s+to\s+/i);
@@ -82,7 +74,6 @@ export function splitDateRange(dateStr: string): { start: string; end: string } 
 // Job title keywords for detecting titles vs company names
 const JOB_TITLE_KEYWORDS = /\b(?:Engineer|Developer|Manager|Director|Analyst|Designer|Lead|Senior|Junior|Intern|Architect|Consultant|Coordinator|Specialist|Administrator|Associate|Assistant|Officer|VP|Vice\s+President|CTO|CEO|CFO|COO|Head\s+of|Principal|Staff|Technician|Supervisor|Representative|Strategist|Scientist|Researcher|Fellow)\b/i;
 
-/** Determine if a string looks like a job title */
 export function isJobTitle(text: string): boolean {
   return JOB_TITLE_KEYWORDS.test(text);
 }
@@ -176,6 +167,8 @@ export function extractExperiences(text: string): Experience[] {
 // Degree patterns for education parsing
 const DEGREE_PATTERNS = /(?:Bachelor(?:'s)?|Master(?:'s)?|PhD|Ph\.D\.?|Doctorate|Associate(?:'s)?|B\.S\.?|B\.A\.?|M\.S\.?|M\.A\.?|MBA|M\.Eng\.?|B\.Eng\.?|J\.D\.?|M\.D\.?|Doctor\s+of)/i;
 
+// Abbreviated degree initials (B.S., M.S., MBA, Ph.D., …)
+const DEGREE_ABBR_REGEX = /(?:B\.S\.?|B\.A\.?|M\.S\.?|M\.A\.?|MBA|M\.Eng\.?|B\.Eng\.?|J\.D\.?|M\.D\.?|Ph\.D\.?)/i;
 // Pattern for "B.S. in Computer Science"
 const SHORT_DEGREE_FIELD_REGEX = /(?:B\.S\.?|B\.A\.?|M\.S\.?|M\.A\.?|MBA|M\.Eng\.?|B\.Eng\.?|J\.D\.?|M\.D\.?|Ph\.D\.?)\s+(?:in\s+)?(.+?)(?:\s*[,|]|\s*$)/i;
 
@@ -189,7 +182,6 @@ const HONORS_GPA: Record<string, string> = {
   "cum laude": "3.5",
 };
 
-/** Extract degree name and field of study from a line */
 export function parseDegreeAndField(line: string): { degree: string; field: string } {
   // Try "Bachelor of Science in Mechanical Engineering" — with explicit "in" separator
   const longWithIn = line.match(/((?:Bachelor(?:'s)?|Master(?:'s)?|Associate(?:'s)?|Doctor(?:ate)?)\s+of\s+\w+(?:\s+\w+)*?)\s+in\s+(.+?)(?:\s*[,|]|\s*$)/i);
@@ -206,7 +198,7 @@ export function parseDegreeAndField(line: string): { degree: string; field: stri
   // Try "B.S. in Computer Science" pattern
   const shortMatch = line.match(SHORT_DEGREE_FIELD_REGEX);
   if (shortMatch) {
-    const degreeAbbr = line.match(/(?:B\.S\.?|B\.A\.?|M\.S\.?|M\.A\.?|MBA|M\.Eng\.?|B\.Eng\.?|J\.D\.?|M\.D\.?|Ph\.D\.?)/i)?.[0] || "";
+    const degreeAbbr = line.match(DEGREE_ABBR_REGEX)?.[0] || "";
     return { degree: degreeAbbr.trim(), field: shortMatch[1]?.trim() || "" };
   }
 
@@ -221,7 +213,6 @@ export function parseDegreeAndField(line: string): { degree: string; field: stri
   return { degree: line.trim(), field: "" };
 }
 
-/** Extract GPA from text, including Latin honors */
 export function extractGpa(text: string): string | undefined {
   // Check for explicit GPA label
   const labelMatch = text.match(GPA_LABEL_REGEX);
@@ -252,8 +243,9 @@ export function extractEducation(text: string): Education[] {
       // Parse degree and field
       const { degree, field } = parseDegreeAndField(line);
 
-      // Extract GPA from current line and nearby lines
-      const contextLines = [line, lines[i + 1] || "", lines[i + 2] || ""].join(" ");
+      // Extract GPA from current line and up to 4 following lines
+      // (GPA can appear after degree, institution, and date range)
+      const contextLines = [line, lines[i + 1] || "", lines[i + 2] || "", lines[i + 3] || "", lines[i + 4] || ""].join(" ");
       const gpa = extractGpa(contextLines);
 
       // Extract dates from line or nearby lines
