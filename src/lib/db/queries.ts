@@ -188,18 +188,26 @@ export function updateProfile(profile: Partial<Profile>, userId: string = "defau
     }
 
     // Update main profile
-    if (profile.contact || profile.summary || profile.rawText) {
+    const hasProfileFields =
+      profile.contact !== undefined ||
+      profile.summary !== undefined ||
+      profile.rawText !== undefined;
+
+    if (hasProfileFields) {
       db.prepare(`
         UPDATE profile
-        SET contact_json = COALESCE(?, contact_json),
-            summary = COALESCE(?, summary),
-            raw_text = COALESCE(?, raw_text),
+        SET contact_json = CASE WHEN ? THEN ? ELSE contact_json END,
+            summary = CASE WHEN ? THEN ? ELSE summary END,
+            raw_text = CASE WHEN ? THEN ? ELSE raw_text END,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(
-        profile.contact ? JSON.stringify(profile.contact) : null,
-        profile.summary || null,
-        profile.rawText || null,
+        profile.contact !== undefined ? 1 : 0,
+        profile.contact !== undefined ? JSON.stringify(profile.contact) : null,
+        profile.summary !== undefined ? 1 : 0,
+        profile.summary ?? null,
+        profile.rawText !== undefined ? 1 : 0,
+        profile.rawText ?? null,
         userId
       );
     }
