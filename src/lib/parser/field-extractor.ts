@@ -252,8 +252,9 @@ export function extractEducation(text: string): Education[] {
       // Parse degree and field
       const { degree, field } = parseDegreeAndField(line);
 
-      // Extract GPA from current line and nearby lines
-      const contextLines = [line, lines[i + 1] || "", lines[i + 2] || ""].join(" ");
+      // Extract GPA from current line and up to 4 following lines
+      // (GPA can appear after degree, institution, and date range)
+      const contextLines = [line, lines[i + 1] || "", lines[i + 2] || "", lines[i + 3] || "", lines[i + 4] || ""].join(" ");
       const gpa = extractGpa(contextLines);
 
       // Extract dates from line or nearby lines
