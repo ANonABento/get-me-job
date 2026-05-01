@@ -506,6 +506,25 @@ describe("Profile Functions", () => {
       expect(mockRun).toHaveBeenCalled();
     });
 
+    it("should persist empty summary when clearing profile text", () => {
+      const mockRun = setupUpdateMocks();
+
+      updateProfile({
+        contact: { name: "Jane Doe", email: "jane@example.com" },
+        summary: "",
+      });
+
+      expect(mockRun).toHaveBeenCalledWith(
+        1,
+        JSON.stringify({ name: "Jane Doe", email: "jane@example.com" }),
+        1,
+        "",
+        0,
+        null,
+        "default"
+      );
+    });
+
     it("should update experiences", () => {
       const mockRun = setupUpdateMocks();
 

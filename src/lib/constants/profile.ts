@@ -31,9 +31,18 @@ export const contactInfoSchema = z.object({
   email: z.string().email().optional().or(z.literal("")),
   phone: z.string().max(50).optional(),
   location: z.string().max(200).optional(),
+  avatarUrl: z.string().url().optional().or(z.literal("")),
+  headline: z.string().max(200).optional(),
   linkedin: z.string().url().optional().or(z.literal("")),
   github: z.string().url().optional().or(z.literal("")),
   website: z.string().url().optional().or(z.literal("")),
+  workStyle: z.array(z.string().max(80)).optional(),
+  targetRoles: z.array(z.string().max(120)).optional(),
+  targetSalaryMin: z.string().max(40).optional(),
+  targetSalaryMax: z.string().max(40).optional(),
+  targetSalaryCurrency: z.string().max(12).optional(),
+  openToRecruiters: z.boolean().optional(),
+  shareContactInfo: z.boolean().optional(),
 });
 
 export const experienceSchema = z.object({

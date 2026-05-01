@@ -8,9 +8,18 @@ export interface ContactInfo {
   email?: string;
   phone?: string;
   location?: string;
+  avatarUrl?: string;
+  headline?: string;
   linkedin?: string;
   github?: string;
   website?: string;
+  workStyle?: string[];
+  targetRoles?: string[];
+  targetSalaryMin?: string;
+  targetSalaryMax?: string;
+  targetSalaryCurrency?: string;
+  openToRecruiters?: boolean;
+  shareContactInfo?: boolean;
 }
 
 export interface Experience {
