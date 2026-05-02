@@ -12,12 +12,6 @@ export interface ThemeContextValue {
   currentTheme: ThemePreset;
   currentVariant: ThemeVariant;
   availableThemes: readonly ThemePreset[];
-  theme: ThemeVariant;
-  setTheme: (theme: ThemeVariant) => void;
-  resolvedTheme: ThemeVariant;
-  themePreset: ThemeId;
-  setThemePreset: (themeId: ThemeId) => void;
-  availableThemePresets: readonly ThemePreset[];
 }
 
 export const ThemeContext = createContext<ThemeContextValue | undefined>(

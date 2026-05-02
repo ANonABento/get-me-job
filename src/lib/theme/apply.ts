@@ -6,6 +6,9 @@ import {
   type ThemeTokens,
 } from "./tokens";
 
+const GLOW_OPACITY_WITH_COLOR = "0.3";
+const GLOW_OPACITY_DEFAULT = "0.15";
+
 export function themeTokensToCssVariables(
   tokens: ThemeTokens,
 ): ThemeCssVariables {
@@ -77,7 +80,7 @@ export function themeTokensToCssVariables(
     "--surface-border-opacity":
       tokens.surfaceBorderOpacity ??
       DEFAULT_EFFECT_VARIABLES["--surface-border-opacity"],
-    "--glow-primary-opacity": tokens.glowColor ? "0.3" : "0.15",
+    "--glow-primary-opacity": tokens.glowColor ? GLOW_OPACITY_WITH_COLOR : GLOW_OPACITY_DEFAULT,
     "--glass-border-color": DEFAULT_EFFECT_VARIABLES["--glass-border-color"],
     "--glass-background-color":
       DEFAULT_EFFECT_VARIABLES["--glass-background-color"],

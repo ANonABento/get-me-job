@@ -2,7 +2,7 @@ import type { ThemeId, ThemeTokens } from "../tokens";
 
 export const sansFont =
   '"Aptos", "Segoe UI", "Helvetica Neue", system-ui, sans-serif';
-export const monoFont = '"Courier New", monospace';
+export const bloxyDisplayFont = '"Courier New", monospace';
 
 export function createThemeTokens(
   id: ThemeId,

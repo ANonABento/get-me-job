@@ -1,5 +1,5 @@
 import type { ThemePreset } from "../tokens";
-import { createThemeTokens, monoFont, sharedStatusTokens } from "./shared";
+import { bloxyDisplayFont, createThemeTokens, sharedStatusTokens } from "./shared";
 
 const id = "bloxy";
 const name = "Bloxy";
@@ -37,8 +37,8 @@ export const bloxyTheme = {
     shadowCard: "4px 4px 0 #111",
     shadowElevated: "6px 6px 0 #111",
     shadowButton: "3px 3px 0 #111",
-    fontFamily: monoFont,
-    fontHeading: monoFont,
+    fontFamily: bloxyDisplayFont,
+    fontHeading: bloxyDisplayFont,
     letterSpacing: "0",
     textTransform: "uppercase",
     fontWeightNormal: "400",
@@ -71,8 +71,8 @@ export const bloxyTheme = {
     shadowCard: "4px 4px 0 rgba(255,235,59,0.25)",
     shadowElevated: "6px 6px 0 rgba(255,235,59,0.3)",
     shadowButton: "3px 3px 0 rgba(255,235,59,0.25)",
-    fontFamily: monoFont,
-    fontHeading: monoFont,
+    fontFamily: bloxyDisplayFont,
+    fontHeading: bloxyDisplayFont,
     letterSpacing: "0",
     textTransform: "uppercase",
     fontWeightNormal: "400",
