@@ -14,7 +14,7 @@ import {
   getTheme,
   isThemeId,
 } from "./registry";
-import { THEME_DARK_STORAGE_KEY, THEME_STORAGE_KEY } from "./theme-config";
+import { THEME_DARK_STORAGE_KEY, THEME_STORAGE_KEY } from "./storage-keys";
 import { ThemeContext } from "./use-theme";
 import type { ThemeId, ThemeVariant } from "./tokens";
 
@@ -29,7 +29,9 @@ function readStoredThemeId(): ThemeId {
 
 function readStoredDarkMode(): boolean {
   try {
-    return localStorage.getItem(THEME_DARK_STORAGE_KEY) === "true";
+    const stored = localStorage.getItem(THEME_DARK_STORAGE_KEY);
+    if (stored !== null) return stored === "true";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
   } catch {
     return false;
   }
@@ -80,10 +82,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setIsDarkState((current) => !current);
   }, []);
 
-  const setTheme = useCallback((theme: ThemeVariant) => {
-    setIsDarkState(theme === "dark");
-  }, []);
-
   const value = useMemo(() => {
     const stableThemeId = mounted ? themeId : DEFAULT_THEME_ID;
     const stableIsDark = mounted ? isDark : false;
@@ -99,14 +97,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       currentTheme,
       currentVariant,
       availableThemes: ALL_THEMES,
-      theme: currentVariant,
-      setTheme,
-      resolvedTheme: currentVariant,
-      themePreset: stableThemeId,
-      setThemePreset: setThemeId,
-      availableThemePresets: ALL_THEMES,
     };
-  }, [isDark, mounted, setIsDark, setTheme, setThemeId, themeId, toggleDark]);
+  }, [isDark, mounted, setIsDark, setThemeId, themeId, toggleDark]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

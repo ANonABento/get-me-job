@@ -29,6 +29,7 @@
     text-transform: var(--text-transform, none);
     overscroll-behavior: none;
     overflow-x: hidden;
+    background-image: var(--gradient-bg, none);
   }
 
   .theme-transitioning,
@@ -140,6 +141,24 @@
   /* Soft glow for interactive elements */
   .glow-primary {
     box-shadow: 0 0 20px var(--glow-color);
+  }
+
+  /* Neon theme: electric glow on focused/active interactive elements */
+  [data-theme-preset="neon"] button:focus-visible,
+  [data-theme-preset="neon"] a:focus-visible,
+  [data-theme-preset="neon"] input:focus-visible,
+  [data-theme-preset="neon"] textarea:focus-visible,
+  [data-theme-preset="neon"] select:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px hsl(var(--ring)),
+      0 0 12px var(--glow-color),
+      0 0 24px var(--glow-color-secondary);
+  }
+
+  [data-theme-preset="neon"] [data-state="active"],
+  [data-theme-preset="neon"] [aria-current="page"] {
+    box-shadow: 0 0 8px var(--glow-color);
   }
 
   /* Subtle pulse animation for status indicators */

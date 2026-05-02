@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { THEME_DARK_STORAGE_KEY } from "../src/lib/theme/theme-config";
+import { THEME_DARK_STORAGE_KEY } from "../src/lib/theme/storage-keys";
 
 const PUBLIC_PAGES = [
   { path: "/", name: "landing" },

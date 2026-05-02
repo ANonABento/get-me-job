@@ -31,7 +31,7 @@ export function isThemeId(value: unknown): value is ThemeId {
 }
 
 export function getTheme(themeId: unknown): ThemePreset {
-  return themesById.get(isThemeId(themeId) ? themeId : DEFAULT_THEME_ID) ?? defaultTheme;
+  return themesById.get(isThemeId(themeId) ? themeId : DEFAULT_THEME_ID)!;
 }
 
 export function getThemeIds(): readonly ThemeId[] {

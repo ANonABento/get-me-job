@@ -4,7 +4,8 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ensureEnvValidated } from "@/lib/env";
 import { getSiteMetadata } from "@/lib/seo";
-import { getThemeVariables } from "@/lib/theme/theme-config";
+import { themeTokensToCssVariables } from "@/lib/theme/apply";
+import { getTheme } from "@/lib/theme/registry";
 
 ensureEnvValidated();
 
@@ -19,7 +20,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      style={getThemeVariables("default", "light") as CSSProperties}
+      style={themeTokensToCssVariables(getTheme("default").light) as CSSProperties}
     >
       <body className="font-sans">
         <ThemeProvider>{children}</ThemeProvider>
