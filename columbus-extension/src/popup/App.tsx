@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import type { ExtensionProfile, ScrapedJob } from '@/shared/types';
 import { sendMessage, Messages } from '@/shared/messages';
 
@@ -19,19 +19,17 @@ export default function App() {
   const [importing, setImporting] = useState(false);
   const [importSuccess, setImportSuccess] = useState(false);
 
-  useEffect(() => {
-    checkAuthStatus();
-    checkPageStatus();
-  }, []);
-
-  async function checkAuthStatus() {
+  const checkAuthStatus = useCallback(async () => {
     try {
       const response = await sendMessage(Messages.getAuthStatus());
       if (response.success && response.data) {
         const { isAuthenticated } = response.data as { isAuthenticated: boolean };
         if (isAuthenticated) {
           setViewState('authenticated');
-          loadProfile();
+          const profileResponse = await sendMessage<ExtensionProfile>(Messages.getProfile());
+          if (profileResponse.success && profileResponse.data) {
+            setProfile(profileResponse.data);
+          }
         } else {
           setViewState('unauthenticated');
         }
@@ -42,29 +40,26 @@ export default function App() {
       setError((err as Error).message);
       setViewState('error');
     }
-  }
+  }, []);
 
-  async function loadProfile() {
-    const response = await sendMessage<ExtensionProfile>(Messages.getProfile());
-    if (response.success && response.data) {
-      setProfile(response.data);
-    }
-  }
-
-  async function checkPageStatus() {
-    // Get current tab and send message to content script
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab?.id) {
-      try {
-        const response = await chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_STATUS' });
-        if (response) {
-          setPageStatus(response);
+  useEffect(() => {
+    async function checkPageStatus() {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.id) {
+        try {
+          const response = await chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_STATUS' });
+          if (response) {
+            setPageStatus(response);
+          }
+        } catch {
+          // Content script not loaded
         }
-      } catch {
-        // Content script not loaded
       }
     }
-  }
+
+    checkAuthStatus();
+    checkPageStatus();
+  }, [checkAuthStatus]);
 
   async function handleConnect() {
     await sendMessage(Messages.openAuth());

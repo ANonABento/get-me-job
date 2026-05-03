@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import type { ExtensionSettings, LearnedAnswer } from '@/shared/types';
 import { DEFAULT_SETTINGS, DEFAULT_API_BASE_URL } from '@/shared/types';
-import { getStorage, setStorage, updateSettings, getSettings, getApiBaseUrl, setApiBaseUrl } from '../background/storage';
+import { updateSettings, getSettings, getApiBaseUrl, setApiBaseUrl } from '../background/storage';
+import { sendMessage, Messages } from '@/shared/messages';
 
 export default function OptionsApp() {
   const [settings, setSettingsState] = useState<ExtensionSettings>(DEFAULT_SETTINGS);
@@ -12,51 +13,47 @@ export default function OptionsApp() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
+    async function loadSettings() {
+      try {
+        const [settingsData, url] = await Promise.all([
+          getSettings(),
+          getApiBaseUrl(),
+        ]);
+        setSettingsState(settingsData);
+        setApiUrl(url);
+      } catch {
+        setMessage({ type: 'error', text: 'Failed to load settings' });
+        setTimeout(() => setMessage(null), 3000);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function loadLearnedAnswers() {
+      try {
+        const authResponse = await sendMessage<{ isAuthenticated: boolean }>(Messages.getAuthStatus());
+        if (!authResponse.data?.isAuthenticated) return;
+        const result = await sendMessage<LearnedAnswer[]>(Messages.getLearnedAnswers());
+        if (result.success && result.data) {
+          setLearnedAnswers(result.data);
+        }
+      } catch (err) {
+        console.error('Failed to load learned answers:', err);
+      }
+    }
+
     loadSettings();
     loadLearnedAnswers();
   }, []);
 
-  async function loadSettings() {
-    try {
-      const [settingsData, url] = await Promise.all([
-        getSettings(),
-        getApiBaseUrl(),
-      ]);
-      setSettingsState(settingsData);
-      setApiUrl(url);
-    } catch (err) {
-      showMessage('error', 'Failed to load settings');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function loadLearnedAnswers() {
-    try {
-      const response = await chrome.runtime.sendMessage({ type: 'GET_AUTH_STATUS' });
-      if (!response?.data?.isAuthenticated) return;
-
-      // Fetch learned answers via background script
-      const result = await chrome.runtime.sendMessage({ type: 'GET_LEARNED_ANSWERS' });
-      if (result?.success && result.data) {
-        setLearnedAnswers(result.data);
-      }
-    } catch (err) {
-      console.error('Failed to load learned answers:', err);
-    }
-  }
-
   async function handleDeleteAnswer(id: string) {
     try {
-      const result = await chrome.runtime.sendMessage({
-        type: 'DELETE_ANSWER',
-        payload: id,
-      });
-      if (result?.success) {
+      const result = await sendMessage(Messages.deleteAnswer(id));
+      if (result.success) {
         setLearnedAnswers((prev) => prev.filter((a) => a.id !== id));
         showMessage('success', 'Answer deleted');
       }
-    } catch (err) {
+    } catch {
       showMessage('error', 'Failed to delete answer');
     }
   }
