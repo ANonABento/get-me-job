@@ -127,7 +127,7 @@ export function Sidebar() {
       {/* Mobile menu button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed top-4 left-4 z-40 flex h-11 w-11 items-center justify-center rounded-lg border bg-background shadow-card lg:hidden"
+        className="fixed top-4 left-4 z-30 flex h-11 w-11 items-center justify-center rounded-lg border bg-background shadow-card lg:hidden"
         aria-label="Open menu"
       >
         <Menu className="h-5 w-5" />
@@ -180,8 +180,8 @@ export function Sidebar() {
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-3">
+        {/* Navigation — overflow-y-auto only when expanded; collapsed has no y-overflow and needs visible for tooltips */}
+        <nav className={cn("flex-1 p-3", collapsed ? "overflow-visible" : "overflow-y-auto")}>
           {navigationGroups.map((group, groupIndex) => (
             <div
               key={group.label}

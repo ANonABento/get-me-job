@@ -105,18 +105,18 @@ interface Analytics {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  pending: { label: "Pending", color: "bg-violet-500", icon: Clock },
-  saved: { label: "Saved", color: "bg-slate-500", icon: Star },
-  dismissed: { label: "Dismissed", color: "bg-zinc-500", icon: XCircle },
-  applied: { label: "Applied", color: "bg-blue-500", icon: CheckCircle },
+  pending: { label: "Pending", color: "bg-muted-foreground", icon: Clock },
+  saved: { label: "Saved", color: "bg-muted-foreground", icon: Star },
+  dismissed: { label: "Dismissed", color: "bg-muted-foreground", icon: XCircle },
+  applied: { label: "Applied", color: "bg-info", icon: CheckCircle },
   interviewing: {
     label: "Interviewing",
-    color: "bg-amber-500",
+    color: "bg-warning",
     icon: MessageSquare,
   },
-  offered: { label: "Offered", color: "bg-emerald-500", icon: TrendingUp },
-  rejected: { label: "Rejected", color: "bg-red-500", icon: XCircle },
-  withdrawn: { label: "Withdrawn", color: "bg-stone-500", icon: AlertTriangle },
+  offered: { label: "Offered", color: "bg-success", icon: TrendingUp },
+  rejected: { label: "Rejected", color: "bg-destructive", icon: XCircle },
+  withdrawn: { label: "Withdrawn", color: "bg-muted-foreground", icon: AlertTriangle },
 };
 
 export default function AnalyticsPage() {

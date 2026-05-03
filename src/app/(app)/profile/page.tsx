@@ -279,18 +279,18 @@ export default function ProfilePage() {
                   </p>
                 </div>
                 <div className="mt-6 space-y-3 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Mail className="h-4 w-4" />
+                  <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+                    <Mail className="h-4 w-4 shrink-0" />
                     <span className="truncate">{form.email || "No email"}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
+                  <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+                    <MapPin className="h-4 w-4 shrink-0" />
                     <span className="truncate">
                       {form.location || "No location"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <DollarSign className="h-4 w-4" />
+                  <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+                    <DollarSign className="h-4 w-4 shrink-0" />
                     <span className="truncate">{salaryRange}</span>
                   </div>
                 </div>

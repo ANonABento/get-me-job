@@ -234,7 +234,7 @@ export default function JobsPage() {
           />
         )}
 
-        <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
           {loading ? (
             <div className="grid gap-6 lg:grid-cols-2">
               {Array.from({ length: 4 }).map((_, index) => (
