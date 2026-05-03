@@ -17,6 +17,6 @@
     },
     "types": ["chrome"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "tests/**/*"],
   "exclude": ["node_modules", "dist"]
 }

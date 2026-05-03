@@ -14,7 +14,7 @@ export default function OptionsApp() {
   useEffect(() => {
     loadSettings();
     loadLearnedAnswers();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadSettings() {
     try {

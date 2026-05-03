@@ -8,7 +8,7 @@
  * - Content script injects on a fixture page without errors
  * - LinkedIn scraper selectors extract expected fields from the fixture HTML
  */
-import { test, expect, chromium, type BrowserContext } from '@playwright/test';
+import { test, expect, chromium, type BrowserContext, type Page } from '@playwright/test';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -16,9 +16,18 @@ import * as path from 'path';
 const pathToExtension = path.join(__dirname, '../../dist');
 const fixturesPath = path.join(__dirname, '../fixtures');
 
+// Time to let content.js initialise after navigation (MV3 injection is async)
+const CONTENT_SCRIPT_INIT_MS = 800;
+
 let context: BrowserContext;
 let extensionId: string;
 let userDataDir: string;
+
+async function gotoLinkedInFixture(page: Page) {
+  const fixturePath = path.resolve(fixturesPath, 'linkedin-mock.html');
+  await page.goto(`file://${fixturePath}`);
+  await page.waitForLoadState('domcontentloaded');
+}
 
 test.beforeAll(async () => {
   userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'columbus-pw-'));
@@ -28,7 +37,7 @@ test.beforeAll(async () => {
     args: [
       `--disable-extensions-except=${pathToExtension}`,
       `--load-extension=${pathToExtension}`,
-      '--no-sandbox',
+      '--no-sandbox',           // required in CI environments without a user namespace
       '--disable-setuid-sandbox',
     ],
   });
@@ -64,8 +73,8 @@ test('popup renders Columbus heading and Connect Account button', async () => {
       timeout: 10_000,
     });
 
-    // Heading
-    await expect(page.locator('h1').first()).toHaveText('Columbus');
+    // Heading — use hasText to avoid matching on the first h1 regardless of content
+    await expect(page.locator('h1', { hasText: 'Columbus' })).toBeVisible();
 
     // Subtitle visible in unauthenticated state
     await expect(page.locator('.popup-container')).toBeVisible();
@@ -101,12 +110,10 @@ test('content script injects on fixture page without throwing errors', async () 
   page.on('pageerror', (err) => errors.push(err.message));
 
   try {
-    const fixturePath = path.resolve(fixturesPath, 'linkedin-mock.html');
-    await page.goto(`file://${fixturePath}`);
-    await page.waitForLoadState('domcontentloaded');
+    await gotoLinkedInFixture(page);
 
     // Give content.js time to initialise on the page
-    await page.waitForTimeout(800);
+    await page.waitForTimeout(CONTENT_SCRIPT_INIT_MS);
 
     // No uncaught errors should originate from the extension content script
     const contentScriptErrors = errors.filter(
@@ -121,13 +128,12 @@ test('content script injects on fixture page without throwing errors', async () 
 test('LinkedIn scraper selectors extract title, company, and location from fixture', async () => {
   const page = await context.newPage();
   try {
-    const fixturePath = path.resolve(fixturesPath, 'linkedin-mock.html');
-    await page.goto(`file://${fixturePath}`);
-    await page.waitForLoadState('domcontentloaded');
+    await gotoLinkedInFixture(page);
 
     // Mirror the exact selector logic from LinkedInScraper / BaseScraper
     const job = await page.evaluate(() => {
-      // Mirrors BaseScraper.extractTextContent(selector)
+      // Iterates selectors and returns the first non-empty text match,
+      // mirroring the calling loop in LinkedInScraper.extractJobTitle/extractCompany
       const extractText = (selectors: string[]): string | null => {
         for (const sel of selectors) {
           const el = document.querySelector(sel);
@@ -198,9 +204,7 @@ test('LinkedIn scraper selectors extract title, company, and location from fixtu
 test('LinkedIn job list selectors extract cards from fixture', async () => {
   const page = await context.newPage();
   try {
-    const fixturePath = path.resolve(fixturesPath, 'linkedin-mock.html');
-    await page.goto(`file://${fixturePath}`);
-    await page.waitForLoadState('domcontentloaded');
+    await gotoLinkedInFixture(page);
 
     // Mirrors LinkedInScraper.scrapeJobList() card extraction
     const jobs = await page.evaluate(() => {

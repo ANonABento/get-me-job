@@ -22,7 +22,7 @@ export default function App() {
   useEffect(() => {
     checkAuthStatus();
     checkPageStatus();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function checkAuthStatus() {
     try {

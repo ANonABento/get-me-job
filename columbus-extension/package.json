@@ -9,9 +9,9 @@
     "build:firefox": "npm run generate-icons && TARGET=firefox webpack --mode production",
     "generate-icons": "node scripts/generate-icons.js",
     "type-check": "tsc --noEmit",
-    "lint": "eslint src --ext .ts,.tsx",
+    "lint": "eslint src tests --ext .ts,.tsx",
     "test": "vitest",
-    "test:e2e": "npm run build && npx playwright test",
+    "test:e2e": "npx playwright test",
     "clean": "rm -rf dist"
   },
   "dependencies": {
