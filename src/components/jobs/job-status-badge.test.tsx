@@ -1,21 +1,22 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { JOB_STATUSES } from "@/lib/constants/jobs";
 import { JobStatusBadge } from "./job-status-badge";
 
 describe("JobStatusBadge", () => {
   it("renders the label for a known status", () => {
     render(<JobStatusBadge status="applied" />);
-    expect(screen.getByText("Applied")).toBeTruthy();
+    expect(screen.getByText("Applied")).toBeInTheDocument();
   });
 
   it("renders 'Interview' as the label for interviewing", () => {
     render(<JobStatusBadge status="interviewing" />);
-    expect(screen.getByText("Interview")).toBeTruthy();
+    expect(screen.getByText("Interview")).toBeInTheDocument();
   });
 
   it("falls back to 'Saved' for unknown status", () => {
     render(<JobStatusBadge status="unknown_status" />);
-    expect(screen.getByText("Saved")).toBeTruthy();
+    expect(screen.getByText("Saved")).toBeInTheDocument();
   });
 
   it("applies the correct semantic class for success states", () => {
@@ -45,8 +46,7 @@ describe("JobStatusBadge", () => {
   });
 
   it("renders all known statuses without throwing", () => {
-    const statuses = ["pending", "saved", "dismissed", "withdrawn", "applied", "interviewing", "offered", "rejected"];
-    for (const status of statuses) {
+    for (const status of JOB_STATUSES) {
       expect(() => render(<JobStatusBadge status={status} />)).not.toThrow();
     }
   });
