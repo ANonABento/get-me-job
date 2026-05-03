@@ -180,7 +180,8 @@ export type MessageType =
   | 'DELETE_ANSWER'
   | 'GET_AUTH_STATUS'
   | 'OPEN_AUTH'
-  | 'LOGOUT';
+  | 'LOGOUT'
+  | 'JOB_DETECTED';
 
 export interface ExtensionMessage<T = unknown> {
   type: MessageType;

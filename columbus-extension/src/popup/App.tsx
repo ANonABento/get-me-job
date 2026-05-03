@@ -19,6 +19,13 @@ export default function App() {
   const [importing, setImporting] = useState(false);
   const [importSuccess, setImportSuccess] = useState(false);
 
+  const loadProfile = useCallback(async () => {
+    const response = await sendMessage<ExtensionProfile>(Messages.getProfile());
+    if (response.success && response.data) {
+      setProfile(response.data);
+    }
+  }, []);
+
   const checkAuthStatus = useCallback(async () => {
     try {
       const response = await sendMessage(Messages.getAuthStatus());
@@ -26,10 +33,7 @@ export default function App() {
         const { isAuthenticated } = response.data as { isAuthenticated: boolean };
         if (isAuthenticated) {
           setViewState('authenticated');
-          const profileResponse = await sendMessage<ExtensionProfile>(Messages.getProfile());
-          if (profileResponse.success && profileResponse.data) {
-            setProfile(profileResponse.data);
-          }
+          loadProfile();
         } else {
           setViewState('unauthenticated');
         }
@@ -40,26 +44,26 @@ export default function App() {
       setError((err as Error).message);
       setViewState('error');
     }
+  }, [loadProfile]);
+
+  const checkPageStatus = useCallback(async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id) {
+      try {
+        const response = await chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_STATUS' });
+        if (response) {
+          setPageStatus(response);
+        }
+      } catch {
+        // Content script not loaded
+      }
+    }
   }, []);
 
   useEffect(() => {
-    async function checkPageStatus() {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab?.id) {
-        try {
-          const response = await chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_STATUS' });
-          if (response) {
-            setPageStatus(response);
-          }
-        } catch {
-          // Content script not loaded
-        }
-      }
-    }
-
     checkAuthStatus();
     checkPageStatus();
-  }, [checkAuthStatus]);
+  }, [checkAuthStatus, checkPageStatus]);
 
   async function handleConnect() {
     await sendMessage(Messages.openAuth());

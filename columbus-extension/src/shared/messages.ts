@@ -47,10 +47,10 @@ export const Messages = {
     type: 'SEARCH_ANSWERS',
     payload: question,
   }),
-  getLearnedAnswers: (): ExtensionMessage => ({ type: 'GET_LEARNED_ANSWERS' }),
-  deleteAnswer: (id: string): ExtensionMessage<string> => ({
-    type: 'DELETE_ANSWER',
-    payload: id,
+
+  jobDetected: (meta: Pick<ScrapedJob, 'title' | 'company' | 'url'>): ExtensionMessage<Pick<ScrapedJob, 'title' | 'company' | 'url'>> => ({
+    type: 'JOB_DETECTED',
+    payload: meta,
   }),
 };
 
@@ -69,8 +69,6 @@ export interface ImportJobResponse extends ExtensionResponse<{
 }> {}
 
 export interface SearchAnswersResponse extends ExtensionResponse<SimilarAnswer[]> {}
-
-export interface LearnedAnswerListResponse extends ExtensionResponse<LearnedAnswer[]> {}
 
 // Send message to background script
 export async function sendMessage<T>(message: ExtensionMessage): Promise<ExtensionResponse<T>> {

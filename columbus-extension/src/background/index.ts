@@ -10,6 +10,7 @@ import {
   setCachedProfile,
   getApiBaseUrl,
 } from './storage';
+import { setBadgeForTab, clearBadgeForTab } from './badge';
 
 // Handle messages from content scripts and popup
 chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendResponse) => {
@@ -63,6 +64,13 @@ async function handleMessage(
 
     case 'DELETE_ANSWER':
       return handleDeleteAnswer(message.payload as string);
+
+    case 'JOB_DETECTED': {
+      const tabId = sender.tab?.id;
+      if (!tabId) return { success: false, error: 'No tab ID in sender' };
+      await setBadgeForTab(tabId);
+      return { success: true };
+    }
 
     default:
       return { success: false, error: `Unknown message type: ${message.type}` };
@@ -229,6 +237,13 @@ chrome.commands.onCommand.addListener(async (command) => {
     case 'import-job':
       chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_IMPORT' });
       break;
+  }
+});
+
+// Clear badge when a tab navigates to a new URL
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status === 'loading' && changeInfo.url) {
+    clearBadgeForTab(tabId).catch(() => {});
   }
 });
 

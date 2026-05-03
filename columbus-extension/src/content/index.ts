@@ -16,6 +16,7 @@ let autoFillEngine: AutoFillEngine | null = null;
 let cachedProfile: ExtensionProfile | null = null;
 let detectedFields: DetectedField[] = [];
 let scrapedJob: ScrapedJob | null = null;
+let jobDetectedForUrl: string | null = null;
 
 // Scan page on load
 scanPage();
@@ -42,6 +43,14 @@ async function scanPage() {
       scrapedJob = await scraper.scrapeJobListing();
       if (scrapedJob) {
         console.log('[Columbus] Scraped job:', scrapedJob.title);
+        if (jobDetectedForUrl !== window.location.href) {
+          jobDetectedForUrl = window.location.href;
+          sendMessage(Messages.jobDetected({
+            title: scrapedJob.title,
+            company: scrapedJob.company,
+            url: scrapedJob.url,
+          })).catch((err) => console.error('[Columbus] Failed to notify job detected:', err));
+        }
       }
     } catch (err) {
       console.error('[Columbus] Scrape error:', err);
