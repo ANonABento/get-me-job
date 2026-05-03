@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Background circle: deep teal -->
+  <circle cx="64" cy="64" r="64" fill="#134e4a"/>
+  <!-- Inner teal ring for depth -->
+  <circle cx="64" cy="64" r="56" fill="#0f766e"/>
+  <!-- Compass needle north half: amber/gold -->
+  <polygon points="64,16 76,65 64,56 52,65" fill="#f59e0b"/>
+  <!-- Compass needle south half: slate white -->
+  <polygon points="64,112 76,63 64,72 52,63" fill="#e2e8f0"/>
+  <!-- Center pivot -->
+  <circle cx="64" cy="64" r="8" fill="#134e4a"/>
+  <circle cx="64" cy="64" r="4" fill="#f59e0b"/>
+</svg>
