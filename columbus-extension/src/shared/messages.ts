@@ -48,8 +48,7 @@ export const Messages = {
     payload: question,
   }),
 
-  // Badge notification messages
-  jobDetected: (meta: { title: string; company: string; url: string }): ExtensionMessage<{ title: string; company: string; url: string }> => ({
+  jobDetected: (meta: Pick<ScrapedJob, 'title' | 'company' | 'url'>): ExtensionMessage<Pick<ScrapedJob, 'title' | 'company' | 'url'>> => ({
     type: 'JOB_DETECTED',
     payload: meta,
   }),
