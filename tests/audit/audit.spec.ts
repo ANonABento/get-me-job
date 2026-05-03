@@ -3,7 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 const BASE_URL = "http://localhost:3000";
-const SCREENSHOTS_DIR = "/Users/bentomac/get-me-job/.audit/screenshots";
+const SCREENSHOTS_DIR = path.resolve(__dirname, "../../../.audit/screenshots");
 
 const ROUTES = [
   { path: "/", name: "landing" },
@@ -28,9 +28,7 @@ const DESKTOP = { width: 1920, height: 1080 };
 const MOBILE = { width: 375, height: 812 };
 
 async function captureRoute(
-  browser: ReturnType<typeof chromium.launch> extends Promise<infer T>
-    ? T
-    : never,
+  browser: Awaited<ReturnType<typeof chromium.launch>>,
   viewport: { width: number; height: number },
   route: { path: string; name: string },
   suffix: string
