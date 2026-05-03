@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Demo: Senior Software Engineer at Acme Corp</title>
+<meta name="description" content="Senior Software Engineer position at Acme Corp - Remote (US). Apply now.">
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    max-width: 720px;
+    margin: 32px auto;
+    padding: 0 20px;
+    color: #1a1a1a;
+    line-height: 1.5;
+    background: #fafafa;
+  }
+  h1, h2 { color: #134e4a; }
+  .job-meta {
+    background: #f0fdfa;
+    border-left: 3px solid #134e4a;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    border-radius: 4px;
+  }
+  .job-meta p { margin: 4px 0; font-size: 14px; }
+  .job-meta strong { color: #134e4a; }
+  form {
+    background: white;
+    padding: 24px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .row { display: flex; gap: 16px; margin-bottom: 16px; }
+  .row > div { flex: 1; }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    color: #444;
+  }
+  input, textarea, select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+  }
+  textarea { min-height: 80px; resize: vertical; }
+  .field-group { margin-bottom: 16px; }
+  button[type=submit] {
+    background: #134e4a;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 16px;
+  }
+  button[type=submit]:hover { background: #0f3a37; }
+  .hint {
+    font-size: 12px;
+    color: #666;
+    background: #fef3c7;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+  }
+</style>
+
+<!-- JSON-LD schema so the Generic scraper can pick up job metadata even
+     without site-specific selectors. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "JobPosting",
+  "title": "Senior Software Engineer",
+  "description": "We're looking for a Senior Software Engineer to join our platform team. You'll work on distributed systems, build internal developer tools, and own infrastructure decisions.",
+  "datePosted": "2026-04-28",
+  "validThrough": "2026-06-30",
+  "employmentType": "FULL_TIME",
+  "hiringOrganization": {
+    "@type": "Organization",
+    "name": "Acme Corp",
+    "sameAs": "https://acme.example.com"
+  },
+  "jobLocation": {
+    "@type": "Place",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Remote",
+      "addressRegion": "US"
+    }
+  },
+  "baseSalary": {
+    "@type": "MonetaryAmount",
+    "currency": "USD",
+    "value": {
+      "@type": "QuantitativeValue",
+      "minValue": 160000,
+      "maxValue": 220000,
+      "unitText": "YEAR"
+    }
+  }
+}
+</script>
+</head>
+<body>
+
+<h1>Senior Software Engineer</h1>
+
+<div class="job-meta">
+  <p><strong>Acme Corp</strong> · Remote (US)</p>
+  <p><strong>Salary:</strong> $160k–$220k · <strong>Type:</strong> Full-time</p>
+  <p><strong>Posted:</strong> April 28, 2026</p>
+</div>
+
+<p>We're looking for a Senior Software Engineer to join our platform team. You'll work on distributed systems, build internal developer tools, and own infrastructure decisions across our growing product surface.</p>
+
+<h2>Apply now</h2>
+
+<div class="hint">
+  💡 Demo for Columbus extension. Click the extension icon to see scraped data + try Cmd+Shift+F to auto-fill (need to be authenticated).
+</div>
+
+<form id="application" onsubmit="event.preventDefault(); alert('Submitted (demo only — no real submission)');">
+  <div class="row">
+    <div>
+      <label for="firstName">First name</label>
+      <input id="firstName" name="firstName" type="text" autocomplete="given-name" required>
+    </div>
+    <div>
+      <label for="lastName">Last name</label>
+      <input id="lastName" name="lastName" type="text" autocomplete="family-name" required>
+    </div>
+  </div>
+
+  <div class="field-group">
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" autocomplete="email" required>
+  </div>
+
+  <div class="field-group">
+    <label for="phone">Phone number</label>
+    <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="+1 555 123 4567">
+  </div>
+
+  <div class="row">
+    <div>
+      <label for="city">City</label>
+      <input id="city" name="city" type="text" autocomplete="address-level2">
+    </div>
+    <div>
+      <label for="state">State / Region</label>
+      <input id="state" name="state" type="text" autocomplete="address-level1">
+    </div>
+    <div>
+      <label for="country">Country</label>
+      <input id="country" name="country" type="text" autocomplete="country-name">
+    </div>
+  </div>
+
+  <div class="field-group">
+    <label for="linkedin">LinkedIn URL</label>
+    <input id="linkedin" name="linkedin_url" type="url" placeholder="https://linkedin.com/in/...">
+  </div>
+
+  <div class="field-group">
+    <label for="github">GitHub URL</label>
+    <input id="github" name="github_url" type="url" placeholder="https://github.com/...">
+  </div>
+
+  <div class="field-group">
+    <label for="portfolio">Portfolio / Website</label>
+    <input id="portfolio" name="portfolio_url" type="url">
+  </div>
+
+  <div class="row">
+    <div>
+      <label for="experience">Years of experience</label>
+      <input id="experience" name="years_experience" type="number" min="0">
+    </div>
+    <div>
+      <label for="currentCompany">Current company</label>
+      <input id="currentCompany" name="current_company" type="text" autocomplete="organization">
+    </div>
+  </div>
+
+  <div class="field-group">
+    <label for="currentTitle">Current title</label>
+    <input id="currentTitle" name="current_title" type="text" autocomplete="organization-title">
+  </div>
+
+  <h3 style="margin-top:24px">Custom questions</h3>
+
+  <div class="field-group">
+    <label for="whyCompany">Why are you interested in working at Acme Corp?</label>
+    <textarea id="whyCompany" name="why_company" placeholder="Tell us what excites you about Acme..."></textarea>
+  </div>
+
+  <div class="field-group">
+    <label for="biggestChallenge">Describe a challenging engineering problem you solved.</label>
+    <textarea id="biggestChallenge" name="biggest_challenge"></textarea>
+  </div>
+
+  <div class="field-group">
+    <label for="salary">Salary expectation</label>
+    <input id="salary" name="salary_expectation" type="text" placeholder="e.g. $200k">
+  </div>
+
+  <div class="field-group">
+    <label for="startDate">Earliest start date</label>
+    <input id="startDate" name="start_date" type="date">
+  </div>
+
+  <div class="field-group">
+    <label for="visa">Visa / authorization status</label>
+    <select id="visa" name="visa_status">
+      <option value="">Select...</option>
+      <option value="us_citizen">US citizen</option>
+      <option value="permanent_resident">Permanent resident</option>
+      <option value="visa_required">Visa sponsorship required</option>
+      <option value="other">Other</option>
+    </select>
+  </div>
+
+  <button type="submit">Submit application</button>
+</form>
+
+</body>
+</html>

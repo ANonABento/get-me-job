@@ -80,6 +80,35 @@ Connect your Google account to enable:
 
 See [docs/google-integration/README.md](docs/google-integration/README.md) for detailed setup instructions.
 
+### Columbus Browser Extension (optional)
+
+The Columbus extension auto-fills job applications and imports listings from supported sites directly into your opportunity bank. It's a separate workspace under `columbus-extension/`.
+
+**Quick setup:**
+
+```bash
+cd columbus-extension
+npm install
+npm run build          # Chrome    → dist/
+npm run build:firefox  # Firefox   → dist-firefox/
+```
+
+**Load it:**
+- Chrome: `chrome://extensions` → enable Developer mode → Load unpacked → pick `columbus-extension/dist/`
+- Firefox: `about:debugging` → Load Temporary Add-on → pick `columbus-extension/dist-firefox/manifest.json`
+
+**Try the demo first** (a sample job application form with embedded `JobPosting` JSON-LD, no auth needed):
+
+```bash
+node columbus-extension/demo/launch-with-extension.mjs
+```
+
+Boots a fresh Chromium with the extension pre-loaded and opens the demo form so you can see scraping, the badge, and the popup behavior end-to-end.
+
+**Connect:** click the Columbus icon → **Connect Account**. Opens `/extension/connect` on your locally-running Get Me Job, generates a token tied to your Clerk session, stores in extension storage. After connecting, `Cmd+Shift+F` auto-fills, `Cmd+Shift+I` imports a listing.
+
+Full docs: [`columbus-extension/README.md`](./columbus-extension/README.md).
+
 ## Usage
 
 1. **Upload Documents**: Go to Upload and add resumes, cover letters, or supporting career documents

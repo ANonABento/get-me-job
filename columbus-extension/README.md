@@ -13,9 +13,11 @@ Browser extension for [Columbus](../README.md) that auto-fills job applications 
 ```bash
 cd columbus-extension
 npm install
-npm run build          # Chrome
-npm run build:firefox  # Firefox
+npm run build          # Chrome    → dist/
+npm run build:firefox  # Firefox   → dist-firefox/
 ```
+
+The build pipeline pulls icons from `icons/source/columbus.svg` (a branded compass design), renders them at 16/32/48/128 via `sharp`, and copies them into `src/assets/icons/`, `dist/icons/`, and `dist-firefox/icons/` automatically. All four PNGs stay under 4KB.
 
 ### Load in Chrome
 
@@ -30,6 +32,18 @@ npm run build:firefox  # Firefox
 1. Open `about:debugging#/runtime/this-firefox`
 2. Click **Load Temporary Add-on...**
 3. Select `columbus-extension/dist-firefox/manifest.json`
+
+### Quick demo (no real job site needed)
+
+A self-contained demo launcher boots a fresh Chromium, loads the unpacked extension, and opens a sample job application form with embedded `JobPosting` JSON-LD:
+
+```bash
+node demo/launch-with-extension.mjs
+```
+
+This launches a clean Chromium profile (`demo/.user-data-dir/`) so you can try auto-fill, the badge notification, and the scraper against a known-good fixture without leaving the extension's directory. Press `Ctrl+C` in the terminal to close.
+
+The demo form has 18 form fields (name / contact / address / URLs / current role / years of experience), 4 free-text custom questions, a visa-status select, and a date picker — covers all the major field-detector patterns.
 
 ## Usage Guide
 
@@ -73,14 +87,22 @@ When you answer custom questions on job applications:
 3. On future applications with similar questions, your saved answer is suggested
 4. Manage saved answers in **Settings** (right-click extension icon > Options)
 
-### 5. Settings
+### 5. Toolbar badge (job-detected indicator)
+
+When the content script's scraper successfully detects a job listing on the current page, the extension's toolbar icon shows a `!` badge (blue `#3b82f6`) with the hover title `Job detected — press Cmd+Shift+I to import`. The badge clears automatically when the tab navigates to a new URL.
+
+The behavior is controlled by the `notifyOnJobDetected` setting (default: enabled). Toggle it from the options page if you find it noisy.
+
+Implementation: content script sends a `JOB_DETECTED` message to the background once per page after the first successful scrape; the background calls `chrome.action.setBadgeText/Color/Title` and tracks per-tab state. Reset on `chrome.tabs.onUpdated` when the URL changes. SPA navigation (URL changes without a full reload) is handled by re-arming the notify-once flag.
+
+### 6. Settings
 
 Right-click the Columbus icon > **Options** to configure:
 
 - **Connection**: API URL (default `http://localhost:3000`)
 - **Auto-Fill**: Toggle on/off, confidence threshold (0-100%)
 - **Learning**: Toggle learning from answers
-- **Notifications**: Badge when job detected
+- **Notifications**: Badge when job detected (`notifyOnJobDetected`)
 - **Saved Answers**: View and delete learned answers
 
 ## Supported Job Sites
@@ -212,6 +234,33 @@ npm run generate-icons # Regenerate placeholder icons
 
 ## Testing
 
+### Automated tests
+
+Unit tests (vitest):
+
+```bash
+npm test                # watch mode
+npm run test:run        # single run
+```
+
+Currently covers `src/background/badge.ts` (badge notification module).
+
+End-to-end tests (Playwright + persistent Chromium with extension loaded):
+
+```bash
+npm run test:e2e
+```
+
+Six tests under `tests/e2e/extension.spec.ts`:
+- Extension service worker registers (valid 32-char extension ID)
+- Popup renders the Columbus heading + Connect Account button (unauthenticated state)
+- Options page renders Settings heading + URL input + Save button
+- Content script injects on a fixture page without uncaught errors
+- LinkedInScraper extracts title / company / location / description from a static fixture (`tests/fixtures/linkedin-mock.html`)
+- LinkedIn job-list selectors match two cards in the fixture
+
+CI workflow at `.github/workflows/extension-e2e.yml` runs the e2e suite on every push that touches `columbus-extension/`.
+
 ### Manual Testing Checklist
 
 #### Extension Loading
@@ -280,6 +329,5 @@ Open DevTools on any page:
 - **No retry logic**: API failures are not automatically retried
 - **Token delivery**: Connect page uses localStorage fallback (no `externally_connectable` in manifest yet)
 - **Waterloo Works**: Only works when logged into university SSO
-- **Icons**: Placeholder generated PNGs (replace with designed assets)
-- **Bundle size**: popup.js and options.js are ~400KB (React not tree-shaken)
-- **No unit tests yet**: Field detector and scrapers untested
+- **Bundle size**: popup.js and options.js are ~400KB (React not tree-shaken; could swap to Preact)
+- **Test coverage gaps**: field detector + non-LinkedIn scrapers still untested. Only LinkedIn scraper + badge module have automated coverage today.
