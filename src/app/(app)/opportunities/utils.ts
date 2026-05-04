@@ -15,7 +15,14 @@ export type OpportunityJobType =
   | "part-time"
   | "contract"
   | "internship";
-export type OpportunityLevel = "junior" | "intermediate" | "senior" | "staff";
+export type OpportunityLevel =
+  | "junior"
+  | "intermediate"
+  | "senior"
+  | "lead"
+  | "principal"
+  | "other"
+  | "staff";
 export type OpportunityStatus =
   | "pending"
   | "saved"
@@ -183,9 +190,12 @@ export const OPPORTUNITY_JOB_TYPE_OPTIONS: OpportunityOption<OpportunityJobType>
 export const OPPORTUNITY_LEVEL_OPTIONS: OpportunityOption<OpportunityLevel>[] =
   [
     { value: "junior", label: "Junior" },
-    { value: "intermediate", label: "Intermediate" },
+    { value: "intermediate", label: "Mid" },
     { value: "senior", label: "Senior" },
     { value: "staff", label: "Staff" },
+    { value: "lead", label: "Lead" },
+    { value: "principal", label: "Principal" },
+    { value: "other", label: "Other" },
   ];
 
 export const OPPORTUNITY_SORT_OPTIONS: OpportunityOption<OpportunitySortOption>[] =

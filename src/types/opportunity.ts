@@ -23,6 +23,9 @@ export const OPPORTUNITY_LEVELS = [
   "junior",
   "intermediate",
   "senior",
+  "lead",
+  "principal",
+  "other",
   "staff",
 ] as const;
 export const OPPORTUNITY_STATUSES = [
