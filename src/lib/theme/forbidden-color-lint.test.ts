@@ -10,7 +10,13 @@ const {
   findForbiddenColorViolations: (
     source: string,
     filePath: string,
-  ) => Array<{ value: string; message: string }>;
+  ) => Array<{
+    filePath: string;
+    line: number;
+    column: number;
+    value: string;
+    message: string;
+  }>;
   isForbiddenColorClass: (className: string) => boolean;
   isForbiddenInlineColorValue: (value: string) => boolean;
 };
@@ -47,15 +53,17 @@ describe("forbidden color lint", () => {
   it("finds className, cn, and inline style violations", () => {
     const source = `
       <div className="bg-${"white"} text-foreground" />
-      <Button className={cn("border-${"gray"}-200", active && "bg-card")} />
-      <span style={{ ${"color"}: '#${"111827"}', backgroundColor: 'hsl(var(--card))' }} />
+      <Button className={cn(getClassName("bg-card"), active && "border-${"gray"}-200", "bg-[${"rgb"}(255,255,255)]")} />
+      <span style={{ ${"color"}: '#${"111827"}', backgroundColor: 'hsl(var(--card))', ${"fill"}: '${"black"}' }} />
     `;
 
     expect(findForbiddenColorViolations(source, "sample.tsx")).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ value: `bg-${"white"}` }),
         expect.objectContaining({ value: `border-${"gray"}-200` }),
+        expect.objectContaining({ value: `bg-[${"rgb"}(255,255,255)]` }),
         expect.objectContaining({ value: `${"color"}: "#${"111827"}"` }),
+        expect.objectContaining({ value: `${"fill"}: "black"` }),
       ]),
     );
   });

@@ -22,9 +22,26 @@ const FORBIDDEN_COLOR_NAMES = [
   "neutral",
   "stone",
 ];
-const STYLE_COLOR_PROPS = ["color", "backgroundColor", "borderColor"];
+const STYLE_COLOR_PROPS = [
+  "backgroundColor",
+  "borderColor",
+  "caretColor",
+  "columnRuleColor",
+  "color",
+  "fill",
+  "outlineColor",
+  "stroke",
+  "textDecorationColor",
+];
 const HEX_COLOR_PATTERN = /^#(?:[0-9a-f]{3,8})$/i;
 const FUNCTION_COLOR_PATTERN = /^(?:rgb|rgba|hsl|hsla)\(/i;
+const FORBIDDEN_COLOR_FAMILY_PATTERN = new RegExp(
+  `^(?:bg|text|border)-(?:${FORBIDDEN_COLOR_FAMILIES.join(
+    "|",
+  )})-\\d{2,3}(?:\\/\\d+)?$`,
+);
+const CLASS_HELPER_CALL_PATTERN = /\b(?:cn|clsx|cva)\s*\(/g;
+const STRING_LITERAL_PATTERN = /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|`([^`\\]*(?:\\.[^`\\]*)*)`/gms;
 
 function getBaseTailwindClass(className) {
   let bracketDepth = 0;
@@ -58,13 +75,7 @@ function isForbiddenColorClass(className) {
     return true;
   }
 
-  if (
-    new RegExp(
-      `^(?:bg|text|border)-(?:${FORBIDDEN_COLOR_FAMILIES.join(
-        "|",
-      )})-\\d{2,3}(?:\\/\\d+)?$`,
-    ).test(baseClassName)
-  ) {
+  if (FORBIDDEN_COLOR_FAMILY_PATTERN.test(baseClassName)) {
     return true;
   }
 
@@ -115,6 +126,56 @@ function addClassViolations(violations, source, filePath, classValue, index) {
   }
 }
 
+function findClosingParenIndex(source, openParenIndex) {
+  let depth = 1;
+  let quote = null;
+  let escaped = false;
+
+  for (let index = openParenIndex + 1; index < source.length; index += 1) {
+    const char = source[index];
+
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+
+      if (char === "\\") {
+        escaped = true;
+        continue;
+      }
+
+      if (char === quote) {
+        quote = null;
+      }
+
+      continue;
+    }
+
+    if (char === '"' || char === "'" || char === "`") {
+      quote = char;
+      continue;
+    }
+
+    if (char === "(") {
+      depth += 1;
+      continue;
+    }
+
+    if (char !== ")") {
+      continue;
+    }
+
+    depth -= 1;
+
+    if (depth === 0) {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
 function findClassNameViolations(source, filePath) {
   const violations = [];
   const staticClassPattern =
@@ -127,20 +188,24 @@ function findClassNameViolations(source, filePath) {
     addClassViolations(violations, source, filePath, classValue, match.index);
   }
 
-  const cnPattern = /\b(?:cn|clsx|cva)\(([\s\S]*?)\)/g;
+  for (const match of source.matchAll(CLASS_HELPER_CALL_PATTERN)) {
+    const openParenIndex = source.indexOf("(", match.index);
+    const closeParenIndex = findClosingParenIndex(source, openParenIndex);
 
-  for (const match of source.matchAll(cnPattern)) {
-    const callBody = match[1] ?? "";
-    const stringPattern = /"([^"]*)"|'([^']*)'|`([^`]*)`/gms;
+    if (closeParenIndex === -1) {
+      continue;
+    }
 
-    for (const stringMatch of callBody.matchAll(stringPattern)) {
+    const callBody = source.slice(openParenIndex + 1, closeParenIndex);
+
+    for (const stringMatch of callBody.matchAll(STRING_LITERAL_PATTERN)) {
       const classValue = stringMatch[1] ?? stringMatch[2] ?? stringMatch[3] ?? "";
       addClassViolations(
         violations,
         source,
         filePath,
         classValue,
-        match.index + stringMatch.index,
+        openParenIndex + 1 + stringMatch.index,
       );
     }
   }
