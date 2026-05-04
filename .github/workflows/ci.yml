@@ -46,11 +46,21 @@ jobs:
               - 'tsconfig.typecheck.json'
               - 'vitest.config.ts'
 
-  type-check:
-    name: Type check
+  quality-gates:
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     needs: changes
     if: needs.changes.outputs.app == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Type check
+            command: npm run type-check
+          - name: Test
+            command: npm run test:run
+          - name: Lint
+            command: npm run lint
 
     steps:
       - name: Checkout repository
@@ -71,8 +81,7 @@ jobs:
             node_modules
             .next/cache
             node_modules/.vite/vitest
-            .vitest-cache
-          key: ${{ runner.os }}-node20-ci-${{ hashFiles('package-lock.json') }}
+          key: ${{ runner.os }}-node20-ci-${{ hashFiles('package.json', 'package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node20-ci-
 
@@ -80,87 +89,13 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: npm ci
 
-      - name: Type check
-        run: npm run type-check
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.app == 'true'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-
-      - name: Restore dependency and tool caches
-        id: cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            .next/cache
-            node_modules/.vite/vitest
-            .vitest-cache
-          key: ${{ runner.os }}-node20-ci-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node20-ci-
-
-      - name: Install dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: npm ci
-
-      - name: Run tests
-        run: npm run test:run
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.app == 'true'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-
-      - name: Restore dependency and tool caches
-        id: cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            .next/cache
-            node_modules/.vite/vitest
-            .vitest-cache
-          key: ${{ runner.os }}-node20-ci-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node20-ci-
-
-      - name: Install dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: npm ci
-
-      - name: Lint
-        run: npm run lint
+      - name: Run ${{ matrix.name }}
+        run: ${{ matrix.command }}
 
   ci-result:
     name: CI Result
     runs-on: ubuntu-latest
-    needs: [changes, type-check, test, lint]
+    needs: [changes, quality-gates]
     if: always()
 
     steps:
@@ -170,14 +105,6 @@ jobs:
             exit 1
           fi
 
-          if [[ "${{ needs.type-check.result }}" == "failure" || "${{ needs.type-check.result }}" == "cancelled" ]]; then
-            exit 1
-          fi
-
-          if [[ "${{ needs.test.result }}" == "failure" || "${{ needs.test.result }}" == "cancelled" ]]; then
-            exit 1
-          fi
-
-          if [[ "${{ needs.lint.result }}" == "failure" || "${{ needs.lint.result }}" == "cancelled" ]]; then
+          if [[ "${{ needs.quality-gates.result }}" == "failure" || "${{ needs.quality-gates.result }}" == "cancelled" ]]; then
             exit 1
           fi

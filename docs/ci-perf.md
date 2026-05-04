@@ -27,17 +27,17 @@ The previous workflow serialized type-check, tests, and lint in one job. Depende
 
 ## Changes
 
-- Split CI into parallel `Type check`, `Test`, and `Lint` jobs.
+- Split CI into parallel matrix jobs for `Type check`, `Test`, and `Lint`.
 - Added workflow concurrency so superseded PR runs are cancelled.
 - Added a path filter so docs-only changes skip type-check, tests, and lint while `CI Result` still completes.
-- Restored `node_modules`, `.next/cache`, and Vitest cache directories with `actions/cache`.
+- Restored `node_modules`, `.next/cache`, and the Vitest cache directory with `actions/cache`.
 - Kept `actions/setup-node` npm cache enabled for the package download cache.
 
 ## Expected Result
 
 On a warm dependency cache, each parallel job should skip `npm ci` and run only its gate. Based on the baseline step times, warm PR CI should be bounded by the test job and complete in roughly 1 to 2 minutes plus runner startup/cache restore time.
 
-On a cold dependency cache, the three jobs may each install dependencies once because they start in parallel and cannot share a cache produced later in the same run. Subsequent runs with unchanged `package-lock.json` should have an exact dependency cache hit, targeting an unchanged-deps cache hit rate above 80%.
+On a cold dependency cache, the three jobs may each install dependencies once because they start in parallel and cannot share a cache produced later in the same run. Subsequent runs with unchanged `package.json` and `package-lock.json` should have an exact dependency cache hit, targeting an unchanged-deps cache hit rate above 80%.
 
 ## Follow-up Verification
 
