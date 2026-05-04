@@ -5,6 +5,7 @@ import { CheckCircle, FlaskConical, Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
+import { pluralize } from "@/lib/text/pluralize";
 import type {
   PromptVariant,
   PromptVariantStats,
@@ -262,10 +263,7 @@ function VariantCard({
             )}
           </div>
           <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
-            <span>
-              {variant.resultCount} generation
-              {variant.resultCount !== 1 ? "s" : ""}
-            </span>
+            <span>{pluralize(variant.resultCount, "generation")}</span>
             {avgScore !== null && <span>avg match score: {avgScore}%</span>}
           </div>
           <pre className="mt-3 rounded-lg bg-muted p-3 text-xs whitespace-pre-wrap font-mono line-clamp-4 overflow-hidden">
