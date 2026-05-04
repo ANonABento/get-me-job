@@ -6,6 +6,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import {
@@ -31,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type StudioMobilePanel = "files" | "ai" | null;
+type StudioMobileView = "edit" | "preview";
 
 const FILES_PANEL_STORAGE_KEY = "studio.filesPanel.open";
 const AI_PANEL_STORAGE_KEY = "studio.aiPanel.open";
@@ -58,6 +60,7 @@ function StudioPageContent() {
   );
   const [aiPanelWidth, setAiPanelWidth] = useState(DEFAULT_AI_PANEL_WIDTH);
   const [mobilePanel, setMobilePanel] = useState<StudioMobilePanel>(null);
+  const [mobileView, setMobileView] = useState<StudioMobileView>("edit");
   const dragStartRef = useRef<{
     side: "files" | "ai";
     pointerX: number;
@@ -101,6 +104,12 @@ function StudioPageContent() {
   }, []);
 
   const closeMobilePanel = useCallback(() => setMobilePanel(null), []);
+
+  const filesPanelStyle = filesPanelOpen
+    ? ({
+        "--studio-files-panel-width": `${filesPanelWidth}px`,
+      } as CSSProperties)
+    : undefined;
 
   const startPanelResize = useCallback(
     (side: "files" | "ai", event: ReactPointerEvent<HTMLDivElement>) => {
@@ -234,6 +243,32 @@ function StudioPageContent() {
         onDownloadPdf={studio.handleDownloadPdf}
       />
 
+      <div
+        role="tablist"
+        aria-label="Builder view"
+        className="grid grid-cols-2 gap-1 border-b-[length:var(--border-width)] bg-background p-2 lg:hidden"
+      >
+        {(["edit", "preview"] as const).map((view) => (
+          <button
+            key={view}
+            id={`builder-${view}-tab`}
+            type="button"
+            role="tab"
+            aria-controls={`builder-${view}-panel`}
+            aria-selected={mobileView === view}
+            className={cn(
+              "rounded-md px-3 py-2 text-sm font-medium capitalize transition-colors",
+              mobileView === view
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent/10 hover:text-foreground",
+            )}
+            onClick={() => setMobileView(view)}
+          >
+            {view}
+          </button>
+        ))}
+      </div>
+
       <div className="min-h-0 flex-1 overflow-hidden bg-muted/50">
         <div className="flex h-full min-h-0">
           <aside
@@ -241,12 +276,14 @@ function StudioPageContent() {
             role="tabpanel"
             aria-labelledby="builder-edit-tab"
             className={cn(
-              "relative hidden min-h-0 shrink-0 flex-col border-r-[length:var(--border-width)] bg-background transition-[width] duration-200 ease-out lg:flex",
-              filesPanelOpen ? "" : "w-10",
+              "relative min-h-0 shrink-0 flex-col border-r-[length:var(--border-width)] bg-background transition-[width] duration-200 ease-out",
+              mobileView === "edit" ? "flex w-full" : "hidden",
+              "lg:flex",
+              filesPanelOpen
+                ? "lg:w-[var(--studio-files-panel-width)]"
+                : "lg:w-10",
             )}
-            style={
-              filesPanelOpen ? { width: `${filesPanelWidth}px` } : undefined
-            }
+            style={filesPanelStyle}
           >
             <button
               type="button"
@@ -291,7 +328,11 @@ function StudioPageContent() {
             role="tabpanel"
             aria-labelledby="builder-preview-tab"
             data-document-editor-root="true"
-            className="relative min-w-0 flex-1 overflow-auto px-3 py-4 lg:px-4 lg:py-6"
+            className={cn(
+              "relative min-w-0 flex-1 overflow-auto px-3 py-4 lg:px-4 lg:py-6",
+              mobileView === "preview" ? "block" : "hidden",
+              "lg:block",
+            )}
           >
             {studio.generating && (
               <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
