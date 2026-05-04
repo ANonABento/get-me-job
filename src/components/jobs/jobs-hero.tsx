@@ -44,14 +44,14 @@ export function JobsHero({
     <PageHeader
       width={width}
       icon={Target}
-      eyebrow="Job Tracker"
-      title="Job Applications"
-      description="Track your target jobs, analyze match scores, and generate tailored resumes."
+      eyebrow="Opportunities"
+      title="Opportunities"
+      description="Track target roles, analyze match scores, and generate tailored resumes."
       actions={
         <>
           <div className={cn(THEME_SURFACE_CLASSES, "px-4 py-3 text-center")}>
             <p className="text-2xl font-bold text-primary">{jobsCount}</p>
-            <p className="text-xs text-muted-foreground">Jobs Tracked</p>
+            <p className="text-xs text-muted-foreground">Opportunities</p>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
             <div
@@ -100,7 +100,7 @@ export function JobsHero({
                 };
 
                 try {
-                  const response = await fetch("/api/jobs", {
+                  const response = await fetch("/api/opportunities", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(jobData),

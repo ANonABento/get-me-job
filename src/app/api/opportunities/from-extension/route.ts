@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
             importedJobs.length === 1
               ? `${importedJobs[0].title} at ${importedJobs[0].company} was added to Pending.`
               : `${pendingCount} pending opportunities are ready to review.`,
-          link: "/jobs",
+          link: "/opportunities",
         },
         authResult.userId
       );

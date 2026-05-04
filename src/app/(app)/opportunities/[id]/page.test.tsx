@@ -31,7 +31,7 @@ const baseOpportunity: JobDescription = {
 function mockOpportunityFetch(initialJob: JobDescription = baseOpportunity) {
   let currentJob = { ...initialJob };
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
-    if (url === "/api/jobs/job-1" && init?.method === "PATCH") {
+    if (url === "/api/opportunities/job-1" && init?.method === "PATCH") {
       const patch =
         typeof init.body === "string"
           ? (JSON.parse(init.body) as Partial<JobDescription>)
@@ -40,11 +40,11 @@ function mockOpportunityFetch(initialJob: JobDescription = baseOpportunity) {
       return new Response(JSON.stringify({ job: currentJob }), { status: 200 });
     }
 
-    if (url === "/api/jobs/job-1") {
+    if (url === "/api/opportunities/job-1") {
       return new Response(JSON.stringify({ job: currentJob }), { status: 200 });
     }
 
-    if (url === "/api/jobs/job-1/resumes") {
+    if (url === "/api/opportunities/job-1/resumes") {
       return new Response(
         JSON.stringify({
           resumes: [
@@ -56,11 +56,11 @@ function mockOpportunityFetch(initialJob: JobDescription = baseOpportunity) {
             },
           ],
         }),
-        { status: 200 }
+        { status: 200 },
       );
     }
 
-    if (url === "/api/jobs/job-1/cover-letter/history") {
+    if (url === "/api/opportunities/job-1/cover-letter/history") {
       return new Response(
         JSON.stringify({
           versions: [
@@ -71,11 +71,22 @@ function mockOpportunityFetch(initialJob: JobDescription = baseOpportunity) {
             },
           ],
         }),
-        { status: 200 }
+        { status: 200 },
       );
     }
 
-    return new Response(JSON.stringify({ error: "Not found" }), { status: 404 });
+    if (url === "/api/opportunities/templates") {
+      return new Response(
+        JSON.stringify({
+          templates: [{ id: "classic", name: "Classic", description: "" }],
+        }),
+        { status: 200 },
+      );
+    }
+
+    return new Response(JSON.stringify({ error: "Not found" }), {
+      status: 404,
+    });
   });
 
   vi.stubGlobal("fetch", fetchMock);
@@ -98,21 +109,29 @@ describe("OpportunityDetailPage", () => {
 
     render(<OpportunityDetailPage params={{ id: "job-1" }} />);
 
-    expect(await screen.findByRole("heading", { name: "Frontend Engineer" })).toBeInTheDocument();
-    expect(screen.getByText("Acme · Remote")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Tailor Resume/i })).toHaveAttribute(
-      "href",
-      "/studio?mode=resume&opportunityId=job-1"
-    );
     expect(
-      screen.getByRole("link", { name: /Generate Cover Letter/i })
-    ).toHaveAttribute("href", "/studio?mode=cover-letter&opportunityId=job-1");
+      await screen.findByRole("heading", { name: "Frontend Engineer" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Acme · Remote")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Analyze Match/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /ATS Check/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Resume/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Cover Letter/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Company Research/i }),
+    ).toHaveAttribute("href", "/opportunities/job-1/research");
     expect(screen.getByText("Resume · 87% match")).toBeInTheDocument();
     expect(screen.getByText("Version 2")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Initial note")).toBeInTheDocument();
   });
 
-  it("saves an inline field edit through the job API", async () => {
+  it("saves an inline field edit through the opportunities API", async () => {
     const fetchMock = mockOpportunityFetch();
 
     render(<OpportunityDetailPage params={{ id: "job-1" }} />);
@@ -128,16 +147,16 @@ describe("OpportunityDetailPage", () => {
       expect(
         fetchMock.mock.calls.some(
           ([url, init]) =>
-            url === "/api/jobs/job-1" &&
+            url === "/api/opportunities/job-1" &&
             init?.method === "PATCH" &&
-            init.body === JSON.stringify({ company: "Globex" })
-        )
-      ).toBe(true)
+            init.body === JSON.stringify({ company: "Globex" }),
+        ),
+      ).toBe(true),
     );
     expect(await screen.findByText("Globex · Remote")).toBeInTheDocument();
   });
 
-  it("clears optional inline fields through the job API", async () => {
+  it("clears optional inline fields through the opportunities API", async () => {
     const fetchMock = mockOpportunityFetch();
 
     render(<OpportunityDetailPage params={{ id: "job-1" }} />);
@@ -153,11 +172,11 @@ describe("OpportunityDetailPage", () => {
       expect(
         fetchMock.mock.calls.some(
           ([url, init]) =>
-            url === "/api/jobs/job-1" &&
+            url === "/api/opportunities/job-1" &&
             init?.method === "PATCH" &&
-            init.body === JSON.stringify({ salary: "" })
-        )
-      ).toBe(true)
+            init.body === JSON.stringify({ salary: "" }),
+        ),
+      ).toBe(true),
     );
   });
 
@@ -171,18 +190,18 @@ describe("OpportunityDetailPage", () => {
       screen.getByPlaceholderText("Add private notes about this opportunity."),
       {
         target: { value: "Follow up next week" },
-      }
+      },
     );
 
     await waitFor(() =>
       expect(
         fetchMock.mock.calls.some(
           ([url, init]) =>
-            url === "/api/jobs/job-1" &&
+            url === "/api/opportunities/job-1" &&
             init?.method === "PATCH" &&
-            init.body === JSON.stringify({ notes: "Follow up next week" })
-        )
-      ).toBe(true)
+            init.body === JSON.stringify({ notes: "Follow up next week" }),
+        ),
+      ).toBe(true),
     );
   });
 
@@ -199,17 +218,17 @@ describe("OpportunityDetailPage", () => {
       expect(
         fetchMock.mock.calls.some(
           ([url, init]) =>
-            url === "/api/jobs/job-1" &&
+            url === "/api/opportunities/job-1" &&
             init?.method === "PATCH" &&
             typeof init.body === "string" &&
-            JSON.parse(init.body).status === "applied"
-        )
-      ).toBe(true)
+            JSON.parse(init.body).status === "applied",
+        ),
+      ).toBe(true),
     );
     expect(openMock).toHaveBeenCalledWith(
       "https://example.com/job",
       "_blank",
-      "noopener,noreferrer"
+      "noopener,noreferrer",
     );
   });
 });

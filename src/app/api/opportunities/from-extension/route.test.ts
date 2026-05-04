@@ -80,7 +80,7 @@ describe("opportunities from-extension route", () => {
       expect.objectContaining({
         type: "info",
         title: "New opportunity waiting for review",
-        link: "/jobs",
+        link: "/opportunities",
       }),
       "user-1"
     );

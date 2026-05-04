@@ -31,7 +31,7 @@ export default function OpportunityReviewPage() {
     try {
       const [settingsResponse, jobsResponse] = await Promise.all([
         fetch("/api/settings"),
-        fetch("/api/jobs"),
+        fetch("/api/opportunities"),
       ]);
       const settingsData = await readJsonResponse<SettingsResponse>(
         settingsResponse,
@@ -68,7 +68,7 @@ export default function OpportunityReviewPage() {
 
     setUpdating(true);
     try {
-      const response = await fetch(`/api/jobs/${job.id}`, {
+      const response = await fetch(`/api/opportunities/${job.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
@@ -123,9 +123,9 @@ export default function OpportunityReviewPage() {
   return (
     <div className="relative min-h-screen">
       <Link
-        href="/jobs"
+        href="/opportunities"
         className="fixed left-4 top-4 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full border bg-card/90 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground"
-        aria-label="Back to jobs"
+        aria-label="Back to opportunities"
       >
         <ArrowLeft className="h-5 w-5" />
       </Link>

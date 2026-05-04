@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { JobDescription } from "@/types";
-import { DEFAULT_JOB_FILTERS, filterJobs, getJobStatusValue, hasActiveJobFilters } from "./filter-jobs";
+import { DEFAULT_JOB_FILTERS, filterJobs, getJobStatusValue, hasActiveJobFilters } from "@/lib/jobs/filter-jobs";
 
 const jobs: JobDescription[] = [
   {

@@ -68,7 +68,7 @@ export function InterviewSummary({
             content={formatInterviewForDocs(session, selectedJob)}
           />
           {selectedJob && (
-            <Link href={`/jobs/research/${selectedJob.id}`}>
+            <Link href={`/opportunities/${selectedJob.id}/research`}>
               <Button variant="outline">
                 <Info className="mr-2 h-4 w-4" />
                 Research {selectedJob.company}

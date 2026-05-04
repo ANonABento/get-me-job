@@ -529,7 +529,7 @@ export default function AnalyticsPage() {
                   return (
                     <Link
                       key={job.id}
-                      href={`/jobs?highlight=${job.id}`}
+                      href={`/opportunities?highlight=${job.id}`}
                       className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
                     >
                       <div className="flex items-center gap-4">
@@ -567,7 +567,7 @@ export default function AnalyticsPage() {
                 title="No jobs tracked yet"
                 action={
                   <Button asChild variant="outline">
-                    <Link href="/jobs">Add your first job</Link>
+                    <Link href="/opportunities">Add your first job</Link>
                   </Button>
                 }
                 className="min-h-64"

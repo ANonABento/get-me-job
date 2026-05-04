@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   isAuthError: vi.fn(),
   listOpportunities: vi.fn(),
   createJob: vi.fn(),
+  getJobs: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -22,6 +23,11 @@ vi.mock("@/lib/opportunities", () => ({
 
 vi.mock("@/lib/db/jobs", () => ({
   createJob: mocks.createJob,
+  getJobs: mocks.getJobs,
+}));
+
+vi.mock("@/lib/db", () => ({
+  getLLMConfig: vi.fn(() => null),
 }));
 
 import { GET, POST } from "./route";
@@ -40,6 +46,7 @@ describe("opportunities route", () => {
     mocks.requireAuth.mockResolvedValue({ userId: "user-1" });
     mocks.isAuthError.mockReturnValue(false);
     mocks.listOpportunities.mockReturnValue([]);
+    mocks.getJobs.mockReturnValue([]);
   });
 
   it("lists opportunities for the authenticated user with parsed filters", async () => {
@@ -50,7 +57,7 @@ describe("opportunities route", () => {
     const response = await GET(request);
 
     expect(mocks.listOpportunities).toHaveBeenCalledWith("user-1", ["saved"]);
-    await expect(response.json()).resolves.toEqual({ opportunities: [] });
+    await expect(response.json()).resolves.toEqual({ jobs: [], opportunities: [] });
   });
 
   it("creates an opportunity after validating the request body", async () => {
@@ -84,7 +91,7 @@ describe("opportunities route", () => {
       }),
       "user-1",
     );
-    await expect(response.json()).resolves.toEqual({ opportunity: job });
+    await expect(response.json()).resolves.toEqual({ job, opportunity: job });
   });
 
   it("maps opportunity create fields onto the tracked job record", async () => {

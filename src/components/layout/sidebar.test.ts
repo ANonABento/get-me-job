@@ -34,7 +34,7 @@ describe("navigationGroups", () => {
     expect(labels).toEqual([
       "Overview",
       "Resume",
-      "Job Tracker",
+      "Workflow",
       "Interview",
       "Negotiation",
       "Insights",
@@ -70,11 +70,10 @@ describe("navigationGroups", () => {
     expect(interviewPrep.icon).toBeDefined();
   });
 
-  it("should have job tracker items in Job Tracker group", () => {
-    const jobTracker = getGroup("Job Tracker");
-    const items = jobTracker.items.map((i) => [i.name, i.href]);
+  it("should have opportunity workflow items in Workflow group", () => {
+    const workflow = getGroup("Workflow");
+    const items = workflow.items.map((i) => [i.name, i.href]);
     expect(items).toEqual([
-      ["Jobs", "/jobs"],
       ["Review Queue", "/opportunities/review"],
       ["Calendar", "/calendar"],
       ["Email Templates", "/emails"],
@@ -101,7 +100,7 @@ describe("navigationGroups", () => {
       ["Dashboard", "/dashboard"],
       ["Documents", "/bank"],
       ["Document Studio", "/studio"],
-      ["Jobs", "/jobs"],
+      ["Opportunities", "/opportunities"],
       ["Review Queue", "/opportunities/review"],
       ["Calendar", "/calendar"],
       ["Email Templates", "/emails"],

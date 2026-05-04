@@ -1,22 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
   Check,
   ExternalLink,
-  FileText,
   Loader2,
   PenLine,
-  Send,
-  Sparkles,
   X,
   XCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { JobStatusBadge } from "@/components/jobs/job-status-badge";
+import { OpportunityActions } from "@/components/opportunities/opportunity-actions";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useErrorToast } from "@/hooks/use-error-toast";
@@ -244,7 +242,7 @@ export default function OpportunityDetailPage({
   const fetchOpportunity = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/jobs/${params.id}`);
+      const response = await fetch(`/api/opportunities/${params.id}`);
       const data = await readJsonResponse<OpportunityResponse>(
         response,
         "Failed to load opportunity"
@@ -266,13 +264,13 @@ export default function OpportunityDetailPage({
 
   const fetchLinkedDocuments = useCallback(async () => {
     const [resumeResult, coverLetterResult] = await Promise.allSettled([
-      fetch(`/api/jobs/${params.id}/resumes`).then((response) =>
+      fetch(`/api/opportunities/${params.id}/resumes`).then((response) =>
         readJsonResponse<ResumesResponse>(
           response,
           "Failed to load generated resumes"
         )
       ),
-      fetch(`/api/jobs/${params.id}/cover-letter/history`).then((response) =>
+      fetch(`/api/opportunities/${params.id}/cover-letter/history`).then((response) =>
         readJsonResponse<CoverLettersResponse>(
           response,
           "Failed to load cover letters"
@@ -299,7 +297,7 @@ export default function OpportunityDetailPage({
       const queuedPatch = patchQueueRef.current
         .catch(() => undefined)
         .then(async () => {
-          const response = await fetch(`/api/jobs/${params.id}`, {
+          const response = await fetch(`/api/opportunities/${params.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(patch),
@@ -413,16 +411,6 @@ export default function OpportunityDetailPage({
 
   const status = opportunity?.status ?? "saved";
   const linkedDocumentCount = resumes.length + coverLetters.length;
-  const studioResumeHref = useMemo(
-    () => `/studio?mode=resume&opportunityId=${encodeURIComponent(params.id)}`,
-    [params.id]
-  );
-  const studioCoverLetterHref = useMemo(
-    () =>
-      `/studio?mode=cover-letter&opportunityId=${encodeURIComponent(params.id)}`,
-    [params.id]
-  );
-
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -435,11 +423,11 @@ export default function OpportunityDetailPage({
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
         <Link
-          href="/jobs"
+          href="/opportunities"
           className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to jobs
+          Back to opportunities
         </Link>
         <div className="rounded-lg border bg-card p-8">
           <h1 className="text-2xl font-semibold">Opportunity not found</h1>
@@ -454,11 +442,11 @@ export default function OpportunityDetailPage({
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <Link
-        href="/jobs"
+        href="/opportunities"
         className="mb-5 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to jobs
+        Back to opportunities
       </Link>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -512,42 +500,22 @@ export default function OpportunityDetailPage({
         </div>
 
         <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
+          <OpportunityActions
+            opportunity={opportunity}
+            onApply={handleApply}
+            onGeneratedDocument={fetchLinkedDocuments}
+          />
+
           <section className="rounded-lg border bg-card p-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Actions
-            </h2>
-            <div className="mt-4 grid gap-3">
-              <Button asChild className="justify-start">
-                <Link href={studioResumeHref}>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Tailor Resume
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="justify-start">
-                <Link href={studioCoverLetterHref}>
-                  <FileText className="mr-2 h-4 w-4" />
-                  Generate Cover Letter
-                </Link>
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                className="justify-start"
-                onClick={() => void handleApply()}
-              >
-                <Send className="mr-2 h-4 w-4" />
-                Apply
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                className="justify-start text-destructive hover:text-destructive"
-                onClick={() => void handleDismiss()}
-              >
-                <XCircle className="mr-2 h-4 w-4" />
-                Dismiss
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full justify-start text-destructive hover:text-destructive"
+              onClick={() => void handleDismiss()}
+            >
+              <XCircle className="mr-2 h-4 w-4" />
+              Dismiss
+            </Button>
           </section>
 
           <section className="rounded-lg border bg-card p-4">

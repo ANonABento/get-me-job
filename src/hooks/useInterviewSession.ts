@@ -98,7 +98,7 @@ export function useInterviewSession(): UseInterviewSessionReturn {
   const fetchJobs = useCallback(async () => {
     try {
       const data = await fetchJson<JobsResponse>(
-        "/api/jobs",
+        "/api/opportunities",
         undefined,
         "Failed to fetch jobs"
       );

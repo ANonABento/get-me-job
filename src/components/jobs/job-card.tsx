@@ -45,7 +45,7 @@ import {
 } from "@/lib/theme/component-classes";
 import { cn } from "@/lib/utils";
 import type { JobDescription, JobMatch } from "@/types";
-import { getJobStatusValue } from "@/app/(app)/jobs/filter-jobs";
+import { getJobStatusValue } from "@/lib/jobs/filter-jobs";
 
 const ATSScoreBadge = dynamic(
   () =>
@@ -343,7 +343,7 @@ export function JobCard(props: JobCardProps) {
 
         <div className="flex flex-wrap items-center gap-2 border-t pt-3 mt-1">
           <Link
-            href={`/jobs/research/${job.id}`}
+            href={`/opportunities/${job.id}/research`}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-[var(--radius)] border-[length:var(--border-width)] hover:bg-muted transition-colors"
           >
             <Info className="h-3.5 w-3.5" />

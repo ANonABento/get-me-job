@@ -57,9 +57,8 @@ export const navigationGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Job Tracker",
+    label: "Workflow",
     items: [
-      { name: "Jobs", href: "/jobs", icon: Briefcase },
       { name: "Review Queue", href: "/opportunities/review", icon: Rows3 },
       { name: "Calendar", href: "/calendar", icon: Calendar },
       { name: "Email Templates", href: "/emails", icon: Mail },

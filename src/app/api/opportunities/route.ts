@@ -5,7 +5,10 @@ import {
   jobToOpportunity,
   listOpportunities,
 } from "@/lib/opportunities";
-import { createJob } from "@/lib/db/jobs";
+import { createJob, getJobs } from "@/lib/db/jobs";
+import { getLLMConfig } from "@/lib/db";
+import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
+import { createJobSchema, TECH_KEYWORDS } from "@/lib/constants";
 import { createOpportunitySchema } from "@/types/opportunity";
 
 export async function GET(request: NextRequest) {
@@ -19,7 +22,9 @@ export async function GET(request: NextRequest) {
     .filter(Boolean);
 
   try {
+    const jobs = getJobs(authResult.userId);
     return NextResponse.json({
+      jobs,
       opportunities: listOpportunities(authResult.userId, statuses),
     });
   } catch (error) {
@@ -37,6 +42,55 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
+    const legacyJobParseResult = createJobSchema.safeParse(body);
+    if (legacyJobParseResult.success) {
+      const data = legacyJobParseResult.data;
+      const llmConfig = getLLMConfig(authResult.userId);
+      let keywords: string[] = [];
+
+      if (llmConfig) {
+        try {
+          const client = new LLMClient(llmConfig);
+          const response = await client.complete({
+            messages: [
+              {
+                role: "user",
+                content: `Extract the key skills, technologies, and requirements from this job description. Return ONLY a JSON array of strings, nothing else.
+
+Job Description:
+${data.description}
+
+Return format: ["skill1", "skill2", "skill3", ...]`,
+              },
+            ],
+            temperature: 0.1,
+            maxTokens: 500,
+          });
+          keywords = parseJSONFromLLM<string[]>(response);
+        } catch (llmError) {
+          console.error("Failed to extract keywords:", llmError);
+          keywords = extractKeywordsBasic(data.description);
+        }
+      } else {
+        keywords = extractKeywordsBasic(data.description);
+      }
+
+      const job = createJob(
+        {
+          ...data,
+          requirements: data.requirements ?? [],
+          responsibilities: data.responsibilities ?? [],
+          keywords,
+        },
+        authResult.userId,
+      );
+
+      return NextResponse.json(
+        { job, opportunity: jobToOpportunity(job) },
+        { status: 201 },
+      );
+    }
+
     const parseResult = createOpportunitySchema.safeParse(body);
     if (!parseResult.success) {
       return NextResponse.json(
@@ -72,7 +126,7 @@ export async function POST(request: NextRequest) {
       authResult.userId,
     );
     return NextResponse.json(
-      { opportunity: jobToOpportunity(job) },
+      { job, opportunity: jobToOpportunity(job) },
       { status: 201 },
     );
   } catch (error) {
@@ -82,4 +136,9 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+function extractKeywordsBasic(text: string): string[] {
+  const lowerText = text.toLowerCase();
+  return TECH_KEYWORDS.filter((keyword) => lowerText.includes(keyword));
 }

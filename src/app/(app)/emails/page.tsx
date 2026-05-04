@@ -138,7 +138,7 @@ export default function EmailTemplatesPage() {
 
   const fetchJobs = useCallback(async () => {
     try {
-      const res = await fetch("/api/jobs");
+      const res = await fetch("/api/opportunities");
       const data = await readJsonResponse<JobsResponse>(
         res,
         "Failed to load jobs",

@@ -79,7 +79,7 @@ export function InterviewJobSelection({
           based on the role.
         </p>
         <Link
-          href="/jobs"
+          href="/opportunities"
           className="inline-flex items-center justify-center gap-2 px-6 py-3 mt-6 rounded-xl gradient-bg text-primary-foreground font-medium hover:opacity-90 transition-opacity"
         >
           <Briefcase className="h-5 w-5" />
@@ -200,7 +200,7 @@ export function InterviewJobSelection({
                   {showPrepGuide === job.id ? "Hide Prep Guide" : "Prep Guide"}
                 </Button>
                 <Link
-                  href={`/jobs/research/${job.id}`}
+                  href={`/opportunities/${job.id}/research`}
                   className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
                 >
                   <Info className="h-4 w-4" />
