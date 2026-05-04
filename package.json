@@ -22,6 +22,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
+    "db:cleanup": "npx tsx scripts/db-cleanup.ts",
     "eval": "npx tsx evals/harness.ts"
   },
   "dependencies": {
