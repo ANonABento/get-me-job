@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { pluralize } from "@/lib/text/pluralize";
 import {
   GraduationCap,
   Clock,
@@ -165,7 +166,7 @@ function LearningPathCard({ path }: { path: SkillLearningPath }) {
             <div>
               <h3 className="font-semibold">{path.skill}</h3>
               <p className="text-xs text-muted-foreground">
-                {path.jobsRequiring} job{path.jobsRequiring !== 1 ? "s" : ""} require this skill
+                {pluralize(path.jobsRequiring, "job")} require this skill
               </p>
             </div>
           </div>

@@ -513,6 +513,7 @@ export interface NotificationsResponse {
 
 export interface SettingsResponse {
   llm: LLMConfig;
+  locale?: string;
 }
 
 export interface SettingsUpdateResponse {

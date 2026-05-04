@@ -11,6 +11,7 @@ import {
   THEME_PRIMARY_GRADIENT_BUTTON_CLASSES,
   THEME_SURFACE_CLASSES,
 } from "@/lib/theme/component-classes";
+import { pluralize } from "@/lib/text/pluralize";
 import { cn } from "@/lib/utils";
 import type { JobsViewMode } from "./job-kanban-utils";
 
@@ -51,7 +52,9 @@ export function JobsHero({
         <>
           <div className={cn(THEME_SURFACE_CLASSES, "px-4 py-3 text-center")}>
             <p className="text-2xl font-bold text-primary">{jobsCount}</p>
-            <p className="text-xs text-muted-foreground">Jobs Tracked</p>
+            <p className="text-xs text-muted-foreground">
+              {pluralize(jobsCount, "Job")} Tracked
+            </p>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
             <div

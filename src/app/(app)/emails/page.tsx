@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { TimeAgo } from "@/components/format/time-ago";
 import { AppPage, PageContent, PageHeader } from "@/components/ui/page-layout";
 import { SkeletonButton } from "@/components/ui/skeleton";
 import { useErrorToast } from "@/hooks/use-error-toast";
@@ -519,7 +520,7 @@ export default function EmailTemplatesPage() {
                           </p>
                           <p className="text-xs text-muted-foreground flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            {new Date(draft.updatedAt).toLocaleDateString()}
+                            <TimeAgo date={draft.updatedAt} />
                           </p>
                         </div>
                       </div>

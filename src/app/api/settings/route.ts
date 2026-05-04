@@ -15,6 +15,8 @@ import {
   getOpportunityReviewEnabled,
   setOpportunityReviewEnabled,
 } from "@/lib/settings/opportunity-review";
+import { getLocaleSetting, setLocaleSetting } from "@/lib/settings/locale";
+import { LOCALE_COOKIE_NAME } from "@/lib/format/time";
 
 export async function GET() {
   const authResult = await requireAuth();
@@ -24,6 +26,7 @@ export async function GET() {
     const llmConfig = getLLMConfig(authResult.userId);
     return NextResponse.json({
       llm: llmConfig,
+      locale: getLocaleSetting(authResult.userId),
       opportunityReview: {
         enabled: getOpportunityReviewEnabled(authResult.userId),
       },
@@ -61,14 +64,26 @@ export async function PUT(request: NextRequest) {
     if (data.llm) {
       setLLMConfig(data.llm, authResult.userId);
     }
+    let locale: string | undefined;
     if (data.opportunityReview) {
       setOpportunityReviewEnabled(
         data.opportunityReview.enabled,
         authResult.userId
       );
     }
+    if (data.locale) {
+      locale = setLocaleSetting(data.locale, authResult.userId);
+    }
 
-    return NextResponse.json({ success: true });
+    const response = NextResponse.json({ success: true });
+    if (locale) {
+      response.cookies.set(LOCALE_COOKIE_NAME, locale, {
+        path: "/",
+        maxAge: 60 * 60 * 24 * 365,
+        sameSite: "lax",
+      });
+    }
+    return response;
   } catch (error) {
     console.error("Update settings error:", error);
     return NextResponse.json(

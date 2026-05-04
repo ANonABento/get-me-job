@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { TimeAgo } from "@/components/format/time-ago";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -219,7 +220,7 @@ export function SourceDocuments({
               <p className="text-xs text-muted-foreground">
                 {formatFileSize(doc.size)} &middot; {doc.chunkCount} chunk
                 {doc.chunkCount !== 1 ? "s" : ""} &middot;{" "}
-                {new Date(doc.uploadedAt).toLocaleDateString()}
+                <TimeAgo date={doc.uploadedAt} />
               </p>
             </div>
             <Button

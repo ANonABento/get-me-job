@@ -4,7 +4,9 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import type { ChunkCardProps } from "./chunk-card.types";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { cn, formatRelativeTime } from "@/lib/utils";
+import { TimeAgo } from "@/components/format/time-ago";
+import { useDevMode } from "@/hooks/use-dev-mode";
+import { cn } from "@/lib/utils";
 import { THEME_INTERACTIVE_SURFACE_CLASSES } from "@/lib/theme/component-classes";
 import { CATEGORY_CONFIG, CATEGORY_FIELDS } from "./chunk-card-config";
 import { cleanContent, getEntryTitle } from "./chunk-card-utils";
@@ -53,6 +55,7 @@ export function ChunkCard({
   const Icon = config.icon;
   const title = getEntryTitle(entry);
   const fields = CATEGORY_FIELDS[entry.category];
+  const showDebugIds = useDevMode();
 
   function handleEdit() {
     setEditContent({ ...entry.content });
@@ -139,9 +142,9 @@ export function ChunkCard({
             {!expanded && <ChunkContentPreview entry={entry} />}
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               <span className="text-xs text-muted-foreground">
-                {formatRelativeTime(entry.createdAt)}
+                <TimeAgo date={entry.createdAt} />
               </span>
-              {entry.sourceDocumentId && (
+              {showDebugIds && entry.sourceDocumentId && (
                 <span className="text-xs text-muted-foreground/60 truncate max-w-[200px]">
                   from {entry.sourceDocumentId}
                 </span>

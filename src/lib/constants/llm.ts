@@ -29,6 +29,7 @@ export const updateSettingsSchema = z.object({
   opportunityReview: z.object({
     enabled: z.boolean(),
   }).optional(),
+  locale: z.string().optional(),
 });
 
 export const LLM_ENDPOINTS = {

@@ -7,6 +7,7 @@ import {
   THEME_MUTED_SURFACE_CLASSES,
   THEME_PRIMARY_GRADIENT_BUTTON_CLASSES,
 } from "@/lib/theme/component-classes";
+import { pluralize } from "@/lib/text/pluralize";
 import { cn } from "@/lib/utils";
 import type { CSVPreview } from "./import-job-dialog.types";
 
@@ -93,7 +94,7 @@ export function ImportJobCsvPreview({
             ))}
             {preview.jobs.length > 10 && (
               <div className="text-xs text-muted-foreground text-center py-2">
-                ...and {preview.jobs.length - 10} more jobs
+                ...and {pluralize(preview.jobs.length - 10, "more job")}
               </div>
             )}
           </div>
@@ -118,7 +119,7 @@ export function ImportJobCsvPreview({
             ) : (
               <Check className="h-4 w-4 mr-2" />
             )}
-            Import {preview.jobs.length} Jobs
+            Import {pluralize(preview.jobs.length, "Job")}
           </Button>
         </div>
       </div>

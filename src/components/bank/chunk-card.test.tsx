@@ -406,10 +406,18 @@ describe("ChunkCard", () => {
     expect(onDelete).not.toHaveBeenCalled();
   });
 
-  it("should show source document attribution when present", () => {
+  it("should hide source document attribution outside dev/debug mode", () => {
+    const entry = makeBankEntry({ sourceDocumentId: "resume-2024.pdf" });
+    render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
+    expect(screen.queryByText("from resume-2024.pdf")).not.toBeInTheDocument();
+  });
+
+  it("should show source document attribution in debug mode", () => {
+    window.history.pushState({}, "", "/bank?debug=1");
     const entry = makeBankEntry({ sourceDocumentId: "resume-2024.pdf" });
     render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
     expect(screen.getByText("from resume-2024.pdf")).toBeInTheDocument();
+    window.history.pushState({}, "", "/");
   });
 
   it("should not show source attribution when absent", () => {

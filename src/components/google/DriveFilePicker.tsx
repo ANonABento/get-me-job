@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { TimeAgo } from "@/components/format/time-ago";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -179,7 +180,7 @@ export function DriveFilePicker({
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       {file.modifiedTime && (
                         <span>
-                          {new Date(file.modifiedTime).toLocaleDateString()}
+                          <TimeAgo date={file.modifiedTime} />
                         </span>
                       )}
                       {file.size && (

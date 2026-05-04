@@ -3,6 +3,8 @@
 import { useState, type ChangeEvent } from "react";
 import { useErrorToast } from "@/hooks/use-error-toast";
 
+import { pluralize } from "@/lib/text/pluralize";
+
 export type ExportType = "profile" | "jobs-json" | "jobs-csv" | "backup" | "full-export";
 export type DataImportType = "jobs" | "backup";
 
@@ -87,7 +89,9 @@ export function buildFullImportMessage(result: {
   const parts: string[] = [];
 
   if (result.results.profile) parts.push("Profile");
-  if (result.results.jobs.imported > 0) parts.push(`${result.results.jobs.imported} jobs`);
+  if (result.results.jobs.imported > 0) {
+    parts.push(pluralize(result.results.jobs.imported, "job"));
+  }
   if (result.results.coverLetters?.imported && result.results.coverLetters.imported > 0) {
     parts.push(`${result.results.coverLetters.imported} cover letters`);
   }
@@ -225,7 +229,7 @@ export function useDataIO() {
 
         setImportResult({
           success: true,
-          message: `Restored: ${result.results.profile ? "Profile" : ""} ${result.results.jobs.imported} jobs imported`,
+          message: `Restored: ${result.results.profile ? "Profile" : ""} ${pluralize(result.results.jobs.imported, "job")} imported`,
         });
 
         return;

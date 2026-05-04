@@ -6,10 +6,10 @@ describe("formatRelativeTime", () => {
     vi.useRealTimers();
   });
 
-  it("returns 'just now' for timestamps less than a minute ago", () => {
+  it("returns 'Just now' for timestamps less than a minute ago", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2024-06-15T12:00:30Z"));
-    expect(formatRelativeTime("2024-06-15T12:00:00Z")).toBe("just now");
+    expect(formatRelativeTime("2024-06-15T12:00:00Z")).toBe("Just now");
   });
 
   it("returns minutes for timestamps less than an hour ago", () => {
@@ -30,11 +30,9 @@ describe("formatRelativeTime", () => {
     expect(formatRelativeTime("2024-06-15T12:00:00Z")).toBe("3d ago");
   });
 
-  it("returns formatted date for timestamps older than a week", () => {
+  it("returns week buckets for timestamps older than a week", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2024-06-30T12:00:00Z"));
-    const result = formatRelativeTime("2024-06-15T12:00:00Z");
-    expect(result).toContain("Jun");
-    expect(result).toContain("15");
+    expect(formatRelativeTime("2024-06-15T12:00:00Z")).toBe("2w ago");
   });
 });

@@ -33,6 +33,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { TimeAgo } from "@/components/format/time-ago";
+import { formatDateAbsolute } from "@/lib/format/time";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import {
   AppPage,
@@ -293,7 +295,7 @@ export default function AnalyticsPage() {
                 JSON
               </Button>
               <ExportToSheetsButton
-                title={`Job Search Analytics - ${new Date().toLocaleDateString()}`}
+                title={`Job Search Analytics - ${formatDateAbsolute(new Date())}`}
                 data={formatAnalyticsForSheets()}
                 size="sm"
               />
@@ -554,7 +556,7 @@ export default function AnalyticsPage() {
                           {statusConfig.label}
                         </span>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(job.createdAt).toLocaleDateString()}
+                          <TimeAgo date={job.createdAt} />
                         </p>
                       </div>
                     </Link>

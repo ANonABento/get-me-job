@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { JobRemoteFilter, JobSortOption, JobStatusFilter, JobTypeFilter } from "@/app/(app)/jobs/filter-jobs";
 import { cn } from "@/lib/utils";
 import { TRACKED_JOB_STATUSES, TRACKED_JOB_STATUS_LABELS } from "@/lib/constants/jobs";
+import { pluralize } from "@/lib/text/pluralize";
 
 interface JobsToolbarProps {
   searchQuery: string;
@@ -82,7 +83,7 @@ export function JobsToolbar(props: JobsToolbarProps) {
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="all">All Statuses</SelectItem>
               {TRACKED_JOB_STATUSES.map((status) => (
                 <SelectItem key={status} value={status}>
                   {TRACKED_JOB_STATUS_LABELS[status]}
@@ -141,7 +142,7 @@ export function JobsToolbar(props: JobsToolbarProps) {
         <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
           <Filter className="h-4 w-4" />
           <span>
-            Showing {filteredCount} of {totalCount} jobs
+            Showing {filteredCount} of {pluralize(totalCount, "job")}
           </span>
         </div>
       )}

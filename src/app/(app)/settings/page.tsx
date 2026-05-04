@@ -5,6 +5,7 @@ import { DataManagement } from "@/components/settings/data-management";
 import { GoogleIntegration } from "@/components/settings/google-integration";
 import { HelpCards } from "@/components/settings/help-cards";
 import { LLMProviderConfig } from "@/components/settings/llm-provider-config";
+import { LocaleSection } from "@/components/settings/locale-section";
 import {
   LLMProviderSelector,
   PROVIDERS,
@@ -54,6 +55,7 @@ export default function SettingsPage() {
             onProviderChange={llmSettings.updateConfig}
           />
           <ThemeSection />
+          <LocaleSection />
           <OpportunityReviewSection />
           <LLMProviderConfig
             config={llmSettings.config}

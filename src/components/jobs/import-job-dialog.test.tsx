@@ -149,6 +149,6 @@ describe("ImportJobDialog", () => {
 
     expect(await screen.findByText("Review CSV Import")).toBeInTheDocument();
     expect(screen.getByText("Designer")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /import 1 jobs/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /import 1 job/i })).toBeInTheDocument();
   });
 });
