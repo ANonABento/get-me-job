@@ -34,11 +34,13 @@ export function writePreferredLocale(locale: string): void {
   );
 }
 
-export function usePreferredLocale(initialLocale = DEFAULT_LOCALE): string {
-  const [locale, setLocale] = useState(() => normalizeLocale(initialLocale));
+export function usePreferredLocale(initialLocale?: string): string {
+  const [locale, setLocale] = useState(() =>
+    normalizeLocale(initialLocale ?? getBrowserDefaultLocale()),
+  );
 
   useEffect(() => {
-    setLocale(getPreferredLocale());
+    setLocale(initialLocale ? normalizeLocale(initialLocale) : getPreferredLocale());
 
     function handleLocaleChange(event: Event) {
       const detail = (event as CustomEvent<string>).detail;
@@ -48,7 +50,7 @@ export function usePreferredLocale(initialLocale = DEFAULT_LOCALE): string {
     window.addEventListener(LOCALE_CHANGE_EVENT, handleLocaleChange);
     return () =>
       window.removeEventListener(LOCALE_CHANGE_EVENT, handleLocaleChange);
-  }, []);
+  }, [initialLocale]);
 
   return locale;
 }

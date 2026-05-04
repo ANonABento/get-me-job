@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { pluralize } from "@/lib/text/pluralize";
 import {
   CheckCircle2,
   AlertCircle,
@@ -219,13 +220,13 @@ export function ATSScoreCard({ jobId, onAnalyze }: ATSScoreCardProps) {
               {errorCount > 0 && (
                 <span className="flex items-center gap-1 text-destructive">
                   <AlertCircle className="h-4 w-4" />
-                  {errorCount} {errorCount === 1 ? "error" : "errors"}
+                  {pluralize(errorCount, "error")}
                 </span>
               )}
               {warningCount > 0 && (
                 <span className="flex items-center gap-1 text-warning">
                   <AlertTriangle className="h-4 w-4" />
-                  {warningCount} {warningCount === 1 ? "warning" : "warnings"}
+                  {pluralize(warningCount, "warning")}
                 </span>
               )}
               {errorCount === 0 && warningCount === 0 && (

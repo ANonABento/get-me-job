@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ClipboardPaste, Briefcase, Building2 } from "lucide-react";
+import { pluralize } from "@/lib/text/pluralize";
 
 interface JDInputProps {
   onSubmit: (data: {
@@ -130,7 +131,7 @@ export function JDInput({
         />
         <p id="jd-help-text" className="text-xs text-muted-foreground">
           {jobDescription.length > 0
-            ? `${jobDescription.split(/\s+/).filter(Boolean).length} words`
+            ? pluralize(jobDescription.split(/\s+/).filter(Boolean).length, "word")
             : "Paste the full job posting for best results"}
         </p>
       </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
+import { pluralize } from "@/lib/text/pluralize";
 import {
   BarChart3,
   TrendingUp,
@@ -241,7 +242,8 @@ export function ABTracker() {
           <h3 className="font-semibold">Resume A/B Tracking</h3>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
-          {data.totalTracked} applications tracked across {data.stats.length} resume versions
+          {pluralize(data.totalTracked, "application")} tracked across{" "}
+          {pluralize(data.stats.length, "resume version")}
         </p>
       </div>
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { pluralize } from "@/lib/text/pluralize";
 import Link from "next/link";
 import {
   Sparkles,
@@ -297,7 +298,7 @@ export function JobRecommendations() {
           <h2 className="text-lg font-semibold">Job Recommendations</h2>
         </div>
         <span className="text-sm text-muted-foreground">
-          {result.recommendations.length} matches found
+          {pluralize(result.recommendations.length, "match", "matches")} found
         </span>
       </div>
 

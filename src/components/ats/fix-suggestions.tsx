@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { pluralize } from "@/lib/text/pluralize";
 import {
   AlertCircle,
   AlertTriangle,
@@ -55,7 +56,7 @@ export function FixSuggestionsList({ issues, maxItems = 5 }: FixSuggestionsListP
         <Lightbulb className="h-5 w-5 text-primary" />
         <h3 className="font-semibold text-lg">How to Fix</h3>
         <span className="text-xs text-muted-foreground">
-          ({issues.length} {issues.length === 1 ? "issue" : "issues"} found)
+          ({pluralize(issues.length, "issue")} found)
         </span>
       </div>
 
@@ -90,7 +91,7 @@ export function FixSuggestionsList({ issues, maxItems = 5 }: FixSuggestionsListP
 
       {issues.length > maxItems && (
         <p className="text-sm text-muted-foreground text-center">
-          +{issues.length - maxItems} more {issues.length - maxItems === 1 ? "issue" : "issues"} not shown
+          +{pluralize(issues.length - maxItems, "more issue")} not shown
         </p>
       )}
     </div>

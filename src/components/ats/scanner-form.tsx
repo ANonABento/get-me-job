@@ -5,6 +5,7 @@ import { FileSearch, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { analyzeATS } from "@/lib/ats/analyzer";
+import { pluralize } from "@/lib/text/pluralize";
 import type { ATSAnalysisResult } from "@/lib/ats/analyzer";
 import { textToProfile, textToJob } from "@/lib/ats/text-to-profile";
 import { ScoreDisplay } from "./score-display";
@@ -82,7 +83,7 @@ export function ScannerForm() {
         <p className="text-xs text-muted-foreground mt-1">
           {resumeText.trim().length < MIN_RESUME_LENGTH
             ? `At least ${MIN_RESUME_LENGTH} characters required`
-            : `${resumeText.trim().split(/\s+/).length} words`}
+            : pluralize(resumeText.trim().split(/\s+/).length, "word")}
         </p>
       </div>
 

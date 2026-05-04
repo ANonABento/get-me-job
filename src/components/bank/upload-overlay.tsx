@@ -11,6 +11,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { pluralize } from "@/lib/text/pluralize";
 import { Button } from "@/components/ui/button";
 import { THEME_SURFACE_CLASSES } from "@/lib/theme/component-classes";
 
@@ -93,9 +94,9 @@ export function formatUploadToast(results: FileResult[]): {
     };
   }
   const fileLabel =
-    results.length === 1 ? results[0].fileName : `${results.length} files`;
+    results.length === 1 ? results[0].fileName : pluralize(results.length, "file");
   return {
-    title: `Added ${totalEntries} ${totalEntries === 1 ? "entry" : "entries"}`,
+    title: `Added ${pluralize(totalEntries, "entry", "entries")}`,
     description: `from ${fileLabel}`,
   };
 }
@@ -392,12 +393,12 @@ export function UploadOverlay({
               <CheckCircle2 className="h-10 w-10" />
             </div>
             <h2 className="text-2xl font-bold">
-              Added {totalEntries} {totalEntries === 1 ? "entry" : "entries"}
+              Added {pluralize(totalEntries, "entry", "entries")}
             </h2>
             <p className="text-muted-foreground mt-2">
               {results.length === 1
                 ? `from ${results[0].fileName}`
-                : `from ${results.length} files`}
+                : `from ${pluralize(results.length, "file")}`}
             </p>
           </>
         )}

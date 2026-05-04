@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { pluralize } from "@/lib/text/pluralize";
 import {
   Upload,
   FileText,
@@ -228,7 +229,7 @@ export function Dropzone({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h4 className="font-medium">
-              {files.length} file{files.length !== 1 ? "s" : ""} selected
+              {pluralize(files.length, "file")} selected
             </h4>
             {files.some((f) => f.status === "success") && (
               <span className="text-sm text-success flex items-center gap-1">
@@ -334,7 +335,7 @@ export function Dropzone({
           ) : (
             <>
               <CloudUpload className="mr-2 h-5 w-5" />
-              Upload {pendingFiles.length} file{pendingFiles.length !== 1 ? "s" : ""}
+              Upload {pluralize(pendingFiles.length, "file")}
             </>
           )}
         </Button>

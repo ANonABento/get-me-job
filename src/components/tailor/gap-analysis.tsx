@@ -10,6 +10,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { pluralize } from "@/lib/text/pluralize";
 import type { GapItem } from "@/lib/tailor/analyze";
 
 export const SCORE_STRONG = 70;
@@ -111,7 +112,11 @@ export function GapAnalysis({
           <p className="text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">{keywordsFound.length}</span> of{" "}
             <span className="font-semibold text-foreground">{keywordsFound.length + keywordsMissing.length}</span>{" "}
-            keywords matched
+            {pluralize(
+              keywordsFound.length + keywordsMissing.length,
+              "keyword",
+            ).replace(`${keywordsFound.length + keywordsMissing.length} `, "")}{" "}
+            matched
           </p>
           {keywordsMissing.length > 0 && (
             <p className="text-xs text-muted-foreground">
@@ -197,7 +202,7 @@ export function GapAnalysis({
               <Lightbulb className="h-4 w-4 text-info" />
               Improvement Suggestions
               <span className="ml-auto text-xs font-normal text-info bg-info/10 px-2 py-0.5 rounded-full">
-                {gaps.length} tips
+                {pluralize(gaps.length, "tip")}
               </span>
             </CardTitle>
           </CardHeader>

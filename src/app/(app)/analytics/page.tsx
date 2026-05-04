@@ -35,6 +35,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { TimeAgo } from "@/components/format/time-ago";
 import { formatDateAbsolute } from "@/lib/format/time";
+import { pluralize } from "@/lib/text/pluralize";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import {
   AppPage,
@@ -419,7 +420,7 @@ export default function AnalyticsPage() {
                           <span className="font-medium">{config.label}</span>
                         </div>
                         <span className="text-muted-foreground">
-                          {count} jobs
+                          {pluralize(count, "job")}
                         </span>
                       </div>
                       <div className="h-2 rounded-full bg-muted overflow-hidden">

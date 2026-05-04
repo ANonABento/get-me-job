@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { TimeAgo } from "@/components/format/time-ago";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import {
   Mail,
@@ -133,15 +134,6 @@ export function GmailImportModal({ onImport, trigger }: GmailImportModalProps) {
     setOpen(false);
   }
 
-  function formatDate(dateStr: string): string {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
-    });
-  }
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -237,7 +229,7 @@ export function GmailImportModal({ onImport, trigger }: GmailImportModalProps) {
                               {Math.round(email.parsed.confidence * 100)}% match
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              · {formatDate(email.date)}
+                              · <TimeAgo date={email.date} />
                             </span>
                           </div>
 

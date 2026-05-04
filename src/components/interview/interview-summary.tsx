@@ -11,6 +11,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { pluralize } from "@/lib/text/pluralize";
 import { SkeletonButton } from "@/components/ui/skeleton";
 import { CategoryBadge } from "@/lib/interview/category-display";
 import { formatInterviewForDocs } from "@/lib/interview/format-for-docs";
@@ -53,7 +54,7 @@ export function InterviewSummary({
         </div>
         <h2 className="text-2xl font-bold">Interview Complete!</h2>
         <p className="mt-2 text-muted-foreground">
-          You answered all {session.questions.length} questions. Review your
+          You answered all {pluralize(session.questions.length, "question")}. Review your
           responses and feedback below.
         </p>
         <div className="mt-6 flex justify-center gap-3">

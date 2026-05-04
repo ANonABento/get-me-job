@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { cn, formatRelativeTime } from "@/lib/utils";
+import { pluralize } from "@/lib/text/pluralize";
 import {
   Trophy,
   Clock,
@@ -85,7 +86,10 @@ function TimeMetricCard({ metric }: { metric: TimeToMetric }) {
         <span className="text-sm text-muted-foreground">days avg</span>
       </div>
       <p className="text-xs text-muted-foreground mt-1">
-        Range: {metric.minDays}-{metric.maxDays} days ({metric.count} samples)
+        {`Range: ${metric.minDays}-${metric.maxDays} days (${pluralize(
+          metric.count,
+          "sample",
+        )})`}
       </p>
     </div>
   );

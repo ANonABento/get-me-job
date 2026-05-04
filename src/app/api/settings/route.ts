@@ -15,7 +15,7 @@ import {
   getOpportunityReviewEnabled,
   setOpportunityReviewEnabled,
 } from "@/lib/settings/opportunity-review";
-import { getLocaleSetting, setLocaleSetting } from "@/lib/settings/locale";
+import { getStoredLocaleSetting, setLocaleSetting } from "@/lib/settings/locale";
 import { LOCALE_COOKIE_NAME } from "@/lib/format/time";
 
 export async function GET() {
@@ -26,7 +26,7 @@ export async function GET() {
     const llmConfig = getLLMConfig(authResult.userId);
     return NextResponse.json({
       llm: llmConfig,
-      locale: getLocaleSetting(authResult.userId),
+      locale: getStoredLocaleSetting(authResult.userId),
       opportunityReview: {
         enabled: getOpportunityReviewEnabled(authResult.userId),
       },

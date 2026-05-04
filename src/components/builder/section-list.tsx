@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { pluralize } from "@/lib/text/pluralize";
 import type { BankEntry, BankCategory } from "@/types";
 import {
   SECTION_LABELS,
@@ -317,7 +318,7 @@ export function SectionList({
 
           <div className="border-t px-4 py-2">
             <p className="text-xs text-muted-foreground">
-              {selectedIds.size} of {entries.length} entries selected
+              {selectedIds.size} of {pluralize(entries.length, "entry", "entries")} selected
             </p>
           </div>
         </>

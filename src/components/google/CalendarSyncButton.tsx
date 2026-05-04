@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { pluralize } from "@/lib/text/pluralize";
 import {
   Select,
   SelectContent,
@@ -147,7 +148,7 @@ export function CalendarSyncButton({
           <p className="text-xs text-center">
             {result.success ? (
               <span className="text-success">
-                Synced {result.synced} events
+                Synced {pluralize(result.synced, "event")}
               </span>
             ) : (
               <span className="text-warning">
@@ -210,8 +211,8 @@ export function CalendarSyncButton({
             )}
             <span className="font-medium">
               {result.success
-                ? `Successfully synced ${result.synced} events`
-                : `Synced ${result.synced} events, ${result.failed} failed`}
+                ? `Successfully synced ${pluralize(result.synced, "event")}`
+                : `Synced ${pluralize(result.synced, "event")}, ${result.failed} failed`}
             </span>
           </div>
 

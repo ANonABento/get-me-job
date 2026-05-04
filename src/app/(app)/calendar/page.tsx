@@ -44,6 +44,7 @@ import {
   StandardEmptyState,
 } from "@/components/ui/page-layout";
 import { SkeletonButton } from "@/components/ui/skeleton";
+import { usePreferredLocale } from "@/components/format/time-ago";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import type { JobDescription } from "@/types";
 
@@ -94,6 +95,7 @@ const EVENT_COLORS = {
 };
 
 export default function CalendarPage() {
+  const locale = usePreferredLocale();
   const [jobs, setJobs] = useState<JobDescription[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -492,11 +494,11 @@ export default function CalendarPage() {
           <div className="rounded-2xl border bg-card p-6">
             <h3 className="font-semibold mb-4">
               {selectedDate
-                ? selectedDate.toLocaleDateString("en-US", {
+                ? new Intl.DateTimeFormat(locale, {
                     weekday: "long",
                     month: "long",
                     day: "numeric",
-                  })
+                  }).format(selectedDate)
                 : "Select a date"}
             </h3>
 
@@ -530,10 +532,10 @@ export default function CalendarPage() {
                         )}
                         <p className="text-xs text-muted-foreground mt-1">
                           <Clock className="h-3 w-3 inline mr-1" />
-                          {event.date.toLocaleTimeString("en-US", {
+                          {new Intl.DateTimeFormat(locale, {
                             hour: "numeric",
                             minute: "2-digit",
-                          })}
+                          }).format(event.date)}
                         </p>
                         {event.job?.url && (
                           <a
@@ -581,10 +583,10 @@ export default function CalendarPage() {
                     />
                     <span className="flex-1 truncate">{event.title}</span>
                     <span className="text-xs text-muted-foreground">
-                      {event.date.toLocaleDateString("en-US", {
+                      {new Intl.DateTimeFormat(locale, {
                         month: "short",
                         day: "numeric",
-                      })}
+                      }).format(event.date)}
                     </span>
                   </div>
                 ))}

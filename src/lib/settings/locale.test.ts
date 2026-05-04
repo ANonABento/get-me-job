@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { getLocaleSetting, setLocaleSetting } from "./locale";
+import {
+  getLocaleSetting,
+  getStoredLocaleSetting,
+  setLocaleSetting,
+} from "./locale";
 
 vi.mock("@/lib/db/queries", () => ({
   getSetting: vi.fn(),
@@ -13,6 +17,12 @@ describe("locale settings", () => {
     vi.mocked(getSetting).mockReturnValueOnce(null);
 
     expect(getLocaleSetting("user-1")).toBe("en-US");
+  });
+
+  it("returns null for missing stored locale settings", () => {
+    vi.mocked(getSetting).mockReturnValueOnce(null);
+
+    expect(getStoredLocaleSetting("user-1")).toBeNull();
   });
 
   it("normalizes and stores supported locales", () => {

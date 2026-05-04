@@ -21,6 +21,7 @@ import {
   History,
   ChevronDown,
 } from "lucide-react";
+import { TimeAgo } from "@/components/format/time-ago";
 
 interface CoverLetterVersion {
   id: string;
@@ -232,12 +233,7 @@ export function CoverLetterDialog({
                     >
                       <div className="font-medium">Version {v.version}</div>
                       <div className="text-xs text-muted-foreground">
-                        {new Date(v.createdAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        <TimeAgo date={v.createdAt} />
                       </div>
                     </button>
                   ))}

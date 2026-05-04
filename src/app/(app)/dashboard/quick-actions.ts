@@ -1,4 +1,5 @@
 import { FileText, Upload, type LucideIcon } from "lucide-react";
+import { pluralize } from "@/lib/text/pluralize";
 
 export interface QuickActionItem {
   title: string;
@@ -20,7 +21,7 @@ export function buildQuickActions(stats: QuickActionStats): QuickActionItem[] {
   return [
     {
       title: "Upload Resume",
-      description: `${documentsCount} document${documentsCount !== 1 ? "s" : ""} uploaded`,
+      description: `${pluralize(documentsCount, "document")} uploaded`,
       href: "/bank",
       icon: Upload,
       gradient: "from-violet-500 to-purple-400",
@@ -34,7 +35,7 @@ export function buildQuickActions(stats: QuickActionStats): QuickActionItem[] {
     },
     {
       title: hasResumes
-        ? `${resumesGenerated} Resume${resumesGenerated !== 1 ? "s" : ""} Built`
+        ? `${pluralize(resumesGenerated, "Resume")} Built`
         : "Open Document Studio",
       description: hasResumes
         ? "Build and export another resume"

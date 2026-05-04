@@ -16,7 +16,7 @@ import {
 import { SUPPORTED_LOCALES, normalizeLocale } from "@/lib/format/time";
 
 interface SettingsResponse {
-  locale?: string;
+  locale?: string | null;
 }
 
 export function LocaleSection() {
