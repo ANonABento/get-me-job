@@ -6,6 +6,7 @@ import { SectionList } from "@/components/builder/section-list";
 import { AiAssistantPanel } from "@/components/studio/ai-assistant-panel";
 import { MobileBuilderTabs } from "@/components/studio/mobile-builder-tabs";
 import { ResumePreview } from "@/components/studio/resume-preview";
+import type { StudioSaveStatus } from "@/components/studio/save-status";
 import { StudioFilePanel } from "@/components/studio/studio-file-panel";
 import { StudioHeader } from "@/components/studio/studio-header";
 import { StudioLoading } from "@/components/studio/studio-loading";
@@ -22,11 +23,16 @@ function StudioPageContent() {
     return <StudioLoading />;
   }
 
+  const saveStatus: StudioSaveStatus = {
+    state: studio.draftIsSaved ? "saved" : "unsaved",
+  };
+
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
       <StudioHeader
         documentMode={studio.documentMode}
         draftIsSaved={studio.draftIsSaved}
+        saveStatus={saveStatus}
         templateId={studio.templateId}
         canCopyHtml={Boolean(studio.content || studio.html)}
         canDownloadPdf={Boolean(studio.content || studio.html)}
