@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   Home,
@@ -106,6 +106,10 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const llmStatus = useLLMStatus();
+  const mobileCloseButtonRef = useRef<HTMLButtonElement | null>(null);
+  const mobileOpenButtonRef = useRef<HTMLButtonElement | null>(null);
+  const sidebarRef = useRef<HTMLElement | null>(null);
+  const previousMobileOpenRef = useRef(false);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -121,13 +125,68 @@ export function Sidebar() {
     return () => document.removeEventListener("keydown", handleEscape);
   }, []);
 
+  // Manage focus when the mobile drawer opens/closes. On open we move focus
+  // into the drawer; on close (transition true→false) we return focus to the
+  // trigger so screen-reader / keyboard users land somewhere meaningful.
+  useEffect(() => {
+    if (mobileOpen) {
+      mobileCloseButtonRef.current?.focus();
+    } else if (previousMobileOpenRef.current) {
+      mobileOpenButtonRef.current?.focus();
+    }
+    previousMobileOpenRef.current = mobileOpen;
+  }, [mobileOpen]);
+
+  // Trap Tab focus inside the drawer while it's open so keyboard users can't
+  // accidentally tab into the page underneath the modal-style overlay.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const drawer = sidebarRef.current;
+    if (!drawer) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const focusable = drawer.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0]!;
+      const last = focusable[focusable.length - 1]!;
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || !drawer.contains(active))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (active === last || !drawer.contains(active))) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [mobileOpen]);
+
+  // Lock body scroll while the mobile drawer is open
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (!mobileOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileOpen]);
+
   return (
     <>
       {/* Mobile menu button */}
       <button
+        ref={mobileOpenButtonRef}
+        type="button"
         onClick={() => setMobileOpen(true)}
         className="fixed top-4 left-4 z-30 flex h-11 w-11 items-center justify-center rounded-lg border bg-background shadow-card lg:hidden"
-        aria-label="Open menu"
+        aria-label="Open navigation menu"
+        aria-haspopup="dialog"
+        aria-expanded={mobileOpen}
+        aria-controls="primary-sidebar"
       >
         <Menu className="h-5 w-5" />
       </button>
@@ -143,7 +202,11 @@ export function Sidebar() {
 
       {/* Sidebar */}
       <aside
+        ref={sidebarRef}
+        id="primary-sidebar"
         aria-label="Main navigation"
+        aria-modal={mobileOpen ? "true" : undefined}
+        role={mobileOpen ? "dialog" : undefined}
         className={cn(
           "app-sidebar fixed inset-y-0 left-0 z-50 flex flex-col border-r bg-background transition-all duration-300 ease-in-out grain",
           collapsed ? "w-[72px]" : "w-64",
@@ -171,9 +234,11 @@ export function Sidebar() {
 
           {/* Mobile close button */}
           <button
+            ref={mobileCloseButtonRef}
+            type="button"
             onClick={() => setMobileOpen(false)}
             className="flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-foreground lg:hidden"
-            aria-label="Close menu"
+            aria-label="Close navigation menu"
           >
             <X className="h-5 w-5" />
           </button>

@@ -65,7 +65,13 @@ export function JobKanbanView({ jobs, onStatusChange }: JobKanbanViewProps) {
   };
 
   return (
-    <div className="overflow-x-auto pb-4">
+    <div
+      className="overflow-x-auto pb-4"
+      role="region"
+      aria-label="Job kanban board"
+      aria-roledescription="kanban board"
+      tabIndex={0}
+    >
       <div className="grid min-w-[1120px] grid-cols-6 gap-4">
         {JOB_KANBAN_COLUMNS.map((column) => {
           const columnJobs = groupedJobs[column.value];

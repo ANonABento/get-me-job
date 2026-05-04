@@ -138,7 +138,7 @@ function ResumeThumbnail({ traits }: { traits: TemplateThumbnailTraits }) {
           {SAMPLE_RESUME.name}
         </p>
         <p className="text-paper-foreground/60">{SAMPLE_RESUME.headline}</p>
-        <p className="truncate text-[4px] text-paper-foreground/50">
+        <p className="truncate text-[4px] text-paper-foreground/70">
           {SAMPLE_RESUME.contact}
         </p>
       </header>
@@ -182,7 +182,7 @@ function LetterThumbnail({ traits }: { traits: TemplateThumbnailTraits }) {
         <p className="text-[7px] font-semibold leading-none text-[var(--template-accent)]">
           {SAMPLE_LETTER.name}
         </p>
-        <p className="truncate text-[4px] text-paper-foreground/50">
+        <p className="truncate text-[4px] text-paper-foreground/70">
           {SAMPLE_LETTER.target}
         </p>
       </header>

@@ -158,9 +158,10 @@ describe("SearchBar", () => {
     expect(tablist).toBeInTheDocument();
   });
 
-  it("should apply reduced opacity to categories with zero count", () => {
+  it("should disable categories with zero count for accessibility", () => {
     render(<SearchBar {...defaultProps} />);
     const achTab = screen.getByRole("tab", { name: /Achievements/i });
-    expect(achTab.className).toContain("opacity-50");
+    expect(achTab).toBeDisabled();
+    expect(achTab.className).toContain("cursor-not-allowed");
   });
 });
