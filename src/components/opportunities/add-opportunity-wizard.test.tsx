@@ -118,6 +118,40 @@ describe("AddOpportunityWizard", () => {
     );
   });
 
+  it("does not overwrite fields edited while URL auto-fill is in flight", async () => {
+    let resolveScrape: (response: Response) => void = () => {};
+    vi.mocked(global.fetch).mockReturnValue(
+      new Promise((resolve) => {
+        resolveScrape = resolve;
+      }) as Promise<Response>,
+    );
+    renderWizard();
+
+    fireEvent.change(screen.getByLabelText("URL"), {
+      target: { value: "https://jobs.example.com/1" },
+    });
+    fireEvent.blur(screen.getByLabelText("URL"));
+    fireEvent.change(screen.getByLabelText(/Title/), {
+      target: { value: "Manual title" },
+    });
+
+    resolveScrape({
+      ok: true,
+      json: async () => ({
+        opportunity: {
+          title: "Scraped title",
+          company: "Acme",
+          url: "https://jobs.example.com/1",
+        },
+      }),
+    } as Response);
+
+    await waitFor(() =>
+      expect(screen.getByLabelText(/Company/)).toHaveValue("Acme"),
+    );
+    expect(screen.getByLabelText(/Title/)).toHaveValue("Manual title");
+  });
+
   it("maps scraped opportunity fields into wizard fields", () => {
     expect(
       mapScrapedOpportunityToWizard({

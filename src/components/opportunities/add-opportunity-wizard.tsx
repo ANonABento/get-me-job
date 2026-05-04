@@ -151,6 +151,11 @@ export function AddOpportunityWizard({
   const [isScraping, setIsScraping] = useState(false);
   const [scrapeHint, setScrapeHint] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
+  const editSequenceRef = useRef(0);
+  const fieldEditSequenceRef = useRef(
+    new Map<keyof OpportunityWizardState, number>(),
+  );
+  const scrapeRequestIdRef = useRef(0);
   const showErrorToast = useErrorToast();
   const { addToast } = useToast();
 
@@ -177,6 +182,9 @@ export function AddOpportunityWizard({
     setIsSaving(false);
     setIsScraping(false);
     setScrapeHint(false);
+    editSequenceRef.current = 0;
+    fieldEditSequenceRef.current = new Map();
+    scrapeRequestIdRef.current += 1;
   }
 
   function closeAndReset() {
@@ -202,6 +210,8 @@ export function AddOpportunityWizard({
     key: T,
     value: OpportunityWizardState[T],
   ) {
+    editSequenceRef.current += 1;
+    fieldEditSequenceRef.current.set(key, editSequenceRef.current);
     setForm((current) => ({ ...current, [key]: value }));
     setDirtyFields((current) => new Set(current).add(key));
     setAutoFilledFields((current) => {
@@ -215,8 +225,14 @@ export function AddOpportunityWizard({
   function applyScrapedFields(
     fields: Partial<OpportunityWizardState>,
     source: OpportunitySource = "url",
+    protectEditsAfterSequence = editSequenceRef.current,
   ) {
-    const entries = Object.entries(fields).filter(([, value]) => value);
+    const entries = Object.entries(fields).filter(([key, value]) => {
+      if (!value) return false;
+      const field = key as keyof OpportunityWizardState;
+      const lastEditedAt = fieldEditSequenceRef.current.get(field) ?? 0;
+      return lastEditedAt <= protectEditsAfterSequence;
+    });
     if (entries.length === 0) return;
 
     setForm((current) => ({
@@ -247,6 +263,9 @@ export function AddOpportunityWizard({
   async function scrapeUrl() {
     const url = form.sourceUrl.trim();
     if (!url) return;
+    const requestId = scrapeRequestIdRef.current + 1;
+    scrapeRequestIdRef.current = requestId;
+    const protectEditsAfterSequence = editSequenceRef.current;
 
     setIsScraping(true);
     setScrapeHint(false);
@@ -258,6 +277,7 @@ export function AddOpportunityWizard({
       });
 
       if (response.status === 429) {
+        if (scrapeRequestIdRef.current !== requestId) return;
         addToast({
           type: "warning",
           title: "Too many scrape requests — please wait and try again.",
@@ -269,18 +289,26 @@ export function AddOpportunityWizard({
         response,
         "Failed to scrape opportunity",
       );
+      if (scrapeRequestIdRef.current !== requestId) return;
+      const sourceUrlEditedAt =
+        fieldEditSequenceRef.current.get("sourceUrl") ?? 0;
+      if (sourceUrlEditedAt > protectEditsAfterSequence) return;
       if (!data.opportunity) return;
 
       const mapped = mapScrapedOpportunityToWizard(data.opportunity);
-      applyScrapedFields(mapped, data.opportunity.source ?? "url");
+      applyScrapedFields(
+        mapped,
+        data.opportunity.source ?? "url",
+        protectEditsAfterSequence,
+      );
       addToast({
         type: "success",
         title: `Filled in from ${new URL(url).hostname}`,
       });
     } catch {
-      setScrapeHint(true);
+      if (scrapeRequestIdRef.current === requestId) setScrapeHint(true);
     } finally {
-      setIsScraping(false);
+      if (scrapeRequestIdRef.current === requestId) setIsScraping(false);
     }
   }
 
@@ -518,7 +546,7 @@ export function AddOpportunityWizard({
                 <SelectItem value="unset">Select level</SelectItem>
                 {OPPORTUNITY_LEVEL_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    {option.value === "intermediate" ? "Mid" : option.label}
+                    {option.label}
                   </SelectItem>
                 ))}
               </SelectContent>
