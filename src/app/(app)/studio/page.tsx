@@ -323,7 +323,7 @@ function StudioPageContent() {
             )}
           </aside>
 
-          <main
+          <section
             id="builder-preview-panel"
             role="tabpanel"
             aria-labelledby="builder-preview-tab"
@@ -349,7 +349,7 @@ function StudioPageContent() {
                 onContentChange={studio.handleContentChange}
               />
             </div>
-          </main>
+          </section>
 
           <aside
             className={cn(

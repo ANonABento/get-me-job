@@ -355,7 +355,7 @@ export default function CalendarPage() {
         actions={
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
             <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-36">
+              <SelectTrigger className="w-36" aria-label="Filter events by type">
                 <SelectValue placeholder="Filter" />
               </SelectTrigger>
               <SelectContent>

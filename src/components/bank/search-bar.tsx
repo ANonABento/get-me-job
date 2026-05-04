@@ -114,27 +114,29 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
             All
             <CountBadge count={totalCount} active={activeCategory === "all"} />
           </button>
-          {BANK_CATEGORIES.map((cat) => (
-            <button
-              role="tab"
-              aria-selected={activeCategory === cat}
-              key={cat}
-              onClick={() => onCategoryChange(cat)}
-              className={cn(
-                "min-h-11 px-3 py-2 rounded-[var(--radius)] text-sm font-medium transition-all duration-200",
-                activeCategory === cat
-                  ? "bg-[image:var(--gradient-primary)] text-primary-foreground shadow-[var(--shadow-button)] scale-105"
-                  : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80",
-                !counts[cat] && activeCategory !== cat && "opacity-50",
-              )}
-            >
-              {CATEGORY_LABELS[cat]}
-              <CountBadge
-                count={counts[cat] || 0}
-                active={activeCategory === cat}
-              />
-            </button>
-          ))}
+          {BANK_CATEGORIES.map((cat) => {
+            const isEmpty = !counts[cat];
+            const isActive = activeCategory === cat;
+            return (
+              <button
+                role="tab"
+                aria-selected={isActive}
+                key={cat}
+                onClick={() => onCategoryChange(cat)}
+                disabled={isEmpty && !isActive}
+                className={cn(
+                  "min-h-11 px-3 py-2 rounded-[var(--radius)] text-sm font-medium transition-all duration-200",
+                  isActive
+                    ? "bg-[image:var(--gradient-primary)] text-primary-foreground shadow-[var(--shadow-button)] scale-105"
+                    : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80",
+                  isEmpty && !isActive && "cursor-not-allowed",
+                )}
+              >
+                {CATEGORY_LABELS[cat]}
+                <CountBadge count={counts[cat] || 0} active={isActive} />
+              </button>
+            );
+          })}
         </div>
       </div>
     );

@@ -109,6 +109,7 @@ export function DataManagement(props: DataManagementProps) {
                 accept=".json,.csv"
                 onChange={(event) => void onImportFile(event, "jobs")}
                 disabled={importing}
+                aria-label="Import jobs from JSON or CSV file"
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
               />
               <Button variant="outline" disabled={importing} className="w-full justify-start pointer-events-none">
@@ -122,6 +123,7 @@ export function DataManagement(props: DataManagementProps) {
                 accept=".json"
                 onChange={(event) => void onImportFile(event, "backup")}
                 disabled={importing}
+                aria-label="Restore backup from JSON file"
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
               />
               <Button variant="outline" disabled={importing} className="w-full justify-start pointer-events-none">
@@ -135,6 +137,7 @@ export function DataManagement(props: DataManagementProps) {
                 accept=".json"
                 onChange={(event) => void onFullImportPreview(event)}
                 disabled={importing}
+                aria-label="Import all data from JSON file"
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
               />
               <Button variant="outline" disabled={importing} className="w-full justify-start pointer-events-none">
