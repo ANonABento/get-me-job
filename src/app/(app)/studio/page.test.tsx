@@ -193,8 +193,8 @@ describe("StudioPage", () => {
     render(<StudioPage />);
 
     expect(await screen.findByText("Document Studio")).toBeInTheDocument();
-    expect(screen.getByText("Saved")).toBeInTheDocument();
-    expect(screen.queryByText("Unsaved")).not.toBeInTheDocument();
+    expect(screen.getAllByText(/Saved/)[0]).toBeInTheDocument();
+    expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
   });
 
   it("shows the draft as unsaved after a content edit", async () => {
@@ -206,7 +206,7 @@ describe("StudioPage", () => {
       await screen.findByRole("button", { name: "Toggle entry" }),
     );
 
-    expect(screen.getByText("Unsaved")).toBeInTheDocument();
+    expect(screen.getAllByText("Unsaved changes")[0]).toBeInTheDocument();
   });
 
   it("keeps untouched documents saved after another document is edited", async () => {
@@ -217,12 +217,14 @@ describe("StudioPage", () => {
     fireEvent.click(
       await screen.findByRole("button", { name: "Toggle entry" }),
     );
-    expect(screen.getByText("Unsaved")).toBeInTheDocument();
+    expect(screen.getAllByText("Unsaved changes")[0]).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Cover Letter" }));
 
-    await waitFor(() => expect(screen.getByText("Saved")).toBeInTheDocument());
-    expect(screen.queryByText("Unsaved")).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getAllByText(/Saved/)[0]).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
   });
 
   it("uses a freeform cover letter editor instead of the resume section picker", async () => {
@@ -384,13 +386,16 @@ describe("StudioPage", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(screen.getAllByText("Saving...")[0]).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Toggle entry" }));
 
     await waitFor(() =>
       expect(screen.getByTestId("resume-html")).toHaveTextContent(/^$/),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Saved version" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Saved version" }),
+    );
 
     await waitFor(() =>
       expect(screen.getByTestId("resume-html")).toHaveTextContent(
@@ -407,6 +412,28 @@ describe("StudioPage", () => {
       ),
     );
     expect(fetchMock.getBuilderRequestCount()).toBe(1);
+  });
+
+  it("shows a save failure status when browser storage rejects a version", async () => {
+    const values = mockStorage();
+    vi.mocked(window.localStorage.setItem).mockImplementation((key, value) => {
+      if (key.startsWith("taida:builder:versions")) {
+        throw new Error("Quota exceeded");
+      }
+      values.set(key, value);
+    });
+
+    render(<StudioPage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(screen.getAllByText(/Save failed/)[0]).toBeInTheDocument(),
+    );
+    expect(mockShowErrorToast).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({ title: "Could not save version" }),
+    );
   });
 
   it("links saved resume versions to the selected job bank opportunity", async () => {

@@ -45,6 +45,7 @@ type AssistantRunAction =
   | "rewrite-section";
 
 interface AiAssistantPanelProps {
+  className?: string;
   documentContent: string;
   documentMode?: DocumentMode;
   selectedEntryCount: number;
@@ -98,6 +99,7 @@ async function readApiError(
 }
 
 export function AiAssistantPanel({
+  className,
   documentContent,
   documentMode = "resume",
   selectedEntryCount,
@@ -470,7 +472,10 @@ export function AiAssistantPanel({
   return (
     <aside
       ref={panelRef}
-      className="hidden w-[360px] shrink-0 flex-col border-l-[length:var(--border-width)] bg-background md:flex"
+      className={cn(
+        "flex w-[360px] shrink-0 flex-col border-l-[length:var(--border-width)] bg-background",
+        className,
+      )}
     >
       <div className="flex items-center justify-between border-b-[length:var(--border-width)] px-4 py-3">
         <h2 className="text-sm font-semibold">AI Assistant</h2>

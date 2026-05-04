@@ -11,6 +11,7 @@ function createStudioHeaderProps(
   return {
     documentMode: "resume",
     draftIsSaved: true,
+    saveStatus: { state: "saved", lastSavedAt: Date.now() },
     templateId: "classic",
     canCopyHtml: true,
     canDownloadPdf: true,
@@ -88,7 +89,7 @@ describe("StudioHeader", () => {
     );
     expect(
       within(picker).getByTestId("template-thumbnail-classic"),
-    ).toHaveClass("h-36");
+    ).toHaveClass("h-32");
     expect(
       within(picker).getByTestId("template-thumbnail-two-column"),
     ).toBeInTheDocument();
@@ -97,7 +98,7 @@ describe("StudioHeader", () => {
     ).toHaveAttribute("aria-selected", "true");
   });
 
-  it("shows template descriptions and enlarges thumbnails on hover in the grid", () => {
+  it("shows template descriptions and an apply affordance in the grid", () => {
     renderStudioHeader();
 
     fireEvent.click(
@@ -114,7 +115,8 @@ describe("StudioHeader", () => {
     );
     expect(
       within(modernOption).getByTestId("template-thumbnail-modern"),
-    ).toHaveClass("group-hover:h-56", "group-focus-visible:h-56");
+    ).toHaveClass("h-32");
+    expect(within(modernOption).getByText("Apply")).toBeInTheDocument();
   });
 
   it("keeps the enlarged template picker inside the viewport", () => {
@@ -154,7 +156,7 @@ describe("StudioHeader", () => {
       left: "48px",
       top: "136px",
       width: "736px",
-      maxHeight: "648px",
+      maxHeight: "480px",
     });
 
     Object.defineProperty(window, "innerWidth", {
@@ -254,6 +256,23 @@ describe("StudioHeader", () => {
 
     expect(
       screen.queryByRole("listbox", { name: /resume templates/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("filters large template lists with search", () => {
+    renderStudioHeader();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /select resume template/i }),
+    );
+    fireEvent.change(screen.getByRole("searchbox", { name: /search/i }), {
+      target: { value: "modern" },
+    });
+
+    const picker = screen.getByRole("listbox", { name: /resume templates/i });
+    expect(within(picker).getByRole("option", { name: /modern/i }));
+    expect(
+      within(picker).queryByRole("option", { name: /classic/i }),
     ).not.toBeInTheDocument();
   });
 });
