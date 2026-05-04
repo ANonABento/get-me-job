@@ -61,6 +61,7 @@ export function formatDateRelative(
 
   const diffMs = current.getTime() - value.getTime();
   const absMs = Math.abs(diffMs);
+  const isFuture = diffMs < 0;
   const minute = 60 * 1000;
   const hour = 60 * minute;
   const day = 24 * hour;
@@ -69,16 +70,29 @@ export function formatDateRelative(
   const year = 365 * day;
 
   if (absMs < minute) return "Just now";
-  if (absMs < hour) return `${Math.floor(absMs / minute)}m ago`;
-  if (absMs < day) return `${Math.floor(absMs / hour)}h ago`;
-  if (absMs < 2 * day) return "Yesterday";
-  if (absMs < week) return `${Math.floor(absMs / day)}d ago`;
-  if (absMs < month) return `${Math.floor(absMs / week)}w ago`;
-  if (absMs < year) return `${Math.floor(absMs / month)}mo ago`;
-  return `${Math.floor(absMs / year)}y ago`;
+  if (absMs < hour)
+    return formatRelativeBucket(Math.floor(absMs / minute), "m", isFuture);
+  if (absMs < day)
+    return formatRelativeBucket(Math.floor(absMs / hour), "h", isFuture);
+  if (absMs < 2 * day) return isFuture ? "Tomorrow" : "Yesterday";
+  if (absMs < week)
+    return formatRelativeBucket(Math.floor(absMs / day), "d", isFuture);
+  if (absMs < month)
+    return formatRelativeBucket(Math.floor(absMs / week), "w", isFuture);
+  if (absMs < year)
+    return formatRelativeBucket(Math.floor(absMs / month), "mo", isFuture);
+  return formatRelativeBucket(Math.floor(absMs / year), "y", isFuture);
 }
 
 export function getBrowserDefaultLocale(): string {
   if (typeof navigator === "undefined") return DEFAULT_LOCALE;
   return normalizeLocale(navigator.language);
+}
+
+function formatRelativeBucket(
+  value: number,
+  unit: "m" | "h" | "d" | "w" | "mo" | "y",
+  isFuture: boolean,
+): string {
+  return isFuture ? `in ${value}${unit}` : `${value}${unit} ago`;
 }

@@ -31,6 +31,16 @@ describe("time formatting", () => {
     expect(formatDateRelative("2024-05-04T12:00:00.000Z", now)).toBe("2y ago");
   });
 
+  it("formats future dates without labeling them as past dates", () => {
+    const now = "2026-05-04T12:00:00.000Z";
+
+    expect(formatDateRelative("2026-05-04T12:15:00.000Z", now)).toBe("in 15m");
+    expect(formatDateRelative("2026-05-05T12:00:00.000Z", now)).toBe(
+      "Tomorrow",
+    );
+    expect(formatDateRelative("2026-05-07T12:00:00.000Z", now)).toBe("in 3d");
+  });
+
   it("normalizes supported and unsupported locales", () => {
     expect(normalizeLocale("fr")).toBe("fr");
     expect(normalizeLocale("en")).toBe("en-US");

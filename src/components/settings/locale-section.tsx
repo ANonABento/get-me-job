@@ -13,15 +13,15 @@ import {
   getPreferredLocale,
   writePreferredLocale,
 } from "@/components/format/time-ago";
+import { useErrorToast } from "@/hooks/use-error-toast";
 import { SUPPORTED_LOCALES, normalizeLocale } from "@/lib/format/time";
-
-interface SettingsResponse {
-  locale?: string | null;
-}
+import { readJsonResponse } from "@/lib/http";
+import type { SettingsResponse } from "@/types/api";
 
 export function LocaleSection() {
   const [locale, setLocale] = useState("en-US");
   const [saving, setSaving] = useState(false);
+  const showErrorToast = useErrorToast();
 
   useEffect(() => {
     let active = true;
@@ -29,14 +29,21 @@ export function LocaleSection() {
     async function loadLocale() {
       try {
         const response = await fetch("/api/settings");
-        const data = (await response.json()) as SettingsResponse;
+        const data = await readJsonResponse<SettingsResponse>(
+          response,
+          "Failed to load locale",
+        );
         const nextLocale = normalizeLocale(data.locale ?? getPreferredLocale());
         if (!active) return;
         setLocale(nextLocale);
         writePreferredLocale(nextLocale);
-      } catch {
+      } catch (error) {
         if (!active) return;
         setLocale(getPreferredLocale());
+        showErrorToast(error, {
+          title: "Could not load locale",
+          fallbackDescription: "Your browser locale is being used.",
+        });
       }
     }
 
@@ -44,10 +51,11 @@ export function LocaleSection() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [showErrorToast]);
 
   async function handleLocaleChange(nextLocale: string) {
     const normalized = normalizeLocale(nextLocale);
+    const previousLocale = locale;
     setLocale(normalized);
     writePreferredLocale(normalized);
     setSaving(true);
@@ -62,6 +70,13 @@ export function LocaleSection() {
       if (!response.ok) {
         throw new Error("Failed to save locale");
       }
+    } catch (error) {
+      setLocale(previousLocale);
+      writePreferredLocale(previousLocale);
+      showErrorToast(error, {
+        title: "Could not save locale",
+        fallbackDescription: "Your previous locale has been restored.",
+      });
     } finally {
       setSaving(false);
     }
@@ -89,7 +104,10 @@ export function LocaleSection() {
         )}
       </div>
 
-      <Select value={locale} onValueChange={(value) => void handleLocaleChange(value)}>
+      <Select
+        value={locale}
+        onValueChange={(value) => void handleLocaleChange(value)}
+      >
         <SelectTrigger aria-label="Locale">
           <SelectValue placeholder="Select locale" />
         </SelectTrigger>

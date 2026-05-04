@@ -48,7 +48,6 @@ import { SkeletonButton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import { readJsonResponse } from "@/lib/http";
-import { pluralize } from "@/lib/text/pluralize";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_OPPORTUNITY_FILTERS,
@@ -1405,9 +1404,9 @@ function OpportunityKanbanCard({
 
 function Stat({ label, value }: { label: string; value: number }) {
   const displayLabel =
-    label === "Total" || label === "Pending"
-      ? label
-      : pluralize(value, label).replace(`${value} `, "");
+    label === "Job" || label === "Hackathon"
+      ? pluralizeLabel(value, label)
+      : label;
 
   return (
     <div className="min-w-20 rounded-lg border bg-background px-3 py-2 text-center">
@@ -1415,6 +1414,10 @@ function Stat({ label, value }: { label: string; value: number }) {
       <div className="text-xs text-muted-foreground">{displayLabel}</div>
     </div>
   );
+}
+
+function pluralizeLabel(value: number, singularLabel: string): string {
+  return value === 1 ? singularLabel : `${singularLabel}s`;
 }
 
 function Field({

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import {
-  DEFAULT_LOCALE,
   LOCALE_CHANGE_EVENT,
   LOCALE_COOKIE_NAME,
   formatDateAbsolute,
@@ -16,7 +15,13 @@ function readLocaleCookie(): string | null {
   const cookie = document.cookie
     .split("; ")
     .find((item) => item.startsWith(`${LOCALE_COOKIE_NAME}=`));
-  return cookie ? decodeURIComponent(cookie.split("=")[1]) : null;
+  if (!cookie) return null;
+
+  try {
+    return decodeURIComponent(cookie.slice(LOCALE_COOKIE_NAME.length + 1));
+  } catch {
+    return null;
+  }
 }
 
 export function getPreferredLocale(): string {
@@ -40,7 +45,9 @@ export function usePreferredLocale(initialLocale?: string): string {
   );
 
   useEffect(() => {
-    setLocale(initialLocale ? normalizeLocale(initialLocale) : getPreferredLocale());
+    setLocale(
+      initialLocale ? normalizeLocale(initialLocale) : getPreferredLocale(),
+    );
 
     function handleLocaleChange(event: Event) {
       const detail = (event as CustomEvent<string>).detail;
@@ -76,7 +83,9 @@ export function TimeAgo({ date, className, locale }: TimeAgoProps) {
     <time
       className={className}
       dateTime={
-        Number.isNaN(parsedDate.getTime()) ? undefined : parsedDate.toISOString()
+        Number.isNaN(parsedDate.getTime())
+          ? undefined
+          : parsedDate.toISOString()
       }
       title={absolute}
       aria-label={absolute}

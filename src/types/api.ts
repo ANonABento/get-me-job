@@ -513,12 +513,15 @@ export interface NotificationsResponse {
 
 export interface SettingsResponse {
   llm: LLMConfig;
-  locale?: string;
+  locale?: string | null;
+  opportunityReview?: {
+    enabled: boolean;
+  };
 }
 
 export interface SettingsUpdateResponse {
   success: true;
-  message: string;
+  message?: string;
 }
 
 // ---------------------------------------------------------------------------

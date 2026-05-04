@@ -5,12 +5,7 @@ import Link from "next/link";
 import { CheckCircle2, Loader2, Rows3, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { readJsonResponse } from "@/lib/http";
-
-interface SettingsResponse {
-  opportunityReview?: {
-    enabled: boolean;
-  };
-}
+import type { SettingsResponse } from "@/types/api";
 
 export function OpportunityReviewSection() {
   const [enabled, setEnabled] = useState(true);
@@ -24,7 +19,7 @@ export function OpportunityReviewSection() {
         const response = await fetch("/api/settings");
         const data = await readJsonResponse<SettingsResponse>(
           response,
-          "Failed to load review queue setting"
+          "Failed to load review queue setting",
         );
         if (data.opportunityReview) {
           setEnabled(data.opportunityReview.enabled);
@@ -58,9 +53,11 @@ export function OpportunityReviewSection() {
 
       await readJsonResponse<unknown>(
         response,
-        "Failed to save review queue setting"
+        "Failed to save review queue setting",
       );
-      setMessage(nextEnabled ? "Review queue enabled." : "Review queue disabled.");
+      setMessage(
+        nextEnabled ? "Review queue enabled." : "Review queue disabled.",
+      );
     } catch {
       setEnabled(!nextEnabled);
       setMessage("Could not save review queue setting.");
