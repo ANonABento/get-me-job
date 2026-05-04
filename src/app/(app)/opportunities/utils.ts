@@ -192,6 +192,7 @@ export const OPPORTUNITY_LEVEL_OPTIONS: OpportunityOption<OpportunityLevel>[] =
     { value: "junior", label: "Junior" },
     { value: "intermediate", label: "Mid" },
     { value: "senior", label: "Senior" },
+    { value: "staff", label: "Staff" },
     { value: "lead", label: "Lead" },
     { value: "principal", label: "Principal" },
     { value: "other", label: "Other" },

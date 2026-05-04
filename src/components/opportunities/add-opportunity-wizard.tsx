@@ -303,7 +303,7 @@ export function AddOpportunityWizard({
       );
       addToast({
         type: "success",
-        title: `Filled in from ${new URL(url).hostname}`,
+        title: `Filled in from ${formatScrapeSource(url)}`,
       });
     } catch {
       if (scrapeRequestIdRef.current === requestId) setScrapeHint(true);
@@ -926,6 +926,14 @@ function mapJobType(type?: string): OpportunityJobType | undefined {
     return "co-op";
   if (normalized.includes("full")) return "full-time";
   return undefined;
+}
+
+function formatScrapeSource(url: string) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "URL";
+  }
 }
 
 function buildCreateOpportunity(
