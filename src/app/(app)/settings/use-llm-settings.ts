@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import { DEFAULT_MODELS, LLM_ENDPOINTS } from "@/lib/constants";
 import type { LLMConfig } from "@/types";
@@ -24,6 +24,7 @@ export function useLLMSettings() {
   const [testResult, setTestResult] = useState<LLMTestResult | null>(null);
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error">("saved");
   const showErrorToast = useErrorToast();
 
   useEffect(() => {
@@ -51,11 +52,13 @@ export function useLLMSettings() {
   const updateConfig = (updates: Partial<LLMConfig>) => {
     setConfig((prev) => ({ ...prev, ...updates }));
     setHasChanges(true);
+    setSaveStatus("saving");
     setTestResult(null);
   };
 
-  const saveSettings = async () => {
+  const saveSettings = useCallback(async () => {
     setSaving(true);
+    setSaveStatus("saving");
 
     try {
       const response = await fetch("/api/settings", {
@@ -71,7 +74,9 @@ export function useLLMSettings() {
 
       setTestResult({ success: true, message: "Settings saved successfully!" });
       setHasChanges(false);
+      setSaveStatus("saved");
     } catch (error) {
+      setSaveStatus("error");
       setTestResult({
         success: false,
         message: error instanceof Error ? error.message : "Failed to save settings",
@@ -79,7 +84,17 @@ export function useLLMSettings() {
     } finally {
       setSaving(false);
     }
-  };
+  }, [config]);
+
+  useEffect(() => {
+    if (!hasChanges) return;
+
+    const timeout = window.setTimeout(() => {
+      void saveSettings();
+    }, 700);
+
+    return () => window.clearTimeout(timeout);
+  }, [hasChanges, saveSettings]);
 
   const testConnection = async () => {
     setTesting(true);
@@ -120,6 +135,7 @@ export function useLLMSettings() {
     testing,
     testResult,
     hasChanges,
+    saveStatus,
     availableModels,
     updateConfig,
     saveSettings,

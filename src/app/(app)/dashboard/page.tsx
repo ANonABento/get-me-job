@@ -230,27 +230,6 @@ export default function Dashboard() {
                   </>
                 ) : (
                   <>
-                    <div className="col-span-2">
-                      {/* Inline compact ring for hero */}
-                      <div className="rounded-xl border bg-card p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm text-muted-foreground">
-                            Profile Completeness
-                          </span>
-                          <span className="text-sm font-semibold">
-                            {stats.profileCompleteness.percentage}%
-                          </span>
-                        </div>
-                        <div className="h-2 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-700"
-                            style={{
-                              width: `${stats.profileCompleteness.percentage}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
                     <StatCard
                       icon={Upload}
                       label="Documents"
@@ -498,4 +477,3 @@ function Step({
     </Link>
   );
 }
-

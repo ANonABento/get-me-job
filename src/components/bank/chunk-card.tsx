@@ -125,8 +125,10 @@ export function ChunkCard({
             <Icon className="h-4 w-4" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-medium truncate">{title}</span>
+            <div className="flex items-start gap-2">
+              <span className="min-w-0 flex-1 font-medium leading-snug line-clamp-2 break-words" title={title}>
+                {title}
+              </span>
               <Badge variant="secondary" className="text-2xs">
                 {config.label}
               </Badge>

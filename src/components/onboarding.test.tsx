@@ -163,7 +163,10 @@ describe("OnboardingDialog", () => {
 
   it("should persist completed flag on X button click", () => {
     openDialog();
-    fireEvent.click(screen.getByLabelText("Skip onboarding"));
+    const skipButton = screen.getByLabelText("Skip onboarding");
+    expect(skipButton.className).toContain("focus:ring-ring");
+
+    fireEvent.click(skipButton);
 
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       STORAGE_KEYS.ONBOARDING_COMPLETED,

@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   Briefcase,
@@ -119,6 +120,19 @@ export function JobCard(props: JobCardProps) {
 
   const status = getJobStatusValue(job);
   const statusStyle = STATUS_STYLES[status];
+  const descriptionRef = useRef<HTMLParagraphElement>(null);
+  const [descriptionOverflows, setDescriptionOverflows] = useState(false);
+
+  useEffect(() => {
+    if (expanded) return;
+
+    const description = descriptionRef.current;
+    if (!description) return;
+
+    setDescriptionOverflows(
+      description.scrollHeight > description.clientHeight + 1,
+    );
+  }, [expanded, job.description]);
 
   return (
     <div
@@ -204,22 +218,25 @@ export function JobCard(props: JobCardProps) {
             <p className="text-sm font-medium text-muted-foreground">
               Description
             </p>
-            <button
-              onClick={onToggleExpand}
-              className="text-xs text-primary hover:underline flex items-center gap-1"
-            >
-              {expanded ? (
-                <>
-                  <EyeOff className="h-3 w-3" /> Show less
-                </>
-              ) : (
-                <>
-                  <Eye className="h-3 w-3" /> Show more
-                </>
-              )}
-            </button>
+            {(expanded || descriptionOverflows) && (
+              <button
+                onClick={onToggleExpand}
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                {expanded ? (
+                  <>
+                    <EyeOff className="h-3 w-3" /> Show less
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-3 w-3" /> Show more
+                  </>
+                )}
+              </button>
+            )}
           </div>
           <p
+            ref={descriptionRef}
             className={`text-sm text-muted-foreground ${expanded ? "" : "line-clamp-3"}`}
           >
             {job.description}

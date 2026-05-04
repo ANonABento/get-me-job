@@ -78,11 +78,11 @@ export function JobsToolbar(props: JobsToolbarProps) {
 
         <div className="flex flex-wrap gap-2">
           <Select value={statusFilter} onValueChange={(value) => onStatusChange(value as JobStatusFilter)}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="min-w-[140px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="all">All Statuses</SelectItem>
               {TRACKED_JOB_STATUSES.map((status) => (
                 <SelectItem key={status} value={status}>
                   {TRACKED_JOB_STATUS_LABELS[status]}
@@ -92,7 +92,7 @@ export function JobsToolbar(props: JobsToolbarProps) {
           </Select>
 
           <Select value={typeFilter} onValueChange={(value) => onTypeChange(value as JobTypeFilter)}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="min-w-[140px]">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent>
@@ -105,7 +105,7 @@ export function JobsToolbar(props: JobsToolbarProps) {
           </Select>
 
           <Select value={remoteFilter} onValueChange={(value) => onRemoteChange(value as JobRemoteFilter)}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="min-w-[140px]">
               <SelectValue placeholder="Location" />
             </SelectTrigger>
             <SelectContent>
@@ -116,7 +116,7 @@ export function JobsToolbar(props: JobsToolbarProps) {
           </Select>
 
           <Select value={sortBy} onValueChange={(value) => onSortChange(value as JobSortOption)}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="min-w-[140px]">
               <SortAsc className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Sort" />
             </SelectTrigger>

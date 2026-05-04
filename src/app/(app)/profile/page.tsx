@@ -226,6 +226,7 @@ export default function ProfilePage() {
               type="button"
               variant="outline"
               disabled={!isDirty || saving}
+              title={!isDirty ? "Edit a field to enable discarding changes" : undefined}
               onClick={discardChanges}
             >
               <RotateCcw className="mr-2 h-4 w-4" />
@@ -234,6 +235,7 @@ export default function ProfilePage() {
             <Button
               type="button"
               disabled={!isDirty || saving}
+              title={!isDirty ? "Edit a field to enable saving" : undefined}
               onClick={() => void saveChanges()}
             >
               {saving ? (

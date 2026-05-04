@@ -62,6 +62,7 @@ export default function SettingsPage() {
             saving={llmSettings.saving}
             testing={llmSettings.testing}
             hasChanges={llmSettings.hasChanges}
+            saveStatus={llmSettings.saveStatus}
             testResult={llmSettings.testResult}
             onConfigChange={llmSettings.updateConfig}
             onSave={() => void llmSettings.saveSettings()}

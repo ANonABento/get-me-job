@@ -2,6 +2,7 @@
 
 import { CheckCircle, Key, Loader2, RefreshCw, Shield, XCircle, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AutoSaveStatus } from "@/components/ui/auto-save-status";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,6 +17,7 @@ interface LLMProviderConfigProps {
   saving: boolean;
   testing: boolean;
   hasChanges: boolean;
+  saveStatus: "saved" | "saving" | "error";
   testResult: LLMTestResult | null;
   onConfigChange: (updates: Partial<LLMConfig>) => void;
   onSave: () => void;
@@ -30,6 +32,7 @@ export function LLMProviderConfig(props: LLMProviderConfigProps) {
     saving,
     testing,
     hasChanges,
+    saveStatus,
     testResult,
     onConfigChange,
     onSave,
@@ -126,7 +129,7 @@ export function LLMProviderConfig(props: LLMProviderConfigProps) {
           </div>
         )}
 
-        <div className="flex gap-3 pt-2">
+        <div className="flex flex-wrap items-center gap-3 pt-2">
           <Button variant="outline" onClick={onTestConnection} disabled={testing} className="flex-1">
             {testing ? (
               <>
@@ -140,19 +143,11 @@ export function LLMProviderConfig(props: LLMProviderConfigProps) {
               </>
             )}
           </Button>
-          <Button onClick={onSave} disabled={saving || !hasChanges} className="flex-1 gradient-bg text-primary-foreground hover:opacity-90">
-            {saving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Save Settings
-              </>
-            )}
-          </Button>
+          <AutoSaveStatus
+            status={saving || hasChanges ? "saving" : saveStatus}
+            onRetry={saveStatus === "error" ? onSave : undefined}
+            className="flex-1 justify-center"
+          />
         </div>
       </div>
     </div>

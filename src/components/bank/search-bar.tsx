@@ -114,7 +114,7 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
             All
             <CountBadge count={totalCount} active={activeCategory === "all"} />
           </button>
-          {BANK_CATEGORIES.map((cat) => (
+          {BANK_CATEGORIES.filter((cat) => (counts[cat] || 0) > 0 || activeCategory === cat).map((cat) => (
             <button
               role="tab"
               aria-selected={activeCategory === cat}
@@ -125,7 +125,6 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
                 activeCategory === cat
                   ? "bg-[image:var(--gradient-primary)] text-primary-foreground shadow-[var(--shadow-button)] scale-105"
                   : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80",
-                !counts[cat] && activeCategory !== cat && "opacity-50",
               )}
             >
               {CATEGORY_LABELS[cat]}

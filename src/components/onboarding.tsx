@@ -185,7 +185,7 @@ export function OnboardingDialog() {
         {/* Skip button */}
         <button
           onClick={markComplete}
-          className="absolute right-4 top-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          className="absolute right-4 top-4 p-1.5 rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           aria-label="Skip onboarding"
         >
           <X className="h-4 w-4" />

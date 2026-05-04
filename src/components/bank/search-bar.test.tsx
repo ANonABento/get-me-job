@@ -35,7 +35,7 @@ describe("SearchBar", () => {
     expect(allTab).toHaveTextContent("16");
   });
 
-  it("should render category chips with count badges", () => {
+  it("should render category chips with count badges and hide empty categories", () => {
     render(<SearchBar {...defaultProps} />);
     const expTab = screen.getByRole("tab", { name: /Experience/i });
     expect(expTab).toHaveTextContent("5");
@@ -52,8 +52,9 @@ describe("SearchBar", () => {
     const eduTab = screen.getByRole("tab", { name: /Education/i });
     expect(eduTab).toHaveTextContent("1");
 
-    const achTab = screen.getByRole("tab", { name: /Achievements/i });
-    expect(achTab).toHaveTextContent("0");
+    expect(
+      screen.queryByRole("tab", { name: /Achievements/i }),
+    ).not.toBeInTheDocument();
 
     const certTab = screen.getByRole("tab", { name: /Certifications/i });
     expect(certTab).toHaveTextContent("1");
@@ -158,9 +159,10 @@ describe("SearchBar", () => {
     expect(tablist).toBeInTheDocument();
   });
 
-  it("should apply reduced opacity to categories with zero count", () => {
-    render(<SearchBar {...defaultProps} />);
+  it("should keep the active tab visible even when its count is zero", () => {
+    render(<SearchBar {...defaultProps} activeCategory="achievement" />);
     const achTab = screen.getByRole("tab", { name: /Achievements/i });
-    expect(achTab.className).toContain("opacity-50");
+    expect(achTab).toHaveTextContent("0");
+    expect(achTab).toHaveAttribute("aria-selected", "true");
   });
 });

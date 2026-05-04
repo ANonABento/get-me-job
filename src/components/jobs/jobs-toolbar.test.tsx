@@ -30,4 +30,14 @@ describe("JobsToolbar", () => {
       "pr-12",
     );
   });
+
+  it("gives filter selects enough width for their labels", () => {
+    render(<JobsToolbar {...defaultProps} />);
+
+    const triggers = screen.getAllByRole("combobox");
+    expect(triggers).toHaveLength(4);
+    for (const trigger of triggers) {
+      expect(trigger.className).toContain("min-w-[140px]");
+    }
+  });
 });

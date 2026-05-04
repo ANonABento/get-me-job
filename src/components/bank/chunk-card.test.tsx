@@ -268,6 +268,13 @@ describe("ChunkCard", () => {
       <ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />,
     );
     expect(screen.getByText("Engineer at Acme Corp")).toBeInTheDocument();
+    expect(screen.getByText("Engineer at Acme Corp").className).toContain(
+      "line-clamp-2",
+    );
+    expect(screen.getByText("Engineer at Acme Corp")).toHaveAttribute(
+      "title",
+      "Engineer at Acme Corp",
+    );
     expect(screen.getByText("Experience")).toBeInTheDocument();
     expect(container.firstElementChild?.className).toContain(
       "rounded-[var(--radius)]",

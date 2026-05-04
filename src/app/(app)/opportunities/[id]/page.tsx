@@ -531,7 +531,6 @@ export default function OpportunityDetailPage({
               </Button>
               <Button
                 type="button"
-                variant="secondary"
                 className="justify-start"
                 onClick={() => void handleApply()}
               >
