@@ -11,15 +11,13 @@ const e2eUserHeader = (projectName: string) => ({
 });
 
 export default defineConfig({
-  testDir: "./e2e",
+  testDir: ".",
+  testMatch: ["e2e/**/*.spec.ts", "tests/e2e/**/*.spec.ts"],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1,
-  reporter: [
-    ["list"],
-    ["html", { outputFolder: "playwright-report" }],
-  ],
+  reporter: [["list"], ["html", { outputFolder: "playwright-report" }]],
   use: {
     baseURL,
     trace: "on-first-retry",
