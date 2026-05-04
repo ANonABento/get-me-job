@@ -191,6 +191,15 @@ export default function ProfilePage() {
   const initials = getProfileInitials(form.name);
   const salaryRange = formatSalaryRange(form);
 
+  function focusField(tab: ProfileTab, fieldId: string) {
+    setActiveTab(tab);
+    requestAnimationFrame(() => {
+      const field = document.getElementById(fieldId);
+      field?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (field instanceof HTMLElement) field.focus();
+    });
+  }
+
   if (loading) {
     return (
       <AppPage>
@@ -279,20 +288,32 @@ export default function ProfilePage() {
                   </p>
                 </div>
                 <div className="mt-6 space-y-3 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => focusField("overview", "email")}
+                    className="flex w-full min-w-0 items-center gap-2 rounded text-left text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
                     <Mail className="h-4 w-4 shrink-0" />
                     <span className="truncate">{form.email || "No email"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => focusField("overview", "location")}
+                    className="flex w-full min-w-0 items-center gap-2 rounded text-left text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
                     <MapPin className="h-4 w-4 shrink-0" />
                     <span className="truncate">
                       {form.location || "No location"}
                     </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => focusField("preferences", "targetSalaryMin")}
+                    className="flex w-full min-w-0 items-center gap-2 rounded text-left text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
                     <DollarSign className="h-4 w-4 shrink-0" />
                     <span className="truncate">{salaryRange}</span>
-                  </div>
+                  </button>
                 </div>
               </CardContent>
             </Card>

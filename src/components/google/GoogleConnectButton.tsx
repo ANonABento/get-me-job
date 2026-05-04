@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { useClerk } from "@clerk/nextjs";
+import { useClerk, useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
@@ -23,7 +23,8 @@ function GoogleConnectButtonWithClerk({
   onConnectionChange,
   showStatus = true,
 }: GoogleConnectButtonProps) {
-  const { openUserProfile } = useClerk();
+  const { openSignIn, openUserProfile } = useClerk();
+  const { isLoaded, isSignedIn } = useUser();
   const [status, setStatus] = useState<ConnectionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,19 +53,32 @@ function GoogleConnectButtonWithClerk({
   }, [onConnectionChange, showErrorToast]);
 
   useEffect(() => {
+    if (!isLoaded) return;
+    if (!isSignedIn) {
+      setError(null);
+      setLoading(false);
+      setStatus({ connected: false });
+      onConnectionChange?.(false);
+      return;
+    }
     checkConnection();
-  }, [checkConnection]);
+  }, [checkConnection, isLoaded, isSignedIn, onConnectionChange]);
 
   // Re-check connection when user returns from Clerk profile
   useEffect(() => {
     function handleFocus() {
+      if (!isSignedIn) return;
       checkConnection();
     }
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, [checkConnection]);
+  }, [checkConnection, isSignedIn]);
 
   function handleConnect() {
+    if (!isSignedIn) {
+      openSignIn();
+      return;
+    }
     // Opens Clerk's user profile where they can connect/manage Google
     openUserProfile();
   }
@@ -122,7 +136,7 @@ function GoogleConnectButtonWithClerk({
   return (
     <Button onClick={handleConnect} className="gap-2">
       <GoogleIcon className="h-4 w-4" />
-      Connect Google Account
+      {isSignedIn ? "Connect Google account" : "Sign in to connect Google"}
     </Button>
   );
 }
@@ -132,7 +146,7 @@ export function GoogleConnectButton(props: GoogleConnectButtonProps) {
     return (
       <Button variant="outline" disabled className="gap-2">
         <GoogleIcon className="h-4 w-4" />
-        Clerk required
+        Coming soon - Google integration
       </Button>
     );
   }

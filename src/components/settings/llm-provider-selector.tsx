@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { CheckCircle, Cloud, Cpu, Server, Sparkles, Zap } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { DEFAULT_MODELS } from "@/lib/constants";
 import type { LLMConfig } from "@/types";
 
@@ -67,6 +68,8 @@ export function LLMProviderSelector({ provider, apiKey, onProviderChange }: LLMP
         {PROVIDERS.map((option) => (
           <button
             key={option.value}
+            type="button"
+            aria-pressed={provider === option.value}
             onClick={() =>
               onProviderChange({
                 provider: option.value,
@@ -74,8 +77,10 @@ export function LLMProviderSelector({ provider, apiKey, onProviderChange }: LLMP
                 apiKey: option.value === "ollama" ? undefined : apiKey,
               })
             }
-            className={`relative flex items-start gap-4 p-4 rounded-xl border-2 transition-all text-left ${
-              provider === option.value ? "border-primary bg-primary/5" : "border-transparent bg-muted/50 hover:bg-muted"
+            className={`relative flex min-h-28 items-start gap-4 rounded-xl border-2 p-4 pr-24 text-left transition-all ${
+              provider === option.value
+                ? "border-primary bg-primary/5 shadow-sm"
+                : "border-transparent bg-muted/50 hover:bg-muted"
             }`}
           >
             <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">{option.icon}</div>
@@ -83,7 +88,12 @@ export function LLMProviderSelector({ provider, apiKey, onProviderChange }: LLMP
               <p className="font-medium">{option.label}</p>
               <p className="text-sm text-muted-foreground">{option.description}</p>
             </div>
-            {provider === option.value && <CheckCircle className="absolute top-3 right-3 h-5 w-5 text-primary" />}
+            {provider === option.value && (
+              <Badge className="absolute right-3 top-3 gap-1.5 bg-primary text-primary-foreground">
+                <CheckCircle className="h-4 w-4" />
+                Selected
+              </Badge>
+            )}
           </button>
         ))}
       </div>
