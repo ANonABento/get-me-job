@@ -4,6 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { SearchBar, CATEGORY_LABELS, type SortOption } from "@/components/bank/search-bar";
 import { ChunkCard } from "@/components/bank/chunk-card";
 import { UploadOverlay } from "@/components/bank/upload-overlay";
@@ -18,11 +26,27 @@ import { AddEntryDialog } from "@/components/bank/add-entry-dialog";
 import { useToast } from "@/components/ui/toast";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import { uploadSuccessMessage } from "./utils";
+import {
+  formatExistingUploadDate,
+  getExistingUploadTimestamp,
+  type UploadConflictExisting,
+} from "@/lib/upload-conflict";
 
 const DriveFilePicker = dynamic(
   () => import("@/components/google").then((m) => m.DriveFilePicker),
   { loading: () => <SkeletonButton className="w-40" />, ssr: false }
 );
+
+interface UploadConflict {
+  file: File;
+  existing: UploadConflictExisting;
+}
+
+interface BankUploadResponse {
+  success: boolean;
+  error?: string;
+  entriesCreated?: number;
+}
 
 export default function BankPage() {
   const [entries, setEntries] = useState<BankEntry[]>([]);
@@ -44,6 +68,7 @@ export default function BankPage() {
   const entriesListRef = useRef<HTMLDivElement>(null);
   const [uploading, setUploading] = useState(false);
   const [driveImporting, setDriveImporting] = useState(false);
+  const [uploadConflict, setUploadConflict] = useState<UploadConflict | null>(null);
   const { addToast } = useToast();
   const showErrorToast = useErrorToast();
 
@@ -204,34 +229,58 @@ export default function BankPage() {
     }
   }
 
-  async function handleFileUpload(file: File) {
+  async function uploadFile(
+    file: File,
+    options?: { force?: boolean }
+  ): Promise<BankUploadResponse | null> {
+    const formData = new FormData();
+    formData.append("file", file);
+    const uploadRes = await fetch(
+      `/api/upload${options?.force ? "?force=true" : ""}`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+    const uploadData = await uploadRes.json();
+
+    if (uploadRes.status === 409 && uploadData.existing) {
+      setUploadConflict({ file, existing: uploadData.existing });
+      return null;
+    }
+
+    if (!uploadRes.ok) {
+      throw new Error(uploadData.error || `Upload failed (${uploadRes.status})`);
+    }
+    if (!uploadData.success) {
+      throw new Error(uploadData.error || "Upload returned unsuccessful");
+    }
+
+    return uploadData;
+  }
+
+  async function finishSuccessfulUpload(file: File, uploadData: BankUploadResponse) {
+    await handleDataRefresh({ silent: true });
+
+    const count = uploadData.entriesCreated ?? 0;
+    addToast({
+      type: "success",
+      title: uploadSuccessMessage(count, file.name),
+    });
+
+    requestAnimationFrame(() => {
+      entriesListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  async function handleFileUpload(file: File, options?: { force?: boolean }) {
     setUploading(true);
     setError(null);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const uploadRes = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const uploadData = await uploadRes.json();
-      if (!uploadRes.ok) {
-        throw new Error(uploadData.error || `Upload failed (${uploadRes.status})`);
+      const uploadData = await uploadFile(file, options);
+      if (uploadData) {
+        await finishSuccessfulUpload(file, uploadData);
       }
-      if (!uploadData.success) {
-        throw new Error(uploadData.error || "Upload returned unsuccessful");
-      }
-      await handleDataRefresh({ silent: true });
-
-      const count = uploadData.entriesCreated ?? 0;
-      addToast({
-        type: "success",
-        title: uploadSuccessMessage(count, file.name),
-      });
-
-      requestAnimationFrame(() => {
-        entriesListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
     } catch (err) {
       const message = getErrorMessage(err);
       setError(message);
@@ -242,6 +291,13 @@ export default function BankPage() {
     } finally {
       setUploading(false);
     }
+  }
+
+  async function replaceConflictingUpload() {
+    if (!uploadConflict) return;
+    const file = uploadConflict.file;
+    setUploadConflict(null);
+    await handleFileUpload(file, { force: true });
   }
 
   function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -280,6 +336,32 @@ export default function BankPage() {
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       {/* Upload overlay for drag-and-drop */}
       <UploadOverlay onComplete={() => handleDataRefresh()} />
+
+      <Dialog
+        open={!!uploadConflict}
+        onOpenChange={(open) => {
+          if (!open) setUploadConflict(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Replace existing upload?</DialogTitle>
+            <DialogDescription>
+              {uploadConflict
+                ? `Looks like you uploaded "${uploadConflict.existing.filename}" on ${formatExistingUploadDate(getExistingUploadTimestamp(uploadConflict.existing))}. Replace it, or cancel?`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUploadConflict(null)}>
+              Cancel
+            </Button>
+            <Button onClick={replaceConflictingUpload} autoFocus>
+              Replace
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Hidden file input */}
       <input

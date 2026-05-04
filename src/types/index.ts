@@ -119,6 +119,7 @@ export interface Document {
   path: string;
   extractedText?: string;
   parsedData?: ParsedDocumentData;
+  fileHash?: string;
   uploadedAt: string;
 }
 

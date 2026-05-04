@@ -28,6 +28,7 @@ import {
   setLLMConfig,
   saveDocument,
   getDocument,
+  getDocumentByFileHash,
   getDocuments,
   getDocumentsByType,
   getProfile,
@@ -152,6 +153,7 @@ describe("Document Functions", () => {
         "/uploads/resume.pdf",
         "John Doe, Software Engineer",
         null,
+        null,
         "default"
       );
     });
@@ -189,6 +191,7 @@ describe("Document Functions", () => {
           path: "/uploads/resume.pdf",
           extractedText: "Text content",
           parsedData: undefined,
+          fileHash: undefined,
           uploadedAt: "2024-01-15T10:00:00.000Z",
         },
       ]);
@@ -240,6 +243,7 @@ describe("Document Functions", () => {
           path: "/uploads/cover-letter.pdf",
           extractedText: "Dear team",
           parsedData: undefined,
+          fileHash: undefined,
           uploadedAt: "2024-01-16T10:00:00.000Z",
         },
       ]);
@@ -276,6 +280,41 @@ describe("Document Functions", () => {
         path: "/uploads/resume.pdf",
         extractedText: undefined,
         parsedData: undefined,
+        fileHash: undefined,
+        uploadedAt: "2024-01-15T10:00:00.000Z",
+      });
+    });
+  });
+
+  describe("getDocumentByFileHash", () => {
+    it("returns the oldest matching document for a user and hash", () => {
+      const mockGet = vi.fn().mockReturnValue({
+        id: "doc-1",
+        filename: "resume.pdf",
+        type: "resume",
+        mime_type: "application/pdf",
+        size: 1024,
+        path: "/uploads/resume.pdf",
+        extracted_text: null,
+        parsed_data: null,
+        file_hash: "abc123",
+        uploaded_at: "2024-01-15T10:00:00.000Z",
+      });
+      (db.prepare as Mock).mockReturnValue({ get: mockGet });
+
+      const result = getDocumentByFileHash("abc123", "user-1");
+
+      expect(mockGet).toHaveBeenCalledWith("user-1", "abc123");
+      expect(result).toEqual({
+        id: "doc-1",
+        filename: "resume.pdf",
+        type: "resume",
+        mimeType: "application/pdf",
+        size: 1024,
+        path: "/uploads/resume.pdf",
+        extractedText: undefined,
+        parsedData: undefined,
+        fileHash: "abc123",
         uploadedAt: "2024-01-15T10:00:00.000Z",
       });
     });

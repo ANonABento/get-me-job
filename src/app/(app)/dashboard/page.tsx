@@ -101,30 +101,32 @@ export default function Dashboard() {
         // Build activity timeline from documents + jobs
         const activities: ActivityItem[] = [];
 
-        for (const doc of documents.slice(0, 5)) {
+        for (const doc of documents) {
           activities.push({
             id: `doc-${doc.id}`,
             type: "document_uploaded",
+            targetId: doc.filename,
             title: doc.filename,
             timestamp: doc.uploadedAt,
           });
         }
 
-        for (const job of recentJobsList.slice(0, 5)) {
+        for (const job of recentJobsList) {
           activities.push({
             id: `job-${job.id}`,
             type: job.status === "applied" ? "job_applied" : "job_added",
+            targetId: job.id,
             title: `${job.title} at ${job.company}`,
             timestamp: job.createdAt,
           });
         }
 
-        // Sort by timestamp descending, take 5
+        // Sort by timestamp descending; RecentActivity rolls up before trimming.
         activities.sort(
           (a, b) =>
             new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
         );
-        setActivityItems(activities.slice(0, 5));
+        setActivityItems(activities);
       } catch (error) {
         const isAuthError =
           error instanceof Error && error.message === "AUTH_REQUIRED";
@@ -498,4 +500,3 @@ function Step({
     </Link>
   );
 }
-
