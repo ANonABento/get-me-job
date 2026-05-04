@@ -49,3 +49,35 @@ export function coverLetterTextToTipTapDocument(
     content: paragraphs.map(paragraphFromText),
   };
 }
+
+const HTML_ENTITY_REPLACEMENTS: Array<[RegExp, string]> = [
+  [/&nbsp;/gi, " "],
+  [/&amp;/gi, "&"],
+  [/&lt;/gi, "<"],
+  [/&gt;/gi, ">"],
+  [/&quot;/gi, '"'],
+  [/&#39;/g, "'"],
+];
+
+export function coverLetterHtmlToText(html: string): string {
+  if (!html) return "";
+
+  let text = html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>\s*<p[^>]*>/gi, "\n\n")
+    .replace(/<p[^>]*>/gi, "")
+    .replace(/<\/p>/gi, "")
+    .replace(/<[^>]*>/g, "");
+
+  for (const [pattern, replacement] of HTML_ENTITY_REPLACEMENTS) {
+    text = text.replace(pattern, replacement);
+  }
+
+  return text
+    .replace(/[ \t]+/g, " ")
+    .replace(/ *\n */g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}

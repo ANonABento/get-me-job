@@ -8,10 +8,12 @@ import {
 } from "@/lib/resume/template-data";
 import type { TemplateStyles } from "@/lib/resume/template-data";
 import {
+  DEFAULT_BUILDER_PANEL,
   createInitialSections,
   getVisibleSectionIds,
   reorderSections,
   toggleSectionVisibility,
+  type BuilderPanel,
   type SectionState,
 } from "@/lib/builder/section-manager";
 import {
@@ -32,6 +34,7 @@ import { buildCoverLetterPreviewContent } from "@/lib/builder/cover-letter-previ
 import { generateResumePreviewFallbackHTML } from "@/lib/builder/resume-preview-fallback";
 import { tailoredResumeToTipTapDocument } from "@/lib/editor/bank-to-tiptap";
 import {
+  coverLetterHtmlToText,
   coverLetterTextToTipTapDocument,
   createBlankCoverLetterTipTapDocument,
   isBlankCoverLetterTipTapDocument,
@@ -46,7 +49,7 @@ import { readJsonResponse } from "@/lib/http";
 import type { TailoredResume } from "@/lib/resume/generator";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import type { BankCategory, BankEntry } from "@/types";
-import type { StudioSaveStatus } from "./save-status";
+import type { CoverLetterCritique } from "@/lib/ai/critique-prompts";
 import {
   COVER_LETTER_DOCUMENT_ID,
   RESUME_DOCUMENT_ID,
@@ -88,18 +91,25 @@ interface StudioPageState {
   html: string;
   content?: TipTapJSONContent;
   handleContentChange: (content: TipTapJSONContent) => void;
+  coverLetterCritique?: CoverLetterCritique;
+  handleCoverLetterCritique: (critique: CoverLetterCritique) => void;
   handleCoverLetterGenerated: (content: string) => void;
+  handleCoverLetterSuggestionApply: (
+    rangeInLetter: string,
+    suggestion: string,
+  ) => boolean;
   isExporting: boolean;
   loading: boolean;
   manualVersionName: string;
+  mobileView: BuilderPanel;
   previewVersionId: string | null;
   sections: SectionState[];
   selectedIds: Set<string>;
-  saveStatus: StudioSaveStatus;
   setLinkedOpportunityId: (opportunityId: string) => void;
   setDocumentMode: (mode: DocumentMode) => void;
   setEntryPickerOpen: (open: boolean) => void;
   setManualVersionName: (name: string) => void;
+  setMobileView: (panel: BuilderPanel) => void;
   templateId: string;
   versions: BuilderVersion[];
 }
@@ -110,8 +120,6 @@ interface LinkStudioVersionOptions {
   opportunityId: string;
   versionId: string;
 }
-
-const SAVE_STATUS_MIN_VISIBLE_MS = 150;
 
 async function readLinkError(response: Response): Promise<string> {
   try {
@@ -185,6 +193,18 @@ export function isDraftSavedForDocument(
   );
 }
 
+export function applyCoverLetterCritiqueSuggestionToText(
+  content: string,
+  rangeInLetter: string,
+  suggestion: string,
+): string {
+  const range = rangeInLetter.trim();
+  const replacement = suggestion.trim();
+  if (!content || !range || !replacement) return content;
+  if (!content.includes(range)) return content;
+  return content.replace(range, replacement);
+}
+
 export function useStudioPageState(): StudioPageState {
   const [entries, setEntries] = useState<BankEntry[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -198,19 +218,20 @@ export function useStudioPageState(): StudioPageState {
   const [hasLoadedEntries, setHasLoadedEntries] = useState(false);
   const [html, setHtml] = useState("");
   const [content, setContent] = useState<TipTapJSONContent | undefined>();
+  const [coverLetterCritique, setCoverLetterCritique] = useState<
+    CoverLetterCritique | undefined
+  >();
   const [entryPickerOpen, setEntryPickerOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [mobileView, setMobileView] = useState<BuilderPanel>(
+    DEFAULT_BUILDER_PANEL,
+  );
   const [versions, setVersions] = useState<BuilderVersion[]>([]);
   const [manualVersionName, setManualVersionName] = useState("");
   const [previewVersionId, setPreviewVersionId] = useState<string | null>(null);
   const [dirtyDocumentIds, setDirtyDocumentIds] = useState<Set<string>>(
     new Set(),
   );
-  const [lastSavedAtByDocumentId, setLastSavedAtByDocumentId] = useState<
-    Record<string, number>
-  >({});
-  const [isSavingVersion, setIsSavingVersion] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [documents, setDocuments] = useState<StudioDocument[]>([
     createStudioDocument("resume", { id: RESUME_DOCUMENT_ID }),
     createStudioDocument("cover_letter", { id: COVER_LETTER_DOCUMENT_ID }),
@@ -297,6 +318,7 @@ export function useStudioPageState(): StudioPageState {
       contentRef.current = activeDocument.content;
       setHtml(activeDocument.html ?? "");
       setContent(activeDocument.content);
+      setCoverLetterCritique(activeDocument.coverLetterCritique);
     }
 
     if (typeof window !== "undefined") {
@@ -310,6 +332,7 @@ export function useStudioPageState(): StudioPageState {
     activeDocument.sections,
     activeDocument.selectedEntryIds,
     activeDocument.templateId,
+    activeDocument.coverLetterCritique,
   ]);
 
   const visibleCategoryIds = useMemo(
@@ -348,8 +371,17 @@ export function useStudioPageState(): StudioPageState {
       templateId,
       html,
       content,
+      coverLetterCritique,
     }),
-    [content, documentMode, html, sections, selectedIds, templateId],
+    [
+      content,
+      coverLetterCritique,
+      documentMode,
+      html,
+      sections,
+      selectedIds,
+      templateId,
+    ],
   );
 
   const draftIsSaved = useMemo(
@@ -362,23 +394,6 @@ export function useStudioPageState(): StudioPageState {
       ),
     [activeDocument.id, currentDraftState, dirtyDocumentIds, versions],
   );
-
-  const saveStatus = useMemo<StudioSaveStatus>(() => {
-    if (isSavingVersion) return { state: "saving" };
-    if (saveError) return { state: "error", error: saveError };
-    if (!draftIsSaved) return { state: "unsaved" };
-
-    return {
-      state: "saved",
-      lastSavedAt: lastSavedAtByDocumentId[activeDocument.id] ?? Date.now(),
-    };
-  }, [
-    activeDocument.id,
-    draftIsSaved,
-    isSavingVersion,
-    lastSavedAtByDocumentId,
-    saveError,
-  ]);
 
   useEffect(() => {
     if (previewVersionId) setGenerating(false);
@@ -549,7 +564,6 @@ export function useStudioPageState(): StudioPageState {
   );
 
   const markActiveDocumentDirty = useCallback(() => {
-    setSaveError(null);
     setDirtyDocumentIds((current) => {
       if (current.has(activeDocument.id)) return current;
       const next = new Set(current);
@@ -559,17 +573,12 @@ export function useStudioPageState(): StudioPageState {
   }, [activeDocument.id]);
 
   const markActiveDocumentSaved = useCallback(() => {
-    const documentId = activeDocument.id;
     setDirtyDocumentIds((current) => {
-      if (!current.has(documentId)) return current;
+      if (!current.has(activeDocument.id)) return current;
       const next = new Set(current);
-      next.delete(documentId);
+      next.delete(activeDocument.id);
       return next;
     });
-    setLastSavedAtByDocumentId((current) => ({
-      ...current,
-      [documentId]: Date.now(),
-    }));
   }, [activeDocument.id]);
 
   const handleContentChange = useCallback(
@@ -593,11 +602,49 @@ export function useStudioPageState(): StudioPageState {
       markActiveDocumentDirty();
       setContent(nextContent);
       setHtml(nextHtml);
-      updateActiveDocument({ content: nextContent, html: nextHtml });
+      setCoverLetterCritique(undefined);
+      updateActiveDocument({
+        content: nextContent,
+        html: nextHtml,
+        coverLetterCritique: undefined,
+      });
       lastCoverLetterEntryKeyRef.current =
         createEntrySelectionKey(orderedEntries);
     },
     [markActiveDocumentDirty, orderedEntries, updateActiveDocument],
+  );
+
+  const handleCoverLetterCritique = useCallback(
+    (critique: CoverLetterCritique) => {
+      markActiveDocumentDirty();
+      setCoverLetterCritique(critique);
+      updateActiveDocument({ coverLetterCritique: critique });
+    },
+    [markActiveDocumentDirty, updateActiveDocument],
+  );
+
+  const handleCoverLetterSuggestionApply = useCallback(
+    (rangeInLetter: string, suggestion: string) => {
+      if (documentMode !== "cover_letter") return false;
+      const currentText = coverLetterHtmlToText(html);
+      const nextText = applyCoverLetterCritiqueSuggestionToText(
+        currentText,
+        rangeInLetter,
+        suggestion,
+      );
+      if (nextText === currentText) return false;
+
+      const nextContent = coverLetterTextToTipTapDocument(nextText);
+      const nextHtml = createEditorBodyHtml(nextContent);
+      contentRef.current = nextContent;
+      setPreviewVersionId(null);
+      markActiveDocumentDirty();
+      setContent(nextContent);
+      setHtml(nextHtml);
+      updateActiveDocument({ content: nextContent, html: nextHtml });
+      return true;
+    },
+    [documentMode, html, markActiveDocumentDirty, updateActiveDocument],
   );
 
   const handleToggleEntry = useCallback(
@@ -695,53 +742,30 @@ export function useStudioPageState(): StudioPageState {
         kind: "manual",
         name,
       });
-      const nextVersions = addBuilderVersion(versions, version);
+      setVersions((prev) => {
+        const next = addBuilderVersion(prev, version);
+        if (typeof window !== "undefined") {
+          writeBuilderVersions(window.localStorage, activeDocument.id, next);
+        }
+        return next;
+      });
+      setManualVersionName("");
+      setPreviewVersionId(version.id);
+      markActiveDocumentSaved();
 
-      setIsSavingVersion(true);
-      setSaveError(null);
-
-      window.setTimeout(() => {
-        try {
-          const saved = writeBuilderVersions(
-            window.localStorage,
-            activeDocument.id,
-            nextVersions,
-          );
-          if (!saved) throw new Error("Browser storage rejected the save");
-
-          setVersions(nextVersions);
-          markActiveDocumentSaved();
-        } catch (err) {
-          const message =
-            err instanceof Error ? err.message : "Could not save version";
-          setSaveError(message);
+      if (linkedOpportunityId) {
+        void linkStudioVersionToOpportunity({
+          documentMode,
+          opportunityId: linkedOpportunityId,
+          versionId: version.id,
+        }).catch((err) => {
           showErrorToast(err, {
-            title: "Could not save version",
+            title: "Could not link opportunity",
             fallbackDescription:
-              "Your draft is still open, but the saved version could not be written.",
+              "The document was saved, but it was not attached to the selected opportunity.",
           });
-          return;
-        } finally {
-          setIsSavingVersion(false);
-        }
-
-        setManualVersionName("");
-        setPreviewVersionId(version.id);
-
-        if (linkedOpportunityId) {
-          void linkStudioVersionToOpportunity({
-            documentMode,
-            opportunityId: linkedOpportunityId,
-            versionId: version.id,
-          }).catch((err) => {
-            showErrorToast(err, {
-              title: "Could not link opportunity",
-              fallbackDescription:
-                "The document was saved, but it was not attached to the selected opportunity.",
-            });
-          });
-        }
-      }, SAVE_STATUS_MIN_VISIBLE_MS);
+        });
+      }
     },
     [
       activeDocument.id,
@@ -750,7 +774,6 @@ export function useStudioPageState(): StudioPageState {
       linkedOpportunityId,
       markActiveDocumentSaved,
       showErrorToast,
-      versions,
     ],
   );
 
@@ -768,6 +791,7 @@ export function useStudioPageState(): StudioPageState {
       setSections(version.state.sections);
       setTemplateId(version.state.templateId);
       setHtml(version.state.html);
+      setCoverLetterCritique(version.state.coverLetterCritique);
       markActiveDocumentSaved();
       contentRef.current = version.state.content;
       setContent(version.state.content);
@@ -777,6 +801,7 @@ export function useStudioPageState(): StudioPageState {
         templateId: version.state.templateId,
         content: version.state.content,
         html: version.state.html,
+        coverLetterCritique: version.state.coverLetterCritique,
       });
     },
     [markActiveDocumentSaved, updateActiveDocument, versions],
@@ -849,8 +874,11 @@ export function useStudioPageState(): StudioPageState {
     entryPickerOpen,
     generating,
     content,
+    coverLetterCritique,
     handleContentChange,
+    handleCoverLetterCritique,
     handleCoverLetterGenerated,
+    handleCoverLetterSuggestionApply,
     handleCopyHtml,
     handleCreateDocument,
     handleDeleteDocument,
@@ -867,14 +895,15 @@ export function useStudioPageState(): StudioPageState {
     isExporting,
     loading,
     manualVersionName,
+    mobileView,
     previewVersionId,
     sections,
     selectedIds,
-    saveStatus,
     setLinkedOpportunityId,
     setDocumentMode,
     setEntryPickerOpen,
     setManualVersionName,
+    setMobileView,
     templateId,
     versions,
   };

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  BarChart3,
   BriefcaseBusiness,
   FileText,
   Loader2,
@@ -18,6 +19,7 @@ import {
   stripDocumentHtml,
   type DocumentAssistantAction,
 } from "@/lib/document-assistant";
+import { coverLetterHtmlToText } from "@/lib/editor/cover-letter-tiptap";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -37,10 +39,15 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { Opportunity } from "@/types";
+import {
+  COVER_LETTER_CRITIQUE_AXES,
+  type CoverLetterCritique,
+} from "@/lib/ai/critique-prompts";
 import type { DocumentMode } from "./studio-documents";
 
 type AssistantRunAction =
   | DocumentAssistantAction
+  | "critique"
   | "generate-from-bank"
   | "rewrite-section";
 
@@ -50,7 +57,13 @@ interface AiAssistantPanelProps {
   documentMode?: DocumentMode;
   selectedEntryCount: number;
   selectedEntryIds?: string[];
+  coverLetterCritique?: CoverLetterCritique;
+  onCoverLetterCritique?: (critique: CoverLetterCritique) => void;
   onCoverLetterGenerated?: (content: string) => void;
+  onCoverLetterSuggestionApply?: (
+    rangeInLetter: string,
+    suggestion: string,
+  ) => boolean;
   onOpenBank: () => void;
   onOpportunityClear?: () => void;
   onOpportunitySelect?: (opportunityId: string) => void;
@@ -58,6 +71,11 @@ interface AiAssistantPanelProps {
 
 interface AssistantResponse {
   content?: string;
+  error?: string;
+}
+
+interface CritiqueResponse {
+  critique?: CoverLetterCritique;
   error?: string;
 }
 
@@ -104,7 +122,10 @@ export function AiAssistantPanel({
   documentMode = "resume",
   selectedEntryCount,
   selectedEntryIds = [],
+  coverLetterCritique,
+  onCoverLetterCritique,
   onCoverLetterGenerated,
+  onCoverLetterSuggestionApply,
   onOpenBank,
   onOpportunityClear,
   onOpportunitySelect,
@@ -114,6 +135,9 @@ export function AiAssistantPanel({
   const [jobDescription, setJobDescription] = useState("");
   const [selectedOpportunityId, setSelectedOpportunityId] = useState("");
   const [selectedOpportunityLabel, setSelectedOpportunityLabel] = useState("");
+  const [selectedOpportunityCompany, setSelectedOpportunityCompany] =
+    useState("");
+  const [selectedOpportunityRole, setSelectedOpportunityRole] = useState("");
   const [opportunityPickerOpen, setOpportunityPickerOpen] = useState(false);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [opportunitiesLoading, setOpportunitiesLoading] = useState(false);
@@ -188,6 +212,8 @@ export function AiAssistantPanel({
         setSelectedOpportunityLabel(
           `${data.opportunity.title} at ${data.opportunity.company}`,
         );
+        setSelectedOpportunityCompany(data.opportunity.company);
+        setSelectedOpportunityRole(data.opportunity.title);
         onOpportunitySelect?.(data.opportunity.id);
       } catch (error) {
         if (!cancelled) {
@@ -265,6 +291,8 @@ export function AiAssistantPanel({
       setSelectedOpportunityLabel(
         `${opportunity.title} at ${opportunity.company}`,
       );
+      setSelectedOpportunityCompany(opportunity.company);
+      setSelectedOpportunityRole(opportunity.title);
       onOpportunitySelect?.(opportunity.id);
       setOpportunityPickerOpen(false);
       setOpportunityError("");
@@ -375,6 +403,58 @@ export function AiAssistantPanel({
     selectedOpportunityId,
   ]);
 
+  const runCoverLetterCritique = useCallback(async () => {
+    const letter = coverLetterHtmlToText(documentContent);
+    if (!letter.trim()) {
+      setStatusMessage("Write or generate a cover letter draft first.");
+      return;
+    }
+
+    if (!jobDescription.trim()) {
+      setStatusMessage("Paste a job description first.");
+      return;
+    }
+
+    const response = await fetch("/api/ai/critique-cover-letter", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        letter,
+        jd: jobDescription,
+        ...(selectedOpportunityCompany
+          ? { company: selectedOpportunityCompany }
+          : {}),
+        ...(selectedOpportunityRole ? { role: selectedOpportunityRole } : {}),
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await readApiError(response, "Could not critique draft.");
+      if (isMissingLLMSetupError(error)) {
+        setSetupPrompt(true);
+        setStatusMessage("");
+      } else {
+        setStatusMessage(error);
+      }
+      return;
+    }
+
+    const data = (await response.json()) as CritiqueResponse;
+    if (!data.critique) {
+      setStatusMessage("The assistant returned an empty critique.");
+      return;
+    }
+
+    onCoverLetterCritique?.(data.critique);
+    setStatusMessage("Critique ready.");
+  }, [
+    documentContent,
+    jobDescription,
+    onCoverLetterCritique,
+    selectedOpportunityCompany,
+    selectedOpportunityRole,
+  ]);
+
   const handleAssistantAction = useCallback(
     async (action: AssistantRunAction) => {
       if (runningActionRef.current) return;
@@ -426,6 +506,11 @@ export function AiAssistantPanel({
           return;
         }
 
+        if (action === "critique") {
+          await runCoverLetterCritique();
+          return;
+        }
+
         if (action === "rewrite-section") {
           await runRewrite("rewrite", "");
           return;
@@ -459,6 +544,7 @@ export function AiAssistantPanel({
       onOpenBank,
       rewriteSection,
       runCoverLetterGenerate,
+      runCoverLetterCritique,
       runRewrite,
       selectedEntryCount,
       selectedText,
@@ -468,6 +554,22 @@ export function AiAssistantPanel({
   const isRunning = (action: AssistantRunAction) => runningAction === action;
   const isBusy = runningAction !== null;
   const hasSelection = selectedText.length > 0;
+  const isCoverLetter = documentMode === "cover_letter";
+  const generateBankLabel = isRunning("generate-from-bank")
+    ? isCoverLetter
+      ? "Generating..."
+      : "Preparing..."
+    : isCoverLetter
+      ? "AI Generate"
+      : "Generate from Bank";
+  const critiqueScoreRows = coverLetterCritique
+    ? COVER_LETTER_CRITIQUE_AXES.map(({ key, label }) => ({
+        key,
+        label,
+        value: coverLetterCritique.scores[key],
+        rationale: coverLetterCritique.rationale_per_axis[key],
+      }))
+    : [];
 
   return (
     <aside
@@ -529,6 +631,8 @@ export function AiAssistantPanel({
               setJobDescription(event.target.value);
               setSelectedOpportunityId("");
               setSelectedOpportunityLabel("");
+              setSelectedOpportunityCompany("");
+              setSelectedOpportunityRole("");
               onOpportunityClear?.();
             }}
             placeholder="Paste the JD here"
@@ -550,26 +654,38 @@ export function AiAssistantPanel({
         </section>
 
         <section className="space-y-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            disabled={isBusy}
-            onClick={() => handleAssistantAction("generate-from-bank")}
-          >
-            {isRunning("generate-from-bank") ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <FileText className="mr-2 h-4 w-4" />
+          <div className={isCoverLetter ? "grid grid-cols-2 gap-2" : undefined}>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={isBusy}
+              onClick={() => handleAssistantAction("generate-from-bank")}
+            >
+              {isRunning("generate-from-bank") ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="mr-2 h-4 w-4" />
+              )}
+              {generateBankLabel}
+            </Button>
+            {isCoverLetter && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={isBusy}
+                onClick={() => handleAssistantAction("critique")}
+              >
+                {isRunning("critique") ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                )}
+                {isRunning("critique") ? "Scoring..." : "Critique"}
+              </Button>
             )}
-            {isRunning("generate-from-bank")
-              ? documentMode === "cover_letter"
-                ? "Generating..."
-                : "Preparing..."
-              : documentMode === "cover_letter"
-                ? "AI Generate"
-                : "Generate from Bank"}
-          </Button>
+          </div>
         </section>
 
         <section className="space-y-2">
@@ -645,6 +761,76 @@ export function AiAssistantPanel({
                     DOCUMENT_ASSISTANT_ACTION_LABELS[action]
                   )}
                 </Button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {coverLetterCritique && isCoverLetter && (
+          <section
+            className="space-y-4 rounded-[var(--radius)] border-[length:var(--border-width)] bg-muted/30 p-3"
+            aria-label="Cover letter critique"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-medium">Critique</p>
+              <span className="text-sm font-semibold">
+                {coverLetterCritique.overall}/10
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {critiqueScoreRows.map((score) => (
+                <div key={score.key} className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="font-medium">{score.label}</span>
+                    <span className="text-muted-foreground">
+                      {score.value}/10
+                    </span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-background">
+                    <div
+                      className="h-full rounded-full bg-primary"
+                      style={{ width: `${score.value * 10}%` }}
+                    />
+                  </div>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    {score.rationale}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase text-muted-foreground">
+                Suggested rewrites
+              </p>
+              {coverLetterCritique.suggested_rewrites.map((rewrite, index) => (
+                <button
+                  key={`${rewrite.range_in_letter}-${index}`}
+                  type="button"
+                  className="w-full rounded-md border bg-background p-3 text-left transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                  onClick={() => {
+                    const applied = onCoverLetterSuggestionApply?.(
+                      rewrite.range_in_letter,
+                      rewrite.suggestion,
+                    );
+                    setStatusMessage(
+                      applied
+                        ? "Applied suggested rewrite."
+                        : "Could not find that text in the current draft.",
+                    );
+                  }}
+                >
+                  <span className="line-clamp-2 block text-xs text-muted-foreground">
+                    {rewrite.range_in_letter}
+                  </span>
+                  <span className="mt-2 block text-sm font-medium">
+                    {rewrite.suggestion}
+                  </span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {rewrite.why}
+                  </span>
+                </button>
               ))}
             </div>
           </section>

@@ -1,5 +1,6 @@
 import type { SectionState } from "@/lib/builder/section-manager";
 import type { TipTapJSONContent } from "@/lib/editor/types";
+import type { CoverLetterCritique } from "@/lib/ai/critique-prompts";
 
 export const RESUME_DOCUMENT_ID = "resume";
 export const COVER_LETTER_DOCUMENT_ID = "cover-letter";
@@ -15,6 +16,7 @@ export interface StudioDocument {
   sections?: SectionState[];
   html?: string;
   content?: TipTapJSONContent;
+  coverLetterCritique?: CoverLetterCritique;
 }
 
 export const DOCUMENT_MODE_LABELS: Record<DocumentMode, string> = {
@@ -41,7 +43,7 @@ export function createStudioDocument(
     id?: string;
     name?: string;
     index?: number;
-  } = {}
+  } = {},
 ): StudioDocument {
   return {
     id: options.id ?? createDocumentId(mode),
@@ -52,7 +54,7 @@ export function createStudioDocument(
 
 export function getDocumentsForType(
   documents: StudioDocument[],
-  mode: DocumentMode
+  mode: DocumentMode,
 ): StudioDocument[] {
   return documents.filter((document) => document.mode === mode);
 }
@@ -60,7 +62,7 @@ export function getDocumentsForType(
 export function getActiveStudioDocument(
   documents: StudioDocument[],
   mode: DocumentMode,
-  activeId: string | undefined
+  activeId: string | undefined,
 ): StudioDocument {
   const modeDocuments = getDocumentsForType(documents, mode);
   return (
@@ -75,17 +77,17 @@ export function getActiveStudioDocument(
 export function updateStudioDocument(
   documents: StudioDocument[],
   id: string,
-  updates: Partial<StudioDocument>
+  updates: Partial<StudioDocument>,
 ): StudioDocument[] {
   return documents.map((document) =>
-    document.id === id ? { ...document, ...updates } : document
+    document.id === id ? { ...document, ...updates } : document,
   );
 }
 
 export function renameStudioDocument(
   documents: StudioDocument[],
   id: string,
-  name: string
+  name: string,
 ): StudioDocument[] {
   const nextName = name.trim();
   if (!nextName) return documents;
@@ -95,7 +97,7 @@ export function renameStudioDocument(
 export function deleteStudioDocument(
   documents: StudioDocument[],
   id: string,
-  mode: DocumentMode
+  mode: DocumentMode,
 ): { documents: StudioDocument[]; activeDocumentId: string } {
   const remaining = documents.filter((document) => document.id !== id);
   const remainingForMode = getDocumentsForType(remaining, mode);

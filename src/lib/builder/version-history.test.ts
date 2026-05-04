@@ -24,8 +24,33 @@ const draftState: BuilderDraftState = {
   html: "<main>Resume</main>",
   content: {
     type: "doc",
-    content: [{ type: "paragraph", content: [{ type: "text", text: "Resume" }] }],
+    content: [
+      { type: "paragraph", content: [{ type: "text", text: "Resume" }] },
+    ],
   },
+};
+
+const critique = {
+  scores: { fit: 8, specificity: 7, hook: 6, ask: 9 },
+  overall: 7.5,
+  rationale_per_axis: {
+    fit: "Specific to the company.",
+    specificity: "Uses concrete details.",
+    hook: "Opening is focused.",
+    ask: "Close asks for a conversation.",
+  },
+  suggested_rewrites: [
+    {
+      range_in_letter: "I built reliable systems.",
+      suggestion: "I improved reliability for customer workflows.",
+      why: "Adds impact.",
+    },
+    {
+      range_in_letter: "I would love to talk.",
+      suggestion: "I would welcome a conversation.",
+      why: "Clarifies the ask.",
+    },
+  ],
 };
 
 function version(id: string, savedAt: string): BuilderVersion {
@@ -64,13 +89,13 @@ describe("builder version history", () => {
     const existing = Array.from({ length: MAX_BUILDER_VERSIONS }, (_, index) =>
       version(
         `v${index}`,
-        `2026-01-${String(index + 1).padStart(2, "0")}T00:00:00.000Z`
-      )
+        `2026-01-${String(index + 1).padStart(2, "0")}T00:00:00.000Z`,
+      ),
     );
 
     const next = addBuilderVersion(
       existing,
-      version("latest", "2026-02-01T00:00:00.000Z")
+      version("latest", "2026-02-01T00:00:00.000Z"),
     );
 
     expect(next).toHaveLength(MAX_BUILDER_VERSIONS);
@@ -101,6 +126,19 @@ describe("builder version history", () => {
     });
   });
 
+  it("preserves a valid cover letter critique in version state", () => {
+    const parsed = parseBuilderDraftState({
+      documentMode: "cover_letter",
+      selectedIds: ["entry-1"],
+      sections: [{ id: "experience", visible: true }],
+      templateId: "formal",
+      html: "<p>Letter</p>",
+      coverLetterCritique: critique,
+    });
+
+    expect(parsed?.coverLetterCritique).toEqual(critique);
+  });
+
   it("preserves cover letter draft mode with its default template", () => {
     const parsed = parseBuilderDraftState({
       documentMode: "cover_letter",
@@ -119,21 +157,23 @@ describe("builder version history", () => {
 
   it("reads only valid versions from storage", () => {
     const storage = {
-      getItem: vi.fn().mockReturnValue(
-        JSON.stringify([
-          version("old", "2026-01-01T00:00:00.000Z"),
-          { id: "bad", kind: "manual", savedAt: "2026-01-02T00:00:00.000Z" },
-          version("invalid-date", "not-a-date"),
-          version("new", "2026-01-03T00:00:00.000Z"),
-        ])
-      ),
+      getItem: vi
+        .fn()
+        .mockReturnValue(
+          JSON.stringify([
+            version("old", "2026-01-01T00:00:00.000Z"),
+            { id: "bad", kind: "manual", savedAt: "2026-01-02T00:00:00.000Z" },
+            version("invalid-date", "not-a-date"),
+            version("new", "2026-01-03T00:00:00.000Z"),
+          ]),
+        ),
     };
 
     expect(
-      readBuilderVersions(storage, "resume").map((item) => item.id)
+      readBuilderVersions(storage, "resume").map((item) => item.id),
     ).toEqual(["new", "old"]);
     expect(storage.getItem).toHaveBeenCalledWith(
-      getBuilderVersionStorageKey("resume")
+      getBuilderVersionStorageKey("resume"),
     );
   });
 
@@ -154,8 +194,8 @@ describe("builder version history", () => {
       (_, index) =>
         version(
           `v${index}`,
-          `2026-01-01T00:00:${String(index).padStart(2, "0")}.000Z`
-        )
+          `2026-01-01T00:00:${String(index).padStart(2, "0")}.000Z`,
+        ),
     );
 
     expect(writeBuilderVersions(storage, "resume", versions)).toBe(true);
@@ -174,7 +214,7 @@ describe("builder version history", () => {
     expect(
       writeBuilderVersions(storage, "resume", [
         version("v1", "2026-01-01T00:00:00.000Z"),
-      ])
+      ]),
     ).toBe(false);
   });
 
@@ -183,14 +223,14 @@ describe("builder version history", () => {
       areBuilderStatesEqual(draftState, {
         ...draftState,
         selectedIds: ["entry-1", "entry-2", "entry-2"],
-      })
+      }),
     ).toBe(true);
 
     expect(
       areBuilderStatesEqual(draftState, {
         ...draftState,
         templateId: "modern",
-      })
+      }),
     ).toBe(false);
   });
 
@@ -201,7 +241,7 @@ describe("builder version history", () => {
       getLatestBuilderVersion([
         latest,
         version("old", "2026-01-01T00:00:00.000Z"),
-      ])
+      ]),
     ).toBe(latest);
     expect(getLatestBuilderVersion([])).toBeNull();
   });
@@ -216,8 +256,8 @@ describe("builder version history", () => {
             state: { ...draftState, templateId: "modern" },
           },
         ],
-        { ...draftState, selectedIds: ["entry-1", "entry-2", "entry-2"] }
-      )
+        { ...draftState, selectedIds: ["entry-1", "entry-2", "entry-2"] },
+      ),
     ).toBe(true);
 
     expect(
@@ -229,7 +269,7 @@ describe("builder version history", () => {
             { type: "paragraph", content: [{ type: "text", text: "Changed" }] },
           ],
         },
-      })
+      }),
     ).toBe(false);
   });
 });

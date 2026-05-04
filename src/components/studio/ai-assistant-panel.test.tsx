@@ -346,6 +346,100 @@ describe("AiAssistantPanel", () => {
     ).toBeInTheDocument();
   });
 
+  it("runs cover letter critique and renders clickable rewrite suggestions", async () => {
+    const onCoverLetterCritique = vi.fn();
+    const onCoverLetterSuggestionApply = vi.fn(() => true);
+    const critique = {
+      scores: { fit: 8, specificity: 7, hook: 6, ask: 9 },
+      overall: 7.5,
+      rationale_per_axis: {
+        fit: "Mentions Acme directly.",
+        specificity: "Includes systems but needs metrics.",
+        hook: "Opening is clear.",
+        ask: "Close asks for a conversation.",
+      },
+      suggested_rewrites: [
+        {
+          range_in_letter: "I built reliable systems.",
+          suggestion: "I improved reliability for customer workflows.",
+          why: "Adds sharper impact.",
+        },
+        {
+          range_in_letter: "I would love to talk.",
+          suggestion: "I would welcome a conversation.",
+          why: "Clarifies the ask.",
+        },
+      ],
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url === "/api/settings/status") return statusResponse(true);
+        if (url === "/api/ai/critique-cover-letter") {
+          expect(JSON.parse(String(init?.body))).toMatchObject({
+            letter: "I built reliable systems.",
+            jd: "Acme needs a frontend engineer for reliable React workflows.",
+          });
+          return new Response(JSON.stringify({ success: true, critique }), {
+            status: 200,
+          });
+        }
+        return new Response("Not found", { status: 404 });
+      }),
+    );
+
+    const { rerender } = render(
+      <AiAssistantPanel
+        documentContent="<p>I built reliable systems.</p>"
+        documentMode="cover_letter"
+        selectedEntryCount={1}
+        onCoverLetterCritique={onCoverLetterCritique}
+        onCoverLetterSuggestionApply={onCoverLetterSuggestionApply}
+        onOpenBank={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Job description"), {
+      target: {
+        value: "Acme needs a frontend engineer for reliable React workflows.",
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Critique" }));
+
+    await waitFor(() =>
+      expect(onCoverLetterCritique).toHaveBeenCalledWith(critique),
+    );
+
+    rerender(
+      <AiAssistantPanel
+        documentContent="<p>I built reliable systems.</p>"
+        documentMode="cover_letter"
+        selectedEntryCount={1}
+        coverLetterCritique={critique}
+        onCoverLetterCritique={onCoverLetterCritique}
+        onCoverLetterSuggestionApply={onCoverLetterSuggestionApply}
+        onOpenBank={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("region", { name: "Cover letter critique" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("7.5/10")).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /I improved reliability for customer workflows/i,
+      }),
+    );
+
+    expect(onCoverLetterSuggestionApply).toHaveBeenCalledWith(
+      "I built reliable systems.",
+      "I improved reliability for customer workflows.",
+    );
+    expect(screen.getByText("Applied suggested rewrite.")).toBeInTheDocument();
+  });
+
   it("loads a selected job bank opportunity into the JD input", async () => {
     const onOpportunitySelect = vi.fn();
     vi.stubGlobal(

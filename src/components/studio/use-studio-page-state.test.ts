@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import type { BuilderDraftState, BuilderVersion } from "@/lib/builder/version-history";
+import type {
+  BuilderDraftState,
+  BuilderVersion,
+} from "@/lib/builder/version-history";
 import {
+  applyCoverLetterCritiqueSuggestionToText,
   isDraftSavedForDocument,
   linkStudioVersionToOpportunity,
 } from "./use-studio-page-state";
@@ -22,29 +26,57 @@ const savedVersion: BuilderVersion = {
 };
 
 describe("studio page state helpers", () => {
-  it("treats an untouched document as saved even without versions", () => {
+  it("applies critique suggestions by replacing the matching draft range", () => {
     expect(
-      isDraftSavedForDocument(new Set(), "resume", [], draftState)
-    ).toBe(true);
+      applyCoverLetterCritiqueSuggestionToText(
+        "Dear Acme, I built reliable systems.",
+        "I built reliable systems.",
+        "I improved reliability for customer workflows.",
+      ),
+    ).toBe("Dear Acme, I improved reliability for customer workflows.");
+  });
+
+  it("leaves draft text unchanged when the critique range is stale", () => {
+    expect(
+      applyCoverLetterCritiqueSuggestionToText(
+        "Dear Acme, I improved reliability.",
+        "I built reliable systems.",
+        "I improved reliability for customer workflows.",
+      ),
+    ).toBe("Dear Acme, I improved reliability.");
+  });
+
+  it("preserves paragraph breaks when replacing within a multi-paragraph draft", () => {
+    expect(
+      applyCoverLetterCritiqueSuggestionToText(
+        "Dear Acme,\n\nI built reliable systems.\n\nI would love to talk.",
+        "I built reliable systems.",
+        "I improved reliability for customer workflows.",
+      ),
+    ).toBe(
+      "Dear Acme,\n\nI improved reliability for customer workflows.\n\nI would love to talk.",
+    );
+  });
+
+  it("treats an untouched document as saved even without versions", () => {
+    expect(isDraftSavedForDocument(new Set(), "resume", [], draftState)).toBe(
+      true,
+    );
   });
 
   it("requires dirty documents to match a saved version", () => {
     expect(
-      isDraftSavedForDocument(
-        new Set(["resume"]),
-        "resume",
-        [savedVersion],
-        { ...draftState, html: "<p>Changed</p>" }
-      )
+      isDraftSavedForDocument(new Set(["resume"]), "resume", [savedVersion], {
+        ...draftState,
+        html: "<p>Changed</p>",
+      }),
     ).toBe(false);
 
     expect(
-      isDraftSavedForDocument(
-        new Set(["resume"]),
-        "resume",
-        [savedVersion],
-        { ...draftState, selectedIds: ["entry-1", "entry-1"] }
-      )
+      isDraftSavedForDocument(new Set(["resume"]), "resume", [savedVersion], {
+        ...draftState,
+        selectedIds: ["entry-1", "entry-1"],
+      }),
     ).toBe(true);
   });
 
