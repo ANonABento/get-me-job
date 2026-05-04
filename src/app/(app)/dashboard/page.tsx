@@ -224,7 +224,6 @@ export default function Dashboard() {
               <div className="grid grid-cols-2 gap-4 lg:w-80">
                 {loading ? (
                   <>
-                    <SkeletonStatCard className="col-span-2" />
                     <SkeletonStatCard />
                     <SkeletonStatCard />
                   </>
