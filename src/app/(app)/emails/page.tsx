@@ -37,6 +37,7 @@ import { AppPage, PageContent, PageHeader } from "@/components/ui/page-layout";
 import { SkeletonButton } from "@/components/ui/skeleton";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import { readJsonResponse } from "@/lib/http";
+import { getEmailTemplateLayoutClass } from "./utils";
 import type { EmailTemplateType, JobDescription } from "@/types";
 
 const SendViaGmailButton = dynamic(
@@ -549,7 +550,7 @@ export default function EmailTemplatesPage() {
           </div>
         )}
 
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className={getEmailTemplateLayoutClass(Boolean(selectedType))}>
           {/* Left Column - Template Selection & Context */}
           <div className="space-y-6">
             {/* Template Selection */}
@@ -615,123 +616,124 @@ export default function EmailTemplatesPage() {
             )}
           </div>
 
-          {/* Right Column - Preview */}
-          <div className="rounded-2xl border bg-card p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold">Preview</h2>
-              {generatedEmail && (
-                <div className="flex items-center gap-2">
+          {selectedType && (
+            <div className="rounded-2xl border bg-card p-6 opacity-100 transition-all duration-300 ease-out animate-in fade-in slide-in-from-right-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold">Preview</h2>
+                {generatedEmail && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={generateEmail}
+                      disabled={loading}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Regenerate
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {generatedEmail ? (
+                <div className="space-y-4">
+                  {/* Subject */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">
+                      Subject
+                    </Label>
+                    <div className="mt-1 p-3 rounded-lg bg-muted/50 font-medium">
+                      {generatedEmail.subject}
+                    </div>
+                  </div>
+
+                  {/* Body */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">
+                      Body
+                    </Label>
+                    <div className="mt-1 p-4 rounded-lg bg-muted/50 whitespace-pre-wrap text-sm leading-relaxed max-h-[400px] overflow-y-auto">
+                      {generatedEmail.body}
+                    </div>
+                  </div>
+
+                  {/* Recipient for Gmail */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">
+                      Recipient (for Gmail)
+                    </Label>
+                    <Input
+                      type="email"
+                      placeholder="recipient@example.com"
+                      value={recipientEmail}
+                      onChange={(e) => setRecipientEmail(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      variant="outline"
+                      onClick={copyToClipboard}
+                      disabled={copied}
+                      className="flex-1"
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={openInMailClient}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      Mail App
+                    </Button>
+                    <SendViaGmailButton
+                      to={recipientEmail}
+                      subject={generatedEmail.subject}
+                      body={generatedEmail.body}
+                      disabled={!recipientEmail}
+                    />
+                  </div>
+
+                  {/* Save Draft */}
                   <Button
                     variant="outline"
-                    size="sm"
-                    onClick={generateEmail}
-                    disabled={loading}
+                    onClick={saveDraft}
+                    disabled={savingDraft}
+                    className="w-full"
                   >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Regenerate
+                    {savingDraft ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    {editingDraftId ? "Update Draft" : "Save as Draft"}
                   </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="p-4 rounded-full bg-muted text-muted-foreground mb-4">
+                    <Mail className="h-8 w-8" />
+                  </div>
+                  <p className="text-muted-foreground">
+                    Click &apos;Generate Email&apos; to create your message
+                  </p>
                 </div>
               )}
             </div>
-
-            {generatedEmail ? (
-              <div className="space-y-4">
-                {/* Subject */}
-                <div>
-                  <Label className="text-xs text-muted-foreground">
-                    Subject
-                  </Label>
-                  <div className="mt-1 p-3 rounded-lg bg-muted/50 font-medium">
-                    {generatedEmail.subject}
-                  </div>
-                </div>
-
-                {/* Body */}
-                <div>
-                  <Label className="text-xs text-muted-foreground">Body</Label>
-                  <div className="mt-1 p-4 rounded-lg bg-muted/50 whitespace-pre-wrap text-sm leading-relaxed max-h-[400px] overflow-y-auto">
-                    {generatedEmail.body}
-                  </div>
-                </div>
-
-                {/* Recipient for Gmail */}
-                <div>
-                  <Label className="text-xs text-muted-foreground">
-                    Recipient (for Gmail)
-                  </Label>
-                  <Input
-                    type="email"
-                    placeholder="recipient@example.com"
-                    value={recipientEmail}
-                    onChange={(e) => setRecipientEmail(e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    onClick={copyToClipboard}
-                    disabled={copied}
-                    className="flex-1"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="h-4 w-4 mr-2" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    onClick={openInMailClient}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    <Send className="h-4 w-4 mr-2" />
-                    Mail App
-                  </Button>
-                  <SendViaGmailButton
-                    to={recipientEmail}
-                    subject={generatedEmail.subject}
-                    body={generatedEmail.body}
-                    disabled={!recipientEmail}
-                  />
-                </div>
-
-                {/* Save Draft */}
-                <Button
-                  variant="outline"
-                  onClick={saveDraft}
-                  disabled={savingDraft}
-                  className="w-full"
-                >
-                  {savingDraft ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4 mr-2" />
-                  )}
-                  {editingDraftId ? "Update Draft" : "Save as Draft"}
-                </Button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="p-4 rounded-full bg-muted text-muted-foreground mb-4">
-                  <Mail className="h-8 w-8" />
-                </div>
-                <p className="text-muted-foreground">
-                  {selectedType
-                    ? "Click 'Generate Email' to create your message"
-                    : "Select a template type to get started"}
-                </p>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </PageContent>
     </AppPage>
