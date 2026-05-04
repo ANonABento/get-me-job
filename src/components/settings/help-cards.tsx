@@ -19,7 +19,7 @@ export function HelpCards() {
               href="https://ollama.ai"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary hover:underline inline-flex items-center gap-1"
+              className="text-primary underline underline-offset-2 font-medium inline-flex items-center gap-1"
             >
               ollama.ai <ExternalLink className="h-3 w-3" />
             </a>
