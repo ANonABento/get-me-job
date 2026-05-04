@@ -37,6 +37,21 @@ describe("parseNewsRss", () => {
     expect(parseNewsRss(xml)).toEqual([]);
   });
 
+  it("returns null publishedAt for unparseable pubDate without dropping the item", () => {
+    const xml = `
+      <rss><channel>
+        <item>
+          <title>Acme thing</title>
+          <link>https://news.example.com/x</link>
+          <pubDate>not-a-real-date</pubDate>
+        </item>
+      </channel></rss>
+    `;
+    const headlines = parseNewsRss(xml);
+    expect(headlines).toHaveLength(1);
+    expect(headlines[0].publishedAt).toBeNull();
+  });
+
   it("caps headlines at 5", () => {
     const items = Array.from({ length: 8 }, (_, index) =>
       `<item><title>Headline ${index}</title><link>https://x.test/${index}</link></item>`,

@@ -18,6 +18,13 @@ function stripCdata(value: string): string {
   return value.replace(/^<!\[CDATA\[/, "").replace(/\]\]>$/, "").trim();
 }
 
+function safeIsoDate(value: string | null): string | null {
+  if (!value) return null;
+  const ms = Date.parse(value);
+  if (Number.isNaN(ms)) return null;
+  return new Date(ms).toISOString();
+}
+
 export function parseNewsRss(xml: string): NewsHeadline[] {
   const items = xml.match(/<item[\s\S]*?<\/item>/gi) ?? [];
   return items
@@ -32,8 +39,7 @@ export function parseNewsRss(xml: string): NewsHeadline[] {
       const source = sourceMatch
         ? decodeBasicEntities(stripCdata(sourceMatch[1])).trim() || null
         : null;
-      const pubDate = readTag(item, "pubDate");
-      const publishedAt = pubDate ? new Date(pubDate).toISOString() : null;
+      const publishedAt = safeIsoDate(readTag(item, "pubDate"));
       return { title, link, source, publishedAt };
     })
     .filter((value): value is NewsHeadline => value !== null);
