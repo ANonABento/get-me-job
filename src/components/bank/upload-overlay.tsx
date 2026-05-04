@@ -21,6 +21,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { THEME_SURFACE_CLASSES } from "@/lib/theme/component-classes";
+import {
+  formatExistingUploadDate,
+  getExistingUploadTimestamp,
+  type UploadConflictResponse,
+} from "@/lib/upload-conflict";
 
 // ---------------------------------------------------------------------------
 // Constants & helpers (exported for testing)
@@ -49,17 +54,6 @@ export function isAcceptedType(mime: string): mime is AcceptedMimeType {
 /** Return a user-friendly error when type validation fails. */
 export function fileTypeError(fileName: string): string {
   return `"${fileName}" is not a supported file type. Please upload a PDF, DOCX, or TXT file.`;
-}
-
-function formatExistingUploadDate(timestamp?: string): string {
-  if (!timestamp) return "an earlier date";
-  return new Date(timestamp).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }
 
 // Upload pipeline stages — order matters for the progress bar
@@ -93,14 +87,6 @@ export function stageProgress(stage: UploadStage): number {
 // ---------------------------------------------------------------------------
 
 type OverlayStep = "idle" | "processing" | "done" | "error";
-
-interface UploadConflict {
-  existing: {
-    filename: string;
-    uploaded_at?: string;
-    uploadedAt?: string;
-  };
-}
 
 export interface FileResult {
   fileName: string;
@@ -149,7 +135,7 @@ export function UploadOverlay({
   const [results, setResults] = useState<FileResult[]>([]);
   const [fileQueue, setFileQueue] = useState<globalThis.File[]>([]);
   const [queueIndex, setQueueIndex] = useState(0);
-  const [uploadConflict, setUploadConflict] = useState<UploadConflict | null>(null);
+  const [uploadConflict, setUploadConflict] = useState<UploadConflictResponse | null>(null);
   const conflictResolverRef = useRef<((replace: boolean) => void) | null>(null);
   const processingRef = useRef(false);
 
@@ -180,7 +166,7 @@ export function UploadOverlay({
   }, []);
 
   const confirmReplacement = useCallback(
-    (existing: UploadConflict["existing"]) =>
+    (existing: UploadConflictResponse["existing"]) =>
       new Promise<boolean>((resolve) => {
         conflictResolverRef.current = resolve;
         setUploadConflict({ existing });
@@ -513,7 +499,7 @@ export function UploadOverlay({
             <DialogTitle>Replace existing upload?</DialogTitle>
             <DialogDescription>
               {uploadConflict
-                ? `Looks like you uploaded "${uploadConflict.existing.filename}" on ${formatExistingUploadDate(uploadConflict.existing.uploaded_at ?? uploadConflict.existing.uploadedAt)}. Replace it, or cancel?`
+                ? `Looks like you uploaded "${uploadConflict.existing.filename}" on ${formatExistingUploadDate(getExistingUploadTimestamp(uploadConflict.existing))}. Replace it, or cancel?`
                 : ""}
             </DialogDescription>
           </DialogHeader>

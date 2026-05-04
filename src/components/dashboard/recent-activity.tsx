@@ -154,8 +154,8 @@ export function RecentActivity({ items, maxItems = 5 }: RecentActivityProps) {
                     {item.timestamps
                       .slice()
                       .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
-                      .map((timestamp) => (
-                        <div key={timestamp}>{formatActivityTime(timestamp)}</div>
+                      .map((timestamp, index) => (
+                        <div key={`${timestamp}-${index}`}>{formatActivityTime(timestamp)}</div>
                       ))}
                   </div>
                 </div>

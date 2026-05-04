@@ -26,6 +26,11 @@ import { AddEntryDialog } from "@/components/bank/add-entry-dialog";
 import { useToast } from "@/components/ui/toast";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import { uploadSuccessMessage } from "./utils";
+import {
+  formatExistingUploadDate,
+  getExistingUploadTimestamp,
+  type UploadConflictExisting,
+} from "@/lib/upload-conflict";
 
 const DriveFilePicker = dynamic(
   () => import("@/components/google").then((m) => m.DriveFilePicker),
@@ -34,29 +39,13 @@ const DriveFilePicker = dynamic(
 
 interface UploadConflict {
   file: File;
-  existing: {
-    id: string;
-    filename: string;
-    uploaded_at?: string;
-    uploadedAt?: string;
-  };
+  existing: UploadConflictExisting;
 }
 
 interface BankUploadResponse {
   success: boolean;
   error?: string;
   entriesCreated?: number;
-}
-
-function formatUploadedAt(timestamp?: string): string {
-  if (!timestamp) return "an earlier date";
-  return new Date(timestamp).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }
 
 export default function BankPage() {
@@ -359,7 +348,7 @@ export default function BankPage() {
             <DialogTitle>Replace existing upload?</DialogTitle>
             <DialogDescription>
               {uploadConflict
-                ? `Looks like you uploaded "${uploadConflict.existing.filename}" on ${formatUploadedAt(uploadConflict.existing.uploaded_at ?? uploadConflict.existing.uploadedAt)}. Replace it, or cancel?`
+                ? `Looks like you uploaded "${uploadConflict.existing.filename}" on ${formatExistingUploadDate(getExistingUploadTimestamp(uploadConflict.existing))}. Replace it, or cancel?`
                 : ""}
             </DialogDescription>
           </DialogHeader>
