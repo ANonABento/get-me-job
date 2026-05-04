@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { skipOnboardingSetup } from "./utils/test-helpers";
 
 const VALID_CRITIQUE = {
   scores: { fit: 8, specificity: 7, hook: 6, ask: 9 },
@@ -24,7 +25,14 @@ const VALID_CRITIQUE = {
 };
 
 test.describe("Cover Letter Critique", () => {
-  test("renders scored critique after clicking Critique", async ({ page }) => {
+  test("renders scored critique after clicking Critique", async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name.startsWith("Mobile"),
+      "AI assistant panel (which hosts the Critique action) is desktop-only (md:flex).",
+    );
+
     await page.route("**/api/settings/status", async (route) => {
       await route.fulfill({
         status: 200,
@@ -41,6 +49,7 @@ test.describe("Cover Letter Critique", () => {
       });
     });
 
+    await skipOnboardingSetup(page);
     await page.goto("/studio");
     await page.waitForLoadState("networkidle");
 
