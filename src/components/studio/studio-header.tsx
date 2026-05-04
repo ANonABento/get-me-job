@@ -276,19 +276,13 @@ export function StudioHeader({
                     };
 
                     return (
-                      <div
+                      <button
                         key={template.id}
+                        type="button"
                         role="option"
                         aria-label={`${template.name} template`}
                         aria-selected={isSelected}
-                        tabIndex={0}
                         onClick={selectTemplate}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            selectTemplate();
-                          }
-                        }}
                         className={cn(
                           "group rounded-[var(--radius)] border-[length:var(--border-width)] bg-background p-2 text-left text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                           isSelected
@@ -313,19 +307,17 @@ export function StudioHeader({
                             {template.description}
                           </span>
                         </span>
-                        <Button
-                          type="button"
-                          variant={isSelected ? "secondary" : "outline"}
-                          size="sm"
-                          className="mt-3 w-full"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            selectTemplate();
-                          }}
+                        <span
+                          className={cn(
+                            "mt-3 flex h-8 w-full items-center justify-center rounded-[var(--radius)] border-[length:var(--border-width)] px-3 text-xs font-medium transition-colors",
+                            isSelected
+                              ? "border-transparent bg-secondary text-secondary-foreground"
+                              : "border-input bg-background group-hover:bg-accent group-hover:text-accent-foreground",
+                          )}
                         >
                           Apply
-                        </Button>
-                      </div>
+                        </span>
+                      </button>
                     );
                   })}
                   {filteredTemplates.length === 0 && (

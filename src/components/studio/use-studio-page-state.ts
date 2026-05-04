@@ -8,12 +8,10 @@ import {
 } from "@/lib/resume/template-data";
 import type { TemplateStyles } from "@/lib/resume/template-data";
 import {
-  DEFAULT_BUILDER_PANEL,
   createInitialSections,
   getVisibleSectionIds,
   reorderSections,
   toggleSectionVisibility,
-  type BuilderPanel,
   type SectionState,
 } from "@/lib/builder/section-manager";
 import {
@@ -94,7 +92,6 @@ interface StudioPageState {
   isExporting: boolean;
   loading: boolean;
   manualVersionName: string;
-  mobileView: BuilderPanel;
   previewVersionId: string | null;
   sections: SectionState[];
   selectedIds: Set<string>;
@@ -103,7 +100,6 @@ interface StudioPageState {
   setDocumentMode: (mode: DocumentMode) => void;
   setEntryPickerOpen: (open: boolean) => void;
   setManualVersionName: (name: string) => void;
-  setMobileView: (panel: BuilderPanel) => void;
   templateId: string;
   versions: BuilderVersion[];
 }
@@ -204,9 +200,6 @@ export function useStudioPageState(): StudioPageState {
   const [content, setContent] = useState<TipTapJSONContent | undefined>();
   const [entryPickerOpen, setEntryPickerOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [mobileView, setMobileView] = useState<BuilderPanel>(
-    DEFAULT_BUILDER_PANEL,
-  );
   const [versions, setVersions] = useState<BuilderVersion[]>([]);
   const [manualVersionName, setManualVersionName] = useState("");
   const [previewVersionId, setPreviewVersionId] = useState<string | null>(null);
@@ -874,7 +867,6 @@ export function useStudioPageState(): StudioPageState {
     isExporting,
     loading,
     manualVersionName,
-    mobileView,
     previewVersionId,
     sections,
     selectedIds,
@@ -883,7 +875,6 @@ export function useStudioPageState(): StudioPageState {
     setDocumentMode,
     setEntryPickerOpen,
     setManualVersionName,
-    setMobileView,
     templateId,
     versions,
   };

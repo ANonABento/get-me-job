@@ -98,7 +98,7 @@ describe("StudioHeader", () => {
     ).toHaveAttribute("aria-selected", "true");
   });
 
-  it("shows template descriptions and apply buttons in the grid", () => {
+  it("shows template descriptions and an apply affordance in the grid", () => {
     renderStudioHeader();
 
     fireEvent.click(
@@ -116,9 +116,7 @@ describe("StudioHeader", () => {
     expect(
       within(modernOption).getByTestId("template-thumbnail-modern"),
     ).toHaveClass("h-32");
-    expect(
-      within(modernOption).getByRole("button", { name: "Apply" }),
-    ).toBeInTheDocument();
+    expect(within(modernOption).getByText("Apply")).toBeInTheDocument();
   });
 
   it("keeps the enlarged template picker inside the viewport", () => {
