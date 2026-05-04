@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ScannerForm } from "@/components/ats/scanner-form";
-import { ShieldCheck, Zap, Eye, DollarSign } from "lucide-react";
+import { ShieldCheck, Zap, Eye, Sparkles } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Free ATS Resume Checker | Get Me Job",
@@ -33,7 +33,7 @@ const BENEFITS = [
     description: "See exactly what ATS systems check for",
   },
   {
-    icon: DollarSign,
+    icon: Sparkles,
     title: "100% Free",
     description: "No hidden fees, no credit card needed",
   },
