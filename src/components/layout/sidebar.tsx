@@ -108,6 +108,8 @@ export function Sidebar() {
   const llmStatus = useLLMStatus();
   const mobileCloseButtonRef = useRef<HTMLButtonElement | null>(null);
   const mobileOpenButtonRef = useRef<HTMLButtonElement | null>(null);
+  const sidebarRef = useRef<HTMLElement | null>(null);
+  const previousMobileOpenRef = useRef(false);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -123,13 +125,43 @@ export function Sidebar() {
     return () => document.removeEventListener("keydown", handleEscape);
   }, []);
 
-  // Manage focus when the mobile drawer opens/closes
+  // Manage focus when the mobile drawer opens/closes. On open we move focus
+  // into the drawer; on close (transition true→false) we return focus to the
+  // trigger so screen-reader / keyboard users land somewhere meaningful.
   useEffect(() => {
     if (mobileOpen) {
       mobileCloseButtonRef.current?.focus();
-    } else {
-      mobileOpenButtonRef.current?.blur();
+    } else if (previousMobileOpenRef.current) {
+      mobileOpenButtonRef.current?.focus();
     }
+    previousMobileOpenRef.current = mobileOpen;
+  }, [mobileOpen]);
+
+  // Trap Tab focus inside the drawer while it's open so keyboard users can't
+  // accidentally tab into the page underneath the modal-style overlay.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const drawer = sidebarRef.current;
+    if (!drawer) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const focusable = drawer.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0]!;
+      const last = focusable[focusable.length - 1]!;
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || !drawer.contains(active))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (active === last || !drawer.contains(active))) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [mobileOpen]);
 
   // Lock body scroll while the mobile drawer is open
@@ -170,6 +202,7 @@ export function Sidebar() {
 
       {/* Sidebar */}
       <aside
+        ref={sidebarRef}
         id="primary-sidebar"
         aria-label="Main navigation"
         aria-modal={mobileOpen ? "true" : undefined}
