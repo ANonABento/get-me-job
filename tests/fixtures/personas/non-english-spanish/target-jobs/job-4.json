@@ -1,0 +1,19 @@
+{
+  "title": "React Engineer",
+  "company": "Copperline Labs",
+  "location": "Onsite - Austin, TX",
+  "remoteType": "onsite",
+  "level": "mid",
+  "salaryMin": 140000,
+  "salaryMax": 173000,
+  "currency": "USD",
+  "techStack": [
+    "React",
+    "TypeScript",
+    "Node.js",
+    "Accessibility",
+    "CSS"
+  ],
+  "summary": "Synthetic posting for react engineer work aligned with María García's background in React, TypeScript, Node.js.",
+  "url": "https://copperline-labs.example.com/careers/non-english-spanish-4"
+}

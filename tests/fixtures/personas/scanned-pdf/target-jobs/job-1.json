@@ -1,0 +1,19 @@
+{
+  "title": "QA Automation Engineer",
+  "company": "Plausible Product Co",
+  "location": "Remote - US",
+  "remoteType": "remote",
+  "level": "mid",
+  "salaryMin": 125000,
+  "salaryMax": 155000,
+  "currency": "USD",
+  "techStack": [
+    "Playwright",
+    "TypeScript",
+    "CI",
+    "API Testing",
+    "SQL"
+  ],
+  "summary": "Synthetic posting for qa automation engineer work aligned with Devon Moore's background in Playwright, TypeScript, CI.",
+  "url": "https://plausible-product-co.example.com/careers/scanned-pdf-1"
+}

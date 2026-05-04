@@ -1,0 +1,19 @@
+{
+  "title": "Principal Backend Engineer",
+  "company": "North Loop Systems",
+  "location": "Hybrid - New York, NY",
+  "remoteType": "hybrid",
+  "level": "staff",
+  "salaryMin": 190000,
+  "salaryMax": 221000,
+  "currency": "USD",
+  "techStack": [
+    "Go",
+    "TypeScript",
+    "Kafka",
+    "Kubernetes",
+    "PostgreSQL"
+  ],
+  "summary": "Synthetic posting for principal backend engineer work aligned with Morgan Rivera's background in Go, TypeScript, Kafka.",
+  "url": "https://north-loop-systems.example.com/careers/senior-ic-2"
+}

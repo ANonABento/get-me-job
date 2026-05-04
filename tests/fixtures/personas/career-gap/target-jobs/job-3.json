@@ -1,0 +1,19 @@
+{
+  "title": "Payments Platform Engineer",
+  "company": "Atlas Finch",
+  "location": "Remote - Americas",
+  "remoteType": "remote",
+  "level": "mid",
+  "salaryMin": 135000,
+  "salaryMax": 167000,
+  "currency": "USD",
+  "techStack": [
+    "Node.js",
+    "TypeScript",
+    "PostgreSQL",
+    "Redis",
+    "API Design"
+  ],
+  "summary": "Synthetic posting for payments platform engineer work aligned with Casey Nguyen's background in Node.js, TypeScript, PostgreSQL.",
+  "url": "https://atlas-finch.example.com/careers/career-gap-3"
+}

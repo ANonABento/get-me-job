@@ -1,0 +1,56 @@
+{
+  "personaSlug": "non-english-spanish",
+  "expectedExperiences": [
+    {
+      "title": "Ingeniera Frontend",
+      "company": "Río Claro Digital",
+      "startDate": "2022-04",
+      "endDate": "Present",
+      "location": "Montevideo, Uruguay",
+      "summary": "Desarrolló componentes accesibles en React y mejoró el rendimiento del portal de clientes.",
+      "category": "experience"
+    },
+    {
+      "title": "Desarrolladora Web",
+      "company": "Nube Austral",
+      "startDate": "2020-03",
+      "endDate": "2022-03",
+      "location": "Remoto",
+      "summary": "Construyó paneles internos con TypeScript, pruebas unitarias y documentación para soporte.",
+      "category": "experience"
+    }
+  ],
+  "expectedEducation": [
+    {
+      "degree": "Licenciatura en Computación",
+      "school": "Universidad del Sur",
+      "startDate": "2016-03",
+      "endDate": "2020-12",
+      "gpa": "9.1/10"
+    }
+  ],
+  "expectedSkills": [
+    "TypeScript",
+    "React",
+    "Accesibilidad",
+    "Pruebas unitarias",
+    "Node.js",
+    "CSS",
+    "Diseño de sistemas"
+  ],
+  "expectedProjects": [
+    {
+      "name": "Biblioteca UI Inclusiva",
+      "description": "Sistema de componentes con guías de accesibilidad en español.",
+      "technologies": [
+        "React",
+        "TypeScript",
+        "WCAG"
+      ]
+    }
+  ],
+  "expectedTotalEntryCount": 11,
+  "knownLimitations": [
+    "GPA-style score may not normalize across locales."
+  ]
+}

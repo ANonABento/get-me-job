@@ -1,0 +1,19 @@
+{
+  "title": "Staff Platform Engineer",
+  "company": "Atlas Finch",
+  "location": "Remote - Americas",
+  "remoteType": "remote",
+  "level": "staff",
+  "salaryMin": 195000,
+  "salaryMax": 227000,
+  "currency": "USD",
+  "techStack": [
+    "Go",
+    "TypeScript",
+    "Kafka",
+    "Kubernetes",
+    "PostgreSQL"
+  ],
+  "summary": "Synthetic posting for staff platform engineer work aligned with Morgan Rivera's background in Go, TypeScript, Kafka.",
+  "url": "https://atlas-finch.example.com/careers/senior-ic-3"
+}

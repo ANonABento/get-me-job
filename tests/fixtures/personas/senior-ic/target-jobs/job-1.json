@@ -1,0 +1,19 @@
+{
+  "title": "Staff Software Engineer",
+  "company": "Plausible Product Co",
+  "location": "Remote - US",
+  "remoteType": "remote",
+  "level": "staff",
+  "salaryMin": 185000,
+  "salaryMax": 215000,
+  "currency": "USD",
+  "techStack": [
+    "Go",
+    "TypeScript",
+    "Kafka",
+    "Kubernetes",
+    "PostgreSQL"
+  ],
+  "summary": "Synthetic posting for staff software engineer work aligned with Morgan Rivera's background in Go, TypeScript, Kafka.",
+  "url": "https://plausible-product-co.example.com/careers/senior-ic-1"
+}

@@ -1,0 +1,19 @@
+{
+  "title": "Desarrolladora Full Stack",
+  "company": "North Loop Systems",
+  "location": "Hybrid - New York, NY",
+  "remoteType": "hybrid",
+  "level": "mid",
+  "salaryMin": 130000,
+  "salaryMax": 161000,
+  "currency": "USD",
+  "techStack": [
+    "React",
+    "TypeScript",
+    "Node.js",
+    "Accessibility",
+    "CSS"
+  ],
+  "summary": "Synthetic posting for desarrolladora full stack work aligned with María García's background in React, TypeScript, Node.js.",
+  "url": "https://north-loop-systems.example.com/careers/non-english-spanish-2"
+}

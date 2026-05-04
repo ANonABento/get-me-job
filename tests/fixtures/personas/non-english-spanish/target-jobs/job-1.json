@@ -1,0 +1,19 @@
+{
+  "title": "Ingeniera Frontend",
+  "company": "Plausible Product Co",
+  "location": "Remote - US",
+  "remoteType": "remote",
+  "level": "mid",
+  "salaryMin": 125000,
+  "salaryMax": 155000,
+  "currency": "USD",
+  "techStack": [
+    "React",
+    "TypeScript",
+    "Node.js",
+    "Accessibility",
+    "CSS"
+  ],
+  "summary": "Synthetic posting for ingeniera frontend work aligned with María García's background in React, TypeScript, Node.js.",
+  "url": "https://plausible-product-co.example.com/careers/non-english-spanish-1"
+}

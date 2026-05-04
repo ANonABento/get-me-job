@@ -1,0 +1,64 @@
+{
+  "personaSlug": "career-changer",
+  "expectedExperiences": [
+    {
+      "title": "Software Developer",
+      "company": "Keystone Robotics",
+      "startDate": "2024-01",
+      "endDate": "Present",
+      "location": "Pittsburgh, PA",
+      "summary": "Built Python and React tools for robot fleet diagnostics and manufacturing data review.",
+      "category": "experience"
+    },
+    {
+      "title": "Mechanical Design Engineer",
+      "company": "Vector Pump Works",
+      "startDate": "2019-06",
+      "endDate": "2023-12",
+      "location": "Pittsburgh, PA",
+      "summary": "Automated CAD validation workflows and collaborated with software teams on sensor dashboards.",
+      "category": "experience"
+    }
+  ],
+  "expectedEducation": [
+    {
+      "degree": "Certificate, Software Engineering",
+      "school": "Three Rivers Coding Institute",
+      "startDate": "2023-01",
+      "endDate": "2023-12",
+      "gpa": "4.0"
+    },
+    {
+      "degree": "B.S. Mechanical Engineering",
+      "school": "Allegheny State University",
+      "startDate": "2015-09",
+      "endDate": "2019-05",
+      "gpa": "3.5"
+    }
+  ],
+  "expectedSkills": [
+    "Python",
+    "React",
+    "TypeScript",
+    "CAD Automation",
+    "REST APIs",
+    "SQL",
+    "Testing",
+    "Data Visualization"
+  ],
+  "expectedProjects": [
+    {
+      "name": "Maintenance Forecast",
+      "description": "Predictive maintenance dashboard for simulated pump telemetry.",
+      "technologies": [
+        "Python",
+        "React",
+        "SQLite"
+      ]
+    }
+  ],
+  "expectedTotalEntryCount": 13,
+  "knownLimitations": [
+    "Prior mechanical role may be categorized as experience rather than adjacent domain history."
+  ]
+}

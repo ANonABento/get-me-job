@@ -1,0 +1,19 @@
+{
+  "title": "Senior Frontend Engineer",
+  "company": "Plausible Product Co",
+  "location": "Remote - US",
+  "remoteType": "remote",
+  "level": "senior",
+  "salaryMin": 155000,
+  "salaryMax": 185000,
+  "currency": "USD",
+  "techStack": [
+    "React",
+    "TypeScript",
+    "Design Systems",
+    "Playwright",
+    "Accessibility"
+  ],
+  "summary": "Synthetic posting for senior frontend engineer work aligned with Riley Stone's background in React, TypeScript, Design Systems.",
+  "url": "https://plausible-product-co.example.com/careers/heavy-formatting-1"
+}

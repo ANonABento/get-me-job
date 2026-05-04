@@ -1,0 +1,19 @@
+{
+  "title": "Cloud Infrastructure Engineer",
+  "company": "Evergreen Workflow",
+  "location": "Hybrid - Seattle, WA",
+  "remoteType": "hybrid",
+  "level": "mid",
+  "salaryMin": 145000,
+  "salaryMax": 179000,
+  "currency": "USD",
+  "techStack": [
+    "Go",
+    "Java",
+    "Kafka",
+    "Kubernetes",
+    "PostgreSQL"
+  ],
+  "summary": "Synthetic posting for cloud infrastructure engineer work aligned with 李伟's background in Go, Java, Kafka.",
+  "url": "https://evergreen-workflow.example.com/careers/non-english-mandarin-5"
+}

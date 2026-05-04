@@ -1,0 +1,19 @@
+{
+  "title": "Associate Software Engineer",
+  "company": "North Loop Systems",
+  "location": "Hybrid - New York, NY",
+  "remoteType": "hybrid",
+  "level": "junior",
+  "salaryMin": 95000,
+  "salaryMax": 126000,
+  "currency": "USD",
+  "techStack": [
+    "React",
+    "TypeScript",
+    "Node.js",
+    "Tailwind",
+    "Vitest"
+  ],
+  "summary": "Synthetic posting for associate software engineer work aligned with Avery Chen's background in React, TypeScript, Node.js.",
+  "url": "https://north-loop-systems.example.com/careers/entry-cs-grad-2"
+}

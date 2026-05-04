@@ -1,0 +1,55 @@
+{
+  "personaSlug": "scanned-pdf",
+  "expectedExperiences": [
+    {
+      "title": "QA Automation Engineer",
+      "company": "Oakline Software",
+      "startDate": "2021-09",
+      "endDate": "Present",
+      "location": "Raleigh, NC",
+      "summary": "Built Playwright suites, release smoke tests, and failure triage dashboards.",
+      "category": "experience"
+    },
+    {
+      "title": "Test Analyst",
+      "company": "Carolina Claims Tech",
+      "startDate": "2019-06",
+      "endDate": "2021-08",
+      "location": "Raleigh, NC",
+      "summary": "Created regression plans and automated API checks for claims workflows.",
+      "category": "experience"
+    }
+  ],
+  "expectedEducation": [
+    {
+      "degree": "B.S. Information Technology",
+      "school": "Triangle State University",
+      "startDate": "2015-09",
+      "endDate": "2019-05",
+      "gpa": "3.5"
+    }
+  ],
+  "expectedSkills": [
+    "Playwright",
+    "TypeScript",
+    "API Testing",
+    "CI",
+    "Test Planning",
+    "Accessibility Testing",
+    "SQL"
+  ],
+  "expectedProjects": [
+    {
+      "name": "Flake Finder",
+      "description": "Test reporting utility that groups intermittent failures by signature.",
+      "technologies": [
+        "TypeScript",
+        "Playwright"
+      ]
+    }
+  ],
+  "expectedTotalEntryCount": 11,
+  "knownLimitations": [
+    "Requires OCR because resume.pdf is image-only with no embedded text layer."
+  ]
+}
