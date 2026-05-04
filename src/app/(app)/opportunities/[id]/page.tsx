@@ -1,29 +1,31 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
   Check,
   ExternalLink,
+  FileText,
   Loader2,
   PenLine,
+  Send,
+  Sparkles,
   X,
   XCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { TimeAgo } from "@/components/format/time-ago";
 import { Button } from "@/components/ui/button";
 import { JobStatusBadge } from "@/components/jobs/job-status-badge";
-import { OpportunityActions } from "@/components/opportunities/opportunity-actions";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useDevMode } from "@/hooks/use-dev-mode";
+import { OpportunityResearchTab } from "@/components/opportunities/research-tab";
 import { useErrorToast } from "@/hooks/use-error-toast";
-import { useUndoableAction } from "@/hooks/use-undoable-action";
 import { readJsonResponse } from "@/lib/http";
 import { cn } from "@/lib/utils";
-import type { JobDescription, JobStatus } from "@/types";
+import type { JobDescription } from "@/types";
+
+type OpportunityTabKey = "details" | "research";
 import {
   OPPORTUNITY_FIELD_SECTIONS,
   buildAppliedOpportunityPatch,
@@ -55,7 +57,6 @@ interface CoverLettersResponse {
 }
 
 type NotesSaveState = "idle" | "saving" | "saved" | "error";
-type DismissUndoInput = { previousStatus: JobStatus };
 
 function fieldInputValue(
   opportunity: JobDescription,
@@ -66,7 +67,7 @@ function fieldInputValue(
 }
 
 function DocumentDate({ value }: { value: string }) {
-  return <TimeAgo date={value} />;
+  return <span>{value ? new Date(value).toLocaleDateString() : "Unknown date"}</span>;
 }
 
 interface OpportunityFieldSectionsProps {
@@ -94,8 +95,6 @@ function OpportunityFieldSections({
   onSaveField,
   onCancelEditing,
 }: OpportunityFieldSectionsProps) {
-  const showDebugIds = useDevMode();
-
   return (
     <>
       {OPPORTUNITY_FIELD_SECTIONS.map((section) => (
@@ -105,18 +104,9 @@ function OpportunityFieldSections({
           </div>
           <div className="divide-y">
             {section.fields.map((field) => {
-              if (field.key === "id" && !showDebugIds) {
-                return null;
-              }
-
               const isEditing = editingField === field.key;
               const isSaving = savingField === field.key;
               const preview = formatOpportunityFieldPreview(opportunity, field);
-              const rawValue = opportunity[field.key as keyof JobDescription];
-              const showTimeAgo =
-                (field.key === "appliedAt" || field.key === "createdAt") &&
-                typeof rawValue === "string" &&
-                rawValue.length > 0;
 
               return (
                 <div
@@ -206,11 +196,7 @@ function OpportunityFieldSections({
                             preview === "Not set" && "text-muted-foreground"
                           )}
                         >
-                          {showTimeAgo ? (
-                            <TimeAgo date={rawValue} />
-                          ) : (
-                            preview
-                          )}
+                          {preview}
                         </div>
                         {field.type !== "readonly" && (
                           <Button
@@ -244,6 +230,7 @@ export default function OpportunityDetailPage({
 }) {
   const [opportunity, setOpportunity] = useState<JobDescription | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<OpportunityTabKey>("details");
   const [editingField, setEditingField] = useState<string | null>(null);
   const [draftValue, setDraftValue] = useState("");
   const [draftChecked, setDraftChecked] = useState(false);
@@ -261,7 +248,7 @@ export default function OpportunityDetailPage({
   const fetchOpportunity = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/opportunities/${params.id}`);
+      const response = await fetch(`/api/jobs/${params.id}`);
       const data = await readJsonResponse<OpportunityResponse>(
         response,
         "Failed to load opportunity"
@@ -283,13 +270,13 @@ export default function OpportunityDetailPage({
 
   const fetchLinkedDocuments = useCallback(async () => {
     const [resumeResult, coverLetterResult] = await Promise.allSettled([
-      fetch(`/api/opportunities/${params.id}/resumes`).then((response) =>
+      fetch(`/api/jobs/${params.id}/resumes`).then((response) =>
         readJsonResponse<ResumesResponse>(
           response,
           "Failed to load generated resumes"
         )
       ),
-      fetch(`/api/opportunities/${params.id}/cover-letter/history`).then((response) =>
+      fetch(`/api/jobs/${params.id}/cover-letter/history`).then((response) =>
         readJsonResponse<CoverLettersResponse>(
           response,
           "Failed to load cover letters"
@@ -316,7 +303,7 @@ export default function OpportunityDetailPage({
       const queuedPatch = patchQueueRef.current
         .catch(() => undefined)
         .then(async () => {
-          const response = await fetch(`/api/opportunities/${params.id}`, {
+          const response = await fetch(`/api/jobs/${params.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(patch),
@@ -342,17 +329,6 @@ export default function OpportunityDetailPage({
     },
     [params.id]
   );
-
-  const dismissOpportunity = useUndoableAction<DismissUndoInput>({
-    action: async () => {
-      await patchOpportunity({ status: "withdrawn" });
-    },
-    undoAction: async ({ previousStatus }) => {
-      await patchOpportunity({ status: previousStatus });
-    },
-    message: "Opportunity dismissed.",
-    description: "Status changed to withdrawn.",
-  });
 
   const startEditing = (field: OpportunityFieldConfig) => {
     if (!opportunity || field.type === "readonly") return;
@@ -407,7 +383,7 @@ export default function OpportunityDetailPage({
 
   const handleDismiss = async () => {
     try {
-      await dismissOpportunity({ previousStatus: opportunity?.status ?? "saved" });
+      await patchOpportunity({ status: "withdrawn" });
     } catch (error) {
       showErrorToast(error, {
         title: "Could not dismiss opportunity",
@@ -441,6 +417,16 @@ export default function OpportunityDetailPage({
 
   const status = opportunity?.status ?? "saved";
   const linkedDocumentCount = resumes.length + coverLetters.length;
+  const studioResumeHref = useMemo(
+    () => `/studio?mode=resume&opportunityId=${encodeURIComponent(params.id)}`,
+    [params.id]
+  );
+  const studioCoverLetterHref = useMemo(
+    () =>
+      `/studio?mode=cover-letter&opportunityId=${encodeURIComponent(params.id)}`,
+    [params.id]
+  );
+
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -453,11 +439,11 @@ export default function OpportunityDetailPage({
     return (
       <div className="mx-auto max-w-3xl px-6 py-12">
         <Link
-          href="/opportunities"
+          href="/jobs"
           className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to opportunities
+          Back to jobs
         </Link>
         <div className="rounded-lg border bg-card p-8">
           <h1 className="text-2xl font-semibold">Opportunity not found</h1>
@@ -472,11 +458,11 @@ export default function OpportunityDetailPage({
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <Link
-        href="/opportunities"
+        href="/jobs"
         className="mb-5 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to opportunities
+        Back to jobs
       </Link>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -496,56 +482,120 @@ export default function OpportunityDetailPage({
             </div>
           </header>
 
-          <OpportunityFieldSections
-            opportunity={opportunity}
-            editingField={editingField}
-            savingField={savingField}
-            draftValue={draftValue}
-            draftChecked={draftChecked}
-            onStartEditing={startEditing}
-            onDraftValueChange={setDraftValue}
-            onDraftCheckedChange={setDraftChecked}
-            onSaveField={(field) => void saveField(field)}
-            onCancelEditing={cancelEditing}
-          />
+          <div
+            role="tablist"
+            aria-label="Opportunity sections"
+            className="flex items-center gap-1 border-b"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "details"}
+              onClick={() => setActiveTab("details")}
+              className={cn(
+                "border-b-2 px-3 py-2 text-sm font-medium",
+                activeTab === "details"
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Details
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "research"}
+              onClick={() => setActiveTab("research")}
+              className={cn(
+                "border-b-2 px-3 py-2 text-sm font-medium",
+                activeTab === "research"
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Research
+            </button>
+          </div>
 
-          <section className="rounded-lg border bg-card">
-            <div className="flex items-center justify-between border-b px-5 py-4">
-              <h2 className="text-base font-semibold">Notes</h2>
-              <span className="text-xs text-muted-foreground">
-                {notesSaveState === "saving" && "Saving notes..."}
-                {notesSaveState === "saved" && "Notes saved"}
-                {notesSaveState === "error" && "Notes not saved"}
-              </span>
-            </div>
-            <div className="p-5">
-              <Textarea
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                placeholder="Add private notes about this opportunity."
-                className="min-h-36"
+          {activeTab === "details" ? (
+            <>
+              <OpportunityFieldSections
+                opportunity={opportunity}
+                editingField={editingField}
+                savingField={savingField}
+                draftValue={draftValue}
+                draftChecked={draftChecked}
+                onStartEditing={startEditing}
+                onDraftValueChange={setDraftValue}
+                onDraftCheckedChange={setDraftChecked}
+                onSaveField={(field) => void saveField(field)}
+                onCancelEditing={cancelEditing}
               />
-            </div>
-          </section>
+
+              <section className="rounded-lg border bg-card">
+                <div className="flex items-center justify-between border-b px-5 py-4">
+                  <h2 className="text-base font-semibold">Notes</h2>
+                  <span className="text-xs text-muted-foreground">
+                    {notesSaveState === "saving" && "Saving notes..."}
+                    {notesSaveState === "saved" && "Notes saved"}
+                    {notesSaveState === "error" && "Notes not saved"}
+                  </span>
+                </div>
+                <div className="p-5">
+                  <Textarea
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                    placeholder="Add private notes about this opportunity."
+                    className="min-h-36"
+                  />
+                </div>
+              </section>
+            </>
+          ) : (
+            <OpportunityResearchTab
+              opportunityId={params.id}
+              companyName={opportunity.company}
+            />
+          )}
         </div>
 
         <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
-          <OpportunityActions
-            opportunity={opportunity}
-            onApply={handleApply}
-            onGeneratedDocument={fetchLinkedDocuments}
-          />
-
           <section className="rounded-lg border bg-card p-4">
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full justify-start text-destructive hover:text-destructive"
-              onClick={() => void handleDismiss()}
-            >
-              <XCircle className="mr-2 h-4 w-4" />
-              Dismiss
-            </Button>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Actions
+            </h2>
+            <div className="mt-4 grid gap-3">
+              <Button asChild className="justify-start">
+                <Link href={studioResumeHref}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Tailor Resume
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="justify-start">
+                <Link href={studioCoverLetterHref}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Generate Cover Letter
+                </Link>
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="justify-start"
+                onClick={() => void handleApply()}
+              >
+                <Send className="mr-2 h-4 w-4" />
+                Apply
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="justify-start text-destructive hover:text-destructive"
+                onClick={() => void handleDismiss()}
+              >
+                <XCircle className="mr-2 h-4 w-4" />
+                Dismiss
+              </Button>
+            </div>
           </section>
 
           <section className="rounded-lg border bg-card p-4">

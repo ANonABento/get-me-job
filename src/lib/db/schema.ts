@@ -4,11 +4,6 @@ import fs from "fs";
 import { createRequire } from "module";
 import { PATHS } from "@/lib/constants";
 import { runLocalDevCleanSlateMigration } from "./local-clean-slate";
-import {
-  ensureDedupeSchema,
-  enforceDedupeUniqueConstraint,
-  runDedupeBackfillMigration,
-} from "./dedupe-backfill";
 
 const require = createRequire(import.meta.url);
 
@@ -40,9 +35,7 @@ try {
   const sqliteVec = require("sqlite-vec");
   sqliteVec.load(db);
 } catch {
-  console.warn(
-    "[db] sqlite-vec extension not available — vector search disabled",
-  );
+  console.warn("[db] sqlite-vec extension not available — vector search disabled");
 }
 
 // Create tables
@@ -59,15 +52,12 @@ db.exec(`
   -- Documents table
   CREATE TABLE IF NOT EXISTS documents (
     id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL DEFAULT 'default',
     filename TEXT NOT NULL,
     type TEXT NOT NULL,
     mime_type TEXT NOT NULL,
     size INTEGER NOT NULL,
     path TEXT NOT NULL,
     extracted_text TEXT,
-    parsed_data TEXT,
-    file_hash TEXT,
     uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -388,7 +378,6 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_profile_bank_user ON profile_bank(user_id);
   CREATE INDEX IF NOT EXISTS idx_profile_bank_category ON profile_bank(user_id, category);
-  CREATE INDEX IF NOT EXISTS idx_profile_bank_user_source ON profile_bank(user_id, source_document_id);
   -- Profile versions table for version history with rollback
   CREATE TABLE IF NOT EXISTS profile_versions (
     id TEXT PRIMARY KEY,
@@ -424,19 +413,13 @@ db.exec(`
 
 // Create vec0 virtual table for vector search (requires sqlite-vec extension)
 try {
-  db.exec(
-    `CREATE VIRTUAL TABLE IF NOT EXISTS chunks_vec USING vec0(embedding float[1536]);`,
-  );
+  db.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS chunks_vec USING vec0(embedding float[1536]);`);
 } catch {
-  console.warn(
-    "[db] Could not create chunks_vec table — sqlite-vec not loaded",
-  );
+  console.warn("[db] Could not create chunks_vec table — sqlite-vec not loaded");
 }
 
 function getColumnNames(table: string): string[] {
-  const tableInfo = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{
-    name: string;
-  }>;
+  const tableInfo = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
   return tableInfo.map((col) => col.name);
 }
 
@@ -472,13 +455,11 @@ try {
   const ownershipMigrations: Array<{ table: string; backfill: string }> = [
     {
       table: "generated_resumes",
-      backfill:
-        "UPDATE generated_resumes SET user_id = profile_id WHERE user_id = 'default'",
+      backfill: "UPDATE generated_resumes SET user_id = profile_id WHERE user_id = 'default'",
     },
     {
       table: "interview_sessions",
-      backfill:
-        "UPDATE interview_sessions SET user_id = profile_id WHERE user_id = 'default'",
+      backfill: "UPDATE interview_sessions SET user_id = profile_id WHERE user_id = 'default'",
     },
     {
       table: "reminders",
@@ -490,27 +471,21 @@ try {
     },
     {
       table: "cover_letters",
-      backfill:
-        "UPDATE cover_letters SET user_id = profile_id WHERE user_id = 'default'",
+      backfill: "UPDATE cover_letters SET user_id = profile_id WHERE user_id = 'default'",
     },
     {
       table: "profile_versions",
-      backfill:
-        "UPDATE profile_versions SET user_id = profile_id WHERE user_id = 'default'",
+      backfill: "UPDATE profile_versions SET user_id = profile_id WHERE user_id = 'default'",
     },
   ];
 
   for (const migration of ownershipMigrations) {
     const columnNames = getColumnNames(migration.table);
     if (!columnNames.includes("user_id")) {
-      db.exec(
-        `ALTER TABLE ${migration.table} ADD COLUMN user_id TEXT NOT NULL DEFAULT 'default'`,
-      );
+      db.exec(`ALTER TABLE ${migration.table} ADD COLUMN user_id TEXT NOT NULL DEFAULT 'default'`);
       db.exec(migration.backfill);
     }
-    db.exec(
-      `CREATE INDEX IF NOT EXISTS idx_${migration.table}_user_id ON ${migration.table}(user_id)`,
-    );
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_${migration.table}_user_id ON ${migration.table}(user_id)`);
   }
 } catch (error) {
   console.error("Ownership migration error:", error);
@@ -549,9 +524,7 @@ try {
 
 // Migration: Add user_id to documents table
 try {
-  const docTableInfo = db
-    .prepare("PRAGMA table_info(documents)")
-    .all() as Array<{ name: string }>;
+  const docTableInfo = db.prepare("PRAGMA table_info(documents)").all() as Array<{ name: string }>;
   const docColumnNames = docTableInfo.map((col) => col.name);
 
   if (!docColumnNames.includes("user_id")) {
@@ -561,24 +534,13 @@ try {
   console.error("Documents migration error:", error);
 }
 
-// Migration: Add document file hashes and bank source indexes for upload dedupe.
-try {
-  ensureDedupeSchema(db);
-} catch (error) {
-  console.error("Documents dedupe schema migration error:", error);
-}
-
 // Migration: Add user_id to notifications table
 try {
-  const notifTableInfo = db
-    .prepare("PRAGMA table_info(notifications)")
-    .all() as Array<{ name: string }>;
+  const notifTableInfo = db.prepare("PRAGMA table_info(notifications)").all() as Array<{ name: string }>;
   const notifColumnNames = notifTableInfo.map((col) => col.name);
 
   if (!notifColumnNames.includes("user_id")) {
-    db.exec(
-      "ALTER TABLE notifications ADD COLUMN user_id TEXT DEFAULT 'default'",
-    );
+    db.exec("ALTER TABLE notifications ADD COLUMN user_id TEXT DEFAULT 'default'");
   }
 } catch (error) {
   console.error("Notifications migration error:", error);
@@ -586,15 +548,11 @@ try {
 
 // Migration: Add per-user ownership to interview answers
 try {
-  const answerTableInfo = db
-    .prepare("PRAGMA table_info(interview_answers)")
-    .all() as Array<{ name: string }>;
+  const answerTableInfo = db.prepare("PRAGMA table_info(interview_answers)").all() as Array<{ name: string }>;
   const answerColumnNames = answerTableInfo.map((col) => col.name);
 
   if (!answerColumnNames.includes("user_id")) {
-    db.exec(
-      "ALTER TABLE interview_answers ADD COLUMN user_id TEXT DEFAULT 'default'",
-    );
+    db.exec("ALTER TABLE interview_answers ADD COLUMN user_id TEXT DEFAULT 'default'");
   }
 } catch (error) {
   console.error("Interview answers migration error:", error);
@@ -602,15 +560,11 @@ try {
 
 // Migration: Add per-user ownership to job status history
 try {
-  const statusTableInfo = db
-    .prepare("PRAGMA table_info(job_status_history)")
-    .all() as Array<{ name: string }>;
+  const statusTableInfo = db.prepare("PRAGMA table_info(job_status_history)").all() as Array<{ name: string }>;
   const statusColumnNames = statusTableInfo.map((col) => col.name);
 
   if (!statusColumnNames.includes("user_id")) {
-    db.exec(
-      "ALTER TABLE job_status_history ADD COLUMN user_id TEXT DEFAULT 'default'",
-    );
+    db.exec("ALTER TABLE job_status_history ADD COLUMN user_id TEXT DEFAULT 'default'");
   }
 
   db.exec(`
@@ -624,22 +578,15 @@ try {
 // Migration: company research used to be globally unique by company name.
 // Rebuild the table when needed so each Clerk user can cache the same company.
 try {
-  const companyTableInfo = db
-    .prepare("PRAGMA table_info(company_research)")
-    .all() as Array<{ name: string }>;
+  const companyTableInfo = db.prepare("PRAGMA table_info(company_research)").all() as Array<{ name: string }>;
   const companyColumnNames = companyTableInfo.map((col) => col.name);
-  const indexes = db
-    .prepare("PRAGMA index_list(company_research)")
-    .all() as Array<{
+  const indexes = db.prepare("PRAGMA index_list(company_research)").all() as Array<{
     name: string;
     unique: number;
   }>;
   const hasGlobalCompanyUnique = indexes.some((index) => {
-    if (!index.unique || index.name === "idx_company_research_user_company")
-      return false;
-    const columns = db
-      .prepare(`PRAGMA index_info(${JSON.stringify(index.name)})`)
-      .all() as Array<{ name: string }>;
+    if (!index.unique || index.name === "idx_company_research_user_company") return false;
+    const columns = db.prepare(`PRAGMA index_info(${JSON.stringify(index.name)})`).all() as Array<{ name: string }>;
     return columns.length === 1 && columns[0]?.name === "company_name";
   });
 
@@ -682,9 +629,7 @@ try {
 
 // Migration: Add parsed_data column to documents table
 try {
-  const docTableInfo2 = db
-    .prepare("PRAGMA table_info(documents)")
-    .all() as Array<{ name: string }>;
+  const docTableInfo2 = db.prepare("PRAGMA table_info(documents)").all() as Array<{ name: string }>;
   const docColumnNames2 = docTableInfo2.map((col) => col.name);
 
   if (!docColumnNames2.includes("parsed_data")) {
@@ -775,14 +720,23 @@ try {
   console.error("Local dev clean slate migration error:", error);
 }
 
+// Migration: Company enrichment cache table for public-data dossiers.
 try {
-  runDedupeBackfillMigration(db);
-  // Enforce the unique constraint AFTER the backfill has collapsed any
-  // pre-existing duplicates. Closes the concurrent-upload race (issue #221) by
-  // making the database the single source of truth for dedupe.
-  enforceDedupeUniqueConstraint(db);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS company_enrichment (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT 'default',
+      company_name TEXT NOT NULL,
+      enrichment_json TEXT NOT NULL,
+      enriched_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, company_name)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_company_enrichment_user
+      ON company_enrichment(user_id);
+  `);
 } catch (error) {
-  console.error("Dedupe backfill migration error:", error);
+  console.error("Company enrichment migration error:", error);
 }
 
 // Migration: Prompt A/B testing tables
