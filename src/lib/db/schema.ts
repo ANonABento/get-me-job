@@ -4,6 +4,7 @@ import fs from "fs";
 import { createRequire } from "module";
 import { PATHS } from "@/lib/constants";
 import { runLocalDevCleanSlateMigration } from "./local-clean-slate";
+import { ensureDedupeSchema, runDedupeBackfillMigration } from "./dedupe-backfill";
 
 const require = createRequire(import.meta.url);
 
@@ -52,12 +53,15 @@ db.exec(`
   -- Documents table
   CREATE TABLE IF NOT EXISTS documents (
     id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL DEFAULT 'default',
     filename TEXT NOT NULL,
     type TEXT NOT NULL,
     mime_type TEXT NOT NULL,
     size INTEGER NOT NULL,
     path TEXT NOT NULL,
     extracted_text TEXT,
+    parsed_data TEXT,
+    file_hash TEXT,
     uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -378,6 +382,7 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_profile_bank_user ON profile_bank(user_id);
   CREATE INDEX IF NOT EXISTS idx_profile_bank_category ON profile_bank(user_id, category);
+  CREATE INDEX IF NOT EXISTS idx_profile_bank_user_source ON profile_bank(user_id, source_document_id);
   -- Profile versions table for version history with rollback
   CREATE TABLE IF NOT EXISTS profile_versions (
     id TEXT PRIMARY KEY,
@@ -532,6 +537,13 @@ try {
   }
 } catch (error) {
   console.error("Documents migration error:", error);
+}
+
+// Migration: Add document file hashes and bank source indexes for upload dedupe.
+try {
+  ensureDedupeSchema(db);
+} catch (error) {
+  console.error("Documents dedupe schema migration error:", error);
 }
 
 // Migration: Add user_id to notifications table
@@ -718,6 +730,12 @@ try {
   runLocalDevCleanSlateMigration(db);
 } catch (error) {
   console.error("Local dev clean slate migration error:", error);
+}
+
+try {
+  runDedupeBackfillMigration(db);
+} catch (error) {
+  console.error("Dedupe backfill migration error:", error);
 }
 
 // Migration: Prompt A/B testing tables

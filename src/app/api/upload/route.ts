@@ -6,10 +6,11 @@
  * @response UploadResponse from @/types/api
  */
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir, unlink } from "fs/promises";
+import crypto from "crypto";
 import path from "path";
 import { generateId } from "@/lib/utils";
-import { saveDocument, getLLMConfig } from "@/lib/db";
+import { saveDocument, getLLMConfig, getDocumentByFileHash } from "@/lib/db";
 import { extractTextFromFile } from "@/lib/parser/pdf";
 import { classifyDocument } from "@/lib/parser/document-classifier";
 import { parseDocumentByType } from "@/lib/parser/resume";
@@ -22,6 +23,10 @@ import {
   PATHS,
 } from "@/lib/constants";
 import { requireAuth, isAuthError } from "@/lib/auth";
+
+function getForceUpload(request: NextRequest): boolean {
+  return request.nextUrl.searchParams.get("force") === "true";
+}
 
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();
@@ -57,6 +62,7 @@ export async function POST(request: NextRequest) {
     // Read file bytes for magic byte validation
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    const fileHash = crypto.createHash("sha256").update(buffer).digest("hex");
 
     // Validate magic bytes match claimed MIME type
     const magicBytesValid = validateFileMagicBytes(buffer, file.type);
@@ -68,8 +74,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const existingDocument = getDocumentByFileHash(fileHash, authResult.userId);
+    if (existingDocument && !getForceUpload(request)) {
+      return NextResponse.json(
+        {
+          error: "Duplicate file upload",
+          existing: {
+            id: existingDocument.id,
+            filename: existingDocument.filename,
+            uploaded_at: existingDocument.uploadedAt,
+            uploadedAt: existingDocument.uploadedAt,
+            type: existingDocument.type,
+            size: existingDocument.size,
+          },
+        },
+        { status: 409 }
+      );
+    }
+
     // Ensure upload directory exists
     await mkdir(PATHS.UPLOADS, { recursive: true });
+
+    if (existingDocument && getForceUpload(request)) {
+      const { deleteSourceDocuments } = await import("@/lib/db/profile-bank");
+      deleteSourceDocuments([existingDocument.id], authResult.userId);
+      await unlink(existingDocument.path).catch(() => undefined);
+    }
 
     // Generate unique filename
     const ext = path.extname(file.name);
@@ -134,6 +164,7 @@ export async function POST(request: NextRequest) {
       path: filePath,
       extractedText,
       parsedData,
+      fileHash,
     }, authResult.userId);
     console.log(`[upload] Document saved: ${id}`);
 
