@@ -86,14 +86,14 @@ export function ScannerForm() {
         </p>
       </div>
 
-      <div>
+      <div className="rounded-xl border border-dashed border-muted-foreground/30 bg-muted/30 p-4">
         <label htmlFor="job-text" className="block text-sm font-medium mb-2">
           Paste job description <span className="text-muted-foreground font-normal">(optional)</span>
         </label>
         <Textarea
           id="job-text"
-          placeholder="Paste the job description to check keyword matching..."
-          className="min-h-[120px] font-mono text-sm"
+          placeholder="Optional: paste the job description to check keyword matching..."
+          className="min-h-[96px] border-muted-foreground/30 bg-background/70 font-mono text-sm placeholder:italic focus:min-h-[140px]"
           value={jobText}
           onChange={(e) => setJobText(e.target.value)}
         />

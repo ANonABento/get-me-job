@@ -2,10 +2,12 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   Briefcase,
   Building2,
+  ChevronDown,
   CheckCircle,
   Download,
   ExternalLink,
@@ -41,7 +43,6 @@ import {
 import {
   THEME_INTERACTIVE_SURFACE_CLASSES,
   THEME_MUTED_SURFACE_CLASSES,
-  THEME_PRIMARY_GRADIENT_BUTTON_CLASSES,
 } from "@/lib/theme/component-classes";
 import { cn } from "@/lib/utils";
 import type { JobDescription, JobMatch } from "@/types";
@@ -119,6 +120,29 @@ export function JobCard(props: JobCardProps) {
 
   const status = getJobStatusValue(job);
   const statusStyle = STATUS_STYLES[status];
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!moreMenuOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!moreMenuRef.current?.contains(event.target as Node)) {
+        setMoreMenuOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setMoreMenuOpen(false);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [moreMenuOpen]);
 
   return (
     <div
@@ -281,56 +305,113 @@ export function JobCard(props: JobCardProps) {
 
         <div className="flex flex-wrap items-center gap-2 pt-2">
           <Button
-            variant="outline"
-            size="sm"
-            onClick={onAnalyze}
-            disabled={analyzing}
-          >
-            {analyzing ? (
-              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4 mr-1.5" />
-            )}
-            {analysis ? "Re-analyze" : "Analyze Match"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onAtsCheck}
-            disabled={atsAnalyzing}
-          >
-            {atsAnalyzing ? (
-              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-            ) : (
-              <ShieldCheck className="h-4 w-4 mr-1.5" />
-            )}
-            {atsResult ? "Re-check ATS" : "ATS Check"}
-          </Button>
-          <Select value={selectedTemplate} onValueChange={onSelectTemplate}>
-            <SelectTrigger className="w-28 h-9 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {templates.map((template) => (
-                <SelectItem key={template.id} value={template.id}>
-                  {template.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
             size="sm"
             onClick={onGenerate}
             disabled={generating}
-            className={THEME_PRIMARY_GRADIENT_BUTTON_CLASSES}
+            className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {generating ? (
-              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Download className="h-4 w-4 mr-1.5" />
+              <Download className="h-4 w-4" />
             )}
-            Resume
+            Tailor Resume
           </Button>
+          <div className="relative" ref={moreMenuRef}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              aria-haspopup="menu"
+              aria-expanded={moreMenuOpen}
+              onClick={() => setMoreMenuOpen((open) => !open)}
+              className="gap-1.5"
+            >
+              More
+              <ChevronDown className="h-3.5 w-3.5" />
+            </Button>
+            {moreMenuOpen && (
+              <div
+                role="menu"
+                aria-label={`${job.title} secondary actions`}
+                className="absolute left-0 top-full z-50 mt-2 w-64 rounded-md border bg-popover p-1 text-popover-foreground shadow-[var(--shadow-elevated)]"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMoreMenuOpen(false);
+                    onAnalyze();
+                  }}
+                  disabled={analyzing}
+                  className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-accent/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {analyzing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  {analysis ? "Re-analyze Match" : "Analyze Match"}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMoreMenuOpen(false);
+                    onAtsCheck();
+                  }}
+                  disabled={atsAnalyzing}
+                  className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-accent/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {atsAnalyzing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="h-4 w-4" />
+                  )}
+                  {atsResult ? "Re-check ATS" : "ATS Check"}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMoreMenuOpen(false);
+                    onCoverLetter();
+                  }}
+                  className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-accent/10"
+                >
+                  <FileEdit className="h-4 w-4" />
+                  Cover Letter
+                </button>
+                <Link
+                  href={`/jobs/research/${job.id}`}
+                  role="menuitem"
+                  onClick={() => setMoreMenuOpen(false)}
+                  className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-accent/10"
+                >
+                  <Info className="h-4 w-4" />
+                  Company Research
+                </Link>
+                <div className="my-1 border-t" />
+                <div className="px-3 py-2">
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Resume template
+                  </label>
+                  <Select value={selectedTemplate} onValueChange={onSelectTemplate}>
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {templates.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          {template.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+          </div>
           <Button
             variant="ghost"
             size="icon"
@@ -341,23 +422,8 @@ export function JobCard(props: JobCardProps) {
           </Button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 border-t pt-3 mt-1">
-          <Link
-            href={`/jobs/research/${job.id}`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-[var(--radius)] border-[length:var(--border-width)] hover:bg-muted transition-colors"
-          >
-            <Info className="h-3.5 w-3.5" />
-            Company Research
-          </Link>
-          <button
-            onClick={onCoverLetter}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-[var(--radius)] border-[length:var(--border-width)] hover:bg-muted transition-colors"
-          >
-            <FileEdit className="h-3.5 w-3.5" />
-            Cover Letter
-          </button>
-
-          {status === "interviewing" && (
+        {status === "interviewing" && (
+          <div className="flex flex-wrap items-center gap-2 border-t pt-3 mt-1">
             <Link
               href={`/interview?jobId=${job.id}`}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-[var(--radius)] bg-warning/10 text-warning hover:bg-warning/20 transition-colors"
@@ -365,8 +431,8 @@ export function JobCard(props: JobCardProps) {
               <MessageSquare className="h-3.5 w-3.5" />
               Interview Prep
             </Link>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
