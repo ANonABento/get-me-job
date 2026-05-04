@@ -5,6 +5,7 @@ import {
 } from "@/lib/builder/section-manager";
 import type { TipTapJSONContent } from "@/lib/editor/types";
 import { getDefaultTemplateIdForDocumentMode } from "@/lib/resume/template-data";
+import type { CoverLetterCritique } from "@/lib/ai/critique-prompts";
 
 export const AUTO_SAVE_INTERVAL_MS = 30_000;
 export const MAX_BUILDER_VERSIONS = 20;
@@ -20,6 +21,7 @@ export interface BuilderDraftState {
   templateId: string;
   html: string;
   content?: TipTapJSONContent;
+  coverLetterCritique?: CoverLetterCritique;
 }
 
 export interface BuilderVersion {
@@ -36,15 +38,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isBankCategory(value: unknown): value is BankCategory {
   return (
-    typeof value === "string" &&
-    BANK_CATEGORIES.includes(value as BankCategory)
+    typeof value === "string" && BANK_CATEGORIES.includes(value as BankCategory)
   );
 }
 
 function isBuilderDocumentMode(value: unknown): value is BuilderDocumentMode {
   return value === "resume" || value === "cover_letter";
 }
-
 
 function getVersionTimestamp(version: Pick<BuilderVersion, "savedAt">): number {
   const timestamp = Date.parse(version.savedAt);
@@ -82,12 +82,91 @@ function normalizeTipTapContent(value: unknown): TipTapJSONContent | undefined {
   return value as TipTapJSONContent;
 }
 
+function isScore(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    value >= 0 &&
+    value <= 10
+  );
+}
+
+function normalizeCoverLetterCritique(
+  value: unknown,
+): CoverLetterCritique | undefined {
+  if (!isRecord(value) || !isRecord(value.scores)) return undefined;
+  if (
+    !isRecord(value.rationale_per_axis) ||
+    !Array.isArray(value.suggested_rewrites)
+  ) {
+    return undefined;
+  }
+
+  const scores = value.scores;
+  const rationale = value.rationale_per_axis;
+  if (
+    !isScore(scores.fit) ||
+    !isScore(scores.specificity) ||
+    !isScore(scores.hook) ||
+    !isScore(scores.ask) ||
+    !isScore(value.overall)
+  ) {
+    return undefined;
+  }
+
+  if (
+    typeof rationale.fit !== "string" ||
+    typeof rationale.specificity !== "string" ||
+    typeof rationale.hook !== "string" ||
+    typeof rationale.ask !== "string"
+  ) {
+    return undefined;
+  }
+
+  const suggested_rewrites = value.suggested_rewrites
+    .filter(isRecord)
+    .map((suggestion) => ({
+      range_in_letter:
+        typeof suggestion.range_in_letter === "string"
+          ? suggestion.range_in_letter
+          : "",
+      suggestion:
+        typeof suggestion.suggestion === "string" ? suggestion.suggestion : "",
+      why: typeof suggestion.why === "string" ? suggestion.why : "",
+    }))
+    .filter(
+      (suggestion) =>
+        suggestion.range_in_letter.trim() &&
+        suggestion.suggestion.trim() &&
+        suggestion.why.trim(),
+    );
+
+  if (suggested_rewrites.length < 2) return undefined;
+
+  return {
+    scores: {
+      fit: scores.fit,
+      specificity: scores.specificity,
+      hook: scores.hook,
+      ask: scores.ask,
+    },
+    overall: value.overall,
+    rationale_per_axis: {
+      fit: rationale.fit,
+      specificity: rationale.specificity,
+      hook: rationale.hook,
+      ask: rationale.ask,
+    },
+    suggested_rewrites,
+  };
+}
+
 export function getBuilderVersionStorageKey(documentId: string): string {
   return `${BUILDER_VERSION_STORAGE_PREFIX}:${documentId}`;
 }
 
 export function normalizeBuilderState(
-  state: BuilderDraftState
+  state: BuilderDraftState,
 ): BuilderDraftState {
   return {
     documentMode: state.documentMode,
@@ -99,10 +178,15 @@ export function normalizeBuilderState(
     templateId: state.templateId,
     html: state.html,
     content: normalizeTipTapContent(state.content),
+    coverLetterCritique: normalizeCoverLetterCritique(
+      state.coverLetterCritique,
+    ),
   };
 }
 
-export function parseBuilderDraftState(value: unknown): BuilderDraftState | null {
+export function parseBuilderDraftState(
+  value: unknown,
+): BuilderDraftState | null {
   if (!isRecord(value)) return null;
   if (!isBuilderDocumentMode(value.documentMode)) return null;
 
@@ -121,6 +205,9 @@ export function parseBuilderDraftState(value: unknown): BuilderDraftState | null
         : getDefaultTemplateIdForDocumentMode(value.documentMode),
     html: typeof value.html === "string" ? value.html : "",
     content: normalizeTipTapContent(value.content),
+    coverLetterCritique: normalizeCoverLetterCritique(
+      value.coverLetterCritique,
+    ),
   });
 }
 
@@ -131,7 +218,7 @@ export function createBuilderVersion(
     name: string;
     savedAt?: string;
     id?: string;
-  }
+  },
 ): BuilderVersion {
   const savedAt = options.savedAt ?? new Date().toISOString();
 
@@ -176,7 +263,7 @@ export function parseBuilderVersion(value: unknown): BuilderVersion | null {
 export function addBuilderVersion(
   versions: BuilderVersion[],
   version: BuilderVersion,
-  maxVersions = MAX_BUILDER_VERSIONS
+  maxVersions = MAX_BUILDER_VERSIONS,
 ): BuilderVersion[] {
   return [version, ...versions.filter((existing) => existing.id !== version.id)]
     .sort((a, b) => getVersionTimestamp(b) - getVersionTimestamp(a))
@@ -184,21 +271,23 @@ export function addBuilderVersion(
 }
 
 export function getLatestBuilderVersion(
-  versions: BuilderVersion[]
+  versions: BuilderVersion[],
 ): BuilderVersion | null {
   return versions[0] ?? null;
 }
 
 export function isBuilderStateSaved(
   versions: BuilderVersion[],
-  state: BuilderDraftState
+  state: BuilderDraftState,
 ): boolean {
-  return versions.some((version) => areBuilderStatesEqual(version.state, state));
+  return versions.some((version) =>
+    areBuilderStatesEqual(version.state, state),
+  );
 }
 
 export function areBuilderStatesEqual(
   first: BuilderDraftState,
-  second: BuilderDraftState
+  second: BuilderDraftState,
 ): boolean {
   return (
     JSON.stringify(normalizeBuilderState(first)) ===
@@ -208,7 +297,7 @@ export function areBuilderStatesEqual(
 
 export function readBuilderVersions(
   storage: Pick<Storage, "getItem">,
-  documentId: string
+  documentId: string,
 ): BuilderVersion[] {
   try {
     const raw = storage.getItem(getBuilderVersionStorageKey(documentId));
@@ -229,12 +318,12 @@ export function readBuilderVersions(
 export function writeBuilderVersions(
   storage: Pick<Storage, "setItem">,
   documentId: string,
-  versions: BuilderVersion[]
+  versions: BuilderVersion[],
 ): boolean {
   try {
     storage.setItem(
       getBuilderVersionStorageKey(documentId),
-      JSON.stringify(versions.slice(0, MAX_BUILDER_VERSIONS))
+      JSON.stringify(versions.slice(0, MAX_BUILDER_VERSIONS)),
     );
     return true;
   } catch {
