@@ -155,6 +155,24 @@ describe("parsing verification harness", () => {
     expect(result.knownLimitationsApplied).toEqual([]);
   });
 
+  it("does not suppress failures for limitations with only generic parser words", () => {
+    const result = compareExperiences(
+      [
+        {
+          title: "Engineer",
+          company: "Acme",
+          startDate: "2020-01",
+        },
+      ],
+      [],
+      ["Parser experience role"],
+      "generic-limitation",
+    );
+
+    expect(result.failures).toHaveLength(1);
+    expect(result.knownLimitationsApplied).toEqual([]);
+  });
+
   it("groups failure modes and renders followup context", () => {
     const failureModes = summarizeFailureModes([
       {

@@ -272,11 +272,22 @@ function limitationApplies(
     const meaningfulWords = normalizedLimitation
       .split(" ")
       .filter((word) => word.length > 3 && !genericWords.has(word));
+    if (meaningfulWords.length === 0) return false;
     const matchedWords = meaningfulWords.filter((word) =>
       normalizedSummary.includes(word),
     );
     return matchedWords.length >= Math.min(2, meaningfulWords.length);
   });
+}
+
+function applyMatchingLimitations(
+  appliedKnownLimitations: Set<string>,
+  knownLimitations: string[],
+  summary: string,
+): void {
+  knownLimitations
+    .filter((limitation) => limitationApplies([limitation], summary))
+    .forEach((limitation) => appliedKnownLimitations.add(limitation));
 }
 
 function analyzeFailure(summary: string): Pick<Failure, "rca" | "severity"> {
@@ -335,9 +346,11 @@ export function compareExperiences(
         });
       } else {
         allowedMisses++;
-        knownLimitations
-          .filter((limitation) => limitationApplies([limitation], summary))
-          .forEach((limitation) => appliedKnownLimitations.add(limitation));
+        applyMatchingLimitations(
+          appliedKnownLimitations,
+          knownLimitations,
+          summary,
+        );
       }
       continue;
     }
@@ -362,9 +375,11 @@ export function compareExperiences(
       if (limitationApplies(knownLimitations, summary)) {
         ignoredDiffs.push(diff);
         correctFields++;
-        knownLimitations
-          .filter((limitation) => limitationApplies([limitation], summary))
-          .forEach((limitation) => appliedKnownLimitations.add(limitation));
+        applyMatchingLimitations(
+          appliedKnownLimitations,
+          knownLimitations,
+          summary,
+        );
       } else {
         fieldDiffs.push(diff);
       }
@@ -404,9 +419,11 @@ export function compareExperiences(
       });
     } else {
       allowedSpurious++;
-      knownLimitations
-        .filter((limitation) => limitationApplies([limitation], summary))
-        .forEach((limitation) => appliedKnownLimitations.add(limitation));
+      applyMatchingLimitations(
+        appliedKnownLimitations,
+        knownLimitations,
+        summary,
+      );
     }
   }
 
