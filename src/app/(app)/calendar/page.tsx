@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import {
   Calendar as CalendarIcon,
+  CalendarSearch,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -17,6 +19,8 @@ import {
   Link2,
   Copy,
   Check,
+  ListChecks,
+  Rss,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,6 +108,9 @@ export default function CalendarPage() {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [feedUrl, setFeedUrl] = useState("");
   const [webcalUrl, setWebcalUrl] = useState("");
+  const [googleCalendarConnected, setGoogleCalendarConnected] = useState<
+    boolean | null
+  >(null);
   const showErrorToast = useErrorToast();
 
   const copyFeedUrl = async () => {
@@ -136,12 +143,16 @@ export default function CalendarPage() {
       fetch("/api/opportunities").then((r) => r.json()),
       fetch("/api/reminders").then((r) => r.json()),
       fetch("/api/calendar/feed-url?type=all").then((r) => r.json()),
+      fetch("/api/google/auth")
+        .then((r) => r.json())
+        .catch(() => ({ connected: false })),
     ])
-      .then(([jobsData, remindersData, feedData]) => {
+      .then(([jobsData, remindersData, feedData, googleAuthData]) => {
         setJobs(jobsData.jobs || []);
         setReminders(remindersData.reminders || []);
         setFeedUrl(feedData.feedUrl || "");
         setWebcalUrl(feedData.webcalUrl || "");
+        setGoogleCalendarConnected(Boolean(googleAuthData.connected));
       })
       .catch((error) => {
         showErrorToast(error, {
@@ -362,13 +373,14 @@ export default function CalendarPage() {
                 <Plus className="h-4 w-4 mr-2" />
                 Create Event
               </Button>
-              <CalendarSyncButton compact />
+              <CalendarSyncButton compact hideWhenDisconnected />
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowSubscribeDialog(true)}
+                title="Subscribe to your calendar feed (.ics) - view in your default calendar app."
               >
-                <Link2 className="h-4 w-4 mr-2" />
+                <Rss className="h-4 w-4 mr-2" />
                 Subscribe
               </Button>
               <Button
@@ -386,6 +398,23 @@ export default function CalendarPage() {
 
       {/* Calendar Content */}
       <PageContent>
+        {googleCalendarConnected === false && (
+          <Link
+            href="/settings"
+            className="mb-6 flex items-center gap-3 rounded-xl border border-info/30 bg-info/10 p-4 text-sm transition-colors hover:bg-info/15"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-card text-info">
+              <Link2 className="h-4 w-4" />
+            </span>
+            <span>
+              <span className="block font-medium">Calendar sync available</span>
+              <span className="text-muted-foreground">
+                Connect Google in Settings to sync calendar events.
+              </span>
+            </span>
+          </Link>
+        )}
+
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Calendar Grid */}
           <div className="rounded-2xl border bg-card p-2 sm:p-6 lg:col-span-2">
@@ -559,7 +588,7 @@ export default function CalendarPage() {
               />
             ) : (
               <StandardEmptyState
-                icon={CalendarIcon}
+                icon={CalendarSearch}
                 title="Click on a date to view events"
                 className="min-h-48"
               />
@@ -590,7 +619,7 @@ export default function CalendarPage() {
                 ))}
               {events.filter((e) => e.date >= new Date()).length === 0 && (
                 <StandardEmptyState
-                  icon={CalendarIcon}
+                  icon={ListChecks}
                   title="No upcoming events"
                   className="min-h-40"
                 />

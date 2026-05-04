@@ -42,6 +42,8 @@ import {
 } from "@/components/ui/page-layout";
 import { SkeletonChart, SkeletonButton } from "@/components/ui/skeleton";
 import { useErrorToast } from "@/hooks/use-error-toast";
+import { cn } from "@/lib/utils";
+import { getPipelineSkillsGridClass, shouldShowSkillsOverview } from "./utils";
 
 const TrendCharts = dynamic(
   () =>
@@ -104,10 +106,17 @@ interface Analytics {
   };
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; icon: React.ElementType }
+> = {
   pending: { label: "Pending", color: "bg-muted-foreground", icon: Clock },
   saved: { label: "Saved", color: "bg-muted-foreground", icon: Star },
-  dismissed: { label: "Dismissed", color: "bg-muted-foreground", icon: XCircle },
+  dismissed: {
+    label: "Dismissed",
+    color: "bg-muted-foreground",
+    icon: XCircle,
+  },
   applied: { label: "Applied", color: "bg-info", icon: CheckCircle },
   interviewing: {
     label: "Interviewing",
@@ -116,7 +125,11 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   },
   offered: { label: "Offered", color: "bg-success", icon: TrendingUp },
   rejected: { label: "Rejected", color: "bg-destructive", icon: XCircle },
-  withdrawn: { label: "Withdrawn", color: "bg-muted-foreground", icon: AlertTriangle },
+  withdrawn: {
+    label: "Withdrawn",
+    color: "bg-muted-foreground",
+    icon: AlertTriangle,
+  },
 };
 
 export default function AnalyticsPage() {
@@ -246,6 +259,7 @@ export default function AnalyticsPage() {
     analytics.jobs.interviewing > 0
       ? Math.round((analytics.jobs.offered / analytics.jobs.interviewing) * 100)
       : 0;
+  const showSkillsOverview = shouldShowSkillsOverview(analytics.skills);
 
   return (
     <AppPage>
@@ -391,7 +405,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Pipeline & Skills Row */}
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className={getPipelineSkillsGridClass(showSkillsOverview)}>
             {/* Job Pipeline */}
             <div className="rounded-2xl border bg-card p-6">
               <h3 className="font-semibold mb-6 flex items-center gap-2">
@@ -399,119 +413,137 @@ export default function AnalyticsPage() {
                 Application Pipeline
               </h3>
 
-              <div className="space-y-4">
-                {Object.entries(STATUS_CONFIG).map(([status, config]) => {
-                  const count = analytics.jobs.byStatus[status] || 0;
-                  const percentage =
-                    analytics.overview.totalJobs > 0
-                      ? (count / analytics.overview.totalJobs) * 100
-                      : 0;
+              {analytics.overview.totalJobs > 0 ? (
+                <div className="space-y-4">
+                  {Object.entries(STATUS_CONFIG).map(([status, config]) => {
+                    const count = analytics.jobs.byStatus[status] || 0;
+                    const percentage =
+                      analytics.overview.totalJobs > 0
+                        ? (count / analytics.overview.totalJobs) * 100
+                        : 0;
 
-                  return (
-                    <div key={status} className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2">
-                          <config.icon
-                            className={`h-4 w-4 ${config.color.replace("bg-", "text-")}`}
-                          />
-                          <span className="font-medium">{config.label}</span>
+                    return (
+                      <div key={status} className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <config.icon
+                              className={`h-4 w-4 ${config.color.replace("bg-", "text-")}`}
+                            />
+                            <span className="font-medium">{config.label}</span>
+                          </div>
+                          <span className="text-muted-foreground">
+                            {count} jobs
+                          </span>
                         </div>
-                        <span className="text-muted-foreground">
-                          {count} jobs
-                        </span>
-                      </div>
-                      <div className="h-2 rounded-full bg-muted overflow-hidden">
                         <div
-                          className={`h-full ${config.color} transition-all duration-500`}
-                          style={{ width: `${percentage}%` }}
-                        />
+                          className="h-2 rounded-full bg-muted overflow-hidden"
+                          aria-label={`${config.label} pipeline share`}
+                        >
+                          <div
+                            className={cn(
+                              "h-full transition-all duration-500",
+                              config.color,
+                            )}
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <StandardEmptyState
+                  icon={Briefcase}
+                  title="No pipeline data yet"
+                  className="min-h-48"
+                />
+              )}
 
               {/* Conversion Rates */}
-              <div className="mt-6 pt-6 border-t">
-                <h4 className="text-sm font-medium mb-4">Conversion Rates</h4>
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div>
-                    <p className="text-2xl font-bold text-info">
-                      {applicationRate}%
-                    </p>
-                    <p className="text-xs text-muted-foreground">Applied</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-warning">
-                      {interviewRate}%
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      To Interview
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-success">
-                      {offerRate}%
-                    </p>
-                    <p className="text-xs text-muted-foreground">To Offer</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Skills Overview */}
-            <div className="rounded-2xl border bg-card p-6">
-              <h3 className="font-semibold mb-6 flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                Skills Overview
-              </h3>
-
-              {/* Skills by Category */}
-              <div className="space-y-4 mb-6">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">Total Skills</span>
-                  <span className="text-muted-foreground">
-                    {analytics.skills.total}
-                  </span>
-                </div>
-
-                {Object.entries(analytics.skills.byCategory).map(
-                  ([category, count]) => (
-                    <div
-                      key={category}
-                      className="flex items-center justify-between text-sm"
-                    >
-                      <span className="capitalize">{category}</span>
-                      <span className="text-muted-foreground">{count}</span>
+              {analytics.overview.totalJobs > 0 && (
+                <div className="mt-6 pt-6 border-t">
+                  <h4 className="text-sm font-medium mb-4">Conversion Rates</h4>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <p className="text-2xl font-bold text-info">
+                        {applicationRate}%
+                      </p>
+                      <p className="text-xs text-muted-foreground">Applied</p>
                     </div>
-                  ),
-                )}
-              </div>
-
-              {/* Skill Gaps */}
-              {analytics.skills.gaps.length > 0 && (
-                <div className="pt-6 border-t">
-                  <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-warning" />
-                    Skill Gaps from Job Listings
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {analytics.skills.gaps.map((skill) => (
-                      <span
-                        key={skill}
-                        className="px-2.5 py-1 rounded-full bg-warning/10 text-warning text-xs font-medium capitalize"
-                      >
-                        {skill}
-                      </span>
-                    ))}
+                    <div>
+                      <p className="text-2xl font-bold text-warning">
+                        {interviewRate}%
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        To Interview
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-success">
+                        {offerRate}%
+                      </p>
+                      <p className="text-xs text-muted-foreground">To Offer</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-3">
-                    These skills appear frequently in your saved jobs but
-                    aren&apos;t in your profile.
-                  </p>
                 </div>
               )}
             </div>
+
+            {/* Skills Overview */}
+            {showSkillsOverview && (
+              <div className="rounded-2xl border bg-card p-6">
+                <h3 className="font-semibold mb-6 flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  Skills Overview
+                </h3>
+
+                {/* Skills by Category */}
+                <div className="space-y-4 mb-6">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">Total Skills</span>
+                    <span className="text-muted-foreground">
+                      {analytics.skills.total}
+                    </span>
+                  </div>
+
+                  {Object.entries(analytics.skills.byCategory).map(
+                    ([category, count]) => (
+                      <div
+                        key={category}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <span className="capitalize">{category}</span>
+                        <span className="text-muted-foreground">{count}</span>
+                      </div>
+                    ),
+                  )}
+                </div>
+
+                {/* Skill Gaps */}
+                {analytics.skills.gaps.length > 0 && (
+                  <div className="pt-6 border-t">
+                    <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-warning" />
+                      Skill Gaps from Job Listings
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {analytics.skills.gaps.map((skill) => (
+                        <span
+                          key={skill}
+                          className="px-2.5 py-1 rounded-full bg-warning/10 text-warning text-xs font-medium capitalize"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-3">
+                      These skills appear frequently in your saved jobs but
+                      aren&apos;t in your profile.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Recent Activity */}

@@ -51,20 +51,23 @@ function TrendIndicator({
   trend: "up" | "down" | "stable";
   change: number;
 }) {
-  const Icon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
+  const Icon =
+    trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
   const colorClass =
     trend === "up"
       ? "text-success"
       : trend === "down"
-      ? "text-destructive"
-      : "text-muted-foreground";
+        ? "text-destructive"
+        : "text-muted-foreground";
 
   return (
-    <div className={cn("flex items-center gap-1", colorClass)}>
+    <div
+      className={cn("flex max-w-28 items-center gap-1 text-right", colorClass)}
+    >
       <Icon className="h-4 w-4" />
-      <span className="text-sm font-medium">
+      <span className="text-xs font-medium leading-tight">
         {change > 0 ? "+" : ""}
-        {change}%
+        {change}% vs previous period
       </span>
     </div>
   );
@@ -105,7 +108,7 @@ function SimpleBarChart({
               className={cn(
                 "w-full rounded-t transition-all",
                 colorClasses[color],
-                "hover:opacity-80"
+                "hover:opacity-80",
               )}
               style={{ height: `${Math.max(barHeight, 2)}%` }}
               title={`${point.label}: ${point.value}`}
@@ -118,6 +121,31 @@ function SimpleBarChart({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function EmptyBarChart({
+  caption,
+  colorClass,
+  bars,
+}: {
+  caption: string;
+  colorClass: string;
+  bars: number[];
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-6 text-center">
+      <div className="h-[80px] w-full flex items-end justify-around gap-1.5 mb-3 opacity-15">
+        {bars.map((height, i) => (
+          <div
+            key={i}
+            className={cn("flex-1 rounded-t", colorClass)}
+            style={{ height: `${height}%` }}
+          />
+        ))}
+      </div>
+      <p className="text-sm text-muted-foreground">{caption}</p>
     </div>
   );
 }
@@ -145,7 +173,9 @@ function MetricCard({
         </div>
         <TrendIndicator trend={trend} change={change} />
       </div>
-      <p className="text-2xl font-bold">{typeof value === "number" ? `${value}%` : value}</p>
+      <p className="text-2xl font-bold">
+        {typeof value === "number" ? `${value}%` : value}
+      </p>
       <p className="text-sm text-muted-foreground">{title}</p>
       {description && (
         <p className="text-xs text-muted-foreground mt-1">{description}</p>
@@ -180,7 +210,9 @@ function ActivityTimelineItem({ event }: { event: ActivityEvent }) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium">{event.title}</p>
-        <p className="text-sm text-muted-foreground truncate">{event.description}</p>
+        <p className="text-sm text-muted-foreground truncate">
+          {event.description}
+        </p>
         <p className="text-xs text-muted-foreground mt-1">
           {new Date(event.date).toLocaleDateString("en-US", {
             month: "short",
@@ -282,7 +314,7 @@ export function TrendCharts({ initialRange = "30d" }: TrendChartsProps) {
                 "px-3 py-1.5 text-sm rounded-md transition-colors",
                 range === option.value
                   ? "bg-card shadow-sm font-medium"
-                  : "hover:bg-card/50 text-muted-foreground"
+                  : "hover:bg-card/50 text-muted-foreground",
               )}
             >
               {option.label}
@@ -336,16 +368,16 @@ export function TrendCharts({ initialRange = "30d" }: TrendChartsProps) {
             Applications Over Time
           </h3>
           {hasRealData(data.timeSeries.applications) ? (
-            <SimpleBarChart data={data.timeSeries.applications} color="primary" />
+            <SimpleBarChart
+              data={data.timeSeries.applications}
+              color="primary"
+            />
           ) : (
-            <div className="flex flex-col items-center justify-center py-6 text-center">
-              <div className="h-[80px] w-full flex items-end justify-around gap-1.5 mb-3 opacity-15">
-                {[20, 35, 15, 45, 30, 55, 40].map((h, i) => (
-                  <div key={i} className="flex-1 bg-primary rounded-t" style={{ height: `${h}%` }} />
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground">No applications yet</p>
-            </div>
+            <EmptyBarChart
+              caption="No applications yet"
+              colorClass="bg-primary"
+              bars={[20, 35, 15, 45, 30, 55, 40]}
+            />
           )}
         </div>
 
@@ -358,14 +390,11 @@ export function TrendCharts({ initialRange = "30d" }: TrendChartsProps) {
           {hasRealData(data.timeSeries.responses) ? (
             <SimpleBarChart data={data.timeSeries.responses} color="blue" />
           ) : (
-            <div className="flex flex-col items-center justify-center py-6 text-center">
-              <div className="h-[80px] w-full flex items-end justify-around gap-1.5 mb-3 opacity-15">
-                {[25, 40, 20, 50, 35, 45, 30].map((h, i) => (
-                  <div key={i} className="flex-1 bg-info rounded-t" style={{ height: `${h}%` }} />
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground">No responses yet</p>
-            </div>
+            <EmptyBarChart
+              caption="No responses yet"
+              colorClass="bg-info"
+              bars={[25, 40, 20, 50, 35, 45, 30]}
+            />
           )}
         </div>
 
@@ -378,14 +407,11 @@ export function TrendCharts({ initialRange = "30d" }: TrendChartsProps) {
           {hasRealData(data.timeSeries.interviews) ? (
             <SimpleBarChart data={data.timeSeries.interviews} color="amber" />
           ) : (
-            <div className="flex flex-col items-center justify-center py-6 text-center">
-              <div className="h-[80px] w-full flex items-end justify-around gap-1.5 mb-3 opacity-15">
-                {[30, 25, 45, 35, 50, 40, 55].map((h, i) => (
-                  <div key={i} className="flex-1 bg-warning rounded-t" style={{ height: `${h}%` }} />
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground">No interviews yet</p>
-            </div>
+            <EmptyBarChart
+              caption="No interviews yet"
+              colorClass="bg-warning"
+              bars={[30, 25, 45, 35, 50, 40, 55]}
+            />
           )}
         </div>
 
@@ -398,14 +424,11 @@ export function TrendCharts({ initialRange = "30d" }: TrendChartsProps) {
           {hasRealData(data.timeSeries.offers) ? (
             <SimpleBarChart data={data.timeSeries.offers} color="green" />
           ) : (
-            <div className="flex flex-col items-center justify-center py-6 text-center">
-              <div className="h-[80px] w-full flex items-end justify-around gap-1.5 mb-3 opacity-15">
-                {[35, 45, 25, 55, 40, 30, 50].map((h, i) => (
-                  <div key={i} className="flex-1 bg-success rounded-t" style={{ height: `${h}%` }} />
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground">No offers yet</p>
-            </div>
+            <EmptyBarChart
+              caption="No offers yet"
+              colorClass="bg-success"
+              bars={[35, 45, 25, 55, 40, 30, 50]}
+            />
           )}
         </div>
       </div>

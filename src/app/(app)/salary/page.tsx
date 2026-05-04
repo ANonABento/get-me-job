@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { AppPage, PageContent, PageHeader } from "@/components/ui/page-layout";
 import { cn } from "@/lib/utils";
+import { getResponsiveDetailGridClass } from "../shared-layout-utils";
 
 interface SalaryRange {
   min: number;
@@ -317,7 +318,7 @@ ${script.close}
       <PageContent>
         {/* Calculator Tab */}
         {activeTab === "calculator" && (
-          <div className="grid lg:grid-cols-2 gap-8">
+          <div className={getResponsiveDetailGridClass(Boolean(salaryRange))}>
             {/* Input */}
             <div className="rounded-2xl border bg-card p-6">
               <h2 className="font-semibold mb-6 flex items-center gap-2">
@@ -396,11 +397,9 @@ ${script.close}
               </div>
             </div>
 
-            {/* Results */}
-            <div className="rounded-2xl border bg-card p-6">
-              <h2 className="font-semibold mb-6">Market Salary Range</h2>
-
-              {salaryRange ? (
+            {salaryRange && (
+              <div className="rounded-2xl border bg-card p-6 opacity-100 transition-all duration-300 ease-out animate-in fade-in slide-in-from-right-4">
+                <h2 className="font-semibold mb-6">Market Salary Range</h2>
                 <div className="space-y-6">
                   {/* Range visualization */}
                   <div className="relative pt-6 pb-2">
@@ -453,18 +452,8 @@ ${script.close}
                     </p>
                   </div>
                 </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="p-4 rounded-full bg-muted text-muted-foreground mb-4">
-                    <Calculator className="h-8 w-8" />
-                  </div>
-                  <p className="text-muted-foreground">
-                    Enter your role, location, and experience to see market
-                    rates
-                  </p>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
 

@@ -38,11 +38,13 @@ interface SyncResponse {
 interface CalendarSyncButtonProps {
   onSyncComplete?: (result: SyncResponse) => void;
   compact?: boolean;
+  hideWhenDisconnected?: boolean;
 }
 
 export function CalendarSyncButton({
   onSyncComplete,
   compact = false,
+  hideWhenDisconnected = false,
 }: CalendarSyncButtonProps) {
   const [syncing, setSyncing] = useState(false);
   const [syncType, setSyncType] = useState<SyncType>("all");
@@ -101,8 +103,9 @@ export function CalendarSyncButton({
     }
   }
 
-  // Not connected - show message
   if (connected === false) {
+    if (hideWhenDisconnected) return null;
+
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <AlertCircle className="h-4 w-4" />
