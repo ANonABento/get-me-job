@@ -5,7 +5,10 @@ import { CheckCircle, FlaskConical, Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
-import type { PromptVariant, PromptVariantStats } from "@/lib/db/prompt-variants";
+import type {
+  PromptVariant,
+  PromptVariantStats,
+} from "@/lib/db/prompt-variants";
 
 interface VariantWithStats extends PromptVariant {
   resultCount: number;
@@ -29,8 +32,12 @@ export function PromptVariantsSection() {
         fetch("/api/prompts"),
         fetch("/api/prompts/results"),
       ]);
-      const variantsData = (await variantsRes.json()) as { variants: PromptVariant[] };
-      const statsData = (await statsRes.json()) as { stats: PromptVariantStats[] };
+      const variantsData = (await variantsRes.json()) as {
+        variants: PromptVariant[];
+      };
+      const statsData = (await statsRes.json()) as {
+        stats: PromptVariantStats[];
+      };
 
       const statsMap = new Map(statsData.stats.map((s) => [s.variantId, s]));
       const merged: VariantWithStats[] = variantsData.variants.map((v) => {
@@ -67,7 +74,7 @@ export function PromptVariantsSection() {
     }
   };
 
-  const handleDelete = async (variant: VariantWithStats) => {
+  const handleDelete = async (id: string) => {
     const confirmed = await confirm({
       title: "Delete this prompt variant?",
       description:
@@ -76,7 +83,6 @@ export function PromptVariantsSection() {
     });
     if (!confirmed) return;
 
-    const { id } = variant;
     setDeleting(id);
     try {
       await fetch(`/api/prompts/${id}`, { method: "DELETE" });
@@ -93,7 +99,10 @@ export function PromptVariantsSection() {
       await fetch("/api/prompts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName.trim(), content: newContent.trim() }),
+        body: JSON.stringify({
+          name: newName.trim(),
+          content: newContent.trim(),
+        }),
       });
       setNewName("");
       setNewContent("");
@@ -114,8 +123,8 @@ export function PromptVariantsSection() {
           <div>
             <h2 className="font-semibold">Prompt A/B Testing</h2>
             <p className="text-sm text-muted-foreground">
-              Manage tailoring prompt versions. The active version is used for all resume
-              generations.
+              Manage tailoring prompt versions. The active version is used for
+              all resume generations.
             </p>
           </div>
         </div>
@@ -134,7 +143,10 @@ export function PromptVariantsSection() {
         <div className="mb-6 rounded-xl border bg-muted/30 p-4 space-y-3">
           <h3 className="text-sm font-semibold">New Prompt Variant</h3>
           <div>
-            <label className="block text-sm font-medium mb-1" htmlFor="variant-name">
+            <label
+              className="block text-sm font-medium mb-1"
+              htmlFor="variant-name"
+            >
               Name
             </label>
             <input
@@ -147,7 +159,10 @@ export function PromptVariantsSection() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1" htmlFor="variant-content">
+            <label
+              className="block text-sm font-medium mb-1"
+              htmlFor="variant-content"
+            >
               Instructions
             </label>
             <textarea
@@ -197,7 +212,7 @@ export function PromptVariantsSection() {
               activating={activating === v.id}
               deleting={deleting === v.id}
               onActivate={() => void handleActivate(v.id)}
-              onDelete={() => void handleDelete(v)}
+              onDelete={() => void handleDelete(v.id)}
             />
           ))}
         </div>
@@ -215,7 +230,13 @@ interface VariantCardProps {
   onDelete: () => void;
 }
 
-function VariantCard({ variant, activating, deleting, onActivate, onDelete }: VariantCardProps) {
+function VariantCard({
+  variant,
+  activating,
+  deleting,
+  onActivate,
+  onDelete,
+}: VariantCardProps) {
   const avgScore =
     variant.avgMatchScore !== null ? Math.round(variant.avgMatchScore) : null;
 
@@ -223,14 +244,16 @@ function VariantCard({ variant, activating, deleting, onActivate, onDelete }: Va
     <div
       className={cn(
         "rounded-xl border p-4 transition-colors",
-        variant.active ? "border-primary bg-primary/5" : "bg-muted/30"
+        variant.active ? "border-primary bg-primary/5" : "bg-muted/30",
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium text-sm">{variant.name}</span>
-            <span className="text-xs text-muted-foreground">v{variant.version}</span>
+            <span className="text-xs text-muted-foreground">
+              v{variant.version}
+            </span>
             {variant.active && (
               <span className="flex items-center gap-1 text-xs font-medium text-primary">
                 <CheckCircle className="h-3 w-3" />
@@ -239,7 +262,10 @@ function VariantCard({ variant, activating, deleting, onActivate, onDelete }: Va
             )}
           </div>
           <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
-            <span>{variant.resultCount} generation{variant.resultCount !== 1 ? "s" : ""}</span>
+            <span>
+              {variant.resultCount} generation
+              {variant.resultCount !== 1 ? "s" : ""}
+            </span>
             {avgScore !== null && <span>avg match score: {avgScore}%</span>}
           </div>
           <pre className="mt-3 rounded-lg bg-muted p-3 text-xs whitespace-pre-wrap font-mono line-clamp-4 overflow-hidden">

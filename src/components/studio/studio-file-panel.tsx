@@ -42,7 +42,7 @@ export function StudioFilePanel({
   }, [draftName, onRename, renamingId]);
 
   const handleDelete = useCallback(
-    async (document: StudioDocument) => {
+    async (documentId: string) => {
       const confirmed = await confirm({
         title: "Delete this studio file?",
         description:
@@ -50,7 +50,7 @@ export function StudioFilePanel({
         confirmLabel: "Delete",
       });
       if (confirmed) {
-        onDelete(document.id);
+        onDelete(documentId);
       }
     },
     [confirm, onDelete],
@@ -110,7 +110,7 @@ export function StudioFilePanel({
               )}
               <button
                 type="button"
-                onClick={() => void handleDelete(document)}
+                onClick={() => void handleDelete(document.id)}
                 className="rounded-[var(--radius)] p-1 text-muted-foreground opacity-70 transition hover:bg-destructive/10 hover:text-destructive md:opacity-0 md:group-hover:opacity-100"
                 aria-label={`Delete ${document.name}`}
               >

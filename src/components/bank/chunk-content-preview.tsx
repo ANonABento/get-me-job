@@ -154,48 +154,6 @@ export function ChunkContentPreview({ entry }: { entry: BankEntry }) {
         </div>
       );
     }
-    case "hackathon": {
-      const prizes = getStringList(c, "prizes");
-      const tracks = getStringList(c, "tracks");
-      const themes = getStringList(c, "themes");
-      const teamSize = getHackathonTeamSize(c);
-      const dateRange = getDateRange(c);
-      const tags = [...tracks, ...themes];
-
-      return (
-        <div className="mt-2 space-y-2">
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="rounded-md border border-warning/25 bg-background/70 px-2 py-1">
-              <span className="block text-muted-foreground">Prizes</span>
-              <span className="font-medium">
-                {prizes.length > 0 ? prizes.slice(0, 2).join(" · ") : "Not listed"}
-              </span>
-            </div>
-            <div className="rounded-md border border-warning/25 bg-background/70 px-2 py-1">
-              <span className="block text-muted-foreground">Team</span>
-              <span className="font-medium">{teamSize || "Flexible"}</span>
-            </div>
-          </div>
-          {(c.location || dateRange) && (
-            <p className="text-xs text-muted-foreground">
-              {[c.location, dateRange].filter(Boolean).map(String).join(" · ")}
-            </p>
-          )}
-          {tags.length > 0 && (
-            <div className="flex gap-1 flex-wrap">
-              {tags.slice(0, 5).map((tag, i) => (
-                <span key={`${tag}-${i}`} className="text-2xs px-1.5 py-0.5 rounded-full bg-warning/15 text-warning font-medium">
-                  {tag}
-                </span>
-              ))}
-              {tags.length > 5 && (
-                <span className="text-2xs text-muted-foreground">+{tags.length - 5} more</span>
-              )}
-            </div>
-          )}
-        </div>
-      );
-    }
     case "certification":
       return (
         <div className="mt-1">

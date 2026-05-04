@@ -5,7 +5,12 @@ import dynamic from "next/dynamic";
 import { CoverLetterDialog } from "@/components/cover-letter/cover-letter-dialog";
 import { AddJobDialog } from "@/components/jobs/add-job-dialog";
 import { JobKanbanView } from "@/components/jobs/job-kanban-view";
-import { getJobsViewStorage, readJobsViewMode, writeJobsViewMode, type JobsViewMode } from "@/components/jobs/job-kanban-utils";
+import {
+  getJobsViewStorage,
+  readJobsViewMode,
+  writeJobsViewMode,
+  type JobsViewMode,
+} from "@/components/jobs/job-kanban-utils";
 import { JobsEmptyState } from "@/components/jobs/jobs-empty-state";
 import { JobsHero } from "@/components/jobs/jobs-hero";
 import { JobCard, type ResumeTemplate } from "@/components/jobs/job-card";
@@ -19,21 +24,54 @@ import { useErrorToast } from "@/hooks/use-error-toast";
 import type { ATSAnalysisResult } from "@/lib/ats/analyzer";
 import { readJsonResponse } from "@/lib/http";
 import type { JobDescription, JobMatch, JobStatus } from "@/types";
-import { filterJobs, hasActiveJobFilters, type JobRemoteFilter, type JobSortOption, type JobStatusFilter, type JobTypeFilter } from "./filter-jobs";
+import {
+  filterJobs,
+  hasActiveJobFilters,
+  type JobRemoteFilter,
+  type JobSortOption,
+  type JobStatusFilter,
+  type JobTypeFilter,
+} from "./filter-jobs";
 
-const ATSScoreBreakdown = dynamic(() => import("@/components/ats/score-breakdown").then((module) => module.ATSScoreBreakdown), {
-  loading: () => <div className="h-32 animate-pulse rounded-lg bg-muted" />,
-});
+const ATSScoreBreakdown = dynamic(
+  () =>
+    import("@/components/ats/score-breakdown").then(
+      (module) => module.ATSScoreBreakdown,
+    ),
+  {
+    loading: () => <div className="h-32 animate-pulse rounded-lg bg-muted" />,
+  },
+);
 
 const FALLBACK_TEMPLATES: ResumeTemplate[] = [
-  { id: "classic", name: "Classic", description: "Traditional professional format" },
+  {
+    id: "classic",
+    name: "Classic",
+    description: "Traditional professional format",
+  },
   { id: "modern", name: "Modern", description: "Contemporary design" },
   { id: "minimal", name: "Minimal", description: "Clean and simple" },
-  { id: "executive", name: "Executive", description: "Bold headers, strong hierarchy" },
+  {
+    id: "executive",
+    name: "Executive",
+    description: "Bold headers, strong hierarchy",
+  },
   { id: "tech", name: "Tech", description: "Tech industry focused" },
-  { id: "creative", name: "Creative", description: "Bold colors for creative roles" },
-  { id: "compact", name: "Compact", description: "Dense layout for experienced pros" },
-  { id: "professional", name: "Professional", description: "Conservative for business" },
+  {
+    id: "creative",
+    name: "Creative",
+    description: "Bold colors for creative roles",
+  },
+  {
+    id: "compact",
+    name: "Compact",
+    description: "Dense layout for experienced pros",
+  },
+  {
+    id: "professional",
+    name: "Professional",
+    description: "Conservative for business",
+  },
 ];
 
 interface JobsResponse {
@@ -61,12 +99,20 @@ export default function JobsPage() {
   const [generating, setGenerating] = useState<string | null>(null);
   const [atsAnalyzing, setAtsAnalyzing] = useState<string | null>(null);
   const [atsDialogJob, setAtsDialogJob] = useState<string | null>(null);
-  const [coverLetterJob, setCoverLetterJob] = useState<JobDescription | null>(null);
-  const [expandedDescription, setExpandedDescription] = useState<string | null>(null);
+  const [coverLetterJob, setCoverLetterJob] = useState<JobDescription | null>(
+    null,
+  );
+  const [expandedDescription, setExpandedDescription] = useState<string | null>(
+    null,
+  );
   const [analyses, setAnalyses] = useState<Record<string, JobMatch>>({});
-  const [atsResults, setAtsResults] = useState<Record<string, ATSAnalysisResult>>({});
+  const [atsResults, setAtsResults] = useState<
+    Record<string, ATSAnalysisResult>
+  >({});
   const [templates, setTemplates] = useState<ResumeTemplate[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<Record<string, string>>({});
+  const [selectedTemplate, setSelectedTemplate] = useState<
+    Record<string, string>
+  >({});
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<JobStatusFilter>("all");
   const [typeFilter, setTypeFilter] = useState<JobTypeFilter>("all");
@@ -79,7 +125,10 @@ export default function JobsPage() {
   const fetchJobs = useCallback(async () => {
     try {
       const response = await fetch("/api/jobs");
-      const data = await readJsonResponse<JobsResponse>(response, "Failed to load jobs");
+      const data = await readJsonResponse<JobsResponse>(
+        response,
+        "Failed to load jobs",
+      );
       setJobs(data.jobs || []);
     } catch (error) {
       showErrorToast(error, {
@@ -96,7 +145,7 @@ export default function JobsPage() {
       const response = await fetch("/api/jobs/templates");
       const data = await readJsonResponse<TemplatesResponse>(
         response,
-        "Failed to load templates"
+        "Failed to load templates",
       );
       setTemplates(data.templates || []);
     } catch {
@@ -104,7 +153,10 @@ export default function JobsPage() {
     }
   }, []);
 
-  useEffect(() => { void fetchJobs(); void fetchTemplates(); }, [fetchJobs, fetchTemplates]);
+  useEffect(() => {
+    void fetchJobs();
+    void fetchTemplates();
+  }, [fetchJobs, fetchTemplates]);
 
   useEffect(() => {
     setViewMode(readJobsViewMode(getJobsViewStorage()));
@@ -115,7 +167,7 @@ export default function JobsPage() {
     writeJobsViewMode(getJobsViewStorage(), mode);
   };
 
-  const deleteJob = async (job: JobDescription) => {
+  const deleteJob = async (jobId: string) => {
     const confirmed = await confirm({
       title: "Delete this job?",
       description:
@@ -125,9 +177,9 @@ export default function JobsPage() {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`/api/jobs/${job.id}`, { method: "DELETE" });
+      const response = await fetch(`/api/jobs/${jobId}`, { method: "DELETE" });
       await readJsonResponse<unknown>(response, "Failed to delete job");
-      setJobs((prev) => prev.filter((item) => item.id !== job.id));
+      setJobs((prev) => prev.filter((job) => job.id !== jobId));
     } catch (error) {
       showErrorToast(error, {
         title: "Could not delete job",
@@ -144,7 +196,9 @@ export default function JobsPage() {
         body: JSON.stringify({ status }),
       });
       await readJsonResponse<unknown>(response, "Failed to update job status");
-      setJobs((prev) => prev.map((job) => (job.id === id ? { ...job, status } : job)));
+      setJobs((prev) =>
+        prev.map((job) => (job.id === id ? { ...job, status } : job)),
+      );
     } catch (error) {
       showErrorToast(error, {
         title: "Could not update job status",
@@ -156,10 +210,12 @@ export default function JobsPage() {
   const analyzeJob = async (jobId: string) => {
     setAnalyzing(jobId);
     try {
-      const response = await fetch(`/api/jobs/${jobId}/analyze`, { method: "POST" });
+      const response = await fetch(`/api/jobs/${jobId}/analyze`, {
+        method: "POST",
+      });
       const data = await readJsonResponse<AnalyzeJobResponse>(
         response,
-        "Failed to analyze job"
+        "Failed to analyze job",
       );
       const analysis = data.analysis;
       if (analysis) setAnalyses((prev) => ({ ...prev, [jobId]: analysis }));
@@ -179,11 +235,13 @@ export default function JobsPage() {
       const response = await fetch(`/api/jobs/${jobId}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId: selectedTemplate[jobId] || "classic" }),
+        body: JSON.stringify({
+          templateId: selectedTemplate[jobId] || "classic",
+        }),
       });
       const data = await readJsonResponse<GenerateResumeResponse>(
         response,
-        "Failed to generate resume"
+        "Failed to generate resume",
       );
       if (data.pdfUrl) window.open(data.pdfUrl, "_blank");
     } catch (error) {
@@ -206,7 +264,7 @@ export default function JobsPage() {
       });
       const data = await readJsonResponse<ATSAnalysisResult>(
         response,
-        "Failed to run ATS check"
+        "Failed to run ATS check",
       );
       if (data.score) setAtsResults((prev) => ({ ...prev, [jobId]: data }));
     } catch (error) {
@@ -219,9 +277,25 @@ export default function JobsPage() {
     }
   };
 
-  const filteredJobs = filterJobs(jobs, { searchQuery, statusFilter, typeFilter, remoteFilter, sortBy });
-  const hasActiveFilters = hasActiveJobFilters({ searchQuery, statusFilter, typeFilter, remoteFilter });
-  const clearFilters = () => { setSearchQuery(""); setStatusFilter("all"); setTypeFilter("all"); setRemoteFilter("all"); };
+  const filteredJobs = filterJobs(jobs, {
+    searchQuery,
+    statusFilter,
+    typeFilter,
+    remoteFilter,
+    sortBy,
+  });
+  const hasActiveFilters = hasActiveJobFilters({
+    searchQuery,
+    statusFilter,
+    typeFilter,
+    remoteFilter,
+  });
+  const clearFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setTypeFilter("all");
+    setRemoteFilter("all");
+  };
 
   return (
     <ErrorBoundary>
@@ -237,10 +311,20 @@ export default function JobsPage() {
 
         {jobs.length > 0 && (
           <JobsToolbar
-            searchQuery={searchQuery} statusFilter={statusFilter} typeFilter={typeFilter} remoteFilter={remoteFilter} sortBy={sortBy}
-            hasActiveFilters={hasActiveFilters} filteredCount={filteredJobs.length} totalCount={jobs.length}
-            onSearchChange={setSearchQuery} onStatusChange={setStatusFilter} onTypeChange={setTypeFilter}
-            onRemoteChange={setRemoteFilter} onSortChange={setSortBy} onClearFilters={clearFilters}
+            searchQuery={searchQuery}
+            statusFilter={statusFilter}
+            typeFilter={typeFilter}
+            remoteFilter={remoteFilter}
+            sortBy={sortBy}
+            hasActiveFilters={hasActiveFilters}
+            filteredCount={filteredJobs.length}
+            totalCount={jobs.length}
+            onSearchChange={setSearchQuery}
+            onStatusChange={setStatusFilter}
+            onTypeChange={setTypeFilter}
+            onRemoteChange={setRemoteFilter}
+            onSortChange={setSortBy}
+            onClearFilters={clearFilters}
           />
         )}
 
@@ -255,41 +339,78 @@ export default function JobsPage() {
             <JobsEmptyState onAdd={() => setShowAddDialog(true)} />
           ) : filteredJobs.length === 0 ? (
             <JobsNoResults onClearFilters={clearFilters} />
+          ) : viewMode === "kanban" ? (
+            <JobKanbanView
+              jobs={filteredJobs}
+              onStatusChange={(jobId, status) =>
+                void updateJobStatus(jobId, status)
+              }
+            />
           ) : (
-            viewMode === "kanban" ? (
-              <JobKanbanView jobs={filteredJobs} onStatusChange={(jobId, status) => void updateJobStatus(jobId, status)} />
-            ) : (
-              <div className="grid gap-6 lg:grid-cols-2">
-                {filteredJobs.map((job) => (
-                  <JobCard
-                    key={job.id} job={job} analysis={analyses[job.id]} analyzing={analyzing === job.id} generating={generating === job.id}
-                    templates={templates} selectedTemplate={selectedTemplate[job.id] || "classic"} expanded={expandedDescription === job.id}
-                    atsResult={atsResults[job.id]} atsAnalyzing={atsAnalyzing === job.id}
-                    onSelectTemplate={(id) => setSelectedTemplate((prev) => ({ ...prev, [job.id]: id }))}
-                    onAnalyze={() => void analyzeJob(job.id)} onGenerate={() => void generateResume(job.id)} onDelete={() => void deleteJob(job)}
-                    onStatusChange={(status) => void updateJobStatus(job.id, status as JobStatus)}
-                    onToggleExpand={() => setExpandedDescription((prev) => (prev === job.id ? null : job.id))}
-                    onAtsCheck={() => void runAtsCheck(job.id)} onAtsDialogOpen={() => setAtsDialogJob(job.id)} onCoverLetter={() => setCoverLetterJob(job)}
-                  />
-                ))}
-              </div>
-            )
+            <div className="grid gap-6 lg:grid-cols-2">
+              {filteredJobs.map((job) => (
+                <JobCard
+                  key={job.id}
+                  job={job}
+                  analysis={analyses[job.id]}
+                  analyzing={analyzing === job.id}
+                  generating={generating === job.id}
+                  templates={templates}
+                  selectedTemplate={selectedTemplate[job.id] || "classic"}
+                  expanded={expandedDescription === job.id}
+                  atsResult={atsResults[job.id]}
+                  atsAnalyzing={atsAnalyzing === job.id}
+                  onSelectTemplate={(id) =>
+                    setSelectedTemplate((prev) => ({ ...prev, [job.id]: id }))
+                  }
+                  onAnalyze={() => void analyzeJob(job.id)}
+                  onGenerate={() => void generateResume(job.id)}
+                  onDelete={() => void deleteJob(job.id)}
+                  onStatusChange={(status) =>
+                    void updateJobStatus(job.id, status as JobStatus)
+                  }
+                  onToggleExpand={() =>
+                    setExpandedDescription((prev) =>
+                      prev === job.id ? null : job.id,
+                    )
+                  }
+                  onAtsCheck={() => void runAtsCheck(job.id)}
+                  onAtsDialogOpen={() => setAtsDialogJob(job.id)}
+                  onCoverLetter={() => setCoverLetterJob(job)}
+                />
+              ))}
+            </div>
           )}
         </div>
 
         {atsDialogJob && atsResults[atsDialogJob] && (
-          <ATSScoreBreakdown result={atsResults[atsDialogJob]} open={!!atsDialogJob} onOpenChange={(open) => !open && setAtsDialogJob(null)} />
+          <ATSScoreBreakdown
+            result={atsResults[atsDialogJob]}
+            open={!!atsDialogJob}
+            onOpenChange={(open) => !open && setAtsDialogJob(null)}
+          />
         )}
 
         {coverLetterJob && (
           <CoverLetterDialog
-            open={!!coverLetterJob} onOpenChange={(open) => !open && setCoverLetterJob(null)}
-            jobId={coverLetterJob.id} jobTitle={coverLetterJob.title} company={coverLetterJob.company}
+            open={!!coverLetterJob}
+            onOpenChange={(open) => !open && setCoverLetterJob(null)}
+            jobId={coverLetterJob.id}
+            jobTitle={coverLetterJob.title}
+            company={coverLetterJob.company}
           />
         )}
 
-        <ImportJobDialog open={showImportDialog} onOpenChange={setShowImportDialog} onJobImported={fetchJobs} />
-        <AddJobDialog open={showAddDialog} onOpenChange={setShowAddDialog} onCreated={(job) => setJobs((prev) => [job, ...prev])} />
+        <ImportJobDialog
+          open={showImportDialog}
+          onOpenChange={setShowImportDialog}
+          onJobImported={fetchJobs}
+        />
+        <AddJobDialog
+          open={showAddDialog}
+          onOpenChange={setShowAddDialog}
+          onCreated={(job) => setJobs((prev) => [job, ...prev])}
+        />
         {confirmDialog}
       </div>
     </ErrorBoundary>

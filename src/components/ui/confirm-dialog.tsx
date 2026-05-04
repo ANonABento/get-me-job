@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-interface ConfirmDialogOptions {
+export interface ConfirmDialogOptions {
   title: string;
   description: string;
   confirmLabel?: string;
@@ -19,11 +19,13 @@ interface ConfirmDialogOptions {
   confirmVariant?: ButtonProps["variant"];
 }
 
-interface ConfirmDialogState extends Required<Omit<ConfirmDialogOptions, "confirmVariant">> {
+export interface ConfirmDialogState extends Required<
+  Omit<ConfirmDialogOptions, "confirmVariant">
+> {
   confirmVariant: ButtonProps["variant"];
 }
 
-const defaultState: ConfirmDialogState = {
+const DEFAULT_CONFIRM_DIALOG_STATE: ConfirmDialogState = {
   title: "",
   description: "",
   confirmLabel: "Confirm",
@@ -68,7 +70,9 @@ export function ConfirmDialog({
 
 export function useConfirmDialog() {
   const [open, setOpen] = React.useState(false);
-  const [options, setOptions] = React.useState<ConfirmDialogState>(defaultState);
+  const [options, setOptions] = React.useState<ConfirmDialogState>(
+    DEFAULT_CONFIRM_DIALOG_STATE,
+  );
   const resolverRef = React.useRef<((confirmed: boolean) => void) | null>(null);
 
   const close = React.useCallback((confirmed: boolean) => {
@@ -78,18 +82,30 @@ export function useConfirmDialog() {
   }, []);
 
   const confirm = React.useCallback((nextOptions: ConfirmDialogOptions) => {
+    resolverRef.current?.(false);
     setOptions({
       title: nextOptions.title,
       description: nextOptions.description,
-      confirmLabel: nextOptions.confirmLabel ?? defaultState.confirmLabel,
-      cancelLabel: nextOptions.cancelLabel ?? defaultState.cancelLabel,
-      confirmVariant: nextOptions.confirmVariant ?? defaultState.confirmVariant,
+      confirmLabel:
+        nextOptions.confirmLabel ?? DEFAULT_CONFIRM_DIALOG_STATE.confirmLabel,
+      cancelLabel:
+        nextOptions.cancelLabel ?? DEFAULT_CONFIRM_DIALOG_STATE.cancelLabel,
+      confirmVariant:
+        nextOptions.confirmVariant ??
+        DEFAULT_CONFIRM_DIALOG_STATE.confirmVariant,
     });
     setOpen(true);
 
     return new Promise<boolean>((resolve) => {
       resolverRef.current = resolve;
     });
+  }, []);
+
+  React.useEffect(() => {
+    return () => {
+      resolverRef.current?.(false);
+      resolverRef.current = null;
+    };
   }, []);
 
   const dialog = (

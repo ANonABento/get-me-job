@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useConfirmDialog } from "./confirm-dialog";
 
-function TestConfirmDialog({ onResult }: { onResult: (result: boolean) => void }) {
+function TestConfirmDialog({
+  onResult,
+}: {
+  onResult: (result: boolean) => void;
+}) {
   const { confirm, dialog } = useConfirmDialog();
 
   async function handleClick() {
@@ -18,6 +22,35 @@ function TestConfirmDialog({ onResult }: { onResult: (result: boolean) => void }
     <>
       <button type="button" onClick={() => void handleClick()}>
         Open confirm
+      </button>
+      {dialog}
+    </>
+  );
+}
+
+function TestSequentialConfirmDialog({
+  onFirstResult,
+}: {
+  onFirstResult: (result: boolean) => void;
+}) {
+  const { confirm, dialog } = useConfirmDialog();
+
+  async function handleClick() {
+    void confirm({
+      title: "First action?",
+      description: "First description.",
+    }).then(onFirstResult);
+
+    void confirm({
+      title: "Second action?",
+      description: "Second description.",
+    });
+  }
+
+  return (
+    <>
+      <button type="button" onClick={() => void handleClick()}>
+        Open sequential confirms
       </button>
       {dialog}
     </>
@@ -53,5 +86,17 @@ describe("useConfirmDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open confirm" }));
 
     expect(await screen.findByRole("button", { name: "Cancel" })).toHaveFocus();
+  });
+
+  it("cancels a pending confirmation when a new one opens", async () => {
+    const onFirstResult = vi.fn();
+    render(<TestSequentialConfirmDialog onFirstResult={onFirstResult} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open sequential confirms" }),
+    );
+
+    await waitFor(() => expect(onFirstResult).toHaveBeenCalledWith(false));
+    expect(await screen.findByText("Second action?")).toBeInTheDocument();
   });
 });
