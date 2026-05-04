@@ -46,6 +46,18 @@ describe("studio page state helpers", () => {
     ).toBe("Dear Acme, I improved reliability.");
   });
 
+  it("preserves paragraph breaks when replacing within a multi-paragraph draft", () => {
+    expect(
+      applyCoverLetterCritiqueSuggestionToText(
+        "Dear Acme,\n\nI built reliable systems.\n\nI would love to talk.",
+        "I built reliable systems.",
+        "I improved reliability for customer workflows.",
+      ),
+    ).toBe(
+      "Dear Acme,\n\nI improved reliability for customer workflows.\n\nI would love to talk.",
+    );
+  });
+
   it("treats an untouched document as saved even without versions", () => {
     expect(isDraftSavedForDocument(new Set(), "resume", [], draftState)).toBe(
       true,

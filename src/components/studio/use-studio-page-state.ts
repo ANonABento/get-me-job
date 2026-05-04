@@ -34,6 +34,7 @@ import { buildCoverLetterPreviewContent } from "@/lib/builder/cover-letter-previ
 import { generateResumePreviewFallbackHTML } from "@/lib/builder/resume-preview-fallback";
 import { tailoredResumeToTipTapDocument } from "@/lib/editor/bank-to-tiptap";
 import {
+  coverLetterHtmlToText,
   coverLetterTextToTipTapDocument,
   createBlankCoverLetterTipTapDocument,
   isBlankCoverLetterTipTapDocument,
@@ -47,7 +48,6 @@ import type { TipTapJSONContent } from "@/lib/editor/types";
 import { readJsonResponse } from "@/lib/http";
 import type { TailoredResume } from "@/lib/resume/generator";
 import { useErrorToast } from "@/hooks/use-error-toast";
-import { stripDocumentHtml } from "@/lib/document-assistant";
 import type { BankCategory, BankEntry } from "@/types";
 import type { CoverLetterCritique } from "@/lib/ai/critique-prompts";
 import {
@@ -626,7 +626,7 @@ export function useStudioPageState(): StudioPageState {
   const handleCoverLetterSuggestionApply = useCallback(
     (rangeInLetter: string, suggestion: string) => {
       if (documentMode !== "cover_letter") return false;
-      const currentText = stripDocumentHtml(html);
+      const currentText = coverLetterHtmlToText(html);
       const nextText = applyCoverLetterCritiqueSuggestionToText(
         currentText,
         rangeInLetter,

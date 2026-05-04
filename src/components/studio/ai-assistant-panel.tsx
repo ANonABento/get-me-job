@@ -19,6 +19,7 @@ import {
   stripDocumentHtml,
   type DocumentAssistantAction,
 } from "@/lib/document-assistant";
+import { coverLetterHtmlToText } from "@/lib/editor/cover-letter-tiptap";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -400,7 +401,7 @@ export function AiAssistantPanel({
   ]);
 
   const runCoverLetterCritique = useCallback(async () => {
-    const letter = stripDocumentHtml(documentContent);
+    const letter = coverLetterHtmlToText(documentContent);
     if (!letter.trim()) {
       setStatusMessage("Write or generate a cover letter draft first.");
       return;
