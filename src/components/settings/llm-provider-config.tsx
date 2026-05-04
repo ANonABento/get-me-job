@@ -82,10 +82,10 @@ export function LLMProviderConfig(props: LLMProviderConfigProps) {
         )}
 
         <div className="space-y-2">
-          <Label>Model</Label>
+          <Label htmlFor="llm-model-trigger">Model</Label>
           <div className="flex gap-2">
             <Select value={config.model} onValueChange={(value) => onConfigChange({ model: value })}>
-              <SelectTrigger className="flex-1">
+              <SelectTrigger id="llm-model-trigger" className="flex-1" aria-label="Model">
                 <SelectValue placeholder="Select a model" />
               </SelectTrigger>
               <SelectContent>

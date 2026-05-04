@@ -105,7 +105,6 @@ export default function Dashboard() {
           activities.push({
             id: `doc-${doc.id}`,
             type: "document_uploaded",
-            targetId: doc.filename,
             title: doc.filename,
             timestamp: doc.uploadedAt,
           });
@@ -115,7 +114,6 @@ export default function Dashboard() {
           activities.push({
             id: `job-${job.id}`,
             type: job.status === "applied" ? "job_applied" : "job_added",
-            targetId: job.id,
             title: `${job.title} at ${job.company}`,
             timestamp: job.createdAt,
           });

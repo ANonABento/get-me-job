@@ -8,7 +8,7 @@ export function OllamaWarning() {
       <AlertCircle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
       <div className="text-sm">
         <p className="font-medium text-warning">Make sure Ollama is running</p>
-        <p className="text-warning/80 mt-1">
+        <p className="text-warning mt-1">
           Ollama must be running in the background for Taida to work. If you get connection errors, start Ollama from
           your Applications folder.
         </p>

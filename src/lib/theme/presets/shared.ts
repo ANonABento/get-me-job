@@ -18,13 +18,15 @@ export function createThemeTokens(
   };
 }
 
+// Status colors are tuned to clear WCAG 2.1 AA contrast (>=4.5:1 for body text)
+// against the white card background and against their own /10 tinted backgrounds.
 export const sharedStatusTokens = {
-  destructive: "0 72% 51%",
+  destructive: "0 72% 42%",
   destructiveForeground: "0 0% 100%",
-  success: "152 60% 42%",
+  success: "152 65% 28%",
   successForeground: "0 0% 100%",
-  warning: "38 92% 50%",
-  warningForeground: "0 0% 0%",
-  info: "220 80% 56%",
+  warning: "30 95% 30%",
+  warningForeground: "0 0% 100%",
+  info: "220 80% 40%",
   infoForeground: "0 0% 100%",
 } as const;

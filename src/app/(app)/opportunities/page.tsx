@@ -509,7 +509,10 @@ export default function OpportunitiesPage() {
           </aside>
         )}
 
-        <main className="min-w-0 px-5 py-6 sm:px-8">
+        <section
+          aria-label="Opportunities list"
+          className="min-w-0 px-5 py-6 sm:px-8"
+        >
           <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="inline-flex w-full rounded-lg border bg-card p-1 sm:w-auto">
               {OPPORTUNITY_TYPE_TAB_OPTIONS.map((tab) => (
@@ -594,7 +597,7 @@ export default function OpportunitiesPage() {
               ))}
             </div>
           )}
-        </main>
+        </section>
       </div>
 
       <AddOpportunityWizard
@@ -768,7 +771,13 @@ function OpportunityKanbanView({
   }
 
   return (
-    <div className="overflow-x-auto pb-4">
+    <div
+      className="overflow-x-auto pb-4"
+      role="region"
+      aria-label="Opportunity kanban board"
+      aria-roledescription="kanban board"
+      tabIndex={0}
+    >
       <div className="grid min-w-[1480px] grid-cols-8 gap-4">
         {OPPORTUNITY_KANBAN_COLUMNS.map((column) => {
           const columnOpportunities = groupedOpportunities[column.value];

@@ -62,7 +62,7 @@ Columbus is a **feature-complete single-user MVP** with enhanced features:
 - [x] API documentation (`docs/API.md`)
 - [x] User guide (`docs/USER_GUIDE.md`)
 - [x] Developer setup guide (`docs/DEVELOPER.md`)
-- [x] Architecture documentation (`docs/ARCHITECTURE.md`)
+- [x] Architecture documentation (`docs/architecture.md`)
 
 ---
 

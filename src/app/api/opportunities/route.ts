@@ -10,6 +10,7 @@ import { getLLMConfig } from "@/lib/db";
 import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
 import { createJobSchema, TECH_KEYWORDS } from "@/lib/constants";
 import { createOpportunitySchema } from "@/types/opportunity";
+import { triggerBackgroundEnrichment } from "@/lib/enrichment/background";
 
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth();
@@ -125,6 +126,11 @@ Return format: ["skill1", "skill2", "skill3", ...]`,
       },
       authResult.userId,
     );
+    triggerBackgroundEnrichment(
+      { company: job.company, sourceUrl: job.url ?? null },
+      authResult.userId,
+    );
+
     return NextResponse.json(
       { job, opportunity: jobToOpportunity(job) },
       { status: 201 },

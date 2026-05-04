@@ -272,7 +272,7 @@ export default function ProfilePage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={form.avatarUrl}
-                      alt=""
+                      alt={form.name ? `${form.name} profile photo` : "Profile photo"}
                       className="h-24 w-24 rounded-full border object-cover"
                     />
                   ) : (
@@ -483,6 +483,7 @@ export default function ProfilePage() {
                   <CardContent>
                     <Textarea
                       id="summaryText"
+                      aria-label="Professional summary"
                       value={form.summary}
                       rows={8}
                       onChange={(event) =>
