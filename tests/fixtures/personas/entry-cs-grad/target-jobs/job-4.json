@@ -1,0 +1,19 @@
+{
+  "title": "Frontend Platform Engineer I",
+  "company": "Copperline Labs",
+  "location": "Onsite - Austin, TX",
+  "remoteType": "onsite",
+  "level": "junior",
+  "salaryMin": 105000,
+  "salaryMax": 138000,
+  "currency": "USD",
+  "techStack": [
+    "React",
+    "TypeScript",
+    "Node.js",
+    "Tailwind",
+    "Vitest"
+  ],
+  "summary": "Synthetic posting for frontend platform engineer i work aligned with Avery Chen's background in React, TypeScript, Node.js.",
+  "url": "https://copperline-labs.example.com/careers/entry-cs-grad-4"
+}

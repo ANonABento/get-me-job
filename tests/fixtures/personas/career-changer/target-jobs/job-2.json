@@ -1,0 +1,19 @@
+{
+  "title": "Full Stack Developer",
+  "company": "North Loop Systems",
+  "location": "Hybrid - New York, NY",
+  "remoteType": "hybrid",
+  "level": "mid",
+  "salaryMin": 130000,
+  "salaryMax": 161000,
+  "currency": "USD",
+  "techStack": [
+    "Python",
+    "React",
+    "TypeScript",
+    "SQL",
+    "Data Visualization"
+  ],
+  "summary": "Synthetic posting for full stack developer work aligned with Samira Brooks's background in Python, React, TypeScript.",
+  "url": "https://north-loop-systems.example.com/careers/career-changer-2"
+}

@@ -1,0 +1,19 @@
+{
+  "title": "Test Platform Engineer",
+  "company": "Atlas Finch",
+  "location": "Remote - Americas",
+  "remoteType": "remote",
+  "level": "mid",
+  "salaryMin": 135000,
+  "salaryMax": 167000,
+  "currency": "USD",
+  "techStack": [
+    "Playwright",
+    "TypeScript",
+    "CI",
+    "API Testing",
+    "SQL"
+  ],
+  "summary": "Synthetic posting for test platform engineer work aligned with Devon Moore's background in Playwright, TypeScript, CI.",
+  "url": "https://atlas-finch.example.com/careers/scanned-pdf-3"
+}

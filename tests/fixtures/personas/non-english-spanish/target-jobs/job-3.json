@@ -1,0 +1,19 @@
+{
+  "title": "Frontend Engineer",
+  "company": "Atlas Finch",
+  "location": "Remote - Americas",
+  "remoteType": "remote",
+  "level": "mid",
+  "salaryMin": 135000,
+  "salaryMax": 167000,
+  "currency": "USD",
+  "techStack": [
+    "React",
+    "TypeScript",
+    "Node.js",
+    "Accessibility",
+    "CSS"
+  ],
+  "summary": "Synthetic posting for frontend engineer work aligned with María García's background in React, TypeScript, Node.js.",
+  "url": "https://atlas-finch.example.com/careers/non-english-spanish-3"
+}

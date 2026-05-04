@@ -1,0 +1,72 @@
+{
+  "personaSlug": "senior-ic",
+  "expectedExperiences": [
+    {
+      "title": "Staff Software Engineer",
+      "company": "Northpass Cloud",
+      "startDate": "2022-01",
+      "endDate": "Present",
+      "location": "Seattle, WA",
+      "summary": "Led event-driven architecture for multi-region workflow automation and mentored six engineers.",
+      "category": "experience"
+    },
+    {
+      "title": "Senior Software Engineer",
+      "company": "Bluejay Analytics",
+      "startDate": "2018-06",
+      "endDate": "2021-12",
+      "location": "Portland, OR",
+      "summary": "Designed data ingestion services processing 45 million records per day with clear ownership boundaries.",
+      "category": "experience"
+    },
+    {
+      "title": "Software Engineer",
+      "company": "Signal Yard",
+      "startDate": "2014-08",
+      "endDate": "2018-05",
+      "location": "Seattle, WA",
+      "summary": "Shipped customer-facing APIs, incident tooling, and service reliability improvements.",
+      "category": "experience"
+    }
+  ],
+  "expectedEducation": [
+    {
+      "degree": "M.S. Computer Science",
+      "school": "Cascadia Technical Institute",
+      "startDate": "2012-09",
+      "endDate": "2014-06",
+      "gpa": "3.9"
+    },
+    {
+      "degree": "B.S. Mathematics",
+      "school": "Puget Sound College",
+      "startDate": "2008-09",
+      "endDate": "2012-05",
+      "gpa": "3.7"
+    }
+  ],
+  "expectedSkills": [
+    "TypeScript",
+    "Go",
+    "PostgreSQL",
+    "Kafka",
+    "Kubernetes",
+    "AWS",
+    "Architecture",
+    "Mentorship"
+  ],
+  "expectedProjects": [
+    {
+      "name": "Reliability Playbook",
+      "description": "Operational guide and tooling templates adopted across five product teams.",
+      "technologies": [
+        "Kubernetes",
+        "OpenTelemetry"
+      ]
+    }
+  ],
+  "expectedTotalEntryCount": 14,
+  "knownLimitations": [
+    "Staff-level scope may be summarized differently by parser strategy."
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "personaSlug": "entry-cs-grad",
+  "expectedExperiences": [
+    {
+      "title": "Software Engineering Intern",
+      "company": "Northstar Labs",
+      "startDate": "2025-05",
+      "endDate": "2025-08",
+      "location": "Austin, TX",
+      "summary": "Built onboarding UI in React and added API contract tests for account setup flows.",
+      "category": "experience"
+    },
+    {
+      "title": "Data Engineering Intern",
+      "company": "CivicByte Studio",
+      "startDate": "2024-06",
+      "endDate": "2024-08",
+      "location": "Remote",
+      "summary": "Created Python scripts that normalized public records data for an internal analytics dashboard.",
+      "category": "experience"
+    }
+  ],
+  "expectedEducation": [
+    {
+      "degree": "B.S. Computer Science",
+      "school": "Lone Star State University",
+      "startDate": "2022-09",
+      "endDate": "2026-05",
+      "gpa": "3.8"
+    }
+  ],
+  "expectedSkills": [
+    "TypeScript",
+    "React",
+    "Node.js",
+    "Python",
+    "SQLite",
+    "Tailwind",
+    "Vitest",
+    "Git"
+  ],
+  "expectedProjects": [
+    {
+      "name": "Campus Course Planner",
+      "description": "Degree planning app with prerequisite checks and schedule export.",
+      "technologies": [
+        "TypeScript",
+        "React",
+        "SQLite"
+      ]
+    },
+    {
+      "name": "Study Buddy Bot",
+      "description": "Discord bot that schedules group reminders and flashcard reviews.",
+      "technologies": [
+        "Node.js",
+        "PostgreSQL"
+      ]
+    },
+    {
+      "name": "Trail Weather",
+      "description": "Mobile-friendly weather dashboard for local hiking routes.",
+      "technologies": [
+        "React",
+        "OpenWeather API"
+      ]
+    }
+  ],
+  "expectedTotalEntryCount": 14,
+  "knownLimitations": [
+    "GPA may not parse depending on parser strategy."
+  ]
+}

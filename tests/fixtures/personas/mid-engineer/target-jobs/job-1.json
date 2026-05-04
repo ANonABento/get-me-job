@@ -1,0 +1,19 @@
+{
+  "title": "Full Stack Engineer",
+  "company": "Plausible Product Co",
+  "location": "Remote - US",
+  "remoteType": "remote",
+  "level": "mid",
+  "salaryMin": 125000,
+  "salaryMax": 155000,
+  "currency": "USD",
+  "techStack": [
+    "TypeScript",
+    "React",
+    "Node.js",
+    "PostgreSQL",
+    "AWS"
+  ],
+  "summary": "Synthetic posting for full stack engineer work aligned with Jordan Patel's background in TypeScript, React, Node.js.",
+  "url": "https://plausible-product-co.example.com/careers/mid-engineer-1"
+}

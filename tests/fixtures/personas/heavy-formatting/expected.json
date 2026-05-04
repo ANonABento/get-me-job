@@ -1,0 +1,57 @@
+{
+  "personaSlug": "heavy-formatting",
+  "expectedExperiences": [
+    {
+      "title": "Senior Frontend Engineer",
+      "company": "Canvas Harbor",
+      "startDate": "2021-02",
+      "endDate": "Present",
+      "location": "San Diego, CA",
+      "summary": "Led design system migration, rich-text editor work, and accessibility audits across product surfaces.",
+      "category": "experience"
+    },
+    {
+      "title": "Frontend Engineer",
+      "company": "Pixel Foundry",
+      "startDate": "2018-05",
+      "endDate": "2021-01",
+      "location": "Los Angeles, CA",
+      "summary": "Built component libraries, dashboard shells, and performance budgets for client teams.",
+      "category": "experience"
+    }
+  ],
+  "expectedEducation": [
+    {
+      "degree": "B.S. Human-Computer Interaction",
+      "school": "Pacific Design University",
+      "startDate": "2014-09",
+      "endDate": "2018-05",
+      "gpa": "3.8"
+    }
+  ],
+  "expectedSkills": [
+    "React",
+    "TypeScript",
+    "Design Systems",
+    "Accessibility",
+    "CSS",
+    "Playwright",
+    "ProseMirror",
+    "Performance"
+  ],
+  "expectedProjects": [
+    {
+      "name": "Token Studio",
+      "description": "Design token documentation site with visual regression checks.",
+      "technologies": [
+        "React",
+        "Playwright",
+        "CSS"
+      ]
+    }
+  ],
+  "expectedTotalEntryCount": 12,
+  "knownLimitations": [
+    "Column ordering may vary by parser text extraction strategy."
+  ]
+}

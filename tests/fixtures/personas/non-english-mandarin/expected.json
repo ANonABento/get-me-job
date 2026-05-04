@@ -1,0 +1,56 @@
+{
+  "personaSlug": "non-english-mandarin",
+  "expectedExperiences": [
+    {
+      "title": "后端软件工程师",
+      "company": "星桥科技",
+      "startDate": "2021-07",
+      "endDate": "Present",
+      "location": "上海, 中国",
+      "summary": "负责订单服务、消息队列和监控平台，提升系统稳定性。",
+      "category": "experience"
+    },
+    {
+      "title": "软件开发实习生",
+      "company": "青云数据",
+      "startDate": "2020-06",
+      "endDate": "2020-09",
+      "location": "杭州, 中国",
+      "summary": "开发数据清洗脚本和内部报表工具，支持运营团队。",
+      "category": "experience"
+    }
+  ],
+  "expectedEducation": [
+    {
+      "degree": "计算机科学学士",
+      "school": "东海理工大学",
+      "startDate": "2017-09",
+      "endDate": "2021-06",
+      "gpa": "3.7"
+    }
+  ],
+  "expectedSkills": [
+    "Java",
+    "Go",
+    "Kubernetes",
+    "PostgreSQL",
+    "Kafka",
+    "云服务",
+    "系统设计"
+  ],
+  "expectedProjects": [
+    {
+      "name": "实时库存平台",
+      "description": "基于事件流的库存同步系统，支持多仓库场景。",
+      "technologies": [
+        "Go",
+        "Kafka",
+        "PostgreSQL"
+      ]
+    }
+  ],
+  "expectedTotalEntryCount": 11,
+  "knownLimitations": [
+    "Built-in PDF font may not visually render every CJK glyph even though fixture metadata contains Mandarin text."
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "personaSlug": "multi-job-pm",
+  "expectedExperiences": [
+    {
+      "title": "Senior Product Manager",
+      "company": "Quartz Harbor",
+      "startDate": "2024-01",
+      "endDate": "Present",
+      "location": "New York, NY",
+      "summary": "Led onboarding experiments that improved activated accounts by 18 percent.",
+      "category": "experience"
+    },
+    {
+      "title": "Product Manager",
+      "company": "Mintwork",
+      "startDate": "2022-07",
+      "endDate": "2023-12",
+      "location": "Remote",
+      "summary": "Owned roadmap for SMB invoicing and launched usage-based packaging.",
+      "category": "experience"
+    },
+    {
+      "title": "Product Manager",
+      "company": "Pilot Orchard",
+      "startDate": "2021-01",
+      "endDate": "2022-06",
+      "location": "Brooklyn, NY",
+      "summary": "Shipped marketplace trust features and vendor analytics.",
+      "category": "experience"
+    },
+    {
+      "title": "Associate Product Manager",
+      "company": "Lumen Cart",
+      "startDate": "2019-07",
+      "endDate": "2020-12",
+      "location": "New York, NY",
+      "summary": "Coordinated discovery and launch planning for mobile checkout improvements.",
+      "category": "experience"
+    }
+  ],
+  "expectedEducation": [
+    {
+      "degree": "B.A. Economics",
+      "school": "Hudson Metropolitan College",
+      "startDate": "2015-09",
+      "endDate": "2019-05",
+      "gpa": "3.6"
+    }
+  ],
+  "expectedSkills": [
+    "Product Strategy",
+    "Roadmapping",
+    "SQL",
+    "Experimentation",
+    "Figma",
+    "Analytics",
+    "Stakeholder Management"
+  ],
+  "expectedProjects": [
+    {
+      "name": "Activation Metrics Pack",
+      "description": "Reusable dashboard template for funnel health and experiment readouts.",
+      "technologies": [
+        "SQL",
+        "Product Analytics"
+      ]
+    }
+  ],
+  "expectedTotalEntryCount": 13,
+  "knownLimitations": [
+    "Product skills may map to skills with category other."
+  ]
+}
