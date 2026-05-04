@@ -99,7 +99,10 @@ function escapePdfLiteral(value: string): string {
  * Optionally pad the trailing comment so the file is much larger than its
  * useful content (used for the 50MB case).
  */
-export function createMinimalPdf(pages: string[], paddingBytes = 0): Uint8Array {
+export function createMinimalPdf(
+  pages: string[],
+  paddingBytes = 0,
+): Uint8Array {
   const objects: string[] = [];
   const pageObjectIds: number[] = [];
 
@@ -107,7 +110,7 @@ export function createMinimalPdf(pages: string[], paddingBytes = 0): Uint8Array 
   // Filled in once we know all page object ids.
   objects.push("");
   objects.push(
-    "3 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n"
+    "3 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n",
   );
 
   for (const pageText of pages) {
@@ -122,17 +125,16 @@ export function createMinimalPdf(pages: string[], paddingBytes = 0): Uint8Array 
     objects.push(
       `${pageObjectId} 0 obj\n` +
         `<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 3 0 R >> >> ` +
-        `/MediaBox [0 0 612 792] /Contents ${contentObjectId} 0 R >>\nendobj\n`
+        `/MediaBox [0 0 612 792] /Contents ${contentObjectId} 0 R >>\nendobj\n`,
     );
     objects.push(
       `${contentObjectId} 0 obj\n` +
-        `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream\nendobj\n`
+        `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream\nendobj\n`,
     );
   }
 
   const kids = pageObjectIds.map((id) => `${id} 0 R`).join(" ");
-  objects[1] =
-    `2 0 obj\n<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>\nendobj\n`;
+  objects[1] = `2 0 obj\n<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>\nendobj\n`;
 
   let pdf = "%PDF-1.4\n";
   const offsets: number[] = [0];
@@ -187,7 +189,9 @@ export function createStressFixture(type: HostileInputType): StressFixture {
         filename: "fictional-100-page-resume.pdf",
         mimeType: "application/pdf",
         bytes: createMinimalPdf(
-          Array.from({ length: 100 }, (_, index) => repeatedResumePage(index + 1))
+          Array.from({ length: 100 }, (_, index) =>
+            repeatedResumePage(index + 1),
+          ),
         ),
         expectedBehavior:
           "Accepts under size limit; parses/classifies without timing out or crashing.",
@@ -213,7 +217,7 @@ export function createStressFixture(type: HostileInputType): StressFixture {
         mimeType: "application/pdf",
         // Marker the route would observe if it had encryption-aware parsing.
         bytes: encodeAscii(
-          "%PDF-1.7\n1 0 obj\n<< /Type /Catalog /Encrypt << /Filter /Standard /V 1 /R 4 /U (xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx) /O (xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx) /P -1340 >> /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\nxref\n0 3\n0000000000 65535 f \n0000000015 00000 n \n0000000150 00000 n \ntrailer\n<< /Size 3 /Root 1 0 R /Encrypt 1 0 R >>\nstartxref\n200\n%%EOF\n"
+          "%PDF-1.7\n1 0 obj\n<< /Type /Catalog /Encrypt << /Filter /Standard /V 1 /R 4 /U (xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx) /O (xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx) /P -1340 >> /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\nxref\n0 3\n0000000000 65535 f \n0000000015 00000 n \n0000000150 00000 n \ntrailer\n<< /Size 3 /Root 1 0 R /Encrypt 1 0 R >>\nstartxref\n200\n%%EOF\n",
         ),
         expectedBehavior:
           "Detects password protection and returns a password-specific 4xx so the user can remove the password.",
@@ -234,7 +238,13 @@ export function createStressFixture(type: HostileInputType): StressFixture {
         mimeType: "application/pdf",
         // Real JPEG SOI/JFIF header — magic byte validator must reject this.
         bytes: new Uint8Array([
-          0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, ...encodeAscii("JFIF"),
+          0xff,
+          0xd8,
+          0xff,
+          0xe0,
+          0x00,
+          0x10,
+          ...encodeAscii("JFIF"),
         ]),
         expectedBehavior:
           "Rejected with HTTP 400 before the file is written or parsed (magic byte mismatch).",
@@ -255,10 +265,7 @@ export function createStressFixture(type: HostileInputType): StressFixture {
         mimeType: "application/pdf",
         // Keep it just over 50MB. The route's MAX_FILE_SIZE_BYTES is 10MB so
         // this proves the pre-write size guard fires before any parsing.
-        bytes: createMinimalPdf(
-          [repeatedResumePage(1)],
-          50 * 1024 * 1024
-        ),
+        bytes: createMinimalPdf([repeatedResumePage(1)], 50 * 1024 * 1024),
         expectedBehavior:
           "Rejected with HTTP 400 by the size guard before any disk write or parse.",
       };
@@ -322,7 +329,7 @@ export function createAllStressFixtures(): StressFixture[] {
  */
 export function createUploadRequest(
   fixture: StressFixture,
-  url = "http://localhost/api/upload"
+  url = "http://localhost/api/upload",
 ): NextRequest {
   // Build a plain Buffer-backed object that satisfies the small surface the
   // route uses: `name`, `type`, `size`, `arrayBuffer()`.
@@ -370,7 +377,7 @@ export interface RunOptions {
 
 export async function runStressFixture(
   fixture: StressFixture,
-  options: RunOptions
+  options: RunOptions,
 ): Promise<StressResult> {
   const before = options.snapshot();
   const startedAt = performance.now();
@@ -408,15 +415,15 @@ export async function runStressFixture(
 export async function runConcurrentStress(
   fixture: StressFixture,
   options: RunOptions,
-  concurrency = 5
+  concurrency = 5,
 ): Promise<StressResult[]> {
   const before = options.snapshot();
   const startedAt = performance.now();
 
   const responses = await Promise.allSettled(
     Array.from({ length: concurrency }, () =>
-      options.handler(createUploadRequest(fixture))
-    )
+      options.handler(createUploadRequest(fixture)),
+    ),
   );
 
   const results: StressResult[] = [];
@@ -489,7 +496,7 @@ export function analyzeStressResult(result: StressResult): ResultAnalysis {
   const persistedFilename = result.persistedFilename ?? "";
   const persistedPath = result.persistedPath ?? "";
   const filenameSanitised = !HTML_INJECTION_PATTERNS.some((pattern) =>
-    pattern.test(persistedFilename)
+    pattern.test(persistedFilename),
   );
   const pathTraversalSafe =
     persistedPath.length === 0 ||
@@ -499,8 +506,7 @@ export function analyzeStressResult(result: StressResult): ResultAnalysis {
     return {
       graceful: false,
       integrityPreserved:
-        result.calls.saveDocument === 0 &&
-        result.calls.insertBankEntries === 0,
+        result.calls.saveDocument === 0 && result.calls.insertBankEntries === 0,
       pathTraversalSafe,
       filenameSanitised,
       severity: "high",
@@ -539,6 +545,9 @@ export function analyzeStressResult(result: StressResult): ResultAnalysis {
   }
 
   if (result.type === "concurrent uploads") {
+    // After issue #221 fix: a UNIQUE(user_id, file_hash) index lets exactly
+    // one INSERT win; the rest throw and are rewritten to 409. We treat any
+    // race that lets more than one row land as a regression.
     const persistedSomewhere = result.calls.saveDocument;
     if (persistedSomewhere <= 1) {
       return {
@@ -569,7 +578,7 @@ export function analyzeStressResult(result: StressResult): ResultAnalysis {
       PATH_TRAVERSAL_PATTERNS.some((pattern) => pattern.test(persistedPath));
     const xssInDisplay = !filenameSanitised;
     const responseLeaksHostile = JSON.stringify(result.body ?? "").includes(
-      "<script>"
+      "<script>",
     );
 
     if (traversalReachedDisk) {
@@ -615,6 +624,9 @@ export function analyzeStressResult(result: StressResult): ResultAnalysis {
     result.type === "password-protected PDF" ||
     result.type === "empty PDF"
   ) {
+    // Post-fix expectations (issues #218/#219/#220): the route must reject
+    // unparseable PDFs with a 4xx and persist NEITHER a documents row nor
+    // bank entries.
     const persistedSourceDoc = result.calls.saveDocument > 0;
     const persistedBank = result.calls.insertBankEntries > 0;
     if (persistedBank) {
@@ -630,26 +642,39 @@ export function analyzeStressResult(result: StressResult): ResultAnalysis {
           "Bank ingestion ran for content that produced no usable text. Gate `insertBankEntries` on `smartParseResume.confidence > 0` and a non-empty section list.",
       };
     }
-    if (persistedSourceDoc && result.status === 200) {
+    if (persistedSourceDoc) {
       return {
         graceful: false,
         integrityPreserved: false,
         pathTraversalSafe,
         filenameSanitised,
         severity: "medium",
-        summary: `Upload returned 200 and persisted a source document despite parse failure (saveDocument=${result.calls.saveDocument}).`,
+        summary: `Upload persisted a source document despite parse failure (saveDocument=${result.calls.saveDocument}).`,
         followUpTitle: `Stress fix — ${result.type} — fail parse errors before saving documents`,
         followUpBody:
-          "Today the route catches parser exceptions, logs them, and continues to `saveDocument`. Surface a 4xx to the user and abort persistence so the documents table never contains rows that produced no text.",
+          "The route still wrote a documents row for an unparseable PDF. Move the parse step before saveDocument and abort with 4xx on failure.",
+      };
+    }
+    if (result.status >= 400 && result.status < 500) {
+      return {
+        graceful: true,
+        integrityPreserved: true,
+        pathTraversalSafe,
+        filenameSanitised,
+        severity: "low",
+        summary: `Upload rejected the unparseable file with status ${result.status} before persistence.`,
       };
     }
     return {
-      graceful: result.status >= 200 && result.status < 500,
+      graceful: false,
       integrityPreserved: true,
       pathTraversalSafe,
       filenameSanitised,
-      severity: "low",
-      summary: "Upload rejected the unparseable file before persistence.",
+      severity: "medium",
+      summary: `Upload returned ${result.status} for an unparseable PDF without persisting; expected an explicit 4xx.`,
+      followUpTitle: `Stress fix — ${result.type} — surface a 4xx for unparseable PDFs`,
+      followUpBody:
+        "Route returned a non-4xx status for an unparseable PDF. Map parse failures to a typed 422 (parse_failed / password_protected / empty_document) so the UI can render an actionable message.",
     };
   }
 

@@ -8,6 +8,8 @@ export interface ActivityItem {
   type: "document_uploaded" | "resume_generated" | "job_added" | "job_applied";
   title: string;
   timestamp: string;
+  /** Optional identifier of the related entity (document filename, job id) */
+  targetId?: string;
 }
 
 interface RecentActivityProps {
@@ -46,10 +48,7 @@ export function RecentActivity({ items }: RecentActivityProps) {
           const Icon = ACTIVITY_ICONS[item.type];
           const label = ACTIVITY_LABELS[item.type];
           return (
-            <div
-              key={item.id}
-              className="flex items-center gap-3 text-sm"
-            >
+            <div key={item.id} className="flex items-center gap-3 text-sm">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                 <Icon className="h-4 w-4" />
               </div>

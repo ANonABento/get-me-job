@@ -1,7 +1,17 @@
 import db from "./schema";
 import { generateId } from "@/lib/utils";
 import { createProfileSnapshot } from "./profile-versions";
-import type { Profile, Experience, Education, Skill, Project, Document, Settings, LLMConfig, DocumentType } from "@/types";
+import type {
+  Profile,
+  Experience,
+  Education,
+  Skill,
+  Project,
+  Document,
+  Settings,
+  LLMConfig,
+  DocumentType,
+} from "@/types";
 
 interface DocumentRow {
   id: string;
@@ -32,20 +42,27 @@ function rowToDocument(row: DocumentRow): Document {
 }
 
 // Settings
-export function getSetting(key: string, userId: string = "default"): string | null {
+export function getSetting(
+  key: string,
+  userId: string = "default",
+): string | null {
   const row = db
     .prepare("SELECT value FROM settings WHERE key = ? AND user_id = ?")
     .get(key, userId) as { value: string } | undefined;
   return row?.value || null;
 }
 
-export function setSetting(key: string, value: string, userId: string = "default"): void {
+export function setSetting(
+  key: string,
+  value: string,
+  userId: string = "default",
+): void {
   db.prepare(
     `INSERT INTO settings (key, user_id, value, updated_at)
      VALUES (?, ?, ?, CURRENT_TIMESTAMP)
      ON CONFLICT(key, user_id) DO UPDATE SET
        value = excluded.value,
-       updated_at = CURRENT_TIMESTAMP`
+       updated_at = CURRENT_TIMESTAMP`,
   ).run(key, userId, value);
 }
 
@@ -54,39 +71,79 @@ export function getLLMConfig(userId: string = "default"): LLMConfig | null {
   return config ? JSON.parse(config) : null;
 }
 
-export function setLLMConfig(config: LLMConfig, userId: string = "default"): void {
+export function setLLMConfig(
+  config: LLMConfig,
+  userId: string = "default",
+): void {
   setSetting("llm_config", JSON.stringify(config), userId);
 }
 
 // Documents
-export function saveDocument(doc: Omit<Document, "uploadedAt">, userId: string = "default"): void {
-  db.prepare(`
-    INSERT INTO documents (id, filename, type, mime_type, size, path, extracted_text, parsed_data, file_hash, user_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    doc.id,
-    doc.filename,
-    doc.type,
-    doc.mimeType,
-    doc.size,
-    doc.path,
-    doc.extractedText,
-    doc.parsedData ? JSON.stringify(doc.parsedData) : null,
-    doc.fileHash ?? null,
-    userId
-  );
+
+/**
+ * Thrown when `saveDocument` violates the (user_id, file_hash) UNIQUE
+ * constraint. Lets the upload route surface a 409 instead of a generic 500.
+ */
+export class DuplicateDocumentError extends Error {
+  readonly code = "duplicate_document" as const;
+  constructor(
+    message = "Document with this file hash already exists for this user",
+  ) {
+    super(message);
+    this.name = "DuplicateDocumentError";
+  }
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const sqliteCode = (error as { code?: string }).code;
+  if (sqliteCode === "SQLITE_CONSTRAINT_UNIQUE") return true;
+  // better-sqlite3 sometimes only sets the generic SQLITE_CONSTRAINT code; the
+  // message text reliably mentions the index/column when it's the unique one.
+  const message = (error as { message?: string }).message ?? "";
+  return message.includes("UNIQUE constraint failed");
+}
+
+export function saveDocument(
+  doc: Omit<Document, "uploadedAt">,
+  userId: string = "default",
+): void {
+  try {
+    db.prepare(
+      `
+      INSERT INTO documents (id, filename, type, mime_type, size, path, extracted_text, parsed_data, file_hash, user_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    ).run(
+      doc.id,
+      doc.filename,
+      doc.type,
+      doc.mimeType,
+      doc.size,
+      doc.path,
+      doc.extractedText,
+      doc.parsedData ? JSON.stringify(doc.parsedData) : null,
+      doc.fileHash ?? null,
+      userId,
+    );
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      throw new DuplicateDocumentError();
+    }
+    throw error;
+  }
 }
 
 export function getDocumentByFileHash(
   fileHash: string,
-  userId: string = "default"
+  userId: string = "default",
 ): Document | null {
   const row = db
     .prepare(
       `SELECT * FROM documents
        WHERE user_id = ? AND file_hash = ?
        ORDER BY datetime(uploaded_at) ASC, id ASC
-       LIMIT 1`
+       LIMIT 1`,
     )
     .get(userId, fileHash) as DocumentRow | undefined;
   return row ? rowToDocument(row) : null;
@@ -94,54 +151,79 @@ export function getDocumentByFileHash(
 
 export function getDocuments(userId: string = "default"): Document[] {
   const rows = db
-    .prepare("SELECT * FROM documents WHERE user_id = ? ORDER BY uploaded_at DESC")
+    .prepare(
+      "SELECT * FROM documents WHERE user_id = ? ORDER BY uploaded_at DESC",
+    )
     .all(userId) as DocumentRow[];
   return rows.map(rowToDocument);
 }
 
 export function getDocumentsByType(
   type: DocumentType,
-  userId: string = "default"
+  userId: string = "default",
 ): Document[] {
   const rows = db
     .prepare(
-      "SELECT * FROM documents WHERE type = ? AND user_id = ? ORDER BY uploaded_at DESC"
+      "SELECT * FROM documents WHERE type = ? AND user_id = ? ORDER BY uploaded_at DESC",
     )
     .all(type, userId) as DocumentRow[];
   return rows.map(rowToDocument);
 }
 
-export function getDocument(id: string, userId: string = "default"): Document | null {
+export function getDocument(
+  id: string,
+  userId: string = "default",
+): Document | null {
   const row = db
     .prepare("SELECT * FROM documents WHERE id = ? AND user_id = ?")
     .get(id, userId) as DocumentRow | undefined;
   return row ? rowToDocument(row) : null;
 }
 
-export function deleteDocument(id: string, userId: string = "default"): string | null {
+export function deleteDocument(
+  id: string,
+  userId: string = "default",
+): string | null {
   const row = db
     .prepare("SELECT path FROM documents WHERE id = ? AND user_id = ?")
     .get(id, userId) as { path: string } | undefined;
   if (!row) return null;
 
-  db.prepare("DELETE FROM documents WHERE id = ? AND user_id = ?").run(id, userId);
+  db.prepare("DELETE FROM documents WHERE id = ? AND user_id = ?").run(
+    id,
+    userId,
+  );
   return row.path;
 }
 
 // Profile
 export function getProfile(userId: string = "default"): Profile | null {
-  const profileRow = db.prepare("SELECT * FROM profile WHERE id = ?").get(userId) as any;
+  const profileRow = db
+    .prepare("SELECT * FROM profile WHERE id = ?")
+    .get(userId) as any;
   if (!profileRow) return null;
 
-  const experiences = db.prepare("SELECT * FROM experiences WHERE profile_id = ?").all(userId) as any[];
-  const education = db.prepare("SELECT * FROM education WHERE profile_id = ?").all(userId) as any[];
-  const skills = db.prepare("SELECT * FROM skills WHERE profile_id = ?").all(userId) as any[];
-  const projects = db.prepare("SELECT * FROM projects WHERE profile_id = ?").all(userId) as any[];
-  const certifications = db.prepare("SELECT * FROM certifications WHERE profile_id = ?").all(userId) as any[];
+  const experiences = db
+    .prepare("SELECT * FROM experiences WHERE profile_id = ?")
+    .all(userId) as any[];
+  const education = db
+    .prepare("SELECT * FROM education WHERE profile_id = ?")
+    .all(userId) as any[];
+  const skills = db
+    .prepare("SELECT * FROM skills WHERE profile_id = ?")
+    .all(userId) as any[];
+  const projects = db
+    .prepare("SELECT * FROM projects WHERE profile_id = ?")
+    .all(userId) as any[];
+  const certifications = db
+    .prepare("SELECT * FROM certifications WHERE profile_id = ?")
+    .all(userId) as any[];
 
   return {
     id: profileRow.id,
-    contact: profileRow.contact_json ? JSON.parse(profileRow.contact_json) : { name: "" },
+    contact: profileRow.contact_json
+      ? JSON.parse(profileRow.contact_json)
+      : { name: "" },
     summary: profileRow.summary,
     rawText: profileRow.raw_text,
     experiences: experiences.map((e) => ({
@@ -192,7 +274,10 @@ export function getProfile(userId: string = "default"): Profile | null {
   };
 }
 
-export function updateProfile(profile: Partial<Profile>, userId: string = "default"): void {
+export function updateProfile(
+  profile: Partial<Profile>,
+  userId: string = "default",
+): void {
   const currentProfile = getProfile(userId);
   if (currentProfile) {
     createProfileSnapshot(userId, JSON.stringify(currentProfile));
@@ -200,7 +285,9 @@ export function updateProfile(profile: Partial<Profile>, userId: string = "defau
 
   const doUpdate = db.transaction(() => {
     // Ensure profile exists for this user
-    const existingProfile = db.prepare("SELECT id FROM profile WHERE id = ?").get(userId);
+    const existingProfile = db
+      .prepare("SELECT id FROM profile WHERE id = ?")
+      .get(userId);
     if (!existingProfile) {
       db.prepare("INSERT INTO profile (id) VALUES (?)").run(userId);
     }
@@ -212,21 +299,23 @@ export function updateProfile(profile: Partial<Profile>, userId: string = "defau
       profile.rawText !== undefined;
 
     if (hasProfileFields) {
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE profile
         SET contact_json = CASE WHEN ? THEN ? ELSE contact_json END,
             summary = CASE WHEN ? THEN ? ELSE summary END,
             raw_text = CASE WHEN ? THEN ? ELSE raw_text END,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-      `).run(
+      `,
+      ).run(
         profile.contact !== undefined ? 1 : 0,
         profile.contact !== undefined ? JSON.stringify(profile.contact) : null,
         profile.summary !== undefined ? 1 : 0,
         profile.summary ?? null,
         profile.rawText !== undefined ? 1 : 0,
         profile.rawText ?? null,
-        userId
+        userId,
       );
     }
 
@@ -249,7 +338,7 @@ export function updateProfile(profile: Partial<Profile>, userId: string = "defau
           exp.current ? 1 : 0,
           exp.description,
           JSON.stringify(exp.highlights),
-          JSON.stringify(exp.skills)
+          JSON.stringify(exp.skills),
         );
       }
     }
@@ -271,7 +360,7 @@ export function updateProfile(profile: Partial<Profile>, userId: string = "defau
           edu.startDate,
           edu.endDate,
           edu.gpa,
-          JSON.stringify(edu.highlights)
+          JSON.stringify(edu.highlights),
         );
       }
     }
@@ -289,7 +378,7 @@ export function updateProfile(profile: Partial<Profile>, userId: string = "defau
           userId,
           skill.name,
           skill.category,
-          skill.proficiency
+          skill.proficiency,
         );
       }
     }
@@ -309,7 +398,7 @@ export function updateProfile(profile: Partial<Profile>, userId: string = "defau
           proj.description,
           proj.url,
           JSON.stringify(proj.technologies),
-          JSON.stringify(proj.highlights)
+          JSON.stringify(proj.highlights),
         );
       }
     }
@@ -328,7 +417,7 @@ export function updateProfile(profile: Partial<Profile>, userId: string = "defau
           cert.name,
           cert.issuer,
           cert.date,
-          cert.url
+          cert.url,
         );
       }
     }
@@ -345,11 +434,13 @@ export function clearProfile(userId: string = "default"): void {
     db.prepare("DELETE FROM skills WHERE profile_id = ?").run(userId);
     db.prepare("DELETE FROM projects WHERE profile_id = ?").run(userId);
     db.prepare("DELETE FROM certifications WHERE profile_id = ?").run(userId);
-    db.prepare(`
+    db.prepare(
+      `
       UPDATE profile
       SET contact_json = NULL, summary = NULL, raw_text = NULL, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(userId);
+    `,
+    ).run(userId);
   });
   clear();
 }
