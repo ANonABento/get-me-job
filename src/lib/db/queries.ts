@@ -12,6 +12,7 @@ interface DocumentRow {
   path: string;
   extracted_text: string | null;
   parsed_data?: string | null;
+  file_hash?: string | null;
   uploaded_at: string;
 }
 
@@ -25,6 +26,7 @@ function rowToDocument(row: DocumentRow): Document {
     path: row.path,
     extractedText: row.extracted_text || undefined,
     parsedData: row.parsed_data ? JSON.parse(row.parsed_data) : undefined,
+    fileHash: row.file_hash || undefined,
     uploadedAt: row.uploaded_at,
   };
 }
@@ -59,8 +61,8 @@ export function setLLMConfig(config: LLMConfig, userId: string = "default"): voi
 // Documents
 export function saveDocument(doc: Omit<Document, "uploadedAt">, userId: string = "default"): void {
   db.prepare(`
-    INSERT INTO documents (id, filename, type, mime_type, size, path, extracted_text, parsed_data, user_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO documents (id, filename, type, mime_type, size, path, extracted_text, parsed_data, file_hash, user_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     doc.id,
     doc.filename,
@@ -70,8 +72,24 @@ export function saveDocument(doc: Omit<Document, "uploadedAt">, userId: string =
     doc.path,
     doc.extractedText,
     doc.parsedData ? JSON.stringify(doc.parsedData) : null,
+    doc.fileHash ?? null,
     userId
   );
+}
+
+export function getDocumentByFileHash(
+  fileHash: string,
+  userId: string = "default"
+): Document | null {
+  const row = db
+    .prepare(
+      `SELECT * FROM documents
+       WHERE user_id = ? AND file_hash = ?
+       ORDER BY datetime(uploaded_at) ASC, id ASC
+       LIMIT 1`
+    )
+    .get(userId, fileHash) as DocumentRow | undefined;
+  return row ? rowToDocument(row) : null;
 }
 
 export function getDocuments(userId: string = "default"): Document[] {

@@ -1,11 +1,6 @@
 import type { Profile } from "@/types";
 import type { InsertBankEntry } from "@/lib/db/profile-bank";
-import {
-  findDuplicateEntry,
-  getDeduplicationKey,
-  updateBankEntry,
-  insertBankEntries,
-} from "@/lib/db/profile-bank";
+import { deleteBankEntriesBySource, insertBankEntries } from "@/lib/db/profile-bank";
 
 /**
  * Extract individual bank entries from parsed profile data.
@@ -142,8 +137,9 @@ export function extractBankEntries(
 }
 
 /**
- * Process parsed profile data into the bank with deduplication.
- * If a duplicate is found, keeps the one with higher confidence.
+ * Process parsed profile data into the bank.
+ * Source-file re-parses replace entries from the same source document, but
+ * content-level dedupe is intentionally avoided so legitimate edits survive.
  */
 export function populateBankFromProfile(
   profile: Partial<Profile>,
@@ -151,31 +147,14 @@ export function populateBankFromProfile(
   userId: string = "default"
 ): { inserted: number; updated: number; skipped: number } {
   const entries = extractBankEntries(profile, sourceDocumentId);
-  const toInsert: InsertBankEntry[] = [];
-  let updated = 0;
-  let skipped = 0;
 
-  for (const entry of entries) {
-    const dedupKey = getDeduplicationKey(entry.category, entry.content);
-    const existing = findDuplicateEntry(entry.category, dedupKey, userId);
-
-    if (existing) {
-      const newConfidence = entry.confidenceScore ?? 0.8;
-      if (newConfidence > existing.confidenceScore) {
-        // Merge: update with higher confidence content
-        updateBankEntry(existing.id, entry.content, newConfidence, userId);
-        updated++;
-      } else {
-        skipped++;
-      }
-    } else {
-      toInsert.push(entry);
-    }
+  if (sourceDocumentId) {
+    deleteBankEntriesBySource(sourceDocumentId, userId);
   }
 
-  if (toInsert.length > 0) {
-    insertBankEntries(toInsert, userId);
+  if (entries.length > 0) {
+    insertBankEntries(entries, userId);
   }
 
-  return { inserted: toInsert.length, updated, skipped };
+  return { inserted: entries.length, updated: 0, skipped: 0 };
 }

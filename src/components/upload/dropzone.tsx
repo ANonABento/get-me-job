@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import {
   Upload,
@@ -15,6 +15,14 @@ import {
 import { cn, formatFileSize } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface UploadedFile {
   file: File;
@@ -22,6 +30,14 @@ interface UploadedFile {
   progress: number;
   error?: string;
   documentId?: string;
+}
+
+interface UploadConflict {
+  existing: {
+    filename: string;
+    uploaded_at?: string;
+    uploadedAt?: string;
+  };
 }
 
 export interface UploadResult {
@@ -48,6 +64,17 @@ function getFileIcon(filename: string) {
   return fileTypeIcons[ext] || <File className="h-6 w-6 text-muted-foreground" />;
 }
 
+function formatExistingUploadDate(timestamp?: string): string {
+  if (!timestamp) return "an earlier date";
+  return new Date(timestamp).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function Dropzone({
   onUploadComplete,
   maxFiles = 5,
@@ -59,6 +86,8 @@ export function Dropzone({
 }: DropzoneProps) {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadConflict, setUploadConflict] = useState<UploadConflict | null>(null);
+  const conflictResolverRef = useRef<((replace: boolean) => void) | null>(null);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newFiles = acceptedFiles.map((file) => ({
@@ -79,6 +108,18 @@ export function Dropzone({
   const removeFile = (index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
+
+  const resolveUploadConflict = (replace: boolean) => {
+    conflictResolverRef.current?.(replace);
+    conflictResolverRef.current = null;
+    setUploadConflict(null);
+  };
+
+  const confirmReplacement = (existing: UploadConflict["existing"]) =>
+    new Promise<boolean>((resolve) => {
+      conflictResolverRef.current = resolve;
+      setUploadConflict({ existing });
+    });
 
   const uploadFiles = async () => {
     setIsUploading(true);
@@ -109,12 +150,29 @@ export function Dropzone({
           );
         }, 100);
 
-        const response = await fetch("/api/upload", {
+        let response = await fetch("/api/upload", {
           method: "POST",
           body: formData,
         });
 
         clearInterval(progressInterval);
+
+        if (response.status === 409) {
+          const conflictData = await response.json().catch(() => null);
+          const existing = conflictData?.existing;
+          const shouldReplace = existing
+            ? await confirmReplacement(existing)
+            : false;
+
+          if (!shouldReplace) {
+            throw new Error("Upload canceled");
+          }
+
+          response = await fetch("/api/upload?force=true", {
+            method: "POST",
+            body: formData,
+          });
+        }
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => null);
@@ -158,6 +216,32 @@ export function Dropzone({
 
   return (
     <div className="space-y-6">
+      <Dialog
+        open={!!uploadConflict}
+        onOpenChange={(open) => {
+          if (!open) resolveUploadConflict(false);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Replace existing upload?</DialogTitle>
+            <DialogDescription>
+              {uploadConflict
+                ? `Looks like you uploaded "${uploadConflict.existing.filename}" on ${formatExistingUploadDate(uploadConflict.existing.uploaded_at ?? uploadConflict.existing.uploadedAt)}. Replace it, or cancel?`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => resolveUploadConflict(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => resolveUploadConflict(true)} autoFocus>
+              Replace
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Dropzone Area */}
       <div
         {...getRootProps()}

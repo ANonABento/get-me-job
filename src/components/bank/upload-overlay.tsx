@@ -12,6 +12,14 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { THEME_SURFACE_CLASSES } from "@/lib/theme/component-classes";
 
 // ---------------------------------------------------------------------------
@@ -41,6 +49,17 @@ export function isAcceptedType(mime: string): mime is AcceptedMimeType {
 /** Return a user-friendly error when type validation fails. */
 export function fileTypeError(fileName: string): string {
   return `"${fileName}" is not a supported file type. Please upload a PDF, DOCX, or TXT file.`;
+}
+
+function formatExistingUploadDate(timestamp?: string): string {
+  if (!timestamp) return "an earlier date";
+  return new Date(timestamp).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 // Upload pipeline stages — order matters for the progress bar
@@ -74,6 +93,14 @@ export function stageProgress(stage: UploadStage): number {
 // ---------------------------------------------------------------------------
 
 type OverlayStep = "idle" | "processing" | "done" | "error";
+
+interface UploadConflict {
+  existing: {
+    filename: string;
+    uploaded_at?: string;
+    uploadedAt?: string;
+  };
+}
 
 export interface FileResult {
   fileName: string;
@@ -122,6 +149,8 @@ export function UploadOverlay({
   const [results, setResults] = useState<FileResult[]>([]);
   const [fileQueue, setFileQueue] = useState<globalThis.File[]>([]);
   const [queueIndex, setQueueIndex] = useState(0);
+  const [uploadConflict, setUploadConflict] = useState<UploadConflict | null>(null);
+  const conflictResolverRef = useRef<((replace: boolean) => void) | null>(null);
   const processingRef = useRef(false);
 
   const isDragging = dragCount > 0;
@@ -144,6 +173,21 @@ export function UploadOverlay({
     e.preventDefault();
   }, []);
 
+  const resolveUploadConflict = useCallback((replace: boolean) => {
+    conflictResolverRef.current?.(replace);
+    conflictResolverRef.current = null;
+    setUploadConflict(null);
+  }, []);
+
+  const confirmReplacement = useCallback(
+    (existing: UploadConflict["existing"]) =>
+      new Promise<boolean>((resolve) => {
+        conflictResolverRef.current = resolve;
+        setUploadConflict({ existing });
+      }),
+    [],
+  );
+
   // --- file processing -----------------------------------------------------
 
   const processFile = useCallback(
@@ -154,10 +198,26 @@ export function UploadOverlay({
       // Upload
       const formData = new FormData();
       formData.append("file", file);
-      const uploadRes = await fetch("/api/upload", {
+      let uploadRes = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       });
+      if (uploadRes.status === 409) {
+        const conflictData = await uploadRes.json().catch(() => null);
+        const existing = conflictData?.existing;
+        const shouldReplace = existing
+          ? await confirmReplacement(existing)
+          : false;
+
+        if (!shouldReplace) {
+          throw new Error("Upload canceled");
+        }
+
+        uploadRes = await fetch("/api/upload?force=true", {
+          method: "POST",
+          body: formData,
+        });
+      }
       if (!uploadRes.ok) {
         const errData = await uploadRes.json().catch(() => null);
         throw new Error(errData?.error || "Upload failed");
@@ -195,7 +255,7 @@ export function UploadOverlay({
 
       return { fileName: file.name, entryCount };
     },
-    [],
+    [confirmReplacement],
   );
 
   const processQueue = useCallback(
@@ -441,6 +501,32 @@ export function UploadOverlay({
           </>
         )}
       </div>
+
+      <Dialog
+        open={!!uploadConflict}
+        onOpenChange={(open) => {
+          if (!open) resolveUploadConflict(false);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Replace existing upload?</DialogTitle>
+            <DialogDescription>
+              {uploadConflict
+                ? `Looks like you uploaded "${uploadConflict.existing.filename}" on ${formatExistingUploadDate(uploadConflict.existing.uploaded_at ?? uploadConflict.existing.uploadedAt)}. Replace it, or cancel?`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => resolveUploadConflict(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => resolveUploadConflict(true)} autoFocus>
+              Replace
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

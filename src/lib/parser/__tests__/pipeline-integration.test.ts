@@ -2,7 +2,7 @@
  * Integration tests for the upload → parse → bank pipeline.
  *
  * Tests the full flow: resume text → smart parser → section detection →
- * field extraction → bank entry creation (with dedup).
+ * field extraction → bank entry creation.
  *
  * Only mocks: LLM client and DB layer. All parsing logic runs for real.
  */
@@ -28,6 +28,7 @@ vi.mock("@/lib/db/profile-bank", async (importOriginal) => {
     ...actual,
     findDuplicateEntry: vi.fn().mockReturnValue(null),
     updateBankEntry: vi.fn(),
+    deleteBankEntriesBySource: vi.fn().mockReturnValue(0),
     insertBankEntries: vi.fn().mockImplementation((entries) =>
       entries.map((_: unknown, i: number) => `bank-id-${i}`)
     ),
@@ -40,6 +41,7 @@ import { extractBankEntries, populateBankFromProfile } from "@/lib/resume/info-b
 import {
   findDuplicateEntry,
   updateBankEntry,
+  deleteBankEntriesBySource,
   insertBankEntries,
   getDeduplicationKey,
 } from "@/lib/db/profile-bank";
@@ -337,19 +339,16 @@ describe("Pipeline Integration: upload → parse → bank", () => {
     });
   });
 
-  // ── Deduplication ───────────────────────────────────────────────────
+  // ── Source Replacement ──────────────────────────────────────────────
 
-  describe("deduplication: duplicate content handled correctly", () => {
-    it("skips duplicate entries when same content uploaded twice", async () => {
+  describe("source replacement: duplicate content is allowed across uploads", () => {
+    it("inserts duplicate content from a different source document", async () => {
       const parseResult = await smartParseResume(STANDARD_RESUME);
-      const entries = extractBankEntries(parseResult.profile, "doc-1");
 
-      // First upload: all new
       const result1 = populateBankFromProfile(parseResult.profile, "doc-1");
       expect(result1.inserted).toBeGreaterThan(0);
       expect(result1.skipped).toBe(0);
 
-      // Now simulate that all entries exist with high confidence
       (findDuplicateEntry as ReturnType<typeof vi.fn>).mockImplementation(
         (category, contentKey) => ({
           id: `existing-${contentKey}`,
@@ -361,17 +360,16 @@ describe("Pipeline Integration: upload → parse → bank", () => {
         })
       );
 
-      // Second upload: all skipped (existing confidence 0.95 >= new)
       const result2 = populateBankFromProfile(parseResult.profile, "doc-2");
-      expect(result2.inserted).toBe(0);
-      expect(result2.skipped).toBeGreaterThan(0);
+      expect(result2.inserted).toBeGreaterThan(0);
+      expect(result2.skipped).toBe(0);
       expect(updateBankEntry).not.toHaveBeenCalled();
+      expect(insertBankEntries).toHaveBeenCalled();
     });
 
-    it("updates entries when new upload has higher confidence", async () => {
+    it("replaces entries from the same source document before inserting fresh parse output", async () => {
       const parseResult = await smartParseResume(STANDARD_RESUME);
 
-      // Simulate existing entries with LOW confidence
       (findDuplicateEntry as ReturnType<typeof vi.fn>).mockImplementation(
         (category, contentKey) => ({
           id: `existing-${contentKey}`,
@@ -384,9 +382,10 @@ describe("Pipeline Integration: upload → parse → bank", () => {
       );
 
       const result = populateBankFromProfile(parseResult.profile, "doc-new");
-      expect(result.updated).toBeGreaterThan(0);
-      expect(result.inserted).toBe(0);
-      expect(updateBankEntry).toHaveBeenCalled();
+      expect(result.updated).toBe(0);
+      expect(result.inserted).toBeGreaterThan(0);
+      expect(deleteBankEntriesBySource).toHaveBeenCalledWith("doc-new", "default");
+      expect(updateBankEntry).not.toHaveBeenCalled();
     });
 
     it("dedup keys are consistent for same content", async () => {

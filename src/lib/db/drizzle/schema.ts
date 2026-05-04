@@ -27,8 +27,11 @@ export const documents = pgTable('documents', {
   path: text('path').notNull(),
   extractedText: text('extracted_text'),
   parsedData: text('parsed_data'),
+  fileHash: text('file_hash'),
   uploadedAt: timestamp('uploaded_at').defaultNow(),
-});
+}, (table) => [
+  index('idx_documents_user_file_hash').on(table.userId, table.fileHash),
+]);
 
 // Profile table
 export const profile = pgTable('profile', {
@@ -349,6 +352,7 @@ export const profileBank = pgTable('profile_bank', {
 }, (table) => [
   index('idx_profile_bank_user').on(table.userId),
   index('idx_profile_bank_category').on(table.userId, table.category),
+  index('idx_profile_bank_user_source').on(table.userId, table.sourceDocumentId),
 ]);
 
 // Profile versions table for version history with rollback

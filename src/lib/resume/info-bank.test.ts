@@ -6,13 +6,12 @@ vi.mock("@/lib/db/profile-bank", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/db/profile-bank")>();
   return {
     ...actual,
-    findDuplicateEntry: vi.fn(),
-    updateBankEntry: vi.fn(),
+    deleteBankEntriesBySource: vi.fn().mockReturnValue(0),
     insertBankEntries: vi.fn().mockReturnValue([]),
   };
 });
 
-import { findDuplicateEntry, updateBankEntry, insertBankEntries, getDeduplicationKey } from "@/lib/db/profile-bank";
+import { deleteBankEntriesBySource, insertBankEntries, getDeduplicationKey } from "@/lib/db/profile-bank";
 import { extractBankEntries, populateBankFromProfile } from "./info-bank";
 
 describe("Info Bank", () => {
@@ -236,8 +235,7 @@ describe("Info Bank", () => {
   });
 
   describe("populateBankFromProfile", () => {
-    it("should insert new entries when no duplicates exist", () => {
-      (findDuplicateEntry as ReturnType<typeof vi.fn>).mockReturnValue(null);
+    it("replaces entries from the same source document before inserting parsed entries", () => {
       (insertBankEntries as ReturnType<typeof vi.fn>).mockReturnValue(["id1", "id2"]);
 
       const profile: Partial<Profile> = {
@@ -252,18 +250,12 @@ describe("Info Bank", () => {
       expect(result.inserted).toBe(2);
       expect(result.updated).toBe(0);
       expect(result.skipped).toBe(0);
+      expect(deleteBankEntriesBySource).toHaveBeenCalledWith("doc-1", "default");
       expect(insertBankEntries).toHaveBeenCalled();
     });
 
-    it("should update when new entry has higher confidence", () => {
-      (findDuplicateEntry as ReturnType<typeof vi.fn>).mockReturnValue({
-        id: "existing-1",
-        userId: "default",
-        category: "skill",
-        content: { name: "React" },
-        confidenceScore: 0.7,
-        createdAt: "2024-01-01",
-      });
+    it("does not dedupe entries by content", () => {
+      (insertBankEntries as ReturnType<typeof vi.fn>).mockReturnValue(["id1"]);
 
       const profile: Partial<Profile> = {
         skills: [{ id: "s1", name: "React", category: "technical", proficiency: "expert" }],
@@ -271,37 +263,18 @@ describe("Info Bank", () => {
 
       const result = populateBankFromProfile(profile, "doc-2");
 
-      expect(result.inserted).toBe(0);
-      expect(result.updated).toBe(1);
+      expect(result.inserted).toBe(1);
+      expect(result.updated).toBe(0);
       expect(result.skipped).toBe(0);
-      expect(updateBankEntry).toHaveBeenCalledWith(
-        "existing-1",
-        { name: "React", category: "technical", proficiency: "expert" },
-        0.85,
+      expect(insertBankEntries).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            category: "skill",
+            content: { name: "React", category: "technical", proficiency: "expert" },
+          }),
+        ]),
         "default"
       );
-    });
-
-    it("should skip when existing entry has higher or equal confidence", () => {
-      (findDuplicateEntry as ReturnType<typeof vi.fn>).mockReturnValue({
-        id: "existing-1",
-        userId: "default",
-        category: "skill",
-        content: { name: "React" },
-        confidenceScore: 0.95,
-        createdAt: "2024-01-01",
-      });
-
-      const profile: Partial<Profile> = {
-        skills: [{ id: "s1", name: "React", category: "technical" }],
-      };
-
-      const result = populateBankFromProfile(profile, "doc-2");
-
-      expect(result.inserted).toBe(0);
-      expect(result.updated).toBe(0);
-      expect(result.skipped).toBe(1);
-      expect(updateBankEntry).not.toHaveBeenCalled();
     });
 
     it("should handle empty profile", () => {
