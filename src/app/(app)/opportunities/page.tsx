@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { DragEvent, FormEvent, ReactNode } from "react";
+import type { DragEvent, ReactNode } from "react";
 import {
   Briefcase,
   CalendarClock,
@@ -25,16 +25,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { ImportJobDialog } from "@/components/jobs/import-job-dialog";
+import { AddOpportunityWizard } from "@/components/opportunities/add-opportunity-wizard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -45,23 +38,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SkeletonButton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import { readJsonResponse } from "@/lib/http";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_OPPORTUNITY_FILTERS,
   OPPORTUNITY_KANBAN_COLUMNS,
-  OPPORTUNITY_JOB_TYPE_OPTIONS,
-  OPPORTUNITY_LEVEL_OPTIONS,
   OPPORTUNITY_SORT_OPTIONS,
   OPPORTUNITY_SOURCE_OPTIONS,
   OPPORTUNITY_STATUS_OPTIONS,
-  OPPORTUNITY_TYPE_OPTIONS,
   OPPORTUNITY_TYPE_TAB_OPTIONS,
   REMOTE_TYPE_OPTIONS,
   SAMPLE_OPPORTUNITIES,
-  buildOpportunityTeamSize,
   filterOpportunities,
   formatOpportunityDate,
   formatOpportunityLocation,
@@ -70,20 +58,13 @@ import {
   getOpportunityFilterOptions,
   groupOpportunitiesByStatus,
   hasActiveOpportunityFilters,
-  parseOptionalNumber,
   readOpportunityViewMode,
-  splitDelimitedList,
-  trimToUndefined,
   writeOpportunityViewMode,
   type Opportunity,
   type OpportunityFilters,
-  type OpportunityJobType,
-  type OpportunityLevel,
   type OpportunitySource,
   type OpportunityStatus,
-  type OpportunityType,
   type OpportunityViewMode,
-  type RemoteType,
 } from "./utils";
 
 const STORAGE_KEY = "taida-opportunities";
@@ -97,69 +78,9 @@ interface OpportunitiesResponse {
   opportunities?: Opportunity[];
 }
 
-interface CreateOpportunityResponse {
-  opportunity?: Opportunity;
-}
-
 interface UpdateOpportunityResponse {
   opportunity?: Opportunity;
 }
-
-interface OpportunityFormState {
-  type: OpportunityType;
-  title: string;
-  company: string;
-  source: OpportunitySource;
-  sourceUrl: string;
-  city: string;
-  province: string;
-  country: string;
-  remoteType: RemoteType;
-  status: OpportunityStatus;
-  deadline: string;
-  summary: string;
-  salaryMin: string;
-  salaryMax: string;
-  salaryCurrency: string;
-  tags: string;
-  techStack: string;
-  requiredSkills: string;
-  jobType: OpportunityJobType;
-  level: OpportunityLevel;
-  prizes: string;
-  tracks: string;
-  teamMin: string;
-  teamMax: string;
-  submissionUrl: string;
-}
-
-const DEFAULT_FORM_STATE: OpportunityFormState = {
-  type: "job",
-  title: "",
-  company: "",
-  source: "manual",
-  sourceUrl: "",
-  city: "",
-  province: "",
-  country: "",
-  remoteType: "remote",
-  status: "saved",
-  deadline: "",
-  summary: "",
-  salaryMin: "",
-  salaryMax: "",
-  salaryCurrency: "USD",
-  tags: "",
-  techStack: "",
-  requiredSkills: "",
-  jobType: "full-time",
-  level: "intermediate",
-  prizes: "",
-  tracks: "",
-  teamMin: "",
-  teamMax: "",
-  submissionUrl: "",
-};
 
 export default function OpportunitiesPage() {
   const [opportunities, setOpportunities] =
@@ -169,7 +90,6 @@ export default function OpportunitiesPage() {
   );
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [form, setForm] = useState<OpportunityFormState>(DEFAULT_FORM_STATE);
   const [viewMode, setViewMode] = useState<OpportunityViewMode>("list");
   const showErrorToast = useErrorToast();
 
@@ -246,13 +166,6 @@ export default function OpportunitiesPage() {
     setFilters((current) => ({ ...current, [key]: value }));
   }
 
-  function updateForm<T extends keyof OpportunityFormState>(
-    key: T,
-    value: OpportunityFormState[T],
-  ) {
-    setForm((current) => ({ ...current, [key]: value }));
-  }
-
   function clearFilters() {
     setFilters(DEFAULT_OPPORTUNITY_FILTERS);
   }
@@ -321,73 +234,6 @@ export default function OpportunitiesPage() {
       showErrorToast(error, {
         title: "Could not update opportunity",
         fallbackDescription: "The status change was not saved.",
-      });
-    }
-  }
-
-  async function handleAddOpportunity(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const now = new Date().toISOString();
-    const nextOpportunity: Opportunity = {
-      id: window.crypto?.randomUUID?.() ?? `opp-${now}`,
-      type: form.type,
-      title: form.title.trim(),
-      company: form.company.trim(),
-      source: form.source,
-      sourceUrl: trimToUndefined(form.sourceUrl),
-      city: trimToUndefined(form.city),
-      province: trimToUndefined(form.province),
-      country: trimToUndefined(form.country),
-      remoteType: form.remoteType,
-      summary: form.summary.trim(),
-      requiredSkills: splitDelimitedList(form.requiredSkills),
-      techStack: splitDelimitedList(form.techStack),
-      salaryMin: parseOptionalNumber(form.salaryMin),
-      salaryMax: parseOptionalNumber(form.salaryMax),
-      salaryCurrency: form.salaryCurrency.trim() || "USD",
-      deadline: form.deadline || undefined,
-      status: form.status,
-      scrapedAt: now,
-      tags: splitDelimitedList(form.tags),
-      createdAt: now,
-      updatedAt: now,
-      ...(form.type === "job"
-        ? {
-            jobType: form.jobType,
-            level: form.level,
-          }
-        : {
-            prizes: splitDelimitedList(form.prizes),
-            tracks: splitDelimitedList(form.tracks),
-            teamSize: buildOpportunityTeamSize(form.teamMin, form.teamMax),
-            submissionUrl: trimToUndefined(form.submissionUrl),
-          }),
-    };
-
-    try {
-      const response = await fetch("/api/opportunities", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(nextOpportunity),
-      });
-      const data = await readJsonResponse<CreateOpportunityResponse>(
-        response,
-        "Failed to create opportunity",
-      );
-
-      if (data.opportunity) {
-        await fetchOpportunities();
-      } else {
-        saveOpportunities([nextOpportunity, ...opportunities]);
-      }
-
-      setForm(DEFAULT_FORM_STATE);
-      setIsFormOpen(false);
-    } catch (error) {
-      showErrorToast(error, {
-        title: "Could not create opportunity",
-        fallbackDescription: "Please check the details and try again.",
       });
     }
   }
@@ -751,363 +597,11 @@ export default function OpportunitiesPage() {
         </main>
       </div>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Add Opportunity</DialogTitle>
-            <DialogDescription>
-              Create a job or hackathon entry for the opportunity bank.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form className="space-y-6" onSubmit={handleAddOpportunity}>
-            <div className="inline-flex rounded-lg border bg-muted/40 p-1">
-              {OPPORTUNITY_TYPE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => updateForm("type", option.value)}
-                  className={cn(
-                    "min-h-11 rounded-md px-4 text-sm font-medium transition-colors",
-                    form.type === option.value
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Title" id="opportunity-title">
-                <Input
-                  id="opportunity-title"
-                  value={form.title}
-                  onChange={(event) => updateForm("title", event.target.value)}
-                  required
-                />
-              </Field>
-              <Field
-                label={form.type === "job" ? "Company" : "Organizer"}
-                id="opportunity-company"
-              >
-                <Input
-                  id="opportunity-company"
-                  value={form.company}
-                  onChange={(event) =>
-                    updateForm("company", event.target.value)
-                  }
-                  required
-                />
-              </Field>
-              <Field label="Source" id="opportunity-form-source">
-                <Select
-                  value={form.source}
-                  onValueChange={(value) =>
-                    updateForm("source", value as OpportunitySource)
-                  }
-                >
-                  <SelectTrigger id="opportunity-form-source">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {OPPORTUNITY_SOURCE_OPTIONS.filter(
-                      (option) => option.value !== "all",
-                    ).map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="Status" id="opportunity-form-status">
-                <Select
-                  value={form.status}
-                  onValueChange={(value) =>
-                    updateForm("status", value as OpportunityStatus)
-                  }
-                >
-                  <SelectTrigger id="opportunity-form-status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {OPPORTUNITY_STATUS_OPTIONS.filter(
-                      (option) => option.value !== "all",
-                    ).map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="Source URL" id="opportunity-source-url">
-                <Input
-                  id="opportunity-source-url"
-                  value={form.sourceUrl}
-                  onChange={(event) =>
-                    updateForm("sourceUrl", event.target.value)
-                  }
-                />
-              </Field>
-              <Field label="Deadline" id="opportunity-deadline">
-                <Input
-                  id="opportunity-deadline"
-                  type="date"
-                  value={form.deadline}
-                  onChange={(event) =>
-                    updateForm("deadline", event.target.value)
-                  }
-                />
-              </Field>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-4">
-              <Field label="City" id="opportunity-city">
-                <Input
-                  id="opportunity-city"
-                  value={form.city}
-                  onChange={(event) => updateForm("city", event.target.value)}
-                />
-              </Field>
-              <Field label="Province" id="opportunity-province">
-                <Input
-                  id="opportunity-province"
-                  value={form.province}
-                  onChange={(event) =>
-                    updateForm("province", event.target.value)
-                  }
-                />
-              </Field>
-              <Field label="Country" id="opportunity-country">
-                <Input
-                  id="opportunity-country"
-                  value={form.country}
-                  onChange={(event) =>
-                    updateForm("country", event.target.value)
-                  }
-                />
-              </Field>
-              <Field label="Remote type" id="opportunity-form-remote">
-                <Select
-                  value={form.remoteType}
-                  onValueChange={(value) =>
-                    updateForm("remoteType", value as RemoteType)
-                  }
-                >
-                  <SelectTrigger id="opportunity-form-remote">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {REMOTE_TYPE_OPTIONS.filter(
-                      (option) => option.value !== "all",
-                    ).map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            </div>
-
-            {form.type === "job" ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Job type" id="opportunity-job-type">
-                  <Select
-                    value={form.jobType}
-                    onValueChange={(value) =>
-                      updateForm(
-                        "jobType",
-                        value as OpportunityFormState["jobType"],
-                      )
-                    }
-                  >
-                    <SelectTrigger id="opportunity-job-type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {OPPORTUNITY_JOB_TYPE_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field label="Level" id="opportunity-level">
-                  <Select
-                    value={form.level}
-                    onValueChange={(value) =>
-                      updateForm(
-                        "level",
-                        value as OpportunityFormState["level"],
-                      )
-                    }
-                  >
-                    <SelectTrigger id="opportunity-level">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {OPPORTUNITY_LEVEL_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Prizes" id="opportunity-prizes">
-                  <Input
-                    id="opportunity-prizes"
-                    value={form.prizes}
-                    onChange={(event) =>
-                      updateForm("prizes", event.target.value)
-                    }
-                  />
-                </Field>
-                <Field label="Tracks" id="opportunity-tracks">
-                  <Input
-                    id="opportunity-tracks"
-                    value={form.tracks}
-                    onChange={(event) =>
-                      updateForm("tracks", event.target.value)
-                    }
-                  />
-                </Field>
-                <Field label="Team min" id="opportunity-team-min">
-                  <Input
-                    id="opportunity-team-min"
-                    type="number"
-                    min="1"
-                    value={form.teamMin}
-                    onChange={(event) =>
-                      updateForm("teamMin", event.target.value)
-                    }
-                  />
-                </Field>
-                <Field label="Team max" id="opportunity-team-max">
-                  <Input
-                    id="opportunity-team-max"
-                    type="number"
-                    min="1"
-                    value={form.teamMax}
-                    onChange={(event) =>
-                      updateForm("teamMax", event.target.value)
-                    }
-                  />
-                </Field>
-                <Field
-                  label="Submission URL"
-                  id="opportunity-submission-url"
-                  className="md:col-span-2"
-                >
-                  <Input
-                    id="opportunity-submission-url"
-                    value={form.submissionUrl}
-                    onChange={(event) =>
-                      updateForm("submissionUrl", event.target.value)
-                    }
-                  />
-                </Field>
-              </div>
-            )}
-
-            <div className="grid gap-4 md:grid-cols-3">
-              <Field label="Salary min" id="opportunity-salary-min">
-                <Input
-                  id="opportunity-salary-min"
-                  type="number"
-                  min="0"
-                  value={form.salaryMin}
-                  onChange={(event) =>
-                    updateForm("salaryMin", event.target.value)
-                  }
-                />
-              </Field>
-              <Field label="Salary max" id="opportunity-salary-max">
-                <Input
-                  id="opportunity-salary-max"
-                  type="number"
-                  min="0"
-                  value={form.salaryMax}
-                  onChange={(event) =>
-                    updateForm("salaryMax", event.target.value)
-                  }
-                />
-              </Field>
-              <Field label="Currency" id="opportunity-currency">
-                <Input
-                  id="opportunity-currency"
-                  value={form.salaryCurrency}
-                  onChange={(event) =>
-                    updateForm(
-                      "salaryCurrency",
-                      event.target.value.toUpperCase(),
-                    )
-                  }
-                />
-              </Field>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-3">
-              <Field label="Tags" id="opportunity-tags">
-                <Input
-                  id="opportunity-tags"
-                  value={form.tags}
-                  onChange={(event) => updateForm("tags", event.target.value)}
-                />
-              </Field>
-              <Field label="Tech stack" id="opportunity-tech-stack">
-                <Input
-                  id="opportunity-tech-stack"
-                  value={form.techStack}
-                  onChange={(event) =>
-                    updateForm("techStack", event.target.value)
-                  }
-                />
-              </Field>
-              <Field label="Required skills" id="opportunity-required-skills">
-                <Input
-                  id="opportunity-required-skills"
-                  value={form.requiredSkills}
-                  onChange={(event) =>
-                    updateForm("requiredSkills", event.target.value)
-                  }
-                />
-              </Field>
-            </div>
-
-            <Field label="Summary" id="opportunity-summary">
-              <Textarea
-                id="opportunity-summary"
-                value={form.summary}
-                onChange={(event) => updateForm("summary", event.target.value)}
-                required
-                className="min-h-28"
-              />
-            </Field>
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsFormOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" variant="gradient">
-                Add Opportunity
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <AddOpportunityWizard
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        onSaved={fetchOpportunities}
+      />
 
       <ImportJobDialog
         open={isImportOpen}
