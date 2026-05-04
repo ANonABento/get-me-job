@@ -1,0 +1,19 @@
+{
+  "title": "Senior Staff Engineer",
+  "company": "Copperline Labs",
+  "location": "Onsite - Austin, TX",
+  "remoteType": "onsite",
+  "level": "staff",
+  "salaryMin": 200000,
+  "salaryMax": 233000,
+  "currency": "USD",
+  "techStack": [
+    "Go",
+    "TypeScript",
+    "Kafka",
+    "Kubernetes",
+    "PostgreSQL"
+  ],
+  "summary": "Synthetic posting for senior staff engineer work aligned with Morgan Rivera's background in Go, TypeScript, Kafka.",
+  "url": "https://copperline-labs.example.com/careers/senior-ic-4"
+}

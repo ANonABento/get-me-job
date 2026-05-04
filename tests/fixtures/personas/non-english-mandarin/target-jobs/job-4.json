@@ -1,0 +1,19 @@
+{
+  "title": "Data Platform Engineer",
+  "company": "Copperline Labs",
+  "location": "Onsite - Austin, TX",
+  "remoteType": "onsite",
+  "level": "mid",
+  "salaryMin": 140000,
+  "salaryMax": 173000,
+  "currency": "USD",
+  "techStack": [
+    "Go",
+    "Java",
+    "Kafka",
+    "Kubernetes",
+    "PostgreSQL"
+  ],
+  "summary": "Synthetic posting for data platform engineer work aligned with 李伟's background in Go, Java, Kafka.",
+  "url": "https://copperline-labs.example.com/careers/non-english-mandarin-4"
+}

@@ -1,0 +1,19 @@
+{
+  "title": "Technical Lead - Infrastructure",
+  "company": "Evergreen Workflow",
+  "location": "Hybrid - Seattle, WA",
+  "remoteType": "hybrid",
+  "level": "staff",
+  "salaryMin": 205000,
+  "salaryMax": 239000,
+  "currency": "USD",
+  "techStack": [
+    "Go",
+    "TypeScript",
+    "Kafka",
+    "Kubernetes",
+    "PostgreSQL"
+  ],
+  "summary": "Synthetic posting for technical lead - infrastructure work aligned with Morgan Rivera's background in Go, TypeScript, Kafka.",
+  "url": "https://evergreen-workflow.example.com/careers/senior-ic-5"
+}

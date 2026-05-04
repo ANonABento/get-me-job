@@ -12,6 +12,7 @@ export default defineConfig({
       "src/**/*.{test,spec}.{ts,tsx}",
       "evals/**/*.{test,spec}.ts",
       "tests/parsing/**/*.{test,spec}.ts",
+      "tests/fixtures/**/*.{test,spec}.ts",
     ],
     coverage: {
       provider: "v8",

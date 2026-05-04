@@ -28,8 +28,8 @@ describe("parsing verification harness", () => {
           company: "Acme Inc",
           startDate: "December 2020",
           endDate: "June 2023",
-        }
-      )
+        },
+      ),
     ).toBe(true);
     expect(datesFuzzyEqual("2021-01", "2021-03")).toBe(false);
   });
@@ -67,7 +67,7 @@ describe("parsing verification harness", () => {
         },
       ],
       [],
-      "sample"
+      "sample",
     );
 
     expect(result.matchedCount).toBe(1);
@@ -78,6 +78,36 @@ describe("parsing verification harness", () => {
       "missed",
       "spurious",
     ]);
+  });
+
+  it("maps fixture summaries to descriptions and ignores schema-only category fields", () => {
+    const result = compareExperiences(
+      [
+        {
+          title: "Engineer",
+          company: "Acme",
+          startDate: "2020-01",
+          endDate: "Present",
+          summary: "Built billing systems",
+          category: "experience",
+        },
+      ],
+      [
+        {
+          title: "Engineer",
+          company: "Acme",
+          startDate: "2020-01",
+          endDate: "Present",
+          current: true,
+          description: "Built billing systems",
+        },
+      ],
+      [],
+      "fixture-schema",
+    );
+
+    expect(result.failures).toEqual([]);
+    expect(result.fieldAccuracy).toBe(1);
   });
 
   it("does not count known limitation misses as score failures", () => {
@@ -91,12 +121,38 @@ describe("parsing verification harness", () => {
       ],
       [],
       ["Missed expected experience"],
-      "known"
+      "known",
     );
 
     expect(result.matchedCount).toBe(0);
     expect(result.failures).toEqual([]);
-    expect(result.knownLimitationsApplied).toEqual(["Missed expected experience"]);
+    expect(result.recall).toBe(1);
+    expect(result.precision).toBe(1);
+    expect(result.fieldAccuracy).toBe(1);
+    expect(result.composite).toBe(1);
+    expect(result.knownLimitationsApplied).toEqual([
+      "Missed expected experience",
+    ]);
+  });
+
+  it("does not suppress unrelated misses just because a limitation mentions experience", () => {
+    const result = compareExperiences(
+      [
+        {
+          title: "Engineer",
+          company: "Acme",
+          startDate: "2020-01",
+        },
+      ],
+      [],
+      [
+        "Prior mechanical role may be categorized as experience rather than adjacent domain history.",
+      ],
+      "known",
+    );
+
+    expect(result.failures).toHaveLength(1);
+    expect(result.knownLimitationsApplied).toEqual([]);
   });
 
   it("groups failure modes and renders followup context", () => {
@@ -142,7 +198,8 @@ describe("parsing verification harness", () => {
         failureModes,
         followupTasks: [
           {
-            title: "Parsing fix — Fixture dependency missing — Missing fixture dependency for a",
+            title:
+              "Parsing fix — Fixture dependency missing — Missing fixture dependency for a",
             severity: "high",
             status: "pending-mcp",
           },
@@ -163,7 +220,7 @@ describe("parsing verification harness", () => {
             failures: [],
           },
         ],
-      })
+      }),
     ).toContain("Bento task creation MCP was unavailable");
   });
 
@@ -177,9 +234,11 @@ describe("parsing verification harness", () => {
       const reportText = await readFile(reportPath, "utf-8");
 
       expect(report.personas).toHaveLength(10);
-      expect(report.personas.every((persona) => persona.status === "failed-to-process")).toBe(
-        true
-      );
+      expect(
+        report.personas.every(
+          (persona) => persona.status === "failed-to-process",
+        ),
+      ).toBe(true);
       expect(reportText).toContain("standard-software-engineer");
       expect(reportText).toContain("Fixture dependency missing");
     } finally {
@@ -195,11 +254,16 @@ describe("parsing verification harness", () => {
 
     try {
       await mkdir(personaDir, { recursive: true });
-      await writeFile(path.join(personaDir, "expected.json"), "{\"expectedExperiences\":[]}");
+      await writeFile(
+        path.join(personaDir, "expected.json"),
+        '{"expectedExperiences":[]}',
+      );
 
       const report = await runVerification(fixtureRoot, reportPath);
 
-      expect(report.personas.map((persona) => persona.slug)).toEqual(["empty-fixture"]);
+      expect(report.personas.map((persona) => persona.slug)).toEqual([
+        "empty-fixture",
+      ]);
       expect(report.personas[0].status).toBe("failed-to-process");
     } finally {
       await rm(tempDir, { recursive: true, force: true });

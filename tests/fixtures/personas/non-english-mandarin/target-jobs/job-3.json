@@ -1,0 +1,19 @@
+{
+  "title": "Distributed Systems Engineer",
+  "company": "Atlas Finch",
+  "location": "Remote - Americas",
+  "remoteType": "remote",
+  "level": "mid",
+  "salaryMin": 135000,
+  "salaryMax": 167000,
+  "currency": "USD",
+  "techStack": [
+    "Go",
+    "Java",
+    "Kafka",
+    "Kubernetes",
+    "PostgreSQL"
+  ],
+  "summary": "Synthetic posting for distributed systems engineer work aligned with 李伟's background in Go, Java, Kafka.",
+  "url": "https://atlas-finch.example.com/careers/non-english-mandarin-3"
+}

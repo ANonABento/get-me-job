@@ -32,8 +32,10 @@ export interface ExpectedExperience {
   current?: boolean;
   location?: string;
   description?: string;
+  summary?: string;
   highlights?: string[];
   skills?: string[];
+  category?: string;
 }
 
 export interface PersonaExpected {
@@ -111,7 +113,10 @@ export interface FollowupTask {
 function normalizeText(value: unknown): string {
   return String(value ?? "")
     .toLowerCase()
-    .replace(/\b(incorporated|inc|llc|ltd|corp|corporation|co|company)\b\.?/g, "")
+    .replace(
+      /\b(incorporated|inc|llc|ltd|corp|corporation|co|company)\b\.?/g,
+      "",
+    )
     .replace(/[^a-z0-9]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -155,7 +160,7 @@ function parseMonth(value: unknown): number | null {
     december: 12,
   };
   const monthName = raw.match(/[a-z]+/)?.[0];
-  return Number(year[0]) * 12 + (monthName ? months[monthName] ?? 1 : 1);
+  return Number(year[0]) * 12 + (monthName ? (months[monthName] ?? 1) : 1);
 }
 
 export function datesFuzzyEqual(expected?: string, actual?: string): boolean {
@@ -168,7 +173,7 @@ export function datesFuzzyEqual(expected?: string, actual?: string): boolean {
 
 export function experienceMatches(
   expected: ExpectedExperience,
-  actual: ActualExperience
+  actual: ActualExperience,
 ): boolean {
   return (
     normalizeText(expected.title) === normalizeText(actual.title) &&
@@ -178,7 +183,47 @@ export function experienceMatches(
   );
 }
 
-function valuesEqual(field: keyof ExpectedExperience, expected: unknown, actual: unknown): boolean {
+const COMPARED_EXPERIENCE_FIELDS = [
+  "company",
+  "title",
+  "startDate",
+  "endDate",
+  "current",
+  "location",
+  "description",
+  "highlights",
+  "skills",
+] as const satisfies readonly (keyof ExpectedExperience)[];
+
+function normalizeExpectedExperience(
+  experience: ExpectedExperience,
+): ExpectedExperience {
+  return {
+    company: experience.company,
+    title: experience.title,
+    startDate: experience.startDate,
+    endDate: experienceEndDate(experience),
+    current:
+      experience.current ??
+      (experience.endDate === "Present" ? true : undefined),
+    location: experience.location,
+    description: experience.description ?? experience.summary,
+    highlights: experience.highlights,
+    skills: experience.skills,
+  };
+}
+
+function experienceEndDate(experience: ExpectedExperience): string | undefined {
+  return experience.current && !experience.endDate
+    ? "Present"
+    : experience.endDate;
+}
+
+function valuesEqual(
+  field: keyof ExpectedExperience,
+  expected: unknown,
+  actual: unknown,
+): boolean {
   if (field === "company" || field === "title") {
     return normalizeText(expected) === normalizeText(actual);
   }
@@ -188,29 +233,58 @@ function valuesEqual(field: keyof ExpectedExperience, expected: unknown, actual:
   if (Array.isArray(expected)) {
     const actualValues = Array.isArray(actual) ? actual : [];
     return expected.every((item) =>
-      actualValues.some((actualItem) => normalizeText(actualItem).includes(normalizeText(item)))
+      actualValues.some((actualItem) =>
+        normalizeText(actualItem).includes(normalizeText(item)),
+      ),
     );
+  }
+  if (typeof expected === "boolean") {
+    return expected === actual;
   }
   return normalizeText(expected) === normalizeText(actual);
 }
 
-function limitationApplies(knownLimitations: string[], summary: string): boolean {
+function limitationApplies(
+  knownLimitations: string[],
+  summary: string,
+): boolean {
   const normalizedSummary = normalizeText(summary);
+  const genericWords = new Set([
+    "category",
+    "categorized",
+    "different",
+    "entry",
+    "experience",
+    "parser",
+    "parse",
+    "resume",
+    "role",
+  ]);
   return knownLimitations.some((limitation) => {
     const normalizedLimitation = normalizeText(limitation);
-    return (
-      normalizedSummary.includes(normalizedLimitation) ||
-      normalizedLimitation
-        .split(" ")
-        .filter((word) => word.length > 3)
-        .some((word) => normalizedSummary.includes(word))
+    if (normalizedSummary.includes(normalizedLimitation)) return true;
+    if (
+      normalizedLimitation.includes("skill") &&
+      !normalizedSummary.includes("skill")
+    ) {
+      return false;
+    }
+    const meaningfulWords = normalizedLimitation
+      .split(" ")
+      .filter((word) => word.length > 3 && !genericWords.has(word));
+    const matchedWords = meaningfulWords.filter((word) =>
+      normalizedSummary.includes(word),
     );
+    return matchedWords.length >= Math.min(2, meaningfulWords.length);
   });
 }
 
 function analyzeFailure(summary: string): Pick<Failure, "rca" | "severity"> {
   const normalized = normalizeText(summary);
-  if (normalized.includes("missing fixture") || normalized.includes("resume pdf")) {
+  if (
+    normalized.includes("missing fixture") ||
+    normalized.includes("resume pdf")
+  ) {
     return { rca: "Fixture dependency missing", severity: "high" };
   }
   if (normalized.includes("0 actual") || normalized.includes("no experience")) {
@@ -229,25 +303,38 @@ export function compareExperiences(
   expected: ExpectedExperience[],
   actual: ActualExperience[],
   knownLimitations: string[] = [],
-  persona = "unknown"
+  persona = "unknown",
 ): Omit<PersonaScore, "slug" | "status" | "notes"> {
+  const normalizedExpected = expected.map(normalizeExpectedExperience);
   const unmatchedActual = [...actual];
   const matches: MatchedExperience[] = [];
   const failures: Failure[] = [];
   const appliedKnownLimitations = new Set<string>();
+  let allowedMisses = 0;
+  let allowedSpurious = 0;
 
-  for (const expectedExperience of expected) {
+  for (const expectedExperience of normalizedExpected) {
     const index = unmatchedActual.findIndex((actualExperience) =>
-      experienceMatches(expectedExperience, actualExperience)
+      experienceMatches(expectedExperience, actualExperience),
     );
 
     if (index === -1) {
       const summary = `Missed expected experience: ${expectedExperience.title} at ${expectedExperience.company}`;
-      const knownLimitationApplied = limitationApplies(knownLimitations, summary);
+      const knownLimitationApplied = limitationApplies(
+        knownLimitations,
+        summary,
+      );
       const rca = analyzeFailure(summary);
       if (!knownLimitationApplied) {
-        failures.push({ persona, type: "missed", summary, knownLimitationApplied, ...rca });
+        failures.push({
+          persona,
+          type: "missed",
+          summary,
+          knownLimitationApplied,
+          ...rca,
+        });
       } else {
+        allowedMisses++;
         knownLimitations
           .filter((limitation) => limitationApplies([limitation], summary))
           .forEach((limitation) => appliedKnownLimitations.add(limitation));
@@ -261,10 +348,8 @@ export function compareExperiences(
     let correctFields = 0;
     let totalFields = 0;
 
-    for (const [field, expectedValue] of Object.entries(expectedExperience) as [
-      keyof ExpectedExperience,
-      unknown,
-    ][]) {
+    for (const field of COMPARED_EXPERIENCE_FIELDS) {
+      const expectedValue = expectedExperience[field];
       if (expectedValue === undefined) continue;
       totalFields++;
       const actualValue = actualExperience[field];
@@ -318,21 +403,43 @@ export function compareExperiences(
         ...analyzeFailure(summary),
       });
     } else {
+      allowedSpurious++;
       knownLimitations
         .filter((limitation) => limitationApplies([limitation], summary))
         .forEach((limitation) => appliedKnownLimitations.add(limitation));
     }
   }
 
-  const correctFields = matches.reduce((sum, match) => sum + match.correctFields, 0);
-  const totalFields = matches.reduce((sum, match) => sum + match.totalFields, 0);
-  const recall = expected.length === 0 ? 1 : matches.length / expected.length;
-  const precision = actual.length === 0 ? (expected.length === 0 ? 1 : 0) : matches.length / actual.length;
-  const fieldAccuracy = totalFields === 0 ? (matches.length > 0 ? 1 : 0) : correctFields / totalFields;
+  const correctFields = matches.reduce(
+    (sum, match) => sum + match.correctFields,
+    0,
+  );
+  const totalFields = matches.reduce(
+    (sum, match) => sum + match.totalFields,
+    0,
+  );
+  const scoreableExpectedCount = normalizedExpected.length - allowedMisses;
+  const scoreableActualCount = actual.length - allowedSpurious;
+  const recall =
+    scoreableExpectedCount === 0 ? 1 : matches.length / scoreableExpectedCount;
+  const precision =
+    scoreableActualCount === 0
+      ? scoreableExpectedCount === 0
+        ? 1
+        : 0
+      : matches.length / scoreableActualCount;
+  const fieldAccuracy =
+    totalFields === 0
+      ? scoreableExpectedCount === 0
+        ? 1
+        : matches.length > 0
+          ? 1
+          : 0
+      : correctFields / totalFields;
   const composite = (recall + precision + fieldAccuracy) / 3;
 
   return {
-    expectedCount: expected.length,
+    expectedCount: normalizedExpected.length,
     actualCount: actual.length,
     matchedCount: matches.length,
     recall,
@@ -344,13 +451,15 @@ export function compareExperiences(
   };
 }
 
-function profileExperiencesToActual(profileExperiences: Experience[] | undefined): ActualExperience[] {
+function profileExperiencesToActual(
+  profileExperiences: Experience[] | undefined,
+): ActualExperience[] {
   return (profileExperiences ?? []).map((experience) => ({
     company: experience.company,
     title: experience.title,
     location: experience.location,
     startDate: experience.startDate,
-    endDate: experience.endDate,
+    endDate: experienceEndDate(experience),
     current: experience.current,
     description: experience.description,
     highlights: experience.highlights,
@@ -365,15 +474,26 @@ function bankEntriesToActual(entries: BankEntry[]): ActualExperience[] {
     .map((entry) => ({
       company: String(entry.content.company ?? ""),
       title: String(entry.content.title ?? ""),
-      location: entry.content.location ? String(entry.content.location) : undefined,
-      startDate: entry.content.startDate ? String(entry.content.startDate) : undefined,
-      endDate: entry.content.endDate ? String(entry.content.endDate) : undefined,
-      current: Boolean(entry.content.current),
+      location: entry.content.location
+        ? String(entry.content.location)
+        : undefined,
+      startDate: entry.content.startDate
+        ? String(entry.content.startDate)
+        : undefined,
+      endDate:
+        entry.content.current && !entry.content.endDate
+          ? "Present"
+          : entry.content.endDate
+            ? String(entry.content.endDate)
+            : undefined,
+      current: entry.content.current === true,
       description: String(entry.content.description ?? ""),
       highlights: Array.isArray(entry.content.highlights)
         ? entry.content.highlights.map(String)
         : [],
-      skills: Array.isArray(entry.content.skills) ? entry.content.skills.map(String) : [],
+      skills: Array.isArray(entry.content.skills)
+        ? entry.content.skills.map(String)
+        : [],
       source: "profile-bank-extraction",
     }));
 }
@@ -395,13 +515,16 @@ async function readExpected(filePath: string): Promise<PersonaExpected> {
 async function listPersonaSlugs(fixtureRoot: string): Promise<string[]> {
   if (!(await pathExists(fixtureRoot))) return DEFAULT_PERSONA_SLUGS;
   const entries = await fs.readdir(fixtureRoot, { withFileTypes: true });
-  const slugs = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
+  const slugs = entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
   return slugs.length > 0 ? slugs : DEFAULT_PERSONA_SLUGS;
 }
 
 export async function verifyPersona(
   slug: string,
-  fixtureRoot = FIXTURE_ROOT
+  fixtureRoot = FIXTURE_ROOT,
 ): Promise<PersonaScore> {
   const personaDir = path.join(fixtureRoot, slug);
   const resumePath = path.join(personaDir, "resume.pdf");
@@ -438,31 +561,35 @@ export async function verifyPersona(
 
   try {
     const expectedData = await readExpected(expectedPath);
-    const expectedExperiences = expectedData.expectedExperiences ?? expectedData.experiences ?? [];
+    const expectedExperiences =
+      expectedData.expectedExperiences ?? expectedData.experiences ?? [];
     const text = await extractTextFromFile(resumePath);
     const parsed = await smartParseResume(text, null);
-    const bankEntries = extractBankEntries(parsed.profile, slug).map((entry, index) => ({
-      id: `${slug}-${index}`,
-      userId: "verification",
-      category: entry.category,
-      content: entry.content,
-      sourceDocumentId: entry.sourceDocumentId,
-      confidenceScore: entry.confidenceScore ?? 0.8,
-      createdAt: new Date(0).toISOString(),
-    }));
+    const bankEntries = extractBankEntries(parsed.profile, slug).map(
+      (entry, index) => ({
+        id: `${slug}-${index}`,
+        userId: "verification",
+        category: entry.category,
+        content: entry.content,
+        sourceDocumentId: entry.sourceDocumentId,
+        confidenceScore: entry.confidenceScore ?? 0.8,
+        createdAt: new Date(0).toISOString(),
+      }),
+    );
     const actual = bankEntriesToActual(bankEntries);
     const parsedActual = profileExperiencesToActual(parsed.profile.experiences);
     const comparison = compareExperiences(
       expectedExperiences,
       actual.length > 0 ? actual : parsedActual,
       expectedData.knownLimitations ?? [],
-      slug
+      slug,
     );
 
     return {
       slug,
       status: "processed",
-      notes: parsed.warnings.length > 0 ? [...notes, ...parsed.warnings] : notes,
+      notes:
+        parsed.warnings.length > 0 ? [...notes, ...parsed.warnings] : notes,
       ...comparison,
     };
   } catch (error) {
@@ -523,10 +650,13 @@ export function summarizeFailureModes(personas: PersonaScore[]): FailureMode[] {
   return [...modes.values()].sort((a, b) => b.count - a.count).slice(0, 5);
 }
 
-export function buildFollowupTasks(failureModes: FailureMode[]): FollowupTask[] {
+export function buildFollowupTasks(
+  failureModes: FailureMode[],
+): FollowupTask[] {
   return failureModes
-    .filter((mode): mode is FailureMode & { severity: "medium" | "high" } =>
-      mode.severity === "medium" || mode.severity === "high"
+    .filter(
+      (mode): mode is FailureMode & { severity: "medium" | "high" } =>
+        mode.severity === "medium" || mode.severity === "high",
     )
     .map((mode) => ({
       title: `${FOLLOWUP_TASK_PREFIX} — ${mode.rca} — ${mode.summaries[0] ?? "investigate resume parsing failure"}`,
@@ -553,7 +683,7 @@ export function renderReport(report: VerificationReport): string {
 
   for (const persona of report.personas) {
     lines.push(
-      `| ${persona.slug} | ${persona.status} | ${pct(persona.recall)} | ${pct(persona.precision)} | ${pct(persona.fieldAccuracy)} | ${pct(persona.composite)} | ${persona.knownLimitationsApplied.join("; ") || "None"} |`
+      `| ${persona.slug} | ${persona.status} | ${pct(persona.recall)} | ${pct(persona.precision)} | ${pct(persona.fieldAccuracy)} | ${pct(persona.composite)} | ${persona.knownLimitationsApplied.join("; ") || "None"} |`,
     );
   }
 
@@ -563,7 +693,7 @@ export function renderReport(report: VerificationReport): string {
   } else {
     for (const mode of report.failureModes) {
       lines.push(
-        `- **${mode.rca}** (${mode.count}, ${mode.severity}): ${mode.summaries[0]} Personas: ${mode.personas.join(", ")}.`
+        `- **${mode.rca}** (${mode.count}, ${mode.severity}): ${mode.summaries[0]} Personas: ${mode.personas.join(", ")}.`,
       );
     }
   }
@@ -593,7 +723,7 @@ export function renderReport(report: VerificationReport): string {
     lines.push("No medium+ severity follow-up tasks required.");
   } else {
     lines.push(
-      "Bento task creation MCP was unavailable in this session, so these task titles are queued for creation:"
+      "Bento task creation MCP was unavailable in this session, so these task titles are queued for creation:",
     );
     lines.push("");
     for (const task of report.followupTasks) {
@@ -607,10 +737,12 @@ export function renderReport(report: VerificationReport): string {
 
 export async function runVerification(
   fixtureRoot = FIXTURE_ROOT,
-  reportPath = REPORT_PATH
+  reportPath = REPORT_PATH,
 ): Promise<VerificationReport> {
   const slugs = await listPersonaSlugs(fixtureRoot);
-  const personas = await Promise.all(slugs.map((slug) => verifyPersona(slug, fixtureRoot)));
+  const personas = await Promise.all(
+    slugs.map((slug) => verifyPersona(slug, fixtureRoot)),
+  );
   const failureModes = summarizeFailureModes(personas);
   const followupTasks = buildFollowupTasks(failureModes);
   const report = {

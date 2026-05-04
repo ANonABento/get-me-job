@@ -1,0 +1,19 @@
+{
+  "title": "Product Manager",
+  "company": "Plausible Product Co",
+  "location": "Remote - US",
+  "remoteType": "remote",
+  "level": "manager",
+  "salaryMin": 145000,
+  "salaryMax": 175000,
+  "currency": "USD",
+  "techStack": [
+    "SQL",
+    "Figma",
+    "Analytics",
+    "Experimentation",
+    "Roadmapping"
+  ],
+  "summary": "Synthetic posting for product manager work aligned with Taylor Kim's background in SQL, Figma, Analytics.",
+  "url": "https://plausible-product-co.example.com/careers/multi-job-pm-1"
+}

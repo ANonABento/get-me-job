@@ -1,0 +1,64 @@
+{
+  "personaSlug": "career-gap",
+  "expectedExperiences": [
+    {
+      "title": "Backend Engineer",
+      "company": "Prairie Ledger",
+      "startDate": "2024-03",
+      "endDate": "Present",
+      "location": "Minneapolis, MN",
+      "summary": "Maintains payment reconciliation services and migration tooling for finance operations.",
+      "category": "experience"
+    },
+    {
+      "title": "Planned Parental Leave",
+      "company": "Family Care",
+      "startDate": "2022-02",
+      "endDate": "2024-02",
+      "location": "Minneapolis, MN",
+      "summary": "Planned career pause for parental leave and family care responsibilities.",
+      "category": "experience"
+    },
+    {
+      "title": "Software Engineer",
+      "company": "Lakefront Health Tech",
+      "startDate": "2018-08",
+      "endDate": "2022-01",
+      "location": "Minneapolis, MN",
+      "summary": "Built HIPAA-aware scheduling APIs and background job processing for care teams.",
+      "category": "experience"
+    }
+  ],
+  "expectedEducation": [
+    {
+      "degree": "B.S. Software Engineering",
+      "school": "North Lakes University",
+      "startDate": "2014-09",
+      "endDate": "2018-05",
+      "gpa": "3.7"
+    }
+  ],
+  "expectedSkills": [
+    "Node.js",
+    "PostgreSQL",
+    "Redis",
+    "Queues",
+    "API Design",
+    "TypeScript",
+    "HIPAA Workflows"
+  ],
+  "expectedProjects": [
+    {
+      "name": "Returnship API Sandbox",
+      "description": "Sample service demonstrating idempotent webhook processing.",
+      "technologies": [
+        "Node.js",
+        "Redis"
+      ]
+    }
+  ],
+  "expectedTotalEntryCount": 12,
+  "knownLimitations": [
+    "Parental leave may parse as experience because it is intentionally represented as a dated resume entry."
+  ]
+}

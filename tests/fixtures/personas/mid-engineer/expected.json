@@ -1,0 +1,54 @@
+{
+  "personaSlug": "mid-engineer",
+  "expectedExperiences": [
+    {
+      "title": "Software Engineer II",
+      "company": "Brightforge Systems",
+      "startDate": "2023-03",
+      "endDate": "Present",
+      "location": "Denver, CO",
+      "summary": "Owned billing workflow features, React component migration, and observability improvements.",
+      "category": "experience"
+    },
+    {
+      "title": "Software Engineer",
+      "company": "Harbor Metrics",
+      "startDate": "2021-07",
+      "endDate": "2023-02",
+      "location": "Boulder, CO",
+      "summary": "Built Node.js services for customer reporting and reduced dashboard load time by 34 percent.",
+      "category": "experience"
+    }
+  ],
+  "expectedEducation": [
+    {
+      "degree": "B.S. Information Systems",
+      "school": "Rocky Mountain University",
+      "startDate": "2017-09",
+      "endDate": "2021-05",
+      "gpa": "3.6"
+    }
+  ],
+  "expectedSkills": [
+    "TypeScript",
+    "React",
+    "Node.js",
+    "PostgreSQL",
+    "GraphQL",
+    "AWS",
+    "Docker",
+    "Playwright"
+  ],
+  "expectedProjects": [
+    {
+      "name": "Usage Insights CLI",
+      "description": "Command-line report exporter for product analytics teams.",
+      "technologies": [
+        "Node.js",
+        "PostgreSQL"
+      ]
+    }
+  ],
+  "expectedTotalEntryCount": 12,
+  "knownLimitations": []
+}

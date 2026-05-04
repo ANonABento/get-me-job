@@ -1,0 +1,19 @@
+{
+  "title": "Junior Frontend Engineer",
+  "company": "Plausible Product Co",
+  "location": "Remote - US",
+  "remoteType": "remote",
+  "level": "junior",
+  "salaryMin": 90000,
+  "salaryMax": 120000,
+  "currency": "USD",
+  "techStack": [
+    "React",
+    "TypeScript",
+    "Node.js",
+    "Tailwind",
+    "Vitest"
+  ],
+  "summary": "Synthetic posting for junior frontend engineer work aligned with Avery Chen's background in React, TypeScript, Node.js.",
+  "url": "https://plausible-product-co.example.com/careers/entry-cs-grad-1"
+}

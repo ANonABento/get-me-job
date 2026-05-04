@@ -1,0 +1,19 @@
+{
+  "title": "Platform Engineer",
+  "company": "North Loop Systems",
+  "location": "Hybrid - New York, NY",
+  "remoteType": "hybrid",
+  "level": "mid",
+  "salaryMin": 130000,
+  "salaryMax": 161000,
+  "currency": "USD",
+  "techStack": [
+    "Go",
+    "Java",
+    "Kafka",
+    "Kubernetes",
+    "PostgreSQL"
+  ],
+  "summary": "Synthetic posting for platform engineer work aligned with 李伟's background in Go, Java, Kafka.",
+  "url": "https://north-loop-systems.example.com/careers/non-english-mandarin-2"
+}

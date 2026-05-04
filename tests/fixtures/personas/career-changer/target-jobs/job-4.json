@@ -1,0 +1,19 @@
+{
+  "title": "Python Application Developer",
+  "company": "Copperline Labs",
+  "location": "Onsite - Austin, TX",
+  "remoteType": "onsite",
+  "level": "mid",
+  "salaryMin": 140000,
+  "salaryMax": 173000,
+  "currency": "USD",
+  "techStack": [
+    "Python",
+    "React",
+    "TypeScript",
+    "SQL",
+    "Data Visualization"
+  ],
+  "summary": "Synthetic posting for python application developer work aligned with Samira Brooks's background in Python, React, TypeScript.",
+  "url": "https://copperline-labs.example.com/careers/career-changer-4"
+}

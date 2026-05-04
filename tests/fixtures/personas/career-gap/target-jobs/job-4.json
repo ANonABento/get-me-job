@@ -1,0 +1,19 @@
+{
+  "title": "Server-side TypeScript Engineer",
+  "company": "Copperline Labs",
+  "location": "Onsite - Austin, TX",
+  "remoteType": "onsite",
+  "level": "mid",
+  "salaryMin": 140000,
+  "salaryMax": 173000,
+  "currency": "USD",
+  "techStack": [
+    "Node.js",
+    "TypeScript",
+    "PostgreSQL",
+    "Redis",
+    "API Design"
+  ],
+  "summary": "Synthetic posting for server-side typescript engineer work aligned with Casey Nguyen's background in Node.js, TypeScript, PostgreSQL.",
+  "url": "https://copperline-labs.example.com/careers/career-gap-4"
+}

@@ -1,0 +1,19 @@
+{
+  "title": "Frontend Engineer",
+  "company": "Copperline Labs",
+  "location": "Onsite - Austin, TX",
+  "remoteType": "onsite",
+  "level": "mid",
+  "salaryMin": 140000,
+  "salaryMax": 173000,
+  "currency": "USD",
+  "techStack": [
+    "TypeScript",
+    "React",
+    "Node.js",
+    "PostgreSQL",
+    "AWS"
+  ],
+  "summary": "Synthetic posting for frontend engineer work aligned with Jordan Patel's background in TypeScript, React, Node.js.",
+  "url": "https://copperline-labs.example.com/careers/mid-engineer-4"
+}

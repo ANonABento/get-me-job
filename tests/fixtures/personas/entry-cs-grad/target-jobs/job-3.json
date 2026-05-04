@@ -1,0 +1,19 @@
+{
+  "title": "Junior Full Stack Developer",
+  "company": "Atlas Finch",
+  "location": "Remote - Americas",
+  "remoteType": "remote",
+  "level": "junior",
+  "salaryMin": 100000,
+  "salaryMax": 132000,
+  "currency": "USD",
+  "techStack": [
+    "React",
+    "TypeScript",
+    "Node.js",
+    "Tailwind",
+    "Vitest"
+  ],
+  "summary": "Synthetic posting for junior full stack developer work aligned with Avery Chen's background in React, TypeScript, Node.js.",
+  "url": "https://atlas-finch.example.com/careers/entry-cs-grad-3"
+}

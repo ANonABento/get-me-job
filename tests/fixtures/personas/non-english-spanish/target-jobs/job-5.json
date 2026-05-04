@@ -1,0 +1,19 @@
+{
+  "title": "Product Engineer",
+  "company": "Evergreen Workflow",
+  "location": "Hybrid - Seattle, WA",
+  "remoteType": "hybrid",
+  "level": "mid",
+  "salaryMin": 145000,
+  "salaryMax": 179000,
+  "currency": "USD",
+  "techStack": [
+    "React",
+    "TypeScript",
+    "Node.js",
+    "Accessibility",
+    "CSS"
+  ],
+  "summary": "Synthetic posting for product engineer work aligned with María García's background in React, TypeScript, Node.js.",
+  "url": "https://evergreen-workflow.example.com/careers/non-english-spanish-5"
+}
