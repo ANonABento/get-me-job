@@ -59,9 +59,7 @@ export default function SettingsPage() {
             config={llmSettings.config}
             selectedProvider={selectedProvider}
             models={llmSettings.availableModels}
-            saving={llmSettings.saving}
             testing={llmSettings.testing}
-            hasChanges={llmSettings.hasChanges}
             saveStatus={llmSettings.saveStatus}
             testResult={llmSettings.testResult}
             onConfigChange={llmSettings.updateConfig}

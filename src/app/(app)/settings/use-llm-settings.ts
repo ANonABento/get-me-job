@@ -12,6 +12,8 @@ export interface LLMTestResult {
 
 export type LLMSettingsSaveStatus = "saved" | "saving" | "error";
 
+const AUTO_SAVE_DEBOUNCE_MS = 700;
+
 const DEFAULT_CONFIG: LLMConfig = {
   provider: "ollama",
   model: DEFAULT_MODELS.ollama[0],
@@ -82,20 +84,15 @@ export function useLLMSettings() {
       }
 
       if (saveVersion === changeVersionRef.current) {
-        setTestResult({
-          success: true,
-          message: "Settings saved successfully!",
-        });
         setHasChanges(false);
         setSaveStatus("saved");
       }
     } catch (error) {
       if (saveVersion === changeVersionRef.current) {
         setSaveStatus("error");
-        setTestResult({
-          success: false,
-          message:
-            error instanceof Error ? error.message : "Failed to save settings",
+        showErrorToast(error, {
+          title: "Could not save settings",
+          fallbackDescription: "Your changes were not saved.",
         });
       }
     } finally {
@@ -103,14 +100,14 @@ export function useLLMSettings() {
         setSaving(false);
       }
     }
-  }, [config]);
+  }, [config, showErrorToast]);
 
   useEffect(() => {
     if (!hasChanges) return;
 
     const timeout = window.setTimeout(() => {
       void saveSettings();
-    }, 700);
+    }, AUTO_SAVE_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timeout);
   }, [hasChanges, saveSettings]);
@@ -153,10 +150,8 @@ export function useLLMSettings() {
   return {
     config,
     loading,
-    saving,
     testing,
     testResult,
-    hasChanges,
     saveStatus,
     availableModels,
     updateConfig,

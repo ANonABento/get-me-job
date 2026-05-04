@@ -31,9 +31,7 @@ interface LLMProviderConfigProps {
   config: LLMConfig;
   selectedProvider?: ProviderOption;
   models: string[];
-  saving: boolean;
   testing: boolean;
-  hasChanges: boolean;
   saveStatus: LLMSettingsSaveStatus;
   testResult: LLMTestResult | null;
   onConfigChange: (updates: Partial<LLMConfig>) => void;
@@ -46,9 +44,7 @@ export function LLMProviderConfig(props: LLMProviderConfigProps) {
     config,
     selectedProvider,
     models,
-    saving,
     testing,
-    hasChanges,
     saveStatus,
     testResult,
     onConfigChange,
@@ -186,13 +182,7 @@ export function LLMProviderConfig(props: LLMProviderConfigProps) {
             )}
           </Button>
           <AutoSaveStatus
-            status={
-              saveStatus === "error"
-                ? "error"
-                : saving || hasChanges
-                  ? "saving"
-                  : "saved"
-            }
+            status={saveStatus}
             onRetry={saveStatus === "error" ? onSave : undefined}
             className="flex-1 justify-center"
           />

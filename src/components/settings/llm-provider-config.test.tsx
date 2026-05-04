@@ -16,9 +16,7 @@ const baseProps = {
     requiresKey: false,
   },
   models: ["llama3.2"],
-  saving: false,
   testing: false,
-  hasChanges: false,
   saveStatus: "saved" as const,
   testResult: null,
   onConfigChange: vi.fn(),
@@ -27,13 +25,12 @@ const baseProps = {
 };
 
 describe("LLMProviderConfig", () => {
-  it("shows failed auto-save status even while changes are still dirty", () => {
+  it("shows failed auto-save status with a retry handler", () => {
     const onSave = vi.fn();
 
     render(
       <LLMProviderConfig
         {...baseProps}
-        hasChanges={true}
         saveStatus="error"
         onSave={onSave}
       />,
