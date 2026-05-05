@@ -1,19 +1,46 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { Mock } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import Database from "libsql";
 
-vi.mock("./legacy", () => {
-  const mockDb = {
-    prepare: vi.fn(),
-    transaction: vi.fn((fn: () => unknown) => fn),
+// Use a real in-memory libSQL DB to verify cross-user isolation. Mocking
+// db.prepare would let an IDOR regression slip through if the WHERE clause
+// were dropped — only a real DB faithfully proves the user_id filter holds.
+//
+// vi.hoisted runs before module imports so the proxy is wired into the mock
+// before prompt-variants.ts is loaded.
+const { dbProxy, idCounter } = vi.hoisted(() => {
+  const state: { db: unknown } = { db: null };
+  const proxy = {
+    setDb(db: unknown) {
+      state.db = db;
+    },
+    prepare(sql: string) {
+      return (state.db as { prepare: (s: string) => unknown }).prepare(sql);
+    },
+    exec(sql: string) {
+      return (state.db as { exec: (s: string) => unknown }).exec(sql);
+    },
+    transaction<T>(fn: () => T) {
+      return (
+        state.db as { transaction: (f: () => T) => () => T }
+      ).transaction(fn);
+    },
+    pragma(s: string) {
+      return (state.db as { pragma: (s: string) => unknown }).pragma(s);
+    },
   };
-  return { default: mockDb };
+  return { dbProxy: proxy, idCounter: { value: 0 } };
 });
 
-vi.mock("@/lib/utils", () => ({
-  generateId: () => "test-id",
+vi.mock("./legacy", () => ({
+  default: dbProxy,
 }));
 
-import db from "./legacy";
+vi.mock("@/lib/utils", () => ({
+  generateId: () => `id-${++idCounter.value}`,
+}));
+
+let memDb: Database.Database;
+
 import {
   DEFAULT_PROMPT_CONTENT,
   seedDefaultPromptVariant,
@@ -29,38 +56,41 @@ import {
   getPromptVariantStats,
 } from "./prompt-variants";
 
-const mockVariantRow = {
-  id: "variant-1",
-  name: "Default",
-  version: 1,
-  content: DEFAULT_PROMPT_CONTENT,
-  active: 1,
-  created_at: "2024-01-01T00:00:00.000Z",
-  updated_at: "2024-01-01T00:00:00.000Z",
-};
+function createSchema(db: Database.Database) {
+  // Intentionally start without user_id columns so we exercise the runtime
+  // schema migration in `ensurePromptVariantsUserSchema`.
+  db.exec(`
+    CREATE TABLE prompt_variants (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      version INTEGER NOT NULL DEFAULT 1,
+      content TEXT NOT NULL,
+      active INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
 
-const expectedVariant = {
-  id: "variant-1",
-  name: "Default",
-  version: 1,
-  content: DEFAULT_PROMPT_CONTENT,
-  active: true,
-  createdAt: "2024-01-01T00:00:00.000Z",
-  updatedAt: "2024-01-01T00:00:00.000Z",
-};
-
-function makeStmt(overrides: Record<string, unknown> = {}) {
-  return {
-    run: vi.fn().mockReturnValue({ changes: 1 }),
-    get: vi.fn().mockReturnValue(mockVariantRow),
-    all: vi.fn().mockReturnValue([mockVariantRow]),
-    ...overrides,
-  };
+    CREATE TABLE prompt_variant_results (
+      id TEXT PRIMARY KEY,
+      prompt_variant_id TEXT NOT NULL,
+      job_id TEXT,
+      resume_id TEXT,
+      match_score REAL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 }
 
 describe("prompt-variants DB module", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    idCounter.value = 0;
+    memDb = new Database(":memory:");
+    createSchema(memDb);
+    dbProxy.setDb(memDb);
+  });
+
+  afterEach(() => {
+    memDb.close();
   });
 
   describe("DEFAULT_PROMPT_CONTENT", () => {
@@ -70,322 +100,257 @@ describe("prompt-variants DB module", () => {
     });
   });
 
-  describe("seedDefaultPromptVariant", () => {
-    it("inserts default variant when table is empty", () => {
-      const stmt = makeStmt({ get: vi.fn().mockReturnValue(undefined) });
-      const insertStmt = makeStmt();
-      (db.prepare as Mock)
-        .mockReturnValueOnce(stmt) // SELECT id check
-        .mockReturnValueOnce(insertStmt); // INSERT
+  describe("schema migration", () => {
+    it("backfills user_id columns when calling any function", () => {
+      seedDefaultPromptVariant("user-A");
 
-      const id = seedDefaultPromptVariant();
-      expect(id).toBe("test-id");
-      expect(insertStmt.run).toHaveBeenCalledWith(
-        "test-id",
-        "Default",
-        DEFAULT_PROMPT_CONTENT,
-        expect.any(String),
-        expect.any(String)
-      );
-    });
+      const variantCols = (
+        memDb.prepare("PRAGMA table_info(prompt_variants)").all() as Array<{
+          name: string;
+        }>
+      ).map((c) => c.name);
+      const resultCols = (
+        memDb
+          .prepare("PRAGMA table_info(prompt_variant_results)")
+          .all() as Array<{ name: string }>
+      ).map((c) => c.name);
 
-    it("returns null when variants already exist", () => {
-      const stmt = makeStmt({ get: vi.fn().mockReturnValue({ id: "existing" }) });
-      (db.prepare as Mock).mockReturnValue(stmt);
-
-      const id = seedDefaultPromptVariant();
-      expect(id).toBeNull();
+      expect(variantCols).toContain("user_id");
+      expect(resultCols).toContain("user_id");
     });
   });
 
-  describe("getAllPromptVariants", () => {
-    it("returns all variants mapped from DB rows", () => {
-      const stmt = makeStmt();
-      (db.prepare as Mock).mockReturnValue(stmt);
+  describe("seedDefaultPromptVariant", () => {
+    it("inserts default variant for user when none exists", () => {
+      const id = seedDefaultPromptVariant("user-A");
+      expect(id).toBeTruthy();
 
-      const result = getAllPromptVariants();
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual(expectedVariant);
+      const variants = getAllPromptVariants("user-A");
+      expect(variants).toHaveLength(1);
+      expect(variants[0].name).toBe("Default");
+      expect(variants[0].active).toBe(true);
     });
 
-    it("returns empty array when no variants", () => {
-      const stmt = makeStmt({ all: vi.fn().mockReturnValue([]) });
-      (db.prepare as Mock).mockReturnValue(stmt);
+    it("returns null when the user already has a variant", () => {
+      seedDefaultPromptVariant("user-A");
+      expect(seedDefaultPromptVariant("user-A")).toBeNull();
+    });
 
-      expect(getAllPromptVariants()).toEqual([]);
+    it("seeds independently per user", () => {
+      seedDefaultPromptVariant("user-A");
+      seedDefaultPromptVariant("user-B");
+
+      expect(getAllPromptVariants("user-A")).toHaveLength(1);
+      expect(getAllPromptVariants("user-B")).toHaveLength(1);
+      expect(getAllPromptVariants("user-A")[0].id).not.toBe(
+        getAllPromptVariants("user-B")[0].id,
+      );
+    });
+  });
+
+  describe("multi-user isolation (IDOR regression test)", () => {
+    it("getPromptVariantById refuses to return another user's variant", () => {
+      seedDefaultPromptVariant("user-A");
+      seedDefaultPromptVariant("user-B");
+      const aVariant = getAllPromptVariants("user-A")[0];
+
+      // user-B trying to read user-A's variant by guessing id
+      expect(getPromptVariantById(aVariant.id, "user-B")).toBeNull();
+      // and user-A can still read their own
+      expect(getPromptVariantById(aVariant.id, "user-A")).not.toBeNull();
+    });
+
+    it("updatePromptVariant cannot rewrite another user's variant", () => {
+      seedDefaultPromptVariant("user-A");
+      seedDefaultPromptVariant("user-B");
+      const aVariant = getAllPromptVariants("user-A")[0];
+
+      const result = updatePromptVariant(aVariant.id, "user-B", {
+        name: "Hacked",
+      });
+      expect(result).toBeNull();
+
+      // verify user-A's variant unchanged
+      const after = getPromptVariantById(aVariant.id, "user-A");
+      expect(after?.name).toBe("Default");
+    });
+
+    it("deletePromptVariant cannot remove another user's variant", () => {
+      seedDefaultPromptVariant("user-A");
+      // create an inactive variant for A so deletion is allowed
+      const created = createPromptVariant("user-A", "v2", "content");
+      seedDefaultPromptVariant("user-B");
+
+      expect(deletePromptVariant(created.id, "user-B")).toBe(false);
+      expect(getPromptVariantById(created.id, "user-A")).not.toBeNull();
+    });
+
+    it("setActivePromptVariant cannot toggle another user's variant", () => {
+      seedDefaultPromptVariant("user-A");
+      const aSecond = createPromptVariant("user-A", "second", "content");
+      seedDefaultPromptVariant("user-B");
+
+      expect(setActivePromptVariant(aSecond.id, "user-B")).toBe(false);
+
+      // A's variants: original Default still active, second still inactive
+      const aVariants = getAllPromptVariants("user-A");
+      const stillActive = aVariants.find((v) => v.active);
+      expect(stillActive?.name).toBe("Default");
+    });
+
+    it("getAllPromptVariants only returns the calling user's variants", () => {
+      seedDefaultPromptVariant("user-A");
+      createPromptVariant("user-A", "a-v2", "content");
+      seedDefaultPromptVariant("user-B");
+
+      expect(getAllPromptVariants("user-A")).toHaveLength(2);
+      expect(getAllPromptVariants("user-B")).toHaveLength(1);
+    });
+
+    it("getPromptVariantResults filters by user_id", () => {
+      seedDefaultPromptVariant("user-A");
+      const aVariant = getAllPromptVariants("user-A")[0];
+      logPromptVariantResult("user-A", aVariant.id, "job-A", "resume-A", 90);
+      seedDefaultPromptVariant("user-B");
+
+      // user-B passing user-A's variant id sees nothing
+      expect(getPromptVariantResults(aVariant.id, "user-B")).toEqual([]);
+      expect(getPromptVariantResults(aVariant.id, "user-A")).toHaveLength(1);
+    });
+
+    it("getPromptVariantStats only includes the calling user's variants", () => {
+      seedDefaultPromptVariant("user-A");
+      seedDefaultPromptVariant("user-B");
+
+      const aStats = getPromptVariantStats("user-A");
+      const bStats = getPromptVariantStats("user-B");
+      expect(aStats).toHaveLength(1);
+      expect(bStats).toHaveLength(1);
+      expect(aStats[0].variantId).not.toBe(bStats[0].variantId);
     });
   });
 
   describe("getActivePromptVariant", () => {
-    it("returns active variant", () => {
-      // seedDefaultPromptVariant call (table not empty)
-      const checkStmt = makeStmt({ get: vi.fn().mockReturnValue({ id: "variant-1" }) });
-      const activeStmt = makeStmt({ get: vi.fn().mockReturnValue(mockVariantRow) });
-      (db.prepare as Mock)
-        .mockReturnValueOnce(checkStmt)
-        .mockReturnValueOnce(activeStmt);
-
-      const result = getActivePromptVariant();
-      expect(result).toEqual(expectedVariant);
+    it("returns the active variant scoped to user", () => {
+      seedDefaultPromptVariant("user-A");
+      const result = getActivePromptVariant("user-A");
+      expect(result?.name).toBe("Default");
+      expect(result?.active).toBe(true);
     });
 
-    it("returns null when no active variant exists", () => {
-      const checkStmt = makeStmt({ get: vi.fn().mockReturnValue({ id: "variant-1" }) });
-      const activeStmt = makeStmt({ get: vi.fn().mockReturnValue(undefined) });
-      (db.prepare as Mock)
-        .mockReturnValueOnce(checkStmt)
-        .mockReturnValueOnce(activeStmt);
-
-      expect(getActivePromptVariant()).toBeNull();
-    });
-  });
-
-  describe("getPromptVariantById", () => {
-    it("returns variant when found", () => {
-      const stmt = makeStmt({ get: vi.fn().mockReturnValue(mockVariantRow) });
-      (db.prepare as Mock).mockReturnValue(stmt);
-
-      expect(getPromptVariantById("variant-1")).toEqual(expectedVariant);
-    });
-
-    it("returns null when not found", () => {
-      const stmt = makeStmt({ get: vi.fn().mockReturnValue(undefined) });
-      (db.prepare as Mock).mockReturnValue(stmt);
-
-      expect(getPromptVariantById("nope")).toBeNull();
+    it("seeds default for first-time user", () => {
+      const result = getActivePromptVariant("brand-new-user");
+      expect(result?.name).toBe("Default");
     });
   });
 
   describe("createPromptVariant", () => {
-    it("inserts new variant with auto-incremented version", () => {
-      const maxVersionStmt = makeStmt({ get: vi.fn().mockReturnValue({ max_v: 1 }) });
-      const insertStmt = makeStmt();
-      const selectStmt = makeStmt({ get: vi.fn().mockReturnValue({ ...mockVariantRow, id: "test-id", version: 2, active: 0 }) });
-
-      (db.prepare as Mock)
-        .mockReturnValueOnce(maxVersionStmt)
-        .mockReturnValueOnce(insertStmt)
-        .mockReturnValueOnce(selectStmt);
-
-      const result = createPromptVariant("v2", "new instructions");
-      expect(insertStmt.run).toHaveBeenCalledWith(
-        "test-id",
-        "v2",
-        2,
-        "new instructions",
-        expect.any(String),
-        expect.any(String)
-      );
-      expect(result.id).toBe("test-id");
+    it("auto-increments version per user", () => {
+      seedDefaultPromptVariant("user-A");
+      const created = createPromptVariant("user-A", "v2", "instructions");
+      expect(created.version).toBe(2);
+      expect(created.active).toBe(false);
     });
 
     it("accepts explicit version", () => {
-      const insertStmt = makeStmt();
-      const selectStmt = makeStmt({ get: vi.fn().mockReturnValue({ ...mockVariantRow, version: 5 }) });
-
-      (db.prepare as Mock)
-        .mockReturnValueOnce(insertStmt)
-        .mockReturnValueOnce(selectStmt);
-
-      createPromptVariant("v5", "content", 5);
-      expect(insertStmt.run).toHaveBeenCalledWith(
-        "test-id",
-        "v5",
-        5,
-        "content",
-        expect.any(String),
-        expect.any(String)
-      );
+      const created = createPromptVariant("user-A", "v5", "content", 5);
+      expect(created.version).toBe(5);
     });
   });
 
   describe("setActivePromptVariant", () => {
-    it("deactivates all and activates the target", () => {
-      // getPromptVariantById call
-      const getStmt = makeStmt({ get: vi.fn().mockReturnValue(mockVariantRow) });
-      const deactivateAllStmt = makeStmt();
-      const activateStmt = makeStmt({ run: vi.fn().mockReturnValue({ changes: 1 }) });
+    it("deactivates the previous active variant for the same user", () => {
+      seedDefaultPromptVariant("user-A");
+      const second = createPromptVariant("user-A", "second", "content");
 
-      (db.prepare as Mock)
-        .mockReturnValueOnce(getStmt)
-        .mockReturnValueOnce(deactivateAllStmt)
-        .mockReturnValueOnce(activateStmt);
+      expect(setActivePromptVariant(second.id, "user-A")).toBe(true);
 
-      const result = setActivePromptVariant("variant-1");
-      expect(result).toBe(true);
-      expect(deactivateAllStmt.run).toHaveBeenCalled();
-      expect(activateStmt.run).toHaveBeenCalledWith(expect.any(String), "variant-1");
+      const variants = getAllPromptVariants("user-A");
+      const active = variants.filter((v) => v.active);
+      expect(active).toHaveLength(1);
+      expect(active[0].id).toBe(second.id);
     });
 
     it("returns false when variant not found", () => {
-      const getStmt = makeStmt({ get: vi.fn().mockReturnValue(undefined) });
-      (db.prepare as Mock).mockReturnValue(getStmt);
-
-      expect(setActivePromptVariant("missing")).toBe(false);
+      expect(setActivePromptVariant("missing", "user-A")).toBe(false);
     });
   });
 
   describe("updatePromptVariant", () => {
     it("updates name and content", () => {
-      const getStmt1 = makeStmt({ get: vi.fn().mockReturnValue(mockVariantRow) });
-      const updateStmt = makeStmt();
-      const getStmt2 = makeStmt({ get: vi.fn().mockReturnValue({ ...mockVariantRow, name: "Updated" }) });
-
-      (db.prepare as Mock)
-        .mockReturnValueOnce(getStmt1)
-        .mockReturnValueOnce(updateStmt)
-        .mockReturnValueOnce(getStmt2);
-
-      const result = updatePromptVariant("variant-1", { name: "Updated" });
-      expect(updateStmt.run).toHaveBeenCalledWith(
-        "Updated",
-        DEFAULT_PROMPT_CONTENT,
-        expect.any(String),
-        "variant-1"
-      );
+      seedDefaultPromptVariant("user-A");
+      const variants = getAllPromptVariants("user-A");
+      const result = updatePromptVariant(variants[0].id, "user-A", {
+        name: "Updated",
+      });
       expect(result?.name).toBe("Updated");
     });
 
     it("returns null when variant not found", () => {
-      const getStmt = makeStmt({ get: vi.fn().mockReturnValue(undefined) });
-      (db.prepare as Mock).mockReturnValue(getStmt);
-
-      expect(updatePromptVariant("missing", { name: "x" })).toBeNull();
+      expect(updatePromptVariant("missing", "user-A", { name: "x" })).toBeNull();
     });
   });
 
   describe("deletePromptVariant", () => {
     it("deletes inactive variant", () => {
-      const inactiveRow = { ...mockVariantRow, active: 0 };
-      const getStmt = makeStmt({ get: vi.fn().mockReturnValue(inactiveRow) });
-      const deleteStmt = makeStmt({ run: vi.fn().mockReturnValue({ changes: 1 }) });
+      seedDefaultPromptVariant("user-A");
+      const inactive = createPromptVariant("user-A", "v2", "content");
 
-      (db.prepare as Mock)
-        .mockReturnValueOnce(getStmt)
-        .mockReturnValueOnce(deleteStmt);
-
-      expect(deletePromptVariant("variant-1")).toBe(true);
+      expect(deletePromptVariant(inactive.id, "user-A")).toBe(true);
+      expect(getPromptVariantById(inactive.id, "user-A")).toBeNull();
     });
 
     it("refuses to delete the active variant", () => {
-      const getStmt = makeStmt({ get: vi.fn().mockReturnValue(mockVariantRow) }); // active=1
-      (db.prepare as Mock).mockReturnValue(getStmt);
-
-      expect(deletePromptVariant("variant-1")).toBe(false);
+      seedDefaultPromptVariant("user-A");
+      const active = getAllPromptVariants("user-A")[0];
+      expect(deletePromptVariant(active.id, "user-A")).toBe(false);
     });
 
     it("returns false when variant not found", () => {
-      const getStmt = makeStmt({ get: vi.fn().mockReturnValue(undefined) });
-      (db.prepare as Mock).mockReturnValue(getStmt);
-
-      expect(deletePromptVariant("missing")).toBe(false);
+      expect(deletePromptVariant("missing", "user-A")).toBe(false);
     });
   });
 
   describe("logPromptVariantResult", () => {
     it("inserts a result record and returns it", () => {
-      const resultRow = {
-        id: "test-id",
-        prompt_variant_id: "variant-1",
-        job_id: "job-1",
-        resume_id: "resume-1",
-        match_score: 85.5,
-        created_at: "2024-01-01T00:00:00.000Z",
-      };
-      const insertStmt = makeStmt();
-      const selectStmt = makeStmt({ get: vi.fn().mockReturnValue(resultRow) });
+      seedDefaultPromptVariant("user-A");
+      const variant = getAllPromptVariants("user-A")[0];
 
-      (db.prepare as Mock)
-        .mockReturnValueOnce(insertStmt)
-        .mockReturnValueOnce(selectStmt);
-
-      const result = logPromptVariantResult("variant-1", "job-1", "resume-1", 85.5);
-      expect(result.id).toBe("test-id");
-      expect(result.promptVariantId).toBe("variant-1");
+      const result = logPromptVariantResult(
+        "user-A",
+        variant.id,
+        "job-1",
+        "resume-1",
+        85.5,
+      );
+      expect(result.promptVariantId).toBe(variant.id);
       expect(result.matchScore).toBe(85.5);
+      expect(result.jobId).toBe("job-1");
     });
 
     it("allows optional fields to be omitted", () => {
-      const resultRow = {
-        id: "test-id",
-        prompt_variant_id: "variant-1",
-        job_id: null,
-        resume_id: null,
-        match_score: null,
-        created_at: "2024-01-01T00:00:00.000Z",
-      };
-      const insertStmt = makeStmt();
-      const selectStmt = makeStmt({ get: vi.fn().mockReturnValue(resultRow) });
+      seedDefaultPromptVariant("user-A");
+      const variant = getAllPromptVariants("user-A")[0];
 
-      (db.prepare as Mock)
-        .mockReturnValueOnce(insertStmt)
-        .mockReturnValueOnce(selectStmt);
-
-      const result = logPromptVariantResult("variant-1");
-      expect(insertStmt.run).toHaveBeenCalledWith(
-        "test-id",
-        "variant-1",
-        null,
-        null,
-        null,
-        expect.any(String)
-      );
+      const result = logPromptVariantResult("user-A", variant.id);
       expect(result.jobId).toBeNull();
-    });
-  });
-
-  describe("getPromptVariantResults", () => {
-    it("returns mapped result rows", () => {
-      const rows = [
-        {
-          id: "r1",
-          prompt_variant_id: "variant-1",
-          job_id: "j1",
-          resume_id: "res1",
-          match_score: 70,
-          created_at: "2024-01-01",
-        },
-      ];
-      const stmt = makeStmt({ all: vi.fn().mockReturnValue(rows) });
-      (db.prepare as Mock).mockReturnValue(stmt);
-
-      const results = getPromptVariantResults("variant-1");
-      expect(results).toHaveLength(1);
-      expect(results[0].promptVariantId).toBe("variant-1");
-      expect(results[0].matchScore).toBe(70);
+      expect(result.resumeId).toBeNull();
+      expect(result.matchScore).toBeNull();
     });
   });
 
   describe("getPromptVariantStats", () => {
-    it("returns stats with boolean active field", () => {
-      const statsRows = [
-        {
-          variant_id: "variant-1",
-          variant_name: "Default",
-          version: 1,
-          active: 1,
-          result_count: 5,
-          avg_match_score: 75.2,
-        },
-        {
-          variant_id: "variant-2",
-          variant_name: "v2",
-          version: 2,
-          active: 0,
-          result_count: 0,
-          avg_match_score: null,
-        },
-      ];
-      const stmt = makeStmt({ all: vi.fn().mockReturnValue(statsRows) });
-      (db.prepare as Mock).mockReturnValue(stmt);
+    it("returns stats with boolean active field and result counts", () => {
+      seedDefaultPromptVariant("user-A");
+      const variant = getAllPromptVariants("user-A")[0];
+      logPromptVariantResult("user-A", variant.id, "job-1", "resume-1", 70);
+      logPromptVariantResult("user-A", variant.id, "job-2", "resume-2", 80);
 
-      const stats = getPromptVariantStats();
-      expect(stats).toHaveLength(2);
+      const stats = getPromptVariantStats("user-A");
+      expect(stats).toHaveLength(1);
       expect(stats[0].active).toBe(true);
-      expect(stats[0].resultCount).toBe(5);
-      expect(stats[0].avgMatchScore).toBe(75.2);
-      expect(stats[1].active).toBe(false);
-      expect(stats[1].avgMatchScore).toBeNull();
+      expect(stats[0].resultCount).toBe(2);
+      expect(stats[0].avgMatchScore).toBe(75);
     });
   });
 });

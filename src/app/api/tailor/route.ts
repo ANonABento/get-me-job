@@ -162,6 +162,7 @@ export async function POST(request: NextRequest) {
         jobTitle,
         company,
         jobDescription,
+        userId: authResult.userId,
       },
       llmConfig
     );
@@ -213,7 +214,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (promptVariantId) {
-      logPromptVariantResult(promptVariantId, job.id, savedResume.id, analysis.matchScore);
+      logPromptVariantResult(authResult.userId, promptVariantId, job.id, savedResume.id, analysis.matchScore);
     }
 
     return NextResponse.json({

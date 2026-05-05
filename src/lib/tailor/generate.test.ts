@@ -101,6 +101,7 @@ describe("generateFromBank", () => {
         jobTitle: "Frontend Engineer",
         company: "Test Corp",
         jobDescription: "We need a React developer",
+        userId: "default",
       },
       null
     );
@@ -125,6 +126,7 @@ describe("generateFromBank", () => {
         jobTitle: "Frontend Engineer",
         company: "Test Corp",
         jobDescription: "React developer needed",
+        userId: "default",
       },
       null
     );
@@ -144,6 +146,7 @@ describe("generateFromBank", () => {
         jobTitle: "Backend Engineer",
         company: "Test Corp",
         jobDescription: "Python developer needed",
+        userId: "default",
       },
       null
     );
@@ -180,6 +183,7 @@ describe("generateFromBank", () => {
         jobTitle: "Frontend Engineer",
         company: "Test Corp",
         jobDescription: "React developer needed",
+        userId: "default",
       },
       null
     );
@@ -215,6 +219,7 @@ describe("generateFromBank", () => {
         jobTitle: "Frontend Engineer",
         company: "Test Corp",
         jobDescription: "React developer",
+        userId: "default",
       },
       null
     );
@@ -234,6 +239,7 @@ describe("generateFromBank", () => {
         jobTitle: "Engineer",
         company: "Acme",
         jobDescription: "Some job",
+        userId: "default",
       },
       null
     );
@@ -253,6 +259,7 @@ describe("generateFromBank", () => {
         jobTitle: "Engineer",
         company: "Test",
         jobDescription: "Some job",
+        userId: "default",
       },
       null
     );
@@ -283,6 +290,7 @@ describe("generateFromBank", () => {
         jobTitle: "Engineer",
         company: "Test",
         jobDescription: "Some job",
+        userId: "default",
       },
       null
     );

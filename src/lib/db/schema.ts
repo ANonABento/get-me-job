@@ -555,20 +555,26 @@ export const resumeAbTracking = sqliteTable(
   ],
 );
 
-export const promptVariants = sqliteTable("prompt_variants", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  version: integer("version").notNull().default(1),
-  content: text("content").notNull(),
-  active: integer("active", { mode: "boolean" }).notNull().default(false),
-  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
-});
+export const promptVariants = sqliteTable(
+  "prompt_variants",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().default(DEFAULT_USER_ID),
+    name: text("name").notNull(),
+    version: integer("version").notNull().default(1),
+    content: text("content").notNull(),
+    active: integer("active", { mode: "boolean" }).notNull().default(false),
+    createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("idx_prompt_variants_user").on(table.userId)],
+);
 
 export const promptVariantResults = sqliteTable(
   "prompt_variant_results",
   {
     id: text("id").primaryKey(),
+    userId: text("user_id").notNull().default(DEFAULT_USER_ID),
     promptVariantId: text("prompt_variant_id").notNull(),
     jobId: text("job_id"),
     resumeId: text("resume_id"),
@@ -577,6 +583,7 @@ export const promptVariantResults = sqliteTable(
   },
   (table) => [
     index("idx_prompt_variant_results_variant").on(table.promptVariantId),
+    index("idx_prompt_variant_results_user").on(table.userId),
   ],
 );
 

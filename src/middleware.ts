@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { applySecurityHeaders } from '@/lib/security/headers';
 
 // Define which routes are public (don't require auth)
 const isPublicRoute = createRouteMatcher([
@@ -18,8 +19,9 @@ const middleware = hasClerkKeys
       if (!isPublicRoute(request)) {
         await auth.protect();
       }
+      return applySecurityHeaders(NextResponse.next(), request);
     })
-  : () => NextResponse.next();
+  : (request: NextRequest) => applySecurityHeaders(NextResponse.next(), request);
 
 export default middleware;
 

@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseJobText, parseJobJSON, extractKeywords, type ParsedJob } from "@/lib/import/job-parser";
 import { createJob } from "@/lib/db/jobs";
 import { requireAuth, isAuthError } from "@/lib/auth";
+import { assertSafeOutboundUrl, SsrfBlockedError } from "@/lib/security/ssrf";
 
 interface ImportRequest {
   text?: string;
@@ -24,6 +25,11 @@ interface ImportRequest {
 
 // Fetch job content from URL
 async function fetchJobFromUrl(url: string): Promise<string> {
+  // Block SSRF: URL must be public http(s) and resolve to a public IP.
+  // We do not enforce a host allowlist here because users paste arbitrary job
+  // posting URLs — but private/loopback IPs are always rejected.
+  await assertSafeOutboundUrl(url);
+
   const response = await fetch(url, {
     headers: {
       "User-Agent": "Mozilla/5.0 (compatible; TaidaBot/1.0; +https://taida.app)",
@@ -97,9 +103,17 @@ export async function POST(request: NextRequest) {
         });
       } catch (fetchError) {
         console.error("URL fetch error:", fetchError);
+        if (fetchError instanceof SsrfBlockedError) {
+          return NextResponse.json(
+            { error: "URL is not allowed: must be a public http or https address." },
+            { status: 400 },
+          );
+        }
+        // Don't echo raw fetch error messages — they sometimes contain
+        // headers, IP addresses, or stack frames.
         return NextResponse.json(
-          { error: `Failed to fetch job from URL: ${fetchError instanceof Error ? fetchError.message : "Unknown error"}` },
-          { status: 400 }
+          { error: "Failed to fetch job from URL." },
+          { status: 400 },
         );
       }
     }

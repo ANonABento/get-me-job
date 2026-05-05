@@ -17,12 +17,30 @@ import {
   generateBasicResearch,
 } from "@/lib/research/company";
 import { requireAuth, isAuthError } from "@/lib/auth";
+import { rateLimiters, getClientIdentifier } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
+
+  const limit = rateLimiters.llm(
+    getClientIdentifier(request, authResult.userId),
+  );
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "Too many research requests. Please try again later." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(
+            Math.max(1, Math.ceil((limit.resetAt - Date.now()) / 1000)),
+          ),
+        },
+      },
+    );
+  }
 
   try {
     const { searchParams } = new URL(request.url);

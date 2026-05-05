@@ -17,6 +17,7 @@ interface BankResumeInput {
   jobTitle: string;
   company: string;
   jobDescription: string;
+  userId: string;
 }
 
 export interface GenerateFromBankResult {
@@ -34,7 +35,7 @@ export async function generateFromBank(
   llmConfig: LLMConfig | null
 ): Promise<GenerateFromBankResult> {
   if (llmConfig) {
-    const activeVariant = getActivePromptVariant();
+    const activeVariant = getActivePromptVariant(input.userId);
     const resume = await generateWithLLM(input, llmConfig, activeVariant);
     return { resume, promptVariantId: activeVariant?.id ?? null };
   }

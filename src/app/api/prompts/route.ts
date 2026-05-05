@@ -17,8 +17,8 @@ export async function GET() {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
 
-  seedDefaultPromptVariant();
-  const variants = getAllPromptVariants();
+  seedDefaultPromptVariant(authResult.userId);
+  const variants = getAllPromptVariants(authResult.userId);
   return NextResponse.json({ variants });
 }
 
@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const variant = createPromptVariant(
+      authResult.userId,
       parsed.data.name,
       parsed.data.content,
       parsed.data.version

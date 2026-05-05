@@ -1,4 +1,16 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+// Stub DNS so scrape's SSRF guard doesn't make real network calls.
+const { dnsLookupMock } = vi.hoisted(() => ({
+  dnsLookupMock: vi
+    .fn()
+    .mockResolvedValue({ address: "108.174.10.10", family: 4 }),
+}));
+vi.mock("node:dns/promises", () => {
+  const mod = { lookup: dnsLookupMock };
+  return { ...mod, default: mod };
+});
+
 import {
   OpportunityScrapeError,
   detectOpportunitySource,
@@ -103,5 +115,19 @@ describe("opportunity scraping", () => {
       code: "rate_limited",
       status: 429,
     });
+  });
+
+  it("blocks DNS-rebinding to private IPs even on allowlisted hosts", async () => {
+    dnsLookupMock.mockResolvedValueOnce({
+      address: "169.254.169.254",
+      family: 4,
+    });
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      scrapeOpportunityFromUrl("https://jobs.lever.co/acme/123"),
+    ).rejects.toMatchObject({ code: "invalid_url" });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

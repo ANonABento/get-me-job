@@ -76,6 +76,26 @@ function pdfFile(name = "test-resume.pdf") {
   } as unknown as File;
 }
 
+function fileWithBytes(
+  name: string,
+  type: string,
+  bytes: Uint8Array,
+): File {
+  return {
+    name,
+    type,
+    size: bytes.byteLength,
+    arrayBuffer: vi.fn().mockResolvedValue(bytes.buffer),
+  } as unknown as File;
+}
+
+function exeMasqueradingAsPdf() {
+  // PE/MZ header — Windows executable bytes claiming application/pdf MIME and
+  // a .pdf filename. Magic-byte validation must reject this.
+  const peHeader = new Uint8Array([0x4d, 0x5a, 0x90, 0x00, 0x03, 0x00, 0x00]);
+  return fileWithBytes("malicious.pdf", "application/pdf", peHeader);
+}
+
 describe("upload route dedupe flow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -99,6 +119,28 @@ describe("upload route dedupe flow", () => {
       llmSectionsCount: 0,
       warnings: [],
     });
+  });
+
+  it("rejects an .exe masquerading as a .pdf via magic-byte validation", async () => {
+    const response = await POST(uploadRequest(exeMasqueradingAsPdf()));
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining("does not match"),
+    });
+    expect(mocks.saveDocument).not.toHaveBeenCalled();
+    expect(mocks.extractTextFromFile).not.toHaveBeenCalled();
+  });
+
+  it("rejects a disallowed MIME type", async () => {
+    const html = new Uint8Array([0x3c, 0x68, 0x74, 0x6d, 0x6c, 0x3e]);
+    const response = await POST(
+      uploadRequest(fileWithBytes("payload.html", "text/html", html)),
+    );
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining("Invalid file type"),
+    });
+    expect(mocks.saveDocument).not.toHaveBeenCalled();
   });
 
   it("returns 409 with existing document metadata when the file hash already exists", async () => {

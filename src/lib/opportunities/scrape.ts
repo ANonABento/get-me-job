@@ -5,6 +5,7 @@ import {
 } from "../../../columbus-extension/src/content/scrapers/scraper-registry";
 import type { ScrapedJob } from "../../../columbus-extension/src/shared/types";
 import type { JobDescription } from "@/types";
+import { assertSafeOutboundUrl, SsrfBlockedError } from "@/lib/security/ssrf";
 
 export type SupportedOpportunitySource =
   | "linkedin"
@@ -130,7 +131,29 @@ function getSupportedOpportunitySource(normalizedUrl: string): SupportedOpportun
   return source;
 }
 
+const SCRAPE_ALLOWED_HOSTS = [
+  "linkedin.com",
+  "indeed.com",
+  "greenhouse.io",
+  "lever.co",
+  "waterlooworks.uwaterloo.ca",
+];
+
 async function fetchOpportunityHtml(url: string): Promise<string> {
+  // Defense-in-depth: even though the scrape pipeline already validates the
+  // host against a fixed allowlist, re-resolve the URL here and reject any
+  // hostname that points at a private IP. This catches DNS-rebinding attacks
+  // where a public-looking domain on the allowlist points at 127.0.0.1 or the
+  // cloud metadata endpoint.
+  try {
+    await assertSafeOutboundUrl(url, { allowedHosts: SCRAPE_ALLOWED_HOSTS });
+  } catch (err) {
+    if (err instanceof SsrfBlockedError) {
+      throw new OpportunityScrapeError("invalid_url", err.message);
+    }
+    throw err;
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
 

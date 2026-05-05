@@ -100,11 +100,14 @@ Guidelines:
           controller.enqueue(encoder.encode(`data: {"done": true}\n\n`));
           controller.close();
         } catch (error) {
-          const errorMsg =
-            error instanceof Error ? error.message : "Stream error";
-          controller.enqueue(
-            encoder.encode(`data: {"error": "${errorMsg}", "done": true}\n\n`),
-          );
+          // Log internally but never echo error.message to the client — LLM
+          // SDKs occasionally include API keys / request IDs in error strings.
+          console.error("[cover-letter/stream] generation error:", error);
+          const payload = JSON.stringify({
+            error: "Failed to generate cover letter",
+            done: true,
+          });
+          controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
           controller.close();
         }
       },
