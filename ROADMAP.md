@@ -1,4 +1,4 @@
-# Get Me Job Roadmap
+# Slothing Roadmap
 
 > AI-powered job application assistant - from MVP to production
 
@@ -143,7 +143,7 @@ Columbus is a **feature-complete single-user MVP** with enhanced features:
 **Dependencies:** 2.1
 **Ticket:** [03-drive-integration.md](./docs/google-integration/03-drive-integration.md)
 
-- [ ] Create "Get Me Job" folder structure
+- [ ] Create "Slothing" folder structure
 - [ ] Upload resumes to Drive
 - [ ] Upload cover letters to Drive
 - [ ] Generate shareable links

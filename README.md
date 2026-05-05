@@ -1,6 +1,10 @@
-# Get Me Job - Job Application Assistant
+# Slothing — Job Application Assistant
 
-Your personal job application command center. Upload your career documents, build tailored resumes and cover letters in one workspace, match with jobs, and prepare for interviews.
+> You're not lazy. Your job search system is.
+
+Your personal job application command center. Upload your career documents, build tailored resumes and cover letters in one workspace, match with jobs, and prepare for interviews. Slothing does the work for you.
+
+The app code lives in the `get-me-job` repo and `slothing` npm package. Domain: [slothing.work](https://slothing.work).
 
 ## Features
 
@@ -52,7 +56,7 @@ Open [http://localhost:3000](http://localhost:3000)
 
 1. Install Ollama from [ollama.ai](https://ollama.ai)
 2. Pull a model: `ollama pull llama3.2`
-3. Go to Settings in Get Me Job and select "Ollama"
+3. Go to Settings in Slothing and select "Ollama"
 4. Test connection
 
 #### Option 2: Bring Your Own Key
@@ -105,7 +109,7 @@ node columbus-extension/demo/launch-with-extension.mjs
 
 Boots a fresh Chromium with the extension pre-loaded and opens the demo form so you can see scraping, the badge, and the popup behavior end-to-end.
 
-**Connect:** click the Columbus icon → **Connect Account**. Opens `/extension/connect` on your locally-running Get Me Job, generates a token tied to your Clerk session, stores in extension storage. After connecting, `Cmd+Shift+F` auto-fills, `Cmd+Shift+I` imports a listing.
+**Connect:** click the Columbus icon → **Connect Account**. Opens `/extension/connect` on your locally-running Slothing, generates a token tied to your Clerk session, stores in extension storage. After connecting, `Cmd+Shift+F` auto-fills, `Cmd+Shift+I` imports a listing.
 
 Full docs: [`columbus-extension/README.md`](./columbus-extension/README.md).
 

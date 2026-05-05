@@ -32,7 +32,7 @@ type CellValue = string | number | boolean | null | undefined;
  */
 export async function createSpreadsheet(
   title: string,
-  sheetTitles: string[] = ["Sheet1"]
+  sheetTitles: string[] = ["Sheet1"],
 ): Promise<SpreadsheetResult | null> {
   try {
     const auth = await createGoogleClient();
@@ -51,7 +51,7 @@ export async function createSpreadsheet(
     const spreadsheetId = response.data.spreadsheetId!;
     const spreadsheetUrl = response.data.spreadsheetUrl!;
 
-    // Move to Taida folder
+    // Move to Slothing folder
     const folderId = await getOrCreateRootFolder();
     await drive.files.update({
       fileId: spreadsheetId,
@@ -71,7 +71,7 @@ export async function createSpreadsheet(
  */
 export async function getSheetData(
   spreadsheetId: string,
-  range: string
+  range: string,
 ): Promise<CellValue[][] | null> {
   try {
     const auth = await createGoogleClient();
@@ -95,7 +95,7 @@ export async function getSheetData(
 export async function updateSheet(
   spreadsheetId: string,
   range: string,
-  values: CellValue[][]
+  values: CellValue[][],
 ): Promise<boolean> {
   try {
     const auth = await createGoogleClient();
@@ -121,7 +121,7 @@ export async function updateSheet(
 export async function appendToSheet(
   spreadsheetId: string,
   range: string,
-  values: CellValue[][]
+  values: CellValue[][],
 ): Promise<boolean> {
   try {
     const auth = await createGoogleClient();
@@ -146,7 +146,7 @@ export async function appendToSheet(
  */
 export async function clearSheet(
   spreadsheetId: string,
-  range: string
+  range: string,
 ): Promise<boolean> {
   try {
     const auth = await createGoogleClient();
@@ -168,7 +168,7 @@ export async function clearSheet(
  * Export job tracker to a new spreadsheet
  */
 export async function exportJobTrackerToSheet(
-  jobs: JobDescription[]
+  jobs: JobDescription[],
 ): Promise<SpreadsheetResult | null> {
   const timestamp = new Date().toISOString().split("T")[0];
   const result = await createSpreadsheet(`Job Tracker Export - ${timestamp}`, [
@@ -256,7 +256,7 @@ export async function exportJobTrackerToSheet(
  * Create salary comparison spreadsheet
  */
 export async function createSalaryComparisonSheet(
-  offers: SalaryOffer[]
+  offers: SalaryOffer[],
 ): Promise<SpreadsheetResult | null> {
   const result = await createSpreadsheet("Salary Comparison", [
     "Offers",

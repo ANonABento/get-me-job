@@ -2,15 +2,15 @@ import Link from "next/link";
 
 export const metadata = {
   title: "Terms of Service",
-  description: "Terms governing use of the Taida application.",
+  description: "Terms governing use of the Slothing application.",
   openGraph: {
     title: "Terms of Service",
-    description: "Terms governing use of the Taida application.",
+    description: "Terms governing use of the Slothing application.",
     url: "/terms",
   },
   twitter: {
     title: "Terms of Service",
-    description: "Terms governing use of the Taida application.",
+    description: "Terms governing use of the Slothing application.",
   },
 };
 
@@ -39,7 +39,7 @@ export default function TermsPage() {
               Use of the service
             </h2>
             <p className="mt-2">
-              Taida is provided to help you organize and improve your job
+              Slothing is provided to help you organize and improve your job
               search. You are responsible for the accuracy of the information
               you upload and for how you use any generated content in
               applications or interviews.

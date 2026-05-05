@@ -15,10 +15,14 @@ test.describe("Modals - Onboarding", () => {
 
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible({ timeout: 5000 });
-    await expect(dialog.locator("h2.text-2xl")).toHaveText(/welcome to taida/i);
+    await expect(dialog.locator("h2.text-2xl")).toHaveText(
+      /welcome to slothing/i,
+    );
   });
 
-  test("onboarding modal can be navigated through all steps", async ({ page }) => {
+  test("onboarding modal can be navigated through all steps", async ({
+    page,
+  }) => {
     await page.goto("/dashboard");
     await page.evaluate(() => {
       localStorage.removeItem("get_me_job_onboarding_completed");
@@ -52,9 +56,9 @@ test.describe("Modals - Onboarding", () => {
   }, testInfo) => {
     test.skip(
       testInfo.project.name !== "chromium",
-      "Visual onboarding baselines are only maintained for the desktop Chromium project."
+      "Visual onboarding baselines are only maintained for the desktop Chromium project.",
     );
-    
+
     await page.goto("/dashboard");
     await page.evaluate(() => {
       localStorage.removeItem("get_me_job_onboarding_completed");
@@ -68,7 +72,9 @@ test.describe("Modals - Onboarding", () => {
     let step = 1;
     const continueButton = page.getByRole("button", { name: /continue/i });
 
-    while (await continueButton.isVisible({ timeout: 500 }).catch(() => false)) {
+    while (
+      await continueButton.isVisible({ timeout: 500 }).catch(() => false)
+    ) {
       await expect(dialog).toHaveScreenshot(`onboarding-step-${step}.png`, {
         animations: "disabled",
       });
@@ -153,7 +159,9 @@ test.describe.skip("Modals - Jobs Page", () => {
   });
 
   test("add job modal opens and renders correctly", async ({ page }) => {
-    const addButton = page.getByRole("button", { name: /add job|paste|new/i }).first();
+    const addButton = page
+      .getByRole("button", { name: /add job|paste|new/i })
+      .first();
 
     if (await addButton.isVisible()) {
       await addButton.click();
@@ -186,7 +194,9 @@ test.describe.skip("Modals - Jobs Page", () => {
       await jobCard.click();
 
       // Look for slide-over panel or modal
-      const panel = page.locator("[role='dialog'], .slide-over, [class*='Sheet']");
+      const panel = page.locator(
+        "[role='dialog'], .slide-over, [class*='Sheet']",
+      );
       if (await panel.isVisible({ timeout: 1000 }).catch(() => false)) {
         await expect(panel).toHaveScreenshot("job-details-panel.png", {
           animations: "disabled",
@@ -196,7 +206,9 @@ test.describe.skip("Modals - Jobs Page", () => {
   });
 
   test("Gmail import modal", async ({ page }) => {
-    const gmailButton = page.getByRole("button", { name: /gmail|import.*email/i });
+    const gmailButton = page.getByRole("button", {
+      name: /gmail|import.*email/i,
+    });
 
     if (await gmailButton.isVisible({ timeout: 1000 }).catch(() => false)) {
       await gmailButton.click();
@@ -222,7 +234,9 @@ test.describe.skip("Modals - Profile Page", () => {
   });
 
   test("add experience modal", async ({ page }) => {
-    const addButton = page.getByRole("button", { name: /add experience|add work/i }).first();
+    const addButton = page
+      .getByRole("button", { name: /add experience|add work/i })
+      .first();
 
     if (await addButton.isVisible({ timeout: 1000 }).catch(() => false)) {
       await addButton.click();
@@ -240,7 +254,9 @@ test.describe.skip("Modals - Profile Page", () => {
   });
 
   test("add education modal", async ({ page }) => {
-    const addButton = page.getByRole("button", { name: /add education/i }).first();
+    const addButton = page
+      .getByRole("button", { name: /add education/i })
+      .first();
 
     if (await addButton.isVisible({ timeout: 1000 }).catch(() => false)) {
       await addButton.click();
@@ -266,7 +282,9 @@ test.describe.skip("Modals - Profile Page", () => {
 
       if (await dialog.isVisible({ timeout: 500 }).catch(() => false)) {
         await expect(dialog).toHaveScreenshot("add-skill-modal.png");
-      } else if (await dropdown.isVisible({ timeout: 500 }).catch(() => false)) {
+      } else if (
+        await dropdown.isVisible({ timeout: 500 }).catch(() => false)
+      ) {
         await expect(dropdown).toHaveScreenshot("add-skill-dropdown.png");
       }
     }
@@ -284,7 +302,9 @@ test.describe.skip("Modals - Interview Page", () => {
   });
 
   test("interview session start options", async ({ page }) => {
-    const startButton = page.getByRole("button", { name: /start|begin|practice/i }).first();
+    const startButton = page
+      .getByRole("button", { name: /start|begin|practice/i })
+      .first();
 
     if (await startButton.isVisible({ timeout: 1000 }).catch(() => false)) {
       await startButton.click();
@@ -311,7 +331,9 @@ test.describe.skip("Modals - Bank Page", () => {
   });
 
   test("drive file picker modal", async ({ page }) => {
-    const driveButton = page.getByRole("button", { name: /drive|import/i }).first();
+    const driveButton = page
+      .getByRole("button", { name: /drive|import/i })
+      .first();
 
     if (await driveButton.isVisible({ timeout: 1000 }).catch(() => false)) {
       await driveButton.click();
@@ -337,7 +359,9 @@ test.describe.skip("Modals - General Behavior", () => {
   test("modals have backdrop overlay", async ({ page }) => {
     // Trigger any modal
     await page.goto("/jobs");
-    const addButton = page.getByRole("button", { name: /add|paste|new/i }).first();
+    const addButton = page
+      .getByRole("button", { name: /add|paste|new/i })
+      .first();
 
     if (await addButton.isVisible()) {
       await addButton.click();
@@ -345,7 +369,9 @@ test.describe.skip("Modals - General Behavior", () => {
       const dialog = page.getByRole("dialog");
       if (await dialog.isVisible({ timeout: 1000 }).catch(() => false)) {
         // Check for backdrop
-        const backdrop = page.locator("[class*='overlay'], [class*='backdrop'], .fixed.inset-0");
+        const backdrop = page.locator(
+          "[class*='overlay'], [class*='backdrop'], .fixed.inset-0",
+        );
         expect(await backdrop.count()).toBeGreaterThan(0);
       }
     }
@@ -353,7 +379,9 @@ test.describe.skip("Modals - General Behavior", () => {
 
   test("clicking backdrop closes modal", async ({ page }) => {
     await page.goto("/jobs");
-    const addButton = page.getByRole("button", { name: /add|paste|new/i }).first();
+    const addButton = page
+      .getByRole("button", { name: /add|paste|new/i })
+      .first();
 
     if (await addButton.isVisible()) {
       await addButton.click();
@@ -371,7 +399,9 @@ test.describe.skip("Modals - General Behavior", () => {
 
   test("modals prevent body scroll", async ({ page }) => {
     await page.goto("/jobs");
-    const addButton = page.getByRole("button", { name: /add|paste|new/i }).first();
+    const addButton = page
+      .getByRole("button", { name: /add|paste|new/i })
+      .first();
 
     if (await addButton.isVisible()) {
       await addButton.click();
@@ -407,18 +437,29 @@ test.describe.skip("Confirmations and Alerts", () => {
       await deleteButton.click();
 
       // Confirmation dialog should appear
-      const confirmDialog = page.getByRole("alertdialog").or(
-        page.getByText(/are you sure|confirm|delete/i).locator("xpath=ancestor::*[@role='dialog']")
-      );
+      const confirmDialog = page
+        .getByRole("alertdialog")
+        .or(
+          page
+            .getByText(/are you sure|confirm|delete/i)
+            .locator("xpath=ancestor::*[@role='dialog']"),
+        );
 
       if (await confirmDialog.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await expect(confirmDialog).toHaveScreenshot("delete-confirmation.png", {
-          animations: "disabled",
-        });
+        await expect(confirmDialog).toHaveScreenshot(
+          "delete-confirmation.png",
+          {
+            animations: "disabled",
+          },
+        );
 
         // Should have cancel and confirm buttons
-        await expect(page.getByRole("button", { name: /cancel/i })).toBeVisible();
-        await expect(page.getByRole("button", { name: /delete|confirm/i })).toBeVisible();
+        await expect(
+          page.getByRole("button", { name: /cancel/i }),
+        ).toBeVisible();
+        await expect(
+          page.getByRole("button", { name: /delete|confirm/i }),
+        ).toBeVisible();
       }
     }
   });
@@ -434,8 +475,15 @@ test.describe.skip("Confirmations and Alerts", () => {
       await saveButton.click();
 
       // Look for toast/notification
-      const toast = page.locator("[role='alert'], .toast, [class*='Toaster'], [class*='toast']");
-      if (await toast.first().isVisible({ timeout: 3000 }).catch(() => false)) {
+      const toast = page.locator(
+        "[role='alert'], .toast, [class*='Toaster'], [class*='toast']",
+      );
+      if (
+        await toast
+          .first()
+          .isVisible({ timeout: 3000 })
+          .catch(() => false)
+      ) {
         await expect(toast.first()).toHaveScreenshot("success-toast.png", {
           animations: "disabled",
         });

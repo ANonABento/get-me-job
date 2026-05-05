@@ -9,7 +9,15 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, X, MessageSquare, Upload, FileText, Briefcase, Rocket } from "lucide-react";
+import {
+  ArrowRight,
+  X,
+  MessageSquare,
+  Upload,
+  FileText,
+  Briefcase,
+  Rocket,
+} from "lucide-react";
 import { STORAGE_KEYS } from "@/lib/constants";
 import {
   WelcomeStep,
@@ -22,7 +30,7 @@ import {
 export const ONBOARDING_STEP_COUNT = 5;
 
 const STEP_TITLES = [
-  "Welcome to Taida",
+  "Welcome to Slothing",
   "Upload Your Resume",
   "Review Your Profile",
   "Configure AI",
@@ -78,7 +86,11 @@ export function ProgressDots({
   current: number;
 }) {
   return (
-    <div className="flex items-center justify-center gap-1.5" role="group" aria-label="Onboarding progress">
+    <div
+      className="flex items-center justify-center gap-1.5"
+      role="group"
+      aria-label="Onboarding progress"
+    >
       {Array.from({ length: total }, (_, i) => (
         <div
           key={i}
@@ -86,15 +98,15 @@ export function ProgressDots({
             i === current
               ? "w-6 bg-primary"
               : i < current
-              ? "w-1.5 bg-primary/50"
-              : "w-1.5 bg-muted"
+                ? "w-1.5 bg-primary/50"
+                : "w-1.5 bg-muted"
           }`}
           aria-label={
             i === current
               ? `Step ${i + 1} of ${total}, current`
               : i < current
-              ? `Step ${i + 1} of ${total}, completed`
-              : `Step ${i + 1} of ${total}`
+                ? `Step ${i + 1} of ${total}, completed`
+                : `Step ${i + 1} of ${total}`
           }
         />
       ))}
@@ -103,21 +115,24 @@ export function ProgressDots({
 }
 const steps = [
   {
-    title: "Welcome to Taida",
-    description: "Your AI-powered job application command center. Let's get you set up for success.",
+    title: "Welcome to Slothing",
+    description:
+      "Your AI-powered job application command center. Let's get you set up for success.",
     icon: Rocket,
     gradient: "from-primary to-accent",
   },
   {
     title: "Upload Your Resume",
-    description: "Start by uploading your resume. Taida will automatically extract and organize your professional information.",
+    description:
+      "Start by uploading your resume. Slothing will automatically extract and organize your professional information.",
     icon: Upload,
     gradient: "from-primary to-accent",
     action: "/bank",
   },
   {
     title: "Build Your Profile",
-    description: "Review and enhance your extracted profile. Add missing details to strengthen your applications.",
+    description:
+      "Review and enhance your extracted profile. Add missing details to strengthen your applications.",
     icon: FileText,
     gradient: "from-primary to-accent",
     action: "/bank",
@@ -131,7 +146,8 @@ const steps = [
   },
   {
     title: "Ace Your Interviews",
-    description: "Practice with AI-powered mock interviews customized to your target roles. Get instant feedback.",
+    description:
+      "Practice with AI-powered mock interviews customized to your target roles. Get instant feedback.",
     icon: MessageSquare,
     gradient: "from-primary to-accent",
     action: "/interview",
@@ -214,7 +230,6 @@ export function OnboardingDialog() {
             </Button>
           )}
         </div>
-
       </DialogContent>
     </Dialog>
   );

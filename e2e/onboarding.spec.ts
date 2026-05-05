@@ -14,12 +14,12 @@ test.describe("Onboarding Flow", () => {
   });
 
   test("should show onboarding dialog on first visit", async ({ page }) => {
-    await expect(onboardingHeading(page)).toHaveText("Welcome to Taida");
+    await expect(onboardingHeading(page)).toHaveText("Welcome to Slothing");
   });
 
   test("should navigate through onboarding steps", async ({ page }) => {
     // Step 1: Welcome
-    await expect(onboardingHeading(page)).toHaveText("Welcome to Taida");
+    await expect(onboardingHeading(page)).toHaveText("Welcome to Slothing");
     await page.getByRole("button", { name: /continue/i }).click();
 
     // Step 2: Upload Resume

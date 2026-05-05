@@ -3,10 +3,12 @@ import { test, expect } from "@playwright/test";
 test.describe("Smoke Tests", () => {
   test("homepage loads successfully", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveTitle(/Taida/i);
+    await expect(page).toHaveTitle(/Slothing/i);
   });
 
-  test("protected pages are accessible with auth bypass (no Clerk keys)", async ({ page }) => {
+  test("protected pages are accessible with auth bypass (no Clerk keys)", async ({
+    page,
+  }) => {
     const pages = [
       { url: "/dashboard", name: "Dashboard" },
       { url: "/bank", name: "Documents" },
@@ -36,7 +38,7 @@ test.describe("Smoke Tests", () => {
 
     await menuButton.click();
     await expect(
-      page.getByRole("banner").getByRole("link", { name: "Features" })
+      page.getByRole("banner").getByRole("link", { name: "Features" }),
     ).toBeVisible();
   });
 
@@ -46,10 +48,14 @@ test.describe("Smoke Tests", () => {
 
     await expect(page.locator("h1:has-text('500')")).not.toBeVisible();
     await expect(page.locator("h1:has-text('404')")).not.toBeVisible();
-    await expect(page.getByText(/something went wrong|page not found/i)).not.toBeVisible();
+    await expect(
+      page.getByText(/something went wrong|page not found/i),
+    ).not.toBeVisible();
   });
 
-  test("app handles localStorage unavailability gracefully", async ({ page }) => {
+  test("app handles localStorage unavailability gracefully", async ({
+    page,
+  }) => {
     // Disable localStorage
     await page.addInitScript(() => {
       Object.defineProperty(window, "localStorage", {

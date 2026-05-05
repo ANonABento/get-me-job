@@ -2,15 +2,17 @@ import Link from "next/link";
 
 export const metadata = {
   title: "Privacy Policy",
-  description: "How Taida stores, uses, and protects your job search data.",
+  description: "How Slothing stores, uses, and protects your job search data.",
   openGraph: {
     title: "Privacy Policy",
-    description: "How Taida stores, uses, and protects your job search data.",
+    description:
+      "How Slothing stores, uses, and protects your job search data.",
     url: "/privacy",
   },
   twitter: {
     title: "Privacy Policy",
-    description: "How Taida stores, uses, and protects your job search data.",
+    description:
+      "How Slothing stores, uses, and protects your job search data.",
   },
 };
 
@@ -39,7 +41,7 @@ export default function PrivacyPage() {
               What we collect
             </h2>
             <p className="mt-2">
-              Taida stores the profile, resume, job tracking, reminder, and
+              Slothing stores the profile, resume, job tracking, reminder, and
               interview preparation data you add to the product. If you connect
               Google services, the app also stores the minimum tokens and
               metadata needed to sync with those tools.

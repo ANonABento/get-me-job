@@ -51,7 +51,11 @@ interface LLMProviderSelectorProps {
   onProviderChange: (updates: Partial<LLMConfig>) => void;
 }
 
-export function LLMProviderSelector({ provider, apiKey, onProviderChange }: LLMProviderSelectorProps) {
+export function LLMProviderSelector({
+  provider,
+  apiKey,
+  onProviderChange,
+}: LLMProviderSelectorProps) {
   return (
     <div className="rounded-2xl border bg-card p-6">
       <div className="flex items-center gap-3 mb-6">
@@ -60,7 +64,9 @@ export function LLMProviderSelector({ provider, apiKey, onProviderChange }: LLMP
         </div>
         <div>
           <h2 className="font-semibold">AI Provider</h2>
-          <p className="text-sm text-muted-foreground">Choose how Taida will process your documents</p>
+          <p className="text-sm text-muted-foreground">
+            Choose how Slothing will process your documents
+          </p>
         </div>
       </div>
 
@@ -83,10 +89,14 @@ export function LLMProviderSelector({ provider, apiKey, onProviderChange }: LLMP
                 : "border-transparent bg-muted/50 hover:bg-muted"
             }`}
           >
-            <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">{option.icon}</div>
+            <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
+              {option.icon}
+            </div>
             <div>
               <p className="font-medium">{option.label}</p>
-              <p className="text-sm text-muted-foreground">{option.description}</p>
+              <p className="text-sm text-muted-foreground">
+                {option.description}
+              </p>
             </div>
             {provider === option.value && (
               <Badge className="absolute right-3 top-3 gap-1.5 bg-primary text-primary-foreground">

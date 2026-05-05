@@ -122,9 +122,9 @@ function StatusCard({
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <Chrome className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle>Connect Taida Extension</CardTitle>
+          <CardTitle>Connect Slothing Extension</CardTitle>
           <CardDescription>
-            Link your browser extension to your Taida account
+            Link your browser extension to your Slothing account
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center space-y-4">

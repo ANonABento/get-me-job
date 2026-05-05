@@ -6,7 +6,7 @@ const steps = [
     icon: Upload,
     title: "Upload",
     description:
-      "Drop in your resumes, cover letters, and career docs. Taida parses and organizes everything automatically.",
+      "Drop in your resumes, cover letters, and career docs. Slothing parses and organizes everything automatically.",
     gradient: "from-violet-500 to-purple-400",
   },
   {
@@ -22,7 +22,7 @@ const steps = [
     icon: FileOutput,
     title: "Build",
     description:
-      "Paste a job description and Taida generates a tailored resume pulling exactly the right experience from your bank.",
+      "Paste a job description and Slothing generates a tailored resume pulling exactly the right experience from your bank.",
     gradient: "from-blue-500 to-indigo-400",
   },
 ];

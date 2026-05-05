@@ -28,7 +28,7 @@ describe("ICS Generator", () => {
       expect(ics).toContain("BEGIN:VEVENT");
       expect(ics).toContain("END:VEVENT");
       expect(ics).toContain("VERSION:2.0");
-      expect(ics).toContain("PRODID:-//Taida//EN");
+      expect(ics).toContain("PRODID:-//Slothing//EN");
     });
 
     it("should include event title", () => {
@@ -121,7 +121,7 @@ describe("ICS Generator", () => {
 
       expect(ics).toContain("BEGIN:VCALENDAR");
       expect(ics).toContain("END:VCALENDAR");
-      expect(ics).toContain("X-WR-CALNAME:Taida Job Search");
+      expect(ics).toContain("X-WR-CALNAME:Slothing Job Search");
 
       // Should have 2 events
       const eventMatches = ics.match(/BEGIN:VEVENT/g);

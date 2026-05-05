@@ -35,12 +35,24 @@ test.describe("Navigation", () => {
     const sidebar = page.locator("aside");
 
     // Check main navigation items visible in sidebar
-    await expect(sidebar.getByRole("link", { name: /Dashboard/i })).toBeVisible();
-    await expect(sidebar.getByRole("link", { name: /Documents/i })).toBeVisible();
-    await expect(sidebar.getByRole("link", { name: /Document Studio/i })).toBeVisible();
-    await expect(sidebar.getByRole("link", { name: /Interview Prep/i })).toBeVisible();
-    await expect(sidebar.getByRole("link", { name: /Analytics/i })).toBeVisible();
-    await expect(sidebar.getByRole("link", { name: /Settings/i })).toBeVisible();
+    await expect(
+      sidebar.getByRole("link", { name: /Dashboard/i }),
+    ).toBeVisible();
+    await expect(
+      sidebar.getByRole("link", { name: /Documents/i }),
+    ).toBeVisible();
+    await expect(
+      sidebar.getByRole("link", { name: /Document Studio/i }),
+    ).toBeVisible();
+    await expect(
+      sidebar.getByRole("link", { name: /Interview Prep/i }),
+    ).toBeVisible();
+    await expect(
+      sidebar.getByRole("link", { name: /Analytics/i }),
+    ).toBeVisible();
+    await expect(
+      sidebar.getByRole("link", { name: /Settings/i }),
+    ).toBeVisible();
   });
 
   test("should navigate to Dashboard", async ({ page }) => {
@@ -106,7 +118,7 @@ test.describe("Navigation", () => {
     await preparePage(page);
     await ensureSidebarOpen(page);
     const sidebar = page.locator("aside");
-    await expect(sidebar.getByText("Taida")).toBeVisible();
+    await expect(sidebar.getByText("Slothing")).toBeVisible();
   });
 });
 
@@ -119,7 +131,9 @@ test.describe("Keyboard Shortcuts", () => {
     await preparePage(page);
     await page.keyboard.press("Shift+?");
     // Use heading specifically
-    await expect(page.getByRole("heading", { name: "Keyboard Shortcuts" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Keyboard Shortcuts" }),
+    ).toBeVisible();
   });
 
   test("should navigate with keyboard shortcuts", async ({ page }) => {
@@ -130,12 +144,18 @@ test.describe("Keyboard Shortcuts", () => {
     await expect(page).toHaveURL("/settings");
   });
 
-  test("should close keyboard shortcuts dialog with Escape", async ({ page }) => {
+  test("should close keyboard shortcuts dialog with Escape", async ({
+    page,
+  }) => {
     await preparePage(page);
     await page.keyboard.press("Shift+?");
-    await expect(page.getByRole("heading", { name: "Keyboard Shortcuts" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Keyboard Shortcuts" }),
+    ).toBeVisible();
 
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("heading", { name: "Keyboard Shortcuts" })).not.toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Keyboard Shortcuts" }),
+    ).not.toBeVisible();
   });
 });

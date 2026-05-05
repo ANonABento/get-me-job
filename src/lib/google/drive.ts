@@ -26,11 +26,11 @@ export interface UploadResult {
   error?: string;
 }
 
-const ROOT_FOLDER_NAME = "Taida";
+const ROOT_FOLDER_NAME = "Slothing";
 const SUBFOLDERS = ["Resumes", "Cover Letters", "Company Research", "Backups"];
 
 /**
- * Get or create the root "Taida" folder
+ * Get or create the root "Slothing" folder
  */
 export async function getOrCreateRootFolder(): Promise<string> {
   const drive = await createDriveClient();
@@ -61,7 +61,7 @@ export async function getOrCreateRootFolder(): Promise<string> {
  * Get or create a subfolder within the root folder
  */
 export async function getOrCreateSubfolder(
-  subfolderName: string
+  subfolderName: string,
 ): Promise<string> {
   const drive = await createDriveClient();
   const rootFolderId = await getOrCreateRootFolder();
@@ -105,7 +105,7 @@ export async function uploadFile(
   fileName: string,
   content: Buffer | string,
   mimeType: string,
-  folderId?: string
+  folderId?: string,
 ): Promise<UploadResult> {
   try {
     const drive = await createDriveClient();
@@ -120,7 +120,7 @@ export async function uploadFile(
       media: {
         mimeType,
         body: Readable.from(
-          typeof content === "string" ? Buffer.from(content) : content
+          typeof content === "string" ? Buffer.from(content) : content,
         ),
       },
       fields: "id, webViewLink, webContentLink",
@@ -147,7 +147,7 @@ export async function uploadFile(
 export async function uploadResume(
   fileName: string,
   content: Buffer,
-  mimeType = "application/pdf"
+  mimeType = "application/pdf",
 ): Promise<UploadResult> {
   const folderId = await getOrCreateSubfolder("Resumes");
   return uploadFile(fileName, content, mimeType, folderId);
@@ -159,7 +159,7 @@ export async function uploadResume(
 export async function uploadCoverLetter(
   fileName: string,
   content: Buffer,
-  mimeType = "application/pdf"
+  mimeType = "application/pdf",
 ): Promise<UploadResult> {
   const folderId = await getOrCreateSubfolder("Cover Letters");
   return uploadFile(fileName, content, mimeType, folderId);
@@ -170,7 +170,7 @@ export async function uploadCoverLetter(
  */
 export async function uploadCompanyResearch(
   companyName: string,
-  content: string
+  content: string,
 ): Promise<UploadResult> {
   const folderId = await getOrCreateSubfolder("Company Research");
   const fileName = `${companyName}.md`;
@@ -191,7 +191,7 @@ export async function uploadBackup(content: string): Promise<UploadResult> {
  * Create a shareable link for a file
  */
 export async function createShareableLink(
-  fileId: string
+  fileId: string,
 ): Promise<string | null> {
   try {
     const drive = await createDriveClient();
@@ -223,7 +223,7 @@ export async function createShareableLink(
  */
 export async function listFiles(
   folderId?: string,
-  mimeType?: string
+  mimeType?: string,
 ): Promise<DriveFile[]> {
   const drive = await createDriveClient();
 
@@ -291,7 +291,7 @@ export async function downloadFile(fileId: string): Promise<Buffer | null> {
       },
       {
         responseType: "arraybuffer",
-      }
+      },
     );
 
     return Buffer.from(response.data as ArrayBuffer);
@@ -304,7 +304,9 @@ export async function downloadFile(fileId: string): Promise<Buffer | null> {
 /**
  * Get file metadata
  */
-export async function getFileMetadata(fileId: string): Promise<DriveFile | null> {
+export async function getFileMetadata(
+  fileId: string,
+): Promise<DriveFile | null> {
   try {
     const drive = await createDriveClient();
 

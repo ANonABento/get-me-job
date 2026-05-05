@@ -22,15 +22,18 @@ export async function POST(request: NextRequest) {
     if (contentType.includes("application/json")) {
       const data = await request.json();
 
-      // Handle Taida export format or direct array
+      // Handle Slothing export format or direct array
       if (data.jobs && Array.isArray(data.jobs)) {
         rawJobs = data.jobs;
       } else if (Array.isArray(data)) {
         rawJobs = data;
       } else {
         return NextResponse.json(
-          { error: "Invalid JSON format. Expected array of jobs or {jobs: [...]}." },
-          { status: 400 }
+          {
+            error:
+              "Invalid JSON format. Expected array of jobs or {jobs: [...]}.",
+          },
+          { status: 400 },
         );
       }
     } else if (
@@ -43,7 +46,7 @@ export async function POST(request: NextRequest) {
       if (!file) {
         return NextResponse.json(
           { error: "No file provided" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -51,15 +54,20 @@ export async function POST(request: NextRequest) {
       rawJobs = parseCsv(text);
     } else {
       return NextResponse.json(
-        { error: "Unsupported content type. Use application/json or multipart/form-data." },
-        { status: 400 }
+        {
+          error:
+            "Unsupported content type. Use application/json or multipart/form-data.",
+        },
+        { status: 400 },
       );
     }
 
     // Validate and import jobs
     const existingJobs = getJobs(authResult.userId);
     const existingTitles = new Set(
-      existingJobs.map((j) => `${j.title.toLowerCase()}-${j.company.toLowerCase()}`)
+      existingJobs.map(
+        (j) => `${j.title.toLowerCase()}-${j.company.toLowerCase()}`,
+      ),
     );
 
     const results = {
@@ -74,7 +82,7 @@ export async function POST(request: NextRequest) {
       if (!parseResult.success) {
         const jobTitle = (rawJob as { title?: string })?.title || "unknown";
         results.errors.push(
-          `Skipped job "${jobTitle}": ${parseResult.error.issues[0]?.message || "Invalid data"}`
+          `Skipped job "${jobTitle}": ${parseResult.error.issues[0]?.message || "Invalid data"}`,
         );
         results.skipped++;
         continue;
@@ -90,22 +98,25 @@ export async function POST(request: NextRequest) {
       }
 
       // Create job
-      createJob({
-        title: job.title,
-        company: job.company,
-        location: job.location,
-        type: job.type as JobDescription["type"],
-        remote: Boolean(job.remote),
-        salary: job.salary,
-        description: job.description,
-        requirements: job.requirements || [],
-        responsibilities: job.responsibilities || [],
-        keywords: job.keywords || [],
-        url: job.url,
-        status: (job.status as JobDescription["status"]) || "pending",
-        deadline: job.deadline,
-        notes: job.notes,
-      }, authResult.userId);
+      createJob(
+        {
+          title: job.title,
+          company: job.company,
+          location: job.location,
+          type: job.type as JobDescription["type"],
+          remote: Boolean(job.remote),
+          salary: job.salary,
+          description: job.description,
+          requirements: job.requirements || [],
+          responsibilities: job.responsibilities || [],
+          keywords: job.keywords || [],
+          url: job.url,
+          status: (job.status as JobDescription["status"]) || "pending",
+          deadline: job.deadline,
+          notes: job.notes,
+        },
+        authResult.userId,
+      );
 
       existingTitles.add(key);
       results.imported++;
@@ -120,7 +131,7 @@ export async function POST(request: NextRequest) {
     console.error("Import jobs error:", error);
     return NextResponse.json(
       { error: "Failed to import jobs" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -141,9 +152,13 @@ function parseCsv(text: string): unknown[] {
       const mappedKey = mapCsvHeader(header);
       if (mappedKey) {
         if (mappedKey === "remote") {
-          job[mappedKey] = value.toLowerCase() === "yes" || value === "true" || value === "1";
+          job[mappedKey] =
+            value.toLowerCase() === "yes" || value === "true" || value === "1";
         } else if (mappedKey === "keywords") {
-          job[mappedKey] = value.split(";").map((k) => k.trim()).filter(Boolean);
+          job[mappedKey] = value
+            .split(";")
+            .map((k) => k.trim())
+            .filter(Boolean);
         } else {
           job[mappedKey] = value;
         }

@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Sign Up",
-  description: "Create your free Taida account and start landing your dream job.",
+  description:
+    "Create your free Slothing account and start landing your dream job.",
 };
 
 export default function SignUpPage() {

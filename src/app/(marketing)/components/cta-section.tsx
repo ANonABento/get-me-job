@@ -25,8 +25,7 @@ export function CTASection() {
               <ScanSearch className="h-8 w-8" />
             </div>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              Try the free{" "}
-              <span className="gradient-text">ATS Scanner</span>
+              Try the free <span className="gradient-text">ATS Scanner</span>
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
               Paste your resume and a job description. Get an instant ATS
@@ -55,9 +54,8 @@ export function CTASection() {
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
               Join thousands of job seekers who build tailored resumes in
-              minutes, not hours.
-              Join thousands of successful job seekers who have transformed their
-              career journey with Taida.
+              minutes, not hours. Join thousands of successful job seekers who
+              have transformed their career journey with Slothing.
             </p>
 
             {/* Benefits */}
@@ -73,11 +71,7 @@ export function CTASection() {
               ))}
             </div>
 
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-            >
+            <Button asChild size="lg" variant="outline">
               <Link href="/sign-up?redirect_url=/dashboard" prefetch={false}>
                 Get Started Free
                 <ArrowRight className="ml-2 h-5 w-5" />

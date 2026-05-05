@@ -36,20 +36,20 @@ describe("getSiteMetadata", () => {
 
     expect(getMetadataBase().toString()).toBe("https://jobs.example.com/");
     expect(getSiteMetadata().metadataBase?.toString()).toBe(
-      "https://jobs.example.com/"
+      "https://jobs.example.com/",
     );
   });
 
   it("falls back to the default site URL when the app URL is empty", () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
 
-    expect(getMetadataBase().toString()).toBe("https://taida.app/");
+    expect(getMetadataBase().toString()).toBe("https://slothing.work/");
   });
 
   it("falls back to the default site URL when the app URL is invalid", () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "not a valid url");
 
-    expect(getMetadataBase().toString()).toBe("https://taida.app/");
+    expect(getMetadataBase().toString()).toBe("https://slothing.work/");
   });
 });
 
@@ -97,17 +97,19 @@ describe("getPageMetadata", () => {
     expect(meta.alternates).toMatchObject({ canonical: "/bank" });
     expect((meta.openGraph as Record<string, unknown>).title).toBe("Documents");
     expect((meta.openGraph as Record<string, unknown>).url).toBe("/bank");
-    expect((meta.openGraph as Record<string, unknown>).siteName).toBe(SITE_NAME);
+    expect((meta.openGraph as Record<string, unknown>).siteName).toBe(
+      SITE_NAME,
+    );
   });
 
   it("includes twitter card fields", () => {
     const meta = getPageMetadata("studio");
     expect(meta.twitter).toBeDefined();
     expect((meta.twitter as Record<string, unknown>).title).toBe(
-      "Document Studio"
+      "Document Studio",
     );
     expect((meta.twitter as Record<string, unknown>).card).toBe(
-      "summary_large_image"
+      "summary_large_image",
     );
   });
 

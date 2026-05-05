@@ -27,7 +27,7 @@ function escapeICSText(text: string): string {
 }
 
 function generateUID(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@taida`;
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@slothing`;
 }
 
 export function generateICSEvent(event: CalendarEvent): string {
@@ -40,7 +40,7 @@ export function generateICSEvent(event: CalendarEvent): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Taida//EN",
+    "PRODID:-//Slothing//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
@@ -89,10 +89,10 @@ export function generateICSCalendar(events: CalendarEvent[]): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Taida//EN",
+    "PRODID:-//Slothing//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    "X-WR-CALNAME:Taida Job Search",
+    "X-WR-CALNAME:Slothing Job Search",
   ];
 
   for (const event of events) {
@@ -151,7 +151,9 @@ export function generateGoogleCalendarURL(event: CalendarEvent): string {
     .toISOString()
     .replace(/[-:]/g, "")
     .replace(/\.\d{3}Z/, "Z");
-  const endDate = (event.endDate || new Date(event.startDate.getTime() + 60 * 60 * 1000))
+  const endDate = (
+    event.endDate || new Date(event.startDate.getTime() + 60 * 60 * 1000)
+  )
     .toISOString()
     .replace(/[-:]/g, "")
     .replace(/\.\d{3}Z/, "Z");

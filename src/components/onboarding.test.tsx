@@ -118,28 +118,28 @@ describe("OnboardingDialog", () => {
       vi.advanceTimersByTime(600);
     });
 
-    expect(hasVisibleHeading("Welcome to Taida")).toBe(false);
+    expect(hasVisibleHeading("Welcome to Slothing")).toBe(false);
   });
 
   it("should show after delay when onboarding is not completed", () => {
     render(<OnboardingDialog />);
-    expect(hasVisibleHeading("Welcome to Taida")).toBe(false);
+    expect(hasVisibleHeading("Welcome to Slothing")).toBe(false);
 
     act(() => {
       vi.advanceTimersByTime(600);
     });
 
-    expect(hasVisibleHeading("Welcome to Taida")).toBe(true);
+    expect(hasVisibleHeading("Welcome to Slothing")).toBe(true);
   });
 
   it("should show step 1 (Welcome) initially", () => {
     openDialog();
-    expect(getVisibleHeading("Welcome to Taida")).toBeInTheDocument();
+    expect(getVisibleHeading("Welcome to Slothing")).toBeInTheDocument();
   });
 
   it("should advance to next step on Continue click", () => {
     openDialog();
-    expect(getVisibleHeading("Welcome to Taida")).toBeInTheDocument();
+    expect(getVisibleHeading("Welcome to Slothing")).toBeInTheDocument();
 
     fireEvent.click(screen.getByText("Continue"));
 
@@ -157,7 +157,7 @@ describe("OnboardingDialog", () => {
 
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       STORAGE_KEYS.ONBOARDING_COMPLETED,
-      "true"
+      "true",
     );
   });
 
@@ -167,7 +167,7 @@ describe("OnboardingDialog", () => {
 
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       STORAGE_KEYS.ONBOARDING_COMPLETED,
-      "true"
+      "true",
     );
   });
 
@@ -185,7 +185,7 @@ describe("OnboardingDialog", () => {
 
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       STORAGE_KEYS.ONBOARDING_COMPLETED,
-      "true"
+      "true",
     );
     expect(navigationMock.push).toHaveBeenCalledWith("/studio");
   });
@@ -194,7 +194,7 @@ describe("OnboardingDialog", () => {
     openDialog();
 
     const stepTexts = [
-      "Welcome to Taida",
+      "Welcome to Slothing",
       "Upload Your Resume",
       "Review Your Profile",
       "Configure AI (Optional)",
@@ -206,7 +206,10 @@ describe("OnboardingDialog", () => {
     }
 
     // Last step uses an apostrophe entity
-    expect(hasVisibleHeading("You\u2019re All Set!") || hasVisibleHeading("You're All Set!")).toBe(true);
+    expect(
+      hasVisibleHeading("You\u2019re All Set!") ||
+        hasVisibleHeading("You're All Set!"),
+    ).toBe(true);
   });
 
   it("should render progress dots with correct count", () => {

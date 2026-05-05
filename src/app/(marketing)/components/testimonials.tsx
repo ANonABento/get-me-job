@@ -4,9 +4,9 @@ const stats = [
   {
     icon: Users,
     value: "10,000+",
-    label: "Job seekers using Taida",
+    label: "Job seekers using Slothing",
     quote:
-      "Taida completely transformed my job search. The AI resume optimization helped me get callbacks from companies that never responded before.",
+      "Slothing completely transformed my job search. The AI resume optimization helped me get callbacks from companies that never responded before.",
     author: "Sarah M.",
     role: "Software Engineer",
     company: "Now at Google",
@@ -21,7 +21,7 @@ const stats = [
     value: "85%",
     label: "ATS pass rate after optimization",
     quote:
-      "I was applying to 50+ jobs with no response. After using Taida to tailor my resume, my response rate went from 2% to 40%. Game changer!",
+      "I was applying to 50+ jobs with no response. After using Slothing to tailor my resume, my response rate went from 2% to 40%. Game changer!",
     author: "Jennifer L.",
     role: "Marketing Director",
     company: "Now at HubSpot",
@@ -42,8 +42,9 @@ export function Testimonials() {
             <span className="gradient-text">everywhere</span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            Thousands of professionals rely on Taida to land interviews faster.
-            See what our users have to say about their experience with Taida.
+            Thousands of professionals rely on Slothing to land interviews
+            faster. See what our users have to say about their experience with
+            Slothing.
           </p>
         </div>
 
@@ -60,9 +61,7 @@ export function Testimonials() {
               <div className="text-3xl md:text-4xl font-bold gradient-text mb-2">
                 {stat.value}
               </div>
-              <div className="text-sm text-muted-foreground">
-                {stat.label}
-              </div>
+              <div className="text-sm text-muted-foreground">{stat.label}</div>
             </div>
           ))}
         </div>
@@ -70,7 +69,7 @@ export function Testimonials() {
         {/* Testimonial placeholder */}
         <div className="mt-12 p-8 rounded-2xl border bg-card text-center">
           <p className="text-muted-foreground italic">
-            &quot;Taida turned my 3-hour resume rewrite into a 5-minute task.
+            &quot;Slothing turned my 3-hour resume rewrite into a 5-minute task.
             I got callbacks from companies that never responded before.&quot;
           </p>
           <div className="mt-4 flex items-center justify-center gap-3">

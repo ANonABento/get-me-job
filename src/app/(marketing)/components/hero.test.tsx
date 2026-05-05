@@ -3,25 +3,25 @@ import { render, screen } from "@testing-library/react";
 import { Hero } from "./hero";
 
 describe("Hero", () => {
-  it("should render the Taida headline", () => {
+  it("should render the Slothing headline", () => {
     render(<Hero />);
     // Text appears in both badge and h1; verify at least one instance exists
     expect(screen.getAllByText(/You're not lazy\./)[0]).toBeInTheDocument();
-    expect(screen.getAllByText(/You're efficient\./)[0]).toBeInTheDocument();
+    expect(screen.getAllByText(/Your system is\./)[0]).toBeInTheDocument();
   });
 
   it("should render the badge text", () => {
     render(<Hero />);
     // Badge text is mixed with icons in a container; use regex to find substring
     expect(
-      screen.getByText(/AI-Powered Resume Intelligence/)
+      screen.getByText(/AI-Powered Resume Intelligence/),
     ).toBeInTheDocument();
   });
 
-  it("should render the subheadline with Taida description", () => {
+  it("should render the subheadline with Slothing description", () => {
     render(<Hero />);
     expect(
-      screen.getByText(/Taida builds a knowledge bank/)
+      screen.getByText(/Slothing builds a knowledge bank/),
     ).toBeInTheDocument();
   });
 
@@ -36,7 +36,7 @@ describe("Hero", () => {
     const getStarted = screen.getByRole("link", { name: /Get Started/ });
     expect(getStarted).toHaveAttribute(
       "href",
-      "/sign-up?redirect_url=/dashboard"
+      "/sign-up?redirect_url=/dashboard",
     );
   });
 

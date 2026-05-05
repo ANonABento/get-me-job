@@ -39,7 +39,7 @@ export function Navbar() {
               <Sparkles className="h-5 w-5" />
             </div>
             <div className="flex flex-col">
-              <span className="text-lg font-bold gradient-text">Taida</span>
+              <span className="text-lg font-bold gradient-text">Slothing</span>
               <span className="text-2xs text-muted-foreground hidden sm:block">
                 Resume Intelligence 怠惰
               </span>
@@ -66,7 +66,10 @@ export function Navbar() {
                 Sign In
               </Link>
             </Button>
-            <Button asChild className="gradient-bg text-primary-foreground hover:opacity-90">
+            <Button
+              asChild
+              className="gradient-bg text-primary-foreground hover:opacity-90"
+            >
               <Link href="/sign-up?redirect_url=/dashboard" prefetch={false}>
                 Get Started
               </Link>

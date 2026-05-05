@@ -12,7 +12,12 @@
  * @response ImportJobResponse from @/types/api
  */
 import { NextRequest, NextResponse } from "next/server";
-import { parseJobText, parseJobJSON, extractKeywords, type ParsedJob } from "@/lib/import/job-parser";
+import {
+  parseJobText,
+  parseJobJSON,
+  extractKeywords,
+  type ParsedJob,
+} from "@/lib/import/job-parser";
 import { createJob } from "@/lib/db/jobs";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { assertSafeOutboundUrl, SsrfBlockedError } from "@/lib/security/ssrf";
@@ -32,13 +37,16 @@ async function fetchJobFromUrl(url: string): Promise<string> {
 
   const response = await fetch(url, {
     headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; TaidaBot/1.0; +https://taida.app)",
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "User-Agent":
+        "Mozilla/5.0 (compatible; SlothingBot/1.0; +https://slothing.work)",
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     },
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch URL: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Failed to fetch URL: ${response.status} ${response.statusText}`,
+    );
   }
 
   const html = await response.text();
@@ -93,7 +101,9 @@ export async function POST(request: NextRequest) {
             type: parsedJob.type,
             remote: parsedJob.remote,
             salary: parsedJob.salary,
-            description: parsedJob.description.slice(0, 500) + (parsedJob.description.length > 500 ? "..." : ""),
+            description:
+              parsedJob.description.slice(0, 500) +
+              (parsedJob.description.length > 500 ? "..." : ""),
             fullDescription: parsedJob.description,
             requirements: parsedJob.requirements,
             keywords,
@@ -105,7 +115,10 @@ export async function POST(request: NextRequest) {
         console.error("URL fetch error:", fetchError);
         if (fetchError instanceof SsrfBlockedError) {
           return NextResponse.json(
-            { error: "URL is not allowed: must be a public http or https address." },
+            {
+              error:
+                "URL is not allowed: must be a public http or https address.",
+            },
             { status: 400 },
           );
         }
@@ -121,7 +134,7 @@ export async function POST(request: NextRequest) {
     if (!text && !json) {
       return NextResponse.json(
         { error: "Either 'text', 'json', or 'url' is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -136,7 +149,7 @@ export async function POST(request: NextRequest) {
     } else {
       return NextResponse.json(
         { error: "No content to parse" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -153,7 +166,9 @@ export async function POST(request: NextRequest) {
         type: parsedJob.type,
         remote: parsedJob.remote,
         salary: parsedJob.salary,
-        description: parsedJob.description.slice(0, 500) + (parsedJob.description.length > 500 ? "..." : ""),
+        description:
+          parsedJob.description.slice(0, 500) +
+          (parsedJob.description.length > 500 ? "..." : ""),
         fullDescription: parsedJob.description,
         requirements: parsedJob.requirements,
         keywords,
@@ -165,7 +180,7 @@ export async function POST(request: NextRequest) {
     console.error("Import parse error:", error);
     return NextResponse.json(
       { error: "Failed to parse job content" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -177,17 +192,7 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { title, company, location, type, remote, salary, description, requirements, keywords, url } = body;
-
-    if (!title || !company || !description) {
-      return NextResponse.json(
-        { error: "Title, company, and description are required" },
-        { status: 400 }
-      );
-    }
-
-    // Save to database
-    const job = createJob({
+    const {
       title,
       company,
       location,
@@ -195,12 +200,36 @@ export async function PUT(request: NextRequest) {
       remote,
       salary,
       description,
-      requirements: requirements || [],
-      responsibilities: [],
-      keywords: keywords || [],
+      requirements,
+      keywords,
       url,
-      status: "pending",
-    }, authResult.userId);
+    } = body;
+
+    if (!title || !company || !description) {
+      return NextResponse.json(
+        { error: "Title, company, and description are required" },
+        { status: 400 },
+      );
+    }
+
+    // Save to database
+    const job = createJob(
+      {
+        title,
+        company,
+        location,
+        type,
+        remote,
+        salary,
+        description,
+        requirements: requirements || [],
+        responsibilities: [],
+        keywords: keywords || [],
+        url,
+        status: "pending",
+      },
+      authResult.userId,
+    );
 
     return NextResponse.json({
       success: true,
@@ -208,9 +237,6 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     console.error("Import save error:", error);
-    return NextResponse.json(
-      { error: "Failed to save job" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to save job" }, { status: 500 });
   }
 }

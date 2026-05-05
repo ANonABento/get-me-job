@@ -9,8 +9,8 @@ export function OllamaWarning() {
       <div className="text-sm">
         <p className="font-medium text-warning">Make sure Ollama is running</p>
         <p className="text-warning mt-1">
-          Ollama must be running in the background for Taida to work. If you get connection errors, start Ollama from
-          your Applications folder.
+          Ollama must be running in the background for Slothing to work. If you
+          get connection errors, start Ollama from your Applications folder.
         </p>
       </div>
     </div>

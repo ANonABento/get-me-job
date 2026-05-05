@@ -10,8 +10,9 @@ export const metadata = getMarketingPageMetadata();
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  name: "Taida",
-  description: "AI-powered job application assistant — resume tailoring, interview prep, and application tracking.",
+  name: "Slothing",
+  description:
+    "You're not lazy. Your job search system is. AI-powered resume tailoring, interview prep, and application tracking.",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   offers: {

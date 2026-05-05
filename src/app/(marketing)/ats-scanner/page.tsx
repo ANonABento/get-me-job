@@ -3,7 +3,7 @@ import { ScannerForm } from "@/components/ats/scanner-form";
 import { ShieldCheck, Zap, Eye, Sparkles } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Free ATS Resume Checker | Get Me Job",
+  title: "Free ATS Resume Checker | Slothing",
   description:
     "Check your resume's ATS compatibility score for free. Get instant feedback on formatting, structure, content, and keyword optimization.",
   keywords: [
@@ -52,8 +52,8 @@ export default function ATSScannerPage() {
             Free ATS Resume Scanner
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            Over 75% of resumes are rejected by ATS before a human ever sees them.
-            Check yours in seconds.
+            Over 75% of resumes are rejected by ATS before a human ever sees
+            them. Check yours in seconds.
           </p>
         </div>
 

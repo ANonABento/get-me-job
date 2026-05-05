@@ -226,7 +226,9 @@ export function Sidebar() {
             </div>
             {!collapsed && (
               <div className="flex flex-col">
-                <span className="text-lg font-bold gradient-text">Taida</span>
+                <span className="text-lg font-bold gradient-text">
+                  Slothing
+                </span>
                 <span className="text-2xs text-muted-foreground">怠惰</span>
               </div>
             )}
@@ -245,7 +247,12 @@ export function Sidebar() {
         </div>
 
         {/* Navigation — overflow-y-auto only when expanded; collapsed has no y-overflow and needs visible for tooltips */}
-        <nav className={cn("flex-1 p-3", collapsed ? "overflow-visible" : "overflow-y-auto")}>
+        <nav
+          className={cn(
+            "flex-1 p-3",
+            collapsed ? "overflow-visible" : "overflow-y-auto",
+          )}
+        >
           {navigationGroups.map((group, groupIndex) => (
             <div
               key={group.label}

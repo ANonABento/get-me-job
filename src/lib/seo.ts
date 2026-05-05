@@ -12,12 +12,12 @@ interface RouteSeo {
   absoluteTitle?: boolean;
 }
 
-export const SITE_NAME = "Taida";
+export const SITE_NAME = "Slothing";
 export const SITE_TITLE = `${SITE_NAME} — AI-Powered Job Application Assistant`;
 export const SITE_DESCRIPTION =
-  "AI-powered job application assistant — resume tailoring, interview prep, and application tracking to land your dream job.";
+  "You're not lazy. Your job search system is. AI-powered resume tailoring, interview prep, and application tracking that does the work for you.";
 
-const DEFAULT_SITE_URL = "https://taida.app";
+const DEFAULT_SITE_URL = "https://slothing.work";
 const DEFAULT_LOCALE = "en_US";
 const DEFAULT_TWITTER_CARD = "summary_large_image";
 

@@ -23,23 +23,19 @@ export function Hero() {
           {/* Headline */}
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
             You&apos;re not lazy.{" "}
-            <span className="gradient-text">You&apos;re efficient.</span>
+            <span className="gradient-text">Your system is.</span>
           </h1>
 
           {/* Subheadline */}
           <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-            Taida builds a knowledge bank from your career history, then
-            generates perfectly tailored resumes for every job — so you
-            can stop rewriting and start interviewing.
+            Slothing builds a knowledge bank from your career history, then
+            generates perfectly tailored resumes for every job — so you can stop
+            rewriting and start interviewing.
           </p>
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-            >
+            <Button asChild size="lg" variant="outline">
               <Link href="/ats-scanner" prefetch={false}>
                 <ScanSearch className="mr-2 h-5 w-5" />
                 Try Free ATS Scanner
@@ -99,7 +95,7 @@ export function Hero() {
                 <div className="w-3 h-3 rounded-full bg-green-500" />
               </div>
               <div className="flex-1 text-center text-sm text-muted-foreground">
-                Taida Dashboard
+                Slothing Dashboard
               </div>
             </div>
             <div className="p-8 bg-gradient-to-br from-muted/20 to-muted/50">
@@ -107,7 +103,9 @@ export function Hero() {
                 {/* Mock stats */}
                 <div className="p-4 rounded-xl bg-card border">
                   <div className="text-2xl font-bold text-primary">12</div>
-                  <div className="text-sm text-muted-foreground">Jobs Tracked</div>
+                  <div className="text-sm text-muted-foreground">
+                    Jobs Tracked
+                  </div>
                 </div>
                 <div className="p-4 rounded-xl bg-card border">
                   <div className="text-2xl font-bold text-success">8</div>
@@ -115,7 +113,9 @@ export function Hero() {
                 </div>
                 <div className="p-4 rounded-xl bg-card border">
                   <div className="text-2xl font-bold text-amber-500">3</div>
-                  <div className="text-sm text-muted-foreground">Interviews</div>
+                  <div className="text-sm text-muted-foreground">
+                    Interviews
+                  </div>
                 </div>
               </div>
               <div className="mt-4 h-32 rounded-xl bg-card border flex items-center justify-center text-muted-foreground">

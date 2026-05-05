@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Sign In",
-  description: "Sign in to your Taida account.",
+  description: "Sign in to your Slothing account.",
 };
 
 export default function SignInPage() {

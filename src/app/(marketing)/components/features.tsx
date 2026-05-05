@@ -1,16 +1,11 @@
-import {
-  Database,
-  FileSearch,
-  Wand2,
-  ScanSearch,
-} from "lucide-react";
+import { Database, FileSearch, Wand2, ScanSearch } from "lucide-react";
 
 const features = [
   {
     icon: Database,
     title: "Knowledge Bank",
     description:
-      "Upload resumes, cover letters, and career docs. Taida chunks and indexes everything into a searchable knowledge bank — your career history, always ready.",
+      "Upload resumes, cover letters, and career docs. Slothing chunks and indexes everything into a searchable knowledge bank — your career history, always ready.",
     gradient: "from-violet-500 to-purple-400",
   },
   {
@@ -24,7 +19,7 @@ const features = [
     icon: Wand2,
     title: "AI Tailoring",
     description:
-      "Match your bank against any job description. Taida generates a tailored resume that highlights exactly what the role demands.",
+      "Match your bank against any job description. Slothing generates a tailored resume that highlights exactly what the role demands.",
     gradient: "from-blue-500 to-indigo-400",
   },
   {
@@ -50,10 +45,10 @@ export function Features() {
             <span className="gradient-text">working for you</span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            Taida combines smart parsing with AI tailoring to turn your
-            career history into job-winning resumes.
-            Taida combines AI-powered tools with smart tracking to streamline
-            your entire job search process.
+            Slothing combines smart parsing with AI tailoring to turn your
+            career history into job-winning resumes. Slothing combines
+            AI-powered tools with smart tracking to streamline your entire job
+            search process.
           </p>
         </div>
 

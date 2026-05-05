@@ -1,4 +1,4 @@
-// Core profile types for Taida
+// Core profile types for Slothing
 import type { DocumentType } from "@/lib/constants/documents";
 
 export type { DocumentType };
@@ -58,8 +58,8 @@ export interface Project {
 export interface Skill {
   id: string;
   name: string;
-  category: 'technical' | 'soft' | 'language' | 'tool' | 'other';
-  proficiency?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  category: "technical" | "soft" | "language" | "tool" | "other";
+  proficiency?: "beginner" | "intermediate" | "advanced" | "expert";
 }
 
 export interface Certification {
@@ -124,16 +124,24 @@ export interface Document {
 }
 
 // Job application types
-export type JobStatus = 'pending' | 'saved' | 'applied' | 'interviewing' | 'offered' | 'rejected' | 'withdrawn' | 'dismissed';
+export type JobStatus =
+  | "pending"
+  | "saved"
+  | "applied"
+  | "interviewing"
+  | "offered"
+  | "rejected"
+  | "withdrawn"
+  | "dismissed";
 
-export type { Opportunity, OpportunityStatus } from './opportunity';
+export type { Opportunity, OpportunityStatus } from "./opportunity";
 
 export interface JobDescription {
   id: string;
   title: string;
   company: string;
   location?: string;
-  type?: 'full-time' | 'part-time' | 'contract' | 'internship';
+  type?: "full-time" | "part-time" | "contract" | "internship";
   remote?: boolean;
   salary?: string;
   description: string;
@@ -162,7 +170,7 @@ export interface JobMatch {
 
 // LLM configuration
 export interface LLMConfig {
-  provider: 'openai' | 'anthropic' | 'ollama' | 'openrouter';
+  provider: "openai" | "anthropic" | "ollama" | "openrouter";
   apiKey?: string;
   baseUrl?: string;
   model: string;
@@ -171,19 +179,19 @@ export interface LLMConfig {
 // Settings
 export interface Settings {
   llm: LLMConfig;
-  theme: 'light' | 'dark' | 'system';
+  theme: "light" | "dark" | "system";
   locale?: string;
 }
 
 // Profile bank types
 export const BANK_CATEGORIES = [
-  'experience',
-  'skill',
-  'project',
-  'education',
-  'achievement',
-  'certification',
-  'hackathon',
+  "experience",
+  "skill",
+  "project",
+  "education",
+  "achievement",
+  "certification",
+  "hackathon",
 ] as const;
 
 export type BankCategory = (typeof BANK_CATEGORIES)[number];
@@ -210,11 +218,11 @@ export interface GroupedBankEntries {
 
 // Email template types
 export type EmailTemplateType =
-  | 'follow_up'
-  | 'thank_you'
-  | 'networking'
-  | 'status_inquiry'
-  | 'negotiation';
+  | "follow_up"
+  | "thank_you"
+  | "networking"
+  | "status_inquiry"
+  | "negotiation";
 
 export interface EmailTemplate {
   type: EmailTemplateType;

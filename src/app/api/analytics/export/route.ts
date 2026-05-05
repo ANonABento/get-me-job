@@ -20,7 +20,10 @@ import { requireAuth, isAuthError } from "@/lib/auth";
 
 type TimeRange = "7d" | "30d" | "90d" | "1y" | "all";
 
-function filterJobsByRange(jobs: JobDescription[], range: TimeRange): JobDescription[] {
+function filterJobsByRange(
+  jobs: JobDescription[],
+  range: TimeRange,
+): JobDescription[] {
   if (range === "all") return jobs;
 
   const now = new Date();
@@ -97,11 +100,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Job status breakdown
-    const jobsByStatus = jobs.reduce((acc, job) => {
-      const status = job.status || "saved";
-      acc[status] = (acc[status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const jobsByStatus = jobs.reduce(
+      (acc, job) => {
+        const status = job.status || "saved";
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     const analytics = {
       overview: {
@@ -129,7 +135,7 @@ export async function GET(request: NextRequest) {
       analytics,
       successMetrics,
       jobs,
-      getRangeLabel(range)
+      getRangeLabel(range),
     );
 
     // Generate output based on format
@@ -138,7 +144,7 @@ export async function GET(request: NextRequest) {
       return new Response(jsonContent, {
         headers: {
           "Content-Type": "application/json",
-          "Content-Disposition": `attachment; filename="taida-analytics-${range}.json"`,
+          "Content-Disposition": `attachment; filename="slothing-analytics-${range}.json"`,
         },
       });
     }
@@ -148,14 +154,17 @@ export async function GET(request: NextRequest) {
     return new Response(csvContent, {
       headers: {
         "Content-Type": "text/csv",
-        "Content-Disposition": `attachment; filename="taida-analytics-${range}.csv"`,
+        "Content-Disposition": `attachment; filename="slothing-analytics-${range}.csv"`,
       },
     });
   } catch (error) {
     console.error("Analytics export error:", error);
-    return new Response(JSON.stringify({ error: "Failed to export analytics" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: "Failed to export analytics" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
 }

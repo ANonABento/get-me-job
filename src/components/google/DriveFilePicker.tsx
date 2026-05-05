@@ -88,7 +88,7 @@ export function DriveFilePicker({
       let filteredFiles = data.files || [];
       if (accept && accept.length > 0) {
         filteredFiles = filteredFiles.filter((f: DriveFile) =>
-          accept.some((type) => f.mimeType.includes(type))
+          accept.some((type) => f.mimeType.includes(type)),
         );
       }
 
@@ -96,7 +96,8 @@ export function DriveFilePicker({
     } catch (err) {
       showErrorToast(err, {
         title: "Could not load Drive files",
-        fallbackDescription: "Please check your Google connection and try again.",
+        fallbackDescription:
+          "Please check your Google connection and try again.",
       });
       setError("Failed to load files from Google Drive");
     } finally {
@@ -154,16 +155,23 @@ export function DriveFilePicker({
           ) : error ? (
             <div className="text-center py-8">
               <p className="text-sm text-destructive">{error}</p>
-              <Button variant="outline" size="sm" onClick={loadFiles} className="mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadFiles}
+                className="mt-4"
+              >
                 Try Again
               </Button>
             </div>
           ) : files.length === 0 ? (
             <div className="text-center py-12">
               <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
-              <p className="text-muted-foreground">No files found in this folder</p>
+              <p className="text-muted-foreground">
+                No files found in this folder
+              </p>
               <p className="text-sm text-muted-foreground mt-1">
-                Upload files to your Taida folder in Google Drive
+                Upload files to your Slothing folder in Google Drive
               </p>
             </div>
           ) : (

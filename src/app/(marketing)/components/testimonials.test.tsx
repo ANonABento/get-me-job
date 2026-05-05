@@ -18,15 +18,17 @@ describe("Testimonials", () => {
 
   it("should render stat labels", () => {
     render(<Testimonials />);
-    expect(screen.getByText("Job seekers using Taida")).toBeInTheDocument();
+    expect(screen.getByText("Job seekers using Slothing")).toBeInTheDocument();
     expect(screen.getByText("Tailored resumes generated")).toBeInTheDocument();
-    expect(screen.getByText("ATS pass rate after optimization")).toBeInTheDocument();
+    expect(
+      screen.getByText("ATS pass rate after optimization"),
+    ).toBeInTheDocument();
   });
 
   it("should render a testimonial quote", () => {
     render(<Testimonials />);
     expect(
-      screen.getByText(/Taida turned my 3-hour resume rewrite/)
+      screen.getByText(/Slothing turned my 3-hour resume rewrite/),
     ).toBeInTheDocument();
   });
 });

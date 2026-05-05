@@ -15,7 +15,10 @@ export async function GET() {
   try {
     const jobs = getJobs(authResult.userId);
     const documents = getDocuments(authResult.userId);
-    const interviewSessions = getInterviewSessions(undefined, authResult.userId);
+    const interviewSessions = getInterviewSessions(
+      undefined,
+      authResult.userId,
+    );
     const generatedResumes = getAllGeneratedResumes(authResult.userId);
     const coverLetters = getAllCoverLetters(authResult.userId);
     const bankEntries = getBankEntries(authResult.userId);
@@ -54,14 +57,14 @@ export async function GET() {
     return new NextResponse(JSON.stringify(exportData, null, 2), {
       headers: {
         "Content-Type": "application/json",
-        "Content-Disposition": `attachment; filename="get-me-job-export-${dateStr}.json"`,
+        "Content-Disposition": `attachment; filename="slothing-export-${dateStr}.json"`,
       },
     });
   } catch (error) {
     console.error("Export error:", error);
     return NextResponse.json(
       { error: "Failed to export data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

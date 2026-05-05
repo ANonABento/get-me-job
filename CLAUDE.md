@@ -1,14 +1,15 @@
-# Get Me Job (Taida) — AI Agent Instructions
+# Slothing — AI Agent Instructions
 
 > AI-powered job application assistant built with Next.js 14, TypeScript, and Tailwind CSS.
+> Tagline: **You're not lazy. Your job search system is.**
 
-The product is branded **Taida**; the repo and package are still named `get-me-job` / `taida`. Both names refer to the same app — prefer "Taida" in user-facing copy, "get-me-job" for repo-relative paths.
+The product is branded **Slothing** (domain: slothing.work). The repo path is still `get-me-job` and the data file `data/get-me-job.db` for backwards compatibility — both names refer to the same app. Prefer "Slothing" in user-facing copy, "get-me-job" for repo-relative paths and the SQLite filename. Browser localStorage keys still use the `taida:` prefix to preserve existing user data.
 
 ---
 
 ## Project Overview
 
-**Taida** helps job seekers manage their entire application process:
+**Slothing** helps job seekers manage their entire application process:
 - Resume parsing and AI-powered tailoring
 - Unified Document Studio for resumes and cover letters
 - Opportunity tracking (jobs + hackathons) with status pipeline

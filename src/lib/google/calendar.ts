@@ -53,7 +53,7 @@ function getUserTimezone(): string {
  */
 export async function createCalendarEvent(
   event: CalendarEventInput,
-  calendarId = "primary"
+  calendarId = "primary",
 ): Promise<SyncResult> {
   try {
     const calendar = await createCalendarClient();
@@ -61,8 +61,7 @@ export async function createCalendarEvent(
 
     // Default to 1 hour duration if no end date
     const endDate =
-      event.endDate ||
-      new Date(event.startDate.getTime() + 60 * 60 * 1000);
+      event.endDate || new Date(event.startDate.getTime() + 60 * 60 * 1000);
 
     const eventBody: calendar_v3.Schema$Event = {
       summary: event.title,
@@ -119,7 +118,7 @@ export async function createCalendarEvent(
 export async function updateCalendarEvent(
   eventId: string,
   event: Partial<CalendarEventInput>,
-  calendarId = "primary"
+  calendarId = "primary",
 ): Promise<SyncResult> {
   try {
     const calendar = await createCalendarClient();
@@ -170,7 +169,7 @@ export async function updateCalendarEvent(
  */
 export async function deleteCalendarEvent(
   eventId: string,
-  calendarId = "primary"
+  calendarId = "primary",
 ): Promise<SyncResult> {
   try {
     const calendar = await createCalendarClient();
@@ -199,7 +198,7 @@ export async function listUpcomingEvents(
     query?: string;
     timeMin?: Date;
     timeMax?: Date;
-  } = {}
+  } = {},
 ): Promise<GoogleCalendarEvent[]> {
   const calendar = await createCalendarClient();
 
@@ -218,11 +217,9 @@ export async function listUpcomingEvents(
     title: event.summary || "Untitled",
     description: event.description || undefined,
     startDate: new Date(
-      event.start?.dateTime || event.start?.date || Date.now()
+      event.start?.dateTime || event.start?.date || Date.now(),
     ),
-    endDate: event.end?.dateTime
-      ? new Date(event.end.dateTime)
-      : undefined,
+    endDate: event.end?.dateTime ? new Date(event.end.dateTime) : undefined,
     location: event.location || undefined,
     link: event.htmlLink || undefined,
   }));
@@ -250,7 +247,7 @@ export async function getCalendarList(): Promise<
  */
 export function createInterviewEventInput(
   job: Pick<JobDescription, "title" | "company" | "location" | "url" | "notes">,
-  interviewDate: Date
+  interviewDate: Date,
 ): CalendarEventInput {
   const descriptionParts = [
     `Job interview for ${job.title} position at ${job.company}.`,
@@ -265,11 +262,7 @@ export function createInterviewEventInput(
     descriptionParts.push("", "Notes:", job.notes);
   }
 
-  descriptionParts.push(
-    "",
-    "---",
-    "Created by Taida"
-  );
+  descriptionParts.push("", "---", "Created by Slothing");
 
   return {
     title: `Interview: ${job.title} at ${job.company}`,
@@ -288,7 +281,7 @@ export function createInterviewEventInput(
  * Create deadline event from job
  */
 export function createDeadlineEventInput(
-  job: Pick<JobDescription, "title" | "company" | "deadline" | "url">
+  job: Pick<JobDescription, "title" | "company" | "deadline" | "url">,
 ): CalendarEventInput | null {
   if (!job.deadline) return null;
 
@@ -302,7 +295,7 @@ export function createDeadlineEventInput(
       job.url ? `Apply here: ${job.url}` : "",
       "",
       "---",
-      "Created by Taida",
+      "Created by Slothing",
     ]
       .filter(Boolean)
       .join("\n"),
@@ -321,15 +314,18 @@ export function createDeadlineEventInput(
  */
 export function createReminderEventInput(
   reminder: Reminder,
-  jobInfo?: { title: string; company: string }
+  jobInfo?: { title: string; company: string },
 ): CalendarEventInput {
   const descriptionParts = [reminder.description || ""];
 
   if (jobInfo) {
-    descriptionParts.push("", `Related to: ${jobInfo.title} at ${jobInfo.company}`);
+    descriptionParts.push(
+      "",
+      `Related to: ${jobInfo.title} at ${jobInfo.company}`,
+    );
   }
 
-  descriptionParts.push("", "---", "Created by Taida");
+  descriptionParts.push("", "---", "Created by Slothing");
 
   return {
     title: reminder.title,
@@ -343,14 +339,12 @@ export function createReminderEventInput(
  * Search for interview-related events
  */
 export async function findInterviewEvents(
-  options: { company?: string; daysAhead?: number } = {}
+  options: { company?: string; daysAhead?: number } = {},
 ): Promise<GoogleCalendarEvent[]> {
   const timeMax = new Date();
   timeMax.setDate(timeMax.getDate() + (options.daysAhead || 30));
 
-  const query = options.company
-    ? `interview ${options.company}`
-    : "interview";
+  const query = options.company ? `interview ${options.company}` : "interview";
 
   return listUpcomingEvents({
     query,
@@ -363,8 +357,13 @@ export async function findInterviewEvents(
  * Batch sync multiple events
  */
 export async function batchSyncEvents(
-  events: CalendarEventInput[]
-): Promise<{ total: number; success: number; failed: number; results: SyncResult[] }> {
+  events: CalendarEventInput[],
+): Promise<{
+  total: number;
+  success: number;
+  failed: number;
+  results: SyncResult[];
+}> {
   const results: SyncResult[] = [];
 
   for (const event of events) {

@@ -21,8 +21,10 @@ export type OpportunityScrapeErrorCode =
   | "fetch_failed"
   | "scrape_failed";
 
-export interface ScrapedOpportunity
-  extends Omit<JobDescription, "id" | "createdAt" | "appliedAt" | "notes"> {
+export interface ScrapedOpportunity extends Omit<
+  JobDescription,
+  "id" | "createdAt" | "appliedAt" | "notes"
+> {
   source: SupportedOpportunitySource;
   sourceJobId?: string;
   postedAt?: string;
@@ -32,7 +34,7 @@ export class OpportunityScrapeError extends Error {
   constructor(
     public readonly code: OpportunityScrapeErrorCode,
     message: string,
-    public readonly status = 400
+    public readonly status = 400,
   ) {
     super(message);
     this.name = "OpportunityScrapeError";
@@ -72,17 +74,25 @@ export function normalizeOpportunityUrl(rawUrl: string): string {
   try {
     parsed = new URL(rawUrl);
   } catch {
-    throw new OpportunityScrapeError("invalid_url", "Please enter a valid URL.");
+    throw new OpportunityScrapeError(
+      "invalid_url",
+      "Please enter a valid URL.",
+    );
   }
 
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new OpportunityScrapeError("invalid_url", "Only http and https URLs are supported.");
+    throw new OpportunityScrapeError(
+      "invalid_url",
+      "Only http and https URLs are supported.",
+    );
   }
 
   return parsed.toString();
 }
 
-export function detectOpportunitySource(url: string): SupportedOpportunitySource | null {
+export function detectOpportunitySource(
+  url: string,
+): SupportedOpportunitySource | null {
   const host = new URL(url).hostname.toLowerCase();
 
   if (isSameHostOrSubdomain(host, "linkedin.com")) return "linkedin";
@@ -99,7 +109,7 @@ export function detectOpportunitySource(url: string): SupportedOpportunitySource
 export function toScrapedOpportunity(
   scrapedJob: ScrapedJob,
   source: SupportedOpportunitySource,
-  url: string
+  url: string,
 ): ScrapedOpportunity {
   return {
     title: scrapedJob.title,
@@ -121,11 +131,16 @@ export function toScrapedOpportunity(
   };
 }
 
-function getSupportedOpportunitySource(normalizedUrl: string): SupportedOpportunitySource {
+function getSupportedOpportunitySource(
+  normalizedUrl: string,
+): SupportedOpportunitySource {
   const source = detectOpportunitySource(normalizedUrl);
 
   if (!source || !hasSpecializedScraper(normalizedUrl)) {
-    throw new OpportunityScrapeError("unsupported_site", UNSUPPORTED_SITE_MESSAGE);
+    throw new OpportunityScrapeError(
+      "unsupported_site",
+      UNSUPPORTED_SITE_MESSAGE,
+    );
   }
 
   return source;
@@ -160,8 +175,10 @@ async function fetchOpportunityHtml(url: string): Promise<string> {
   try {
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; TaidaBot/1.0; +https://taida.app)",
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "User-Agent":
+          "Mozilla/5.0 (compatible; SlothingBot/1.0; +https://slothing.work)",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       },
       signal: controller.signal,
     });
@@ -170,23 +187,24 @@ async function fetchOpportunityHtml(url: string): Promise<string> {
       throw new OpportunityScrapeError(
         "rate_limited",
         "The job board rate limited the scrape request. Please try again later.",
-        429
+        429,
       );
     }
 
     if (!response.ok) {
       throw new OpportunityScrapeError(
         "fetch_failed",
-        `The job board returned ${response.status} ${response.statusText || "while fetching the URL"}.`
+        `The job board returned ${response.status} ${response.statusText || "while fetching the URL"}.`,
       );
     }
 
     return response.text();
   } catch (error) {
     if (error instanceof OpportunityScrapeError) throw error;
-    const message = error instanceof Error && error.name === "AbortError"
-      ? "The job board took too long to respond."
-      : "Could not fetch the job posting.";
+    const message =
+      error instanceof Error && error.name === "AbortError"
+        ? "The job board took too long to respond."
+        : "Could not fetch the job posting.";
     throw new OpportunityScrapeError("fetch_failed", message);
   } finally {
     clearTimeout(timeout);
@@ -195,15 +213,18 @@ async function fetchOpportunityHtml(url: string): Promise<string> {
 
 function installDom(html: string, url: string): { restore: () => void } {
   const dom = new JSDOM(html, { url });
-  const snapshot = GLOBAL_DOM_KEYS.reduce<GlobalDomSnapshot>((descriptors, key) => {
-    descriptors[key] = Object.getOwnPropertyDescriptor(globalThis, key);
-    return descriptors;
-  }, {
-    window: undefined,
-    document: undefined,
-    navigator: undefined,
-    MutationObserver: undefined,
-  });
+  const snapshot = GLOBAL_DOM_KEYS.reduce<GlobalDomSnapshot>(
+    (descriptors, key) => {
+      descriptors[key] = Object.getOwnPropertyDescriptor(globalThis, key);
+      return descriptors;
+    },
+    {
+      window: undefined,
+      document: undefined,
+      navigator: undefined,
+      MutationObserver: undefined,
+    },
+  );
 
   Object.defineProperty(globalThis, "window", {
     configurable: true,
@@ -240,7 +261,7 @@ function installDom(html: string, url: string): { restore: () => void } {
 async function withSerializedScraperDom<T>(
   html: string,
   url: string,
-  scrape: () => Promise<T>
+  scrape: () => Promise<T>,
 ): Promise<T> {
   let releaseQueue: () => void = () => {};
   const previousScrape = domScrapeQueue;
@@ -248,7 +269,9 @@ async function withSerializedScraperDom<T>(
     releaseQueue = resolve;
   });
 
-  domScrapeQueue = previousScrape.catch(() => undefined).then(() => currentScrape);
+  domScrapeQueue = previousScrape
+    .catch(() => undefined)
+    .then(() => currentScrape);
 
   await previousScrape.catch(() => undefined);
 
@@ -266,7 +289,7 @@ async function withSerializedScraperDom<T>(
 
 export async function scrapeOpportunityFromHtml(
   url: string,
-  html: string
+  html: string,
 ): Promise<ScrapedOpportunity> {
   const normalizedUrl = normalizeOpportunityUrl(url);
   const source = getSupportedOpportunitySource(normalizedUrl);
@@ -278,7 +301,7 @@ export async function scrapeOpportunityFromHtml(
     if (!scrapedJob?.title || !scrapedJob.company || !scrapedJob.description) {
       throw new OpportunityScrapeError(
         "scrape_failed",
-        `${SOURCE_LABELS[source]} did not expose enough job details to import.`
+        `${SOURCE_LABELS[source]} did not expose enough job details to import.`,
       );
     }
 
@@ -286,7 +309,9 @@ export async function scrapeOpportunityFromHtml(
   });
 }
 
-export async function scrapeOpportunityFromUrl(url: string): Promise<ScrapedOpportunity> {
+export async function scrapeOpportunityFromUrl(
+  url: string,
+): Promise<ScrapedOpportunity> {
   const normalizedUrl = normalizeOpportunityUrl(url);
   getSupportedOpportunitySource(normalizedUrl);
 

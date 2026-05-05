@@ -107,10 +107,17 @@ interface Analytics {
   };
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; icon: React.ElementType }
+> = {
   pending: { label: "Pending", color: "bg-muted-foreground", icon: Clock },
   saved: { label: "Saved", color: "bg-muted-foreground", icon: Star },
-  dismissed: { label: "Dismissed", color: "bg-muted-foreground", icon: XCircle },
+  dismissed: {
+    label: "Dismissed",
+    color: "bg-muted-foreground",
+    icon: XCircle,
+  },
   applied: { label: "Applied", color: "bg-info", icon: CheckCircle },
   interviewing: {
     label: "Interviewing",
@@ -119,7 +126,11 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   },
   offered: { label: "Offered", color: "bg-success", icon: TrendingUp },
   rejected: { label: "Rejected", color: "bg-destructive", icon: XCircle },
-  withdrawn: { label: "Withdrawn", color: "bg-muted-foreground", icon: AlertTriangle },
+  withdrawn: {
+    label: "Withdrawn",
+    color: "bg-muted-foreground",
+    icon: AlertTriangle,
+  },
 };
 
 export default function AnalyticsPage() {
@@ -142,7 +153,7 @@ export default function AnalyticsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `taida-analytics-${exportRange}.${format}`;
+      a.download = `slothing-analytics-${exportRange}.${format}`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {

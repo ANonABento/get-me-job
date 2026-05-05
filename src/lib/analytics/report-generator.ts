@@ -64,7 +64,7 @@ export function generateAnalyticsCSV(data: AnalyticsReportData): string {
   const lines: string[] = [];
 
   // Header
-  lines.push("Taida Search Analytics Report");
+  lines.push("Slothing Search Analytics Report");
   lines.push(`Generated: ${formatDate(data.generatedAt)}`);
   lines.push(`Date Range: ${data.range}`);
   lines.push("");
@@ -90,14 +90,16 @@ export function generateAnalyticsCSV(data: AnalyticsReportData): string {
   lines.push("Stage,Count,Percentage,Conversion Rate");
   data.funnel.forEach((stage) => {
     lines.push(
-      `${stage.stage},${stage.count},${stage.percentage}%,${stage.conversionFromPrevious}%`
+      `${stage.stage},${stage.count},${stage.percentage}%,${stage.conversionFromPrevious}%`,
     );
   });
   lines.push("");
 
   // Time Metrics
   lines.push("=== TIME METRICS ===");
-  lines.push(`Average Time to Interview,${data.timeToInterview.averageDays} days`);
+  lines.push(
+    `Average Time to Interview,${data.timeToInterview.averageDays} days`,
+  );
   lines.push(`Fastest Response,${data.timeToInterview.minDays} days`);
   lines.push(`Slowest Response,${data.timeToInterview.maxDays} days`);
   lines.push("");
@@ -127,7 +129,7 @@ export function generateAnalyticsCSV(data: AnalyticsReportData): string {
         escapeCSVValue(job.status),
         formatDate(job.appliedAt),
         formatDate(job.createdAt),
-      ].join(",")
+      ].join(","),
     );
   });
 
@@ -157,7 +159,7 @@ export function prepareReportData(
   },
   successMetrics: SuccessMetrics,
   jobs: JobDescription[],
-  range: string
+  range: string,
 ): AnalyticsReportData {
   return {
     generatedAt: new Date().toISOString(),

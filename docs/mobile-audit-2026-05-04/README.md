@@ -1,6 +1,6 @@
 # Mobile Responsiveness Audit — 2026-05-04
 
-Companion to `docs/a11y-audit-2026-05-04.md`. Scope: every major Taida route
+Companion to `docs/a11y-audit-2026-05-04.md`. Scope: every major Slothing route
 audited at the iPhone 14 viewport (390x844) and iPad mini viewport
 (768x1024), in both light and dark themes.
 

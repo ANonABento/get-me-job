@@ -29,7 +29,7 @@ export function Footer() {
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl gradient-bg text-primary-foreground font-bold text-lg shadow-md">
                 <Sparkles className="h-5 w-5" />
               </div>
-              <span className="text-lg font-bold gradient-text">Taida</span>
+              <span className="text-lg font-bold gradient-text">Slothing</span>
             </Link>
             <p className="text-sm text-muted-foreground">
               Your AI-powered resume intelligence platform. Build tailored
@@ -104,7 +104,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Taida. All rights reserved.
+            © {new Date().getFullYear()} Slothing. All rights reserved.
           </p>
           <p className="text-sm text-muted-foreground">
             Built for job seekers who value their time.

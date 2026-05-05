@@ -53,9 +53,9 @@
 - BBB F rating for unresolved complaints
 - Trustpilot flagged for suspicious reviews
 
-## How Taida Differentiates
+## How Slothing Differentiates
 
-| AIApply | Taida |
+| AIApply | Slothing |
 |---------|-------|
 | Cloud-only, data on their servers | Local-first, data on your machine |
 | Generic AI output | RAG-powered, uses YOUR actual experience |

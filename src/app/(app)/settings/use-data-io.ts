@@ -5,7 +5,12 @@ import { useErrorToast } from "@/hooks/use-error-toast";
 
 import { pluralize } from "@/lib/text/pluralize";
 
-export type ExportType = "profile" | "jobs-json" | "jobs-csv" | "backup" | "full-export";
+export type ExportType =
+  | "profile"
+  | "jobs-json"
+  | "jobs-csv"
+  | "backup"
+  | "full-export";
 export type DataImportType = "jobs" | "backup";
 
 export interface ImportResult {
@@ -31,20 +36,23 @@ interface FullExportData {
   };
 }
 
-export function getExportFileName(type: ExportType, date: Date = new Date()): string {
+export function getExportFileName(
+  type: ExportType,
+  date: Date = new Date(),
+): string {
   const formattedDate = date.toISOString().split("T")[0];
 
   switch (type) {
     case "profile":
       return `taida-profile-${formattedDate}.json`;
     case "jobs-json":
-      return `taida-jobs-${formattedDate}.json`;
+      return `slothing-jobs-${formattedDate}.json`;
     case "jobs-csv":
-      return `taida-jobs-${formattedDate}.csv`;
+      return `slothing-jobs-${formattedDate}.csv`;
     case "backup":
-      return `taida-backup-${formattedDate}.json`;
+      return `slothing-backup-${formattedDate}.json`;
     case "full-export":
-      return `get-me-job-export-${formattedDate}.json`;
+      return `slothing-export-${formattedDate}.json`;
   }
 }
 
@@ -63,15 +71,21 @@ export function getExportUrl(type: ExportType): string {
   }
 }
 
-export function buildImportPreviewStats(data: FullExportData): Record<string, number> {
+export function buildImportPreviewStats(
+  data: FullExportData,
+): Record<string, number> {
   const stats: Record<string, number> = {};
 
   if (data.data?.profile) stats["Profile"] = 1;
   if (data.data?.jobs?.length) stats["Jobs"] = data.data.jobs.length;
-  if (data.data?.coverLetters?.length) stats["Cover Letters"] = data.data.coverLetters.length;
-  if (data.data?.bankEntries?.length) stats["Bank Entries"] = data.data.bankEntries.length;
-  if (data.data?.generatedResumes?.length) stats["Generated Resumes"] = data.data.generatedResumes.length;
-  if (data.data?.interviewSessions?.length) stats["Interview Sessions"] = data.data.interviewSessions.length;
+  if (data.data?.coverLetters?.length)
+    stats["Cover Letters"] = data.data.coverLetters.length;
+  if (data.data?.bankEntries?.length)
+    stats["Bank Entries"] = data.data.bankEntries.length;
+  if (data.data?.generatedResumes?.length)
+    stats["Generated Resumes"] = data.data.generatedResumes.length;
+  if (data.data?.interviewSessions?.length)
+    stats["Interview Sessions"] = data.data.interviewSessions.length;
   if (data.data?.llmConfig) stats["LLM Config"] = 1;
 
   return stats;
@@ -92,22 +106,31 @@ export function buildFullImportMessage(result: {
   if (result.results.jobs.imported > 0) {
     parts.push(pluralize(result.results.jobs.imported, "job"));
   }
-  if (result.results.coverLetters?.imported && result.results.coverLetters.imported > 0) {
+  if (
+    result.results.coverLetters?.imported &&
+    result.results.coverLetters.imported > 0
+  ) {
     parts.push(`${result.results.coverLetters.imported} cover letters`);
   }
-  if (result.results.bankEntries?.imported && result.results.bankEntries.imported > 0) {
+  if (
+    result.results.bankEntries?.imported &&
+    result.results.bankEntries.imported > 0
+  ) {
     parts.push(`${result.results.bankEntries.imported} bank entries`);
   }
   if (result.results.llmConfig) parts.push("LLM config");
 
-  return parts.length > 0 ? `Imported: ${parts.join(", ")}` : "No new data to import (all duplicates skipped)";
+  return parts.length > 0
+    ? `Imported: ${parts.join(", ")}`
+    : "No new data to import (all duplicates skipped)";
 }
 
 export function useDataIO() {
   const [exporting, setExporting] = useState<ExportType | null>(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
-  const [showImportPreview, setShowImportPreview] = useState<ImportPreview | null>(null);
+  const [showImportPreview, setShowImportPreview] =
+    useState<ImportPreview | null>(null);
   const showErrorToast = useErrorToast();
 
   const exportData = async (type: ExportType) => {
@@ -141,7 +164,9 @@ export function useDataIO() {
     }
   };
 
-  const handleFullImportPreview = async (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFullImportPreview = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
 
     if (!file) {
@@ -154,14 +179,20 @@ export function useDataIO() {
 
       if (!data.version || !data.data) {
         setShowImportPreview(null);
-        setImportResult({ success: false, message: "Invalid export file format" });
+        setImportResult({
+          success: false,
+          message: "Invalid export file format",
+        });
         return;
       }
 
       setShowImportPreview({ stats: buildImportPreviewStats(data), data });
     } catch {
       setShowImportPreview(null);
-      setImportResult({ success: false, message: "Failed to parse import file" });
+      setImportResult({
+        success: false,
+        message: "Failed to parse import file",
+      });
     } finally {
       event.target.value = "";
     }
@@ -202,7 +233,10 @@ export function useDataIO() {
     }
   };
 
-  const handleFileImport = async (event: ChangeEvent<HTMLInputElement>, type: DataImportType) => {
+  const handleFileImport = async (
+    event: ChangeEvent<HTMLInputElement>,
+    type: DataImportType,
+  ) => {
     const file = event.target.files?.[0];
 
     if (!file) {
