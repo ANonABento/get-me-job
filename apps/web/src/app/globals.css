@@ -409,15 +409,22 @@
     -webkit-backdrop-filter: var(--backdrop-blur);
   }
 
-  /* Gradient text */
+  /* Gradient text — single-color treatment now (gradients out per the
+     editorial pass). Class name kept for back-compat with ~30 callsites. */
   .gradient-text {
     @apply bg-clip-text text-transparent;
-    background-image: var(--gradient-primary);
+    background-image: none;
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary));
   }
 
-  /* Gradient background */
+  /* Flat primary background — was a `--gradient-primary` linear-gradient
+     before the editorial pass. Class name kept for back-compat with ~30
+     existing callsites (interview cards, settings save button, calendar
+     CTAs, toolkit panes, etc.). Renders as solid midnight ink. */
   .gradient-bg {
-    background-image: var(--gradient-primary);
+    background-image: none;
+    background-color: hsl(var(--primary));
   }
 
   /* Hero gradient background */

@@ -107,6 +107,12 @@ const pages = {
       "Quick-reach tools for the offer and comms phase — email templates, salary research, and more.",
     path: "/toolkit",
   },
+  ats: {
+    title: "ATS Scanner",
+    description:
+      "Score a resume against an ATS rubric and (optionally) a job description. Save scans to your history to compare versions over time.",
+    path: "/ats",
+  },
   analytics: {
     title: "Analytics",
     description:
