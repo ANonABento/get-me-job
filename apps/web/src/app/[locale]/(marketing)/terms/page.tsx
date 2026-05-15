@@ -14,17 +14,14 @@ export default function TermsPage() {
         </p>
         <div
           role="note"
-          className="mt-6 rounded-lg border border-warning/40 bg-warning/10 p-4 text-sm leading-6 text-foreground"
+          className="mt-6 rounded-lg border border-border bg-muted/40 p-4 text-sm leading-6 text-foreground"
         >
-          <p className="font-semibold">Pre-launch draft</p>
+          <p className="font-semibold">Note on governing law and disputes</p>
           <p className="mt-1 text-muted-foreground">
-            These Terms are a working draft published for review while Slothing
-            is in pre-launch. The governing-law and dispute- resolution sections
-            are still being finalized with legal counsel and are marked
-            &ldquo;TBD&rdquo; below. Slothing is not yet offering paid plans; if
-            you continue to use the free preview, you acknowledge that any paid
-            plan or final Terms will be presented for separate acceptance before
-            billing begins. Questions:{" "}
+            The governing-law and dispute-resolution sections below are still
+            being finalized with legal counsel. They will be updated before any
+            material change to billing or service terms, and users will be
+            notified of changes. All other sections are in effect. Questions:{" "}
             <a
               href="mailto:support@slothing.work"
               className="text-primary hover:underline"
@@ -192,16 +189,17 @@ export default function TermsPage() {
             Governing law
           </h2>
           <p className="mt-2">
-            The specific governing jurisdiction for these Terms will be
-            disclosed before any paid plan is made publicly available. Until
-            that time, please direct any legal concerns to{" "}
+            The specific governing jurisdiction for these Terms is being
+            finalized with legal counsel and will be published before any
+            material change to billing or service terms. For legal questions in
+            the interim, please contact{" "}
             <a
               href="mailto:support@slothing.work"
               className="text-primary hover:underline"
             >
               support@slothing.work
-            </a>{" "}
-            for informal resolution.
+            </a>
+            .
           </p>
         </section>
 
@@ -217,9 +215,10 @@ export default function TermsPage() {
             </a>{" "}
             so we can try to resolve the issue informally. If we cannot resolve
             it, formal dispute resolution terms — including the required forum,
-            any arbitration provisions, and applicable waivers — will be
-            disclosed before any paid plan is made publicly available. Nothing
-            in these Terms limits rights granted to you under applicable law.
+            any arbitration provisions, and applicable waivers — are being
+            finalized and will be published before any material change to
+            billing or service terms. Nothing in these Terms limits rights
+            granted to you under applicable law.
           </p>
         </section>
       </div>

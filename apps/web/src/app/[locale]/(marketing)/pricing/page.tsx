@@ -2,7 +2,6 @@ import {
   Check,
   Github,
   HardDrive,
-  Hourglass,
   KeyRound,
   Lock,
   Rocket,
@@ -55,7 +54,7 @@ const tiers: readonly Tier[] = [
     cta: "View on GitHub",
     ctaAction: { kind: "external", href: SLOTHING_REPO_URL },
     highlighted: false,
-    ctaNote: "MIT-style ease, AGPL-grade freedom.",
+    ctaNote: "AGPL-3.0. Clone, run locally, own your data.",
     badge: "Open source",
     features: [
       "Full feature set",
@@ -167,6 +166,21 @@ const faqs = [
     answer:
       "No, and we don't plan to add one. Annual pricing rewards staying subscribed forever, which is the opposite of what Slothing is for.",
   },
+  {
+    question: "What AI does Slothing use for paid plans?",
+    answer:
+      "On Weekly and Monthly plans, Slothing provides AI credits backed by our own provider accounts — no API key required. We use models from providers including OpenAI and Anthropic. BYOK users connect directly to their chosen provider and control which model is used.",
+  },
+  {
+    question: "Does Slothing train AI on my data?",
+    answer:
+      "No. Slothing does not use your resumes, job data, or generated content to train AI models. On paid plans, content is sent to our LLM provider under their API terms — not for training. BYOK users send data directly to their chosen provider; check that provider's policy for their own training opt-outs.",
+  },
+  {
+    question: "What are the limitations?",
+    answer:
+      "AI outputs are assistive: quality depends on the information you provide. Slothing does not guarantee hiring outcomes, interview results, or offer decisions. The browser extension works on supported job sites and may not capture every page layout. Always review AI-generated content before submitting an application.",
+  },
 ] as const;
 
 const comparisonRows = [
@@ -188,8 +202,8 @@ const comparisonRows = [
     feature: "Tailored resumes",
     selfHost: "Unlimited (your compute)",
     free: "Unlimited (your key)",
-    weekly: "Generous credits",
-    monthly: "Larger pool",
+    weekly: "Included credits",
+    monthly: "Larger credit pool",
   },
   {
     feature: "Generation priority",
@@ -473,7 +487,7 @@ export default async function PricingPage() {
               <Sparkles className="mb-3 h-5 w-5 text-primary" />
               <h3 className="font-medium">Open source</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Every line of code that touches your résumé is{" "}
+                Application code is{" "}
                 <a
                   href={SLOTHING_REPO_URL}
                   className="text-primary hover:underline"
@@ -482,7 +496,8 @@ export default async function PricingPage() {
                 >
                   on GitHub
                 </a>{" "}
-                under AGPL-3.0. Audit it, fork it, self-host it.
+                under AGPL-3.0. The hosted billing module is proprietary. Audit
+                it, fork it, or self-host the full app.
               </p>
             </div>
             <div>
@@ -510,8 +525,8 @@ export default async function PricingPage() {
         </section>
 
         <section className="mt-16 flex flex-col items-center gap-4 rounded-lg border border-primary/30 bg-primary/5 p-8 text-center">
-          <Hourglass className="h-8 w-8 text-primary" />
-          <h2 className="text-xl font-semibold">Hosted billing is live</h2>
+          <Sparkles className="h-8 w-8 text-primary" />
+          <h2 className="text-xl font-semibold">Ready when you are</h2>
           <p className="max-w-xl text-sm text-muted-foreground">
             Use Stripe checkout for Weekly or Monthly Pro, or self-host the
             AGPL-3.0 app for free.
