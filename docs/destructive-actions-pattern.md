@@ -79,6 +79,7 @@ Default undo window: 5 seconds. Increase it when the action is easy to mis-click
 | Profile bank source documents | Delete source document(s) | `DELETE /api/bank/documents`; hard delete with cascaded chunks      | Pattern A |
 | Studio                        | Delete local studio file  | Local state removal                                                 | Pattern A |
 | Settings                      | Delete prompt variant     | `DELETE /api/prompts/[id]`; hard delete                             | Pattern A |
+| Settings — Danger zone        | Reset local preferences   | Clears every `taida:*` localStorage key in this browser              | Pattern A |
 
 ## Adding A New Destructive Action
 
