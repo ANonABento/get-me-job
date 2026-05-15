@@ -13,8 +13,21 @@
  * wrong default.
  */
 
+import { Database } from "lucide-react";
+import { AppPage, PageContent, PageHeader } from "@/components/ui/page-layout";
 import { BankComponentsTab } from "./components-tab";
 
 export default function ComponentsPage() {
-  return <BankComponentsTab />;
+  return (
+    <AppPage padding="none">
+      <PageHeader
+        icon={Database}
+        title="Components"
+        description="Reusable bullets, stories, and project chunks pulled from your resume — the source material Studio composes into tailored documents."
+      />
+      <PageContent>
+        <BankComponentsTab />
+      </PageContent>
+    </AppPage>
+  );
 }

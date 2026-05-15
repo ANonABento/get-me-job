@@ -16,20 +16,20 @@ export const slothingTheme = {
   name,
   description,
   preview: {
-    primary: "#1a1410",
+    primary: "#1a1530",
     background: "#f5efe2",
     accent: "#b8704a",
   },
   light: createThemeTokens(id, name, description, {
     // Surfaces
     background: "38 47% 92%", // --bg #f5efe2
-    foreground: "24 24% 8%", // --ink #1a1410
+    foreground: "248 39% 14%", // --ink #1a1410
     card: "40 100% 97%", // --paper #fffaef
-    cardForeground: "24 24% 8%",
+    cardForeground: "248 39% 14%",
     popover: "40 100% 97%",
-    popoverForeground: "24 24% 8%",
+    popoverForeground: "248 39% 14%",
     // Ink-based primary (matches Kev's primary button: ink bg / bg text)
-    primary: "24 24% 8%",
+    primary: "248 39% 14%",
     primaryForeground: "38 47% 92%",
     // Secondary / muted = alt band #e9dec8
     secondary: "40 43% 85%",

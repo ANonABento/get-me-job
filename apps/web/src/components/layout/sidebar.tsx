@@ -439,16 +439,21 @@ export function Sidebar() {
                       color: "var(--brand-dark)",
                     }}
                   >
+                    {/* Initials are the base layer; avatar img covers
+                        them and self-hides on error (handles stale
+                        seed URLs like example.com). */}
+                    <span aria-hidden="true">{profileSnapshot.initials}</span>
                     {profileSnapshot.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={profileSnapshot.avatarUrl}
                         alt=""
-                        className="h-full w-full object-cover"
+                        className="absolute inset-0 h-full w-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
                       />
-                    ) : (
-                      profileSnapshot.initials
-                    )}
+                    ) : null}
                   </span>
                   <span className="min-w-0 flex-1 truncate">
                     {profileSnapshot.firstName}

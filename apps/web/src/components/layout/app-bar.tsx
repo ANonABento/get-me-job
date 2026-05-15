@@ -180,7 +180,7 @@ export function AppBar({ className }: AppBarProps) {
           aria-label={t("items.profile")}
         >
           <span
-            className="grid h-7 w-7 place-items-center overflow-hidden font-bold"
+            className="relative grid h-7 w-7 place-items-center overflow-hidden font-bold"
             style={{
               borderRadius: "var(--r-sm)",
               backgroundColor: "var(--brand-soft)",
@@ -190,16 +190,21 @@ export function AppBar({ className }: AppBarProps) {
               fontSize: "13px",
             }}
           >
+            {/* Initials live as the underlying layer; the avatar img
+                covers them when it loads successfully and self-hides
+                on error (e.g. stale seed URL like example.com). */}
+            <span aria-hidden="true">{profile.initials}</span>
             {profile.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={profile.avatarUrl}
                 alt=""
-                className="h-full w-full object-cover"
+                className="absolute inset-0 h-full w-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
               />
-            ) : (
-              profile.initials
-            )}
+            ) : null}
           </span>
           <ChevronDown className="h-2.5 w-2.5" aria-hidden="true" />
         </Link>
