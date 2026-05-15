@@ -2,11 +2,11 @@ import {
   Check,
   Github,
   HardDrive,
-  Hourglass,
   KeyRound,
   Lock,
   Rocket,
   ShieldCheck,
+  Sparkles,
   Trash2,
   Zap,
 } from "lucide-react";
@@ -34,7 +34,7 @@ interface Tier {
   price: string;
   cadence: string;
   description: string;
-  icon: typeof HardDrive;
+  icon: typeof Sparkles;
   cta: string;
   ctaAction: TierCta;
   highlighted: boolean;
@@ -54,7 +54,7 @@ const tiers: readonly Tier[] = [
     cta: "View on GitHub",
     ctaAction: { kind: "external", href: SLOTHING_REPO_URL },
     highlighted: false,
-    ctaNote: "AGPL-3.0 — free to use, modify, and run locally.",
+    ctaNote: "AGPL-3.0. Clone, run locally, own your data.",
     badge: "Open source",
     features: [
       "Full feature set",
@@ -92,7 +92,7 @@ const tiers: readonly Tier[] = [
     cta: "Start Weekly",
     ctaAction: { kind: "checkout", plan: "pro_weekly" },
     highlighted: false,
-    ctaNote: "Stripe checkout. Requires a Slothing account — sign in first if you're new.",
+    ctaNote: "Stripe checkout. Cancel any time from Settings.",
     features: [
       "Everything in Hosted Free",
       "Slothing-provided AI credits",
@@ -110,7 +110,7 @@ const tiers: readonly Tier[] = [
     cta: "Start Monthly",
     ctaAction: { kind: "checkout", plan: "pro_monthly" },
     highlighted: true,
-    ctaNote: "Stripe checkout. Requires a Slothing account — sign in first if you're new.",
+    ctaNote: "Stripe checkout. Cancel any time from Settings.",
     badge: "Most popular",
     features: [
       "Everything in Weekly",
@@ -167,14 +167,19 @@ const faqs = [
       "No, and we don't plan to add one. Annual pricing rewards staying subscribed forever, which is the opposite of what Slothing is for.",
   },
   {
-    question: "How many AI generations do paid plans include?",
+    question: "What AI does Slothing use for paid plans?",
     answer:
-      "Credit limits are shown in Settings → Credits after you subscribe. Both Weekly and Monthly are sized for an active search — tailoring several resumes, running ATS checks, and generating cover letters throughout your billing period. If you're unsure, start with Weekly to test the volume before committing to Monthly.",
+      "On Weekly and Monthly plans, Slothing provides AI credits backed by our own provider accounts — no API key required. We use models from providers including OpenAI and Anthropic. BYOK users connect directly to their chosen provider and control which model is used.",
   },
   {
-    question: "What happens if I reach my credit limit?",
+    question: "Does Slothing train AI on my data?",
     answer:
-      "AI generation pauses for the rest of your billing period. Everything else — opportunity tracking, document storage, form autofill, and the browser extension — continues working without limits. Credits reset automatically at the start of your next billing week or month.",
+      "No. Slothing does not use your resumes, job data, or generated content to train AI models. On paid plans, content is sent to our LLM provider under their API terms — not for training. BYOK users send data directly to their chosen provider; check that provider's policy for their own training opt-outs.",
+  },
+  {
+    question: "What are the limitations?",
+    answer:
+      "AI outputs are assistive: quality depends on the information you provide. Slothing does not guarantee hiring outcomes, interview results, or offer decisions. The browser extension works on supported job sites and may not capture every page layout. Always review AI-generated content before submitting an application.",
   },
 ] as const;
 
@@ -197,8 +202,8 @@ const comparisonRows = [
     feature: "Tailored resumes",
     selfHost: "Unlimited (your compute)",
     free: "Unlimited (your key)",
-    weekly: "Credits included",
-    monthly: "More credits than weekly",
+    weekly: "Included credits",
+    monthly: "Larger credit pool",
   },
   {
     feature: "Generation priority",
@@ -252,7 +257,7 @@ export default async function PricingPage() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-12 grid gap-6 lg:grid-cols-4">
           {tiers.map((tier) => {
             const Icon = tier.icon;
             const isInternal = tier.ctaAction.kind === "internal";
@@ -479,20 +484,20 @@ export default async function PricingPage() {
               </p>
             </div>
             <div>
-              <Github className="mb-3 h-5 w-5 text-primary" />
-              <h3 className="font-medium">Open source core</h3>
+              <Sparkles className="mb-3 h-5 w-5 text-primary" />
+              <h3 className="font-medium">Open source</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                The AI pipeline, Document Studio, and tracker are{" "}
+                Application code is{" "}
                 <a
                   href={SLOTHING_REPO_URL}
                   className="text-primary hover:underline"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  AGPL-3.0 on GitHub
-                </a>
-                . A small billing module for slothing.work is proprietary.
-                Audit or fork the parts that touch your data.
+                  on GitHub
+                </a>{" "}
+                under AGPL-3.0. The hosted billing module is proprietary. Audit
+                it, fork it, or self-host the full app.
               </p>
             </div>
             <div>
@@ -520,23 +525,16 @@ export default async function PricingPage() {
         </section>
 
         <section className="mt-16 flex flex-col items-center gap-4 rounded-lg border border-primary/30 bg-primary/5 p-8 text-center">
-          <Hourglass className="h-8 w-8 text-primary" />
-          <h2 className="text-xl font-semibold">Ready to start?</h2>
+          <Sparkles className="h-8 w-8 text-primary" />
+          <h2 className="text-xl font-semibold">Ready when you are</h2>
           <p className="max-w-xl text-sm text-muted-foreground">
-            Create a free account to use Slothing with your own AI key. Upgrade
-            to Weekly or Monthly from Settings once you&apos;re inside.
+            Use Stripe checkout for Weekly or Monthly Pro, or self-host the
+            AGPL-3.0 app for free.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <Button asChild>
-              <Link
-                href={{ pathname: "/sign-in", query: { callbackUrl } }}
-                prefetch={false}
-              >
-                Get started free →
-              </Link>
-            </Button>
-            <CheckoutButton plan="pro_weekly" variant="outline">
-              Start Weekly — $6.99/wk
+            <CheckoutButton plan="pro_weekly">Start Weekly</CheckoutButton>
+            <CheckoutButton plan="pro_monthly" variant="outline">
+              Start Monthly
             </CheckoutButton>
             <Button asChild variant="outline">
               <a
@@ -549,16 +547,6 @@ export default async function PricingPage() {
               </a>
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Paid plans require a Slothing account.{" "}
-            <Link
-              href={{ pathname: "/sign-in", query: { callbackUrl } }}
-              className="text-primary hover:underline"
-              prefetch={false}
-            >
-              Sign in or create one free →
-            </Link>
-          </p>
         </section>
       </section>
     </main>
