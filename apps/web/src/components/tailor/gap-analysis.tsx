@@ -240,7 +240,7 @@ export function GapAnalysis({
             </ul>
 
             <Link
-              href="/bank"
+              href="/components"
               className="mt-3 inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
             >
               Upload more documents to improve your bank

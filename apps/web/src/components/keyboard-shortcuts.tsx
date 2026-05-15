@@ -74,7 +74,7 @@ export function KeyboardShortcutsProvider({
       {
         key: "b",
         description: "Go to Documents",
-        action: () => router.push("/bank"),
+        action: () => router.push("/components"),
         category: "navigation",
       },
       {

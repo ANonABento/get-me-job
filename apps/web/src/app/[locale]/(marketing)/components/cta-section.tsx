@@ -43,7 +43,7 @@ export async function CTASection() {
           <Button
             asChild
             size="lg"
-            className="gradient-bg text-primary-foreground hover:opacity-90 shadow-lg shadow-primary/25"
+            className="bg-primary text-primary-foreground hover:opacity-90 shadow-lg shadow-primary/25"
           >
             <Link href="/ats-scanner" prefetch={false}>
               Scan My Resume

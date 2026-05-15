@@ -39,9 +39,14 @@ export default function LandingPage() {
 
   return (
     <>
+      {/* JSON-LD is data, not executable script — the CSP nonce
+          legitimately differs between server and client requests, so
+          we keep it server-side only and suppress the hydration
+          warning rather than emit a mismatch every render. */}
       <script
         nonce={nonce}
         type="application/ld+json"
+        suppressHydrationWarning
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <LandingHero />

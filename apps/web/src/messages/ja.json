@@ -41,7 +41,7 @@
       "pipeline": "パイプライン",
       "prep": "準備",
       "reporting": "レポート",
-      "library": "ドキュメント"
+      "library": "ライブラリー"
     },
     "items": {
       "dashboard": "ダッシュボード",
@@ -57,8 +57,8 @@
       "analytics": "分析",
       "profile": "プロフィール",
       "settings": "設定",
-      "components": "ドキュメント",
-      "answers": "回答バンク"
+      "components": "コンポーネント",
+      "answers": "回答"
     }
   },
   "marketing": {

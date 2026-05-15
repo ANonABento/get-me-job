@@ -206,7 +206,7 @@ export function SectionList({
                   {t("pickerEmptyDescription")}
                 </p>
                 <Button asChild variant="outline" size="sm" className="mt-4">
-                  <a href="/bank">{t("pickerEmptyCta")}</a>
+                  <a href="/components">{t("pickerEmptyCta")}</a>
                 </Button>
               </div>
             ) : (

@@ -55,7 +55,7 @@ exports[`ProfilePage > shows an empty state for a brand-new profile 1`] = `
   >
     <a
       class="inline-flex items-center justify-center whitespace-nowrap rounded-[var(--radius)] text-sm font-medium [letter-spacing:var(--letter-spacing)] ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [box-shadow:var(--shadow-button)] bg-primary text-primary-foreground hover:bg-brand-dark hover:text-primary-foreground h-11 px-4 py-2"
-      href="/en/bank"
+      href="/en/components"
     >
       <svg
         class="lucide lucide-file-up mr-2 h-4 w-4"

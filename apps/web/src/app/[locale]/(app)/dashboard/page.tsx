@@ -933,7 +933,7 @@ function buildTodayActions(
       icon: Upload,
       title: t("today.uploadResumeTitle"),
       context: t("today.uploadResumeContext"),
-      href: "/bank",
+      href: "/components",
       actionLabel: t("today.uploadResumeAction"),
       tone: "primary",
     });

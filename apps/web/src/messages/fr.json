@@ -41,7 +41,7 @@
       "pipeline": "Suivi",
       "prep": "Préparation",
       "reporting": "Rapports",
-      "library": "Fichiers"
+      "library": "Bibliothèque"
     },
     "items": {
       "dashboard": "Tableau de bord",
@@ -57,8 +57,8 @@
       "analytics": "Analyses",
       "profile": "Profil",
       "settings": "Paramètres",
-      "components": "Fichiers",
-      "answers": "Banque de réponses"
+      "components": "Composants",
+      "answers": "Réponses"
     }
   },
   "marketing": {

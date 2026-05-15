@@ -20,13 +20,13 @@ These strings are not allowlisted brand terms or passthrough keys. They should b
 | Locale | Identical strings | Keys |
 | --- | ---: | --- |
 | `es` | 0 | none |
-| `zh-CN` | 0 | none |
+| `zh-CN` | 3 | `dialogs.builder.sectionList.pickerEmptyCta`, `dialogs.builder.sectionList.pickerEmptyDescription`, `dialogs.builder.sectionList.pickerEmptyTitle` |
 | `pt-BR` | 0 | none |
-| `hi` | 0 | none |
+| `hi` | 3 | `dialogs.builder.sectionList.pickerEmptyCta`, `dialogs.builder.sectionList.pickerEmptyDescription`, `dialogs.builder.sectionList.pickerEmptyTitle` |
 | `fr` | 0 | none |
-| `ja` | 0 | none |
-| `ko` | 0 | none |
-| **Total** | **0** | |
+| `ja` | 3 | `dialogs.builder.sectionList.pickerEmptyCta`, `dialogs.builder.sectionList.pickerEmptyDescription`, `dialogs.builder.sectionList.pickerEmptyTitle` |
+| `ko` | 3 | `dialogs.builder.sectionList.pickerEmptyCta`, `dialogs.builder.sectionList.pickerEmptyDescription`, `dialogs.builder.sectionList.pickerEmptyTitle` |
+| **Total** | **12** | |
 
 ## Locale Quality Review
 
@@ -45,4 +45,4 @@ These checks catch known wrong-language fragments that exact-English drift canno
 
 ## Next Action
 
-No current blocker. Re-run `pnpm --filter @slothing/web check:translations:update-report` after future source-copy or locale-catalog changes, then verify with `pnpm --filter @slothing/web check:translations:release`.
+Run `pnpm --filter @slothing/web translate:messages` with `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`, review the locale JSON diffs, then run `pnpm --filter @slothing/web check:translations:release`.

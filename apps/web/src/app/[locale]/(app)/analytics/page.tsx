@@ -370,7 +370,7 @@ export default function AnalyticsPage() {
                 {analytics.overview.profileCompleteness < 100 && (
                   <p className="text-xs text-muted-foreground mt-2">
                     <Link
-                      href="/bank"
+                      href="/components"
                       className="text-primary underline underline-offset-2 font-medium"
                     >
                       Complete your profile

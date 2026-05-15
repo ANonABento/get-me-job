@@ -188,9 +188,11 @@ describe("getPageMetadata", () => {
   it("includes openGraph fields", () => {
     const meta = getPageMetadata("bank");
     expect(meta.openGraph).toBeDefined();
-    expect(meta.alternates).toMatchObject({ canonical: "/bank" });
-    expect((meta.openGraph as Record<string, unknown>).title).toBe("Documents");
-    expect((meta.openGraph as Record<string, unknown>).url).toBe("/bank");
+    expect(meta.alternates).toMatchObject({ canonical: "/components" });
+    expect((meta.openGraph as Record<string, unknown>).title).toBe(
+      "Components",
+    );
+    expect((meta.openGraph as Record<string, unknown>).url).toBe("/components");
     expect((meta.openGraph as Record<string, unknown>).siteName).toBe(
       SITE_NAME,
     );

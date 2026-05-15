@@ -33,7 +33,7 @@ export function ProfileEmptyState({ onFillManually }: ProfileEmptyStateProps) {
       </CardHeader>
       <CardContent className="flex flex-col justify-center gap-3 sm:flex-row">
         <Button asChild>
-          <Link href="/bank">
+          <Link href="/components">
             <FileUp className="mr-2 h-4 w-4" />
             {t("uploadResume")}
           </Link>

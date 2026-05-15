@@ -68,7 +68,7 @@ describe("CommandPalette", () => {
     renderPalette();
     fireEvent.click(screen.getByText("Open palette"));
 
-    fireEvent.click(await screen.findByText("Open Document Studio"));
+    fireEvent.click(await screen.findByText("Open Studio"));
 
     expect(push).toHaveBeenCalledWith("/studio");
     expect(localStorage.setItem).toHaveBeenCalledWith(

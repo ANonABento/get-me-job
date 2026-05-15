@@ -6,7 +6,7 @@ export const BASIC_ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: "upload-resume",
     icon: Upload,
-    href: "/bank",
+    href: "/components",
     isComplete: (stats) => stats.documentsCount > 0,
     tier: "basic",
   },

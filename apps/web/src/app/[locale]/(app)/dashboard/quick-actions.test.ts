@@ -16,7 +16,7 @@ describe("buildQuickActions", () => {
       resumesGenerated: 1,
     });
     expect(upload.title).toBe("Upload Resume");
-    expect(upload.href).toBe("/bank");
+    expect(upload.href).toBe("/components");
   });
 
   it("routes 'Edit Profile' to /profile", () => {

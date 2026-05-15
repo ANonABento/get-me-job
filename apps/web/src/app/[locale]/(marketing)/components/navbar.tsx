@@ -44,7 +44,7 @@ export function Navbar() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex min-h-11 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl gradient-bg text-primary-foreground font-bold text-lg shadow-md">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-lg shadow-md">
               <Sparkles className="h-5 w-5" />
             </div>
             <div className="flex flex-col">
@@ -95,7 +95,7 @@ export function Navbar() {
             </Button>
             <Button
               asChild
-              className="gradient-bg text-primary-foreground hover:opacity-90"
+              className="bg-primary text-primary-foreground hover:opacity-90"
             >
               <Link
                 href={{ pathname: "/sign-in", query: { callbackUrl } }}
@@ -166,7 +166,7 @@ export function Navbar() {
               </Button>
               <Button
                 asChild
-                className="gradient-bg text-primary-foreground hover:opacity-90"
+                className="bg-primary text-primary-foreground hover:opacity-90"
               >
                 <Link
                   href={{ pathname: "/sign-in", query: { callbackUrl } }}

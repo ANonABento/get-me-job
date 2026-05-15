@@ -80,7 +80,7 @@ describe("ProfilePage", () => {
       screen.getByRole("link", {
         name: /Upload your resume to fill this in/i,
       }),
-    ).toHaveAttribute("href", "/en/bank");
+    ).toHaveAttribute("href", "/en/components");
     expect(screen.queryByLabelText("Full name")).not.toBeInTheDocument();
     expect(screen.getByTestId("profile-empty-state")).toMatchSnapshot();
   });

@@ -20,7 +20,7 @@ export function EmptyState({ variant }: EmptyStateProps) {
           info automatically. Then you can tailor it for every job application.
         </p>
         <Link
-          href="/bank"
+          href="/components"
           className="mt-6 inline-flex items-center gap-2 rounded-xl gradient-bg px-6 py-3 font-medium text-primary-foreground shadow-elevated hover:opacity-90 transition-opacity"
         >
           <Upload className="h-4 w-4" />

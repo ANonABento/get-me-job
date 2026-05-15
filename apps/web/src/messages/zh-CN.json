@@ -41,7 +41,7 @@
       "pipeline": "进展",
       "prep": "准备",
       "reporting": "报告",
-      "library": "文档"
+      "library": "资料库"
     },
     "items": {
       "dashboard": "仪表盘",
@@ -57,8 +57,8 @@
       "analytics": "数据分析",
       "profile": "个人资料",
       "settings": "设置",
-      "components": "文档",
-      "answers": "答案库"
+      "components": "组件",
+      "answers": "回答"
     }
   },
   "marketing": {

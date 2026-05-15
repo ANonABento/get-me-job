@@ -129,7 +129,7 @@ export function analyzeStrongestSkills(data: InsightData): Insight[] {
       description: `${skillNames.join(", ")} appear in ${topPercentage}% of your tracked jobs. These are your most marketable skills.`,
       priority: "low",
       actionLabel: "View Profile",
-      actionUrl: "/bank",
+      actionUrl: "/components",
     },
   ];
 }
@@ -174,7 +174,7 @@ export function analyzeMissingKeywords(data: InsightData): Insight[] {
       description: `You're missing ${missingNames.join(", ")} keywords that appear in ${topPercentage}% of your target jobs. Adding these could improve your match rate.`,
       priority: "high",
       actionLabel: "Edit Profile",
-      actionUrl: "/bank",
+      actionUrl: "/components",
     },
   ];
 }
@@ -291,7 +291,7 @@ export function analyzeQuantifiedMetrics(data: InsightData): Insight[] {
         "Consider adding metrics to your experience (e.g., 'Increased sales by 20%', 'Led team of 5'). Resumes with numbers score higher with recruiters and ATS systems.",
       priority: "high",
       actionLabel: "Edit Experience",
-      actionUrl: "/bank",
+      actionUrl: "/components",
     },
   ];
 }
@@ -348,7 +348,7 @@ export function analyzeProfileCompleteness(data: InsightData): Insight[] {
           "Upload your resume to get started. A complete profile helps generate better-tailored resumes and insights.",
         priority: "high",
         actionLabel: "Upload Resume",
-        actionUrl: "/bank",
+        actionUrl: "/components",
       },
     ];
   }
@@ -370,7 +370,7 @@ export function analyzeProfileCompleteness(data: InsightData): Insight[] {
       description: `Add ${missing.join(", ")} to strengthen your profile and improve AI-generated resume quality.`,
       priority: "high",
       actionLabel: "Edit Profile",
-      actionUrl: "/bank",
+      actionUrl: "/components",
     },
   ];
 }

@@ -41,7 +41,7 @@
       "pipeline": "Flujo",
       "prep": "Preparación",
       "reporting": "Informes",
-      "library": "Documentos"
+      "library": "Biblioteca"
     },
     "items": {
       "dashboard": "Panel",
@@ -57,8 +57,8 @@
       "analytics": "Analíticas",
       "profile": "Perfil",
       "settings": "Configuración",
-      "components": "Documentos",
-      "answers": "Banco de respuestas"
+      "components": "Componentes",
+      "answers": "Respuestas"
     }
   },
   "marketing": {

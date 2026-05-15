@@ -22,7 +22,7 @@ export function buildQuickActions(stats: QuickActionStats): QuickActionItem[] {
     {
       title: "Upload Resume",
       description: `${pluralize(documentsCount, "document")} uploaded`,
-      href: "/bank",
+      href: "/components",
       icon: Upload,
       gradient: "from-violet-500 to-purple-400",
     },

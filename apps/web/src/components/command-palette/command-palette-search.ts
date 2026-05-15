@@ -106,7 +106,7 @@ async function searchAnswerBank(
       label: text(item.question) || "Saved answer",
       description: text(item.sourceCompany) || text(item.source),
       category: "answer-bank",
-      href: "/answer-bank",
+      href: "/answers",
       keywords: [text(item.answer), text(item.sourceCompany)].filter(Boolean),
     }));
 }

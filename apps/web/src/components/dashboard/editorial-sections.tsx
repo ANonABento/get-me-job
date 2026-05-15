@@ -615,7 +615,7 @@ function ReadinessRailCard({ stats }: { stats: DashboardStats }) {
       <ChecklistRow
         label="Documents"
         complete={stats.documentsCount > 0}
-        href="/bank"
+        href="/components"
       />
       <ChecklistRow
         label="Tailored docs"
@@ -686,7 +686,7 @@ function ResumeDraftRailCard({ stats }: { stats: DashboardStats }) {
           </>
         ) : (
           <Link
-            href="/bank"
+            href="/components"
             className="inline-flex items-center gap-1.5 text-[12.5px] font-medium"
             style={{ color: "var(--brand)" }}
           >

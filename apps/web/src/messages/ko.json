@@ -41,7 +41,7 @@
       "pipeline": "파이프라인",
       "prep": "준비",
       "reporting": "리포트",
-      "library": "문서"
+      "library": "라이브러리"
     },
     "items": {
       "dashboard": "대시보드",
@@ -57,8 +57,8 @@
       "analytics": "분석",
       "profile": "프로필",
       "settings": "설정",
-      "components": "문서",
-      "answers": "답변 뱅크"
+      "components": "구성 요소",
+      "answers": "답변"
     }
   },
   "marketing": {
