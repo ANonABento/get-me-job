@@ -25,17 +25,18 @@ import { ErrorState } from "@/components/ui/error-state";
 import { CompletenessCard } from "@/components/profile/completeness-card";
 import { ProfileEmptyState } from "@/components/profile/profile-empty-state";
 import { ProfileSkeleton } from "@/components/skeletons/profile-skeleton";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AppPage, PageContent, PageHeader } from "@/components/ui/page-layout";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  EditorialPanel,
+  EditorialPanelBody,
+  EditorialPanelHeader,
+  MonoCap,
+  CompanyGlyph,
+} from "@/components/editorial";
+import { pluralize } from "@/lib/text/pluralize";
 import {
   formValuesToProfileUpdate,
   getProfileInitials,
@@ -111,6 +112,125 @@ function Field({
       {children}
     </div>
   );
+}
+
+/**
+ * Editorial section row — mono-cap label on the left, editable input(s)
+ * on the right. Mirrors the v2 `.pf-row` pattern with 180px label column
+ * on >=md. Stacks vertically on small screens.
+ */
+function ResumeRow({
+  label,
+  htmlFor,
+  required,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="grid items-start gap-3 border-b border-rule py-3.5 last:border-b-0 md:grid-cols-[180px_minmax(0,1fr)] md:gap-4">
+      <div className="flex items-baseline gap-0.5 pt-2">
+        <Label htmlFor={htmlFor} className="text-[13px] font-medium text-ink-2">
+          {label}
+        </Label>
+        {required ? (
+          <span aria-hidden className="text-brand">
+            *
+          </span>
+        ) : null}
+      </div>
+      <div className="min-w-0">{children}</div>
+    </div>
+  );
+}
+
+/**
+ * Source pill — "AI extracted" / "Hand-written" — small mono-cap chip
+ * sitting in section heads to indicate how the section was populated.
+ */
+function SourcePill({
+  variant = "ai",
+  children,
+}: {
+  variant?: "ai" | "user";
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em]",
+        variant === "ai"
+          ? "bg-brand-soft text-brand"
+          : "bg-rule-strong-bg text-ink-3",
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+/**
+ * Completion ring — visual echo of the v2 `.pf-ring` SVG ring. Reads
+ * the same completeness score the rest of the page uses; purely
+ * presentational (the live `<CompletenessCard>` carries the real
+ * progressbar role + gap list).
+ */
+function CompletionRing({ score }: { score: number }) {
+  const clamped = Math.max(0, Math.min(100, Math.round(score)));
+  const radius = 22;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (clamped / 100) * circumference;
+  return (
+    <svg
+      width="56"
+      height="56"
+      viewBox="0 0 56 56"
+      className="flex-shrink-0"
+      aria-hidden="true"
+    >
+      <circle
+        cx="28"
+        cy="28"
+        r={radius}
+        fill="none"
+        stroke="var(--rule-strong-bg)"
+        strokeWidth="6"
+      />
+      <circle
+        cx="28"
+        cy="28"
+        r={radius}
+        fill="none"
+        stroke="var(--brand)"
+        strokeWidth="6"
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        transform="rotate(-90 28 28)"
+      />
+      <text
+        x="28"
+        y="32"
+        textAnchor="middle"
+        fontFamily="var(--font-mono), monospace"
+        fontSize="13"
+        fontWeight="700"
+        fill="var(--ink)"
+      >
+        {clamped}%
+      </text>
+    </svg>
+  );
+}
+
+interface SectionStatus {
+  id: string;
+  labelKey: string;
+  count: number | null;
+  tone: "ok" | "warn" | "miss";
 }
 
 export default function ProfilePage() {
@@ -426,6 +546,55 @@ export default function ProfilePage() {
     );
   }
 
+  // ── Section status meta for the TOC rail.
+  const sectionStatuses: SectionStatus[] = [
+    {
+      id: "identity",
+      labelKey: "sections.identity.title",
+      count: null,
+      tone: form.name && form.email && form.headline ? "ok" : "warn",
+    },
+    {
+      id: "contact",
+      labelKey: "sections.contact.title",
+      count: null,
+      tone:
+        form.email || form.phone || form.linkedin || form.github || form.website
+          ? "ok"
+          : "warn",
+    },
+    {
+      id: "summary",
+      labelKey: "sections.summary.title",
+      count: null,
+      tone: form.summary.trim() ? "ok" : "warn",
+    },
+    {
+      id: "experience-section",
+      labelKey: "signals.experience",
+      count: liveProfile.experiences.length,
+      tone: liveProfile.experiences.length > 0 ? "ok" : "miss",
+    },
+    {
+      id: "education-section",
+      labelKey: "signals.education",
+      count: liveProfile.education.length,
+      tone: liveProfile.education.length > 0 ? "ok" : "miss",
+    },
+    {
+      id: "skills-section",
+      labelKey: "signals.skills",
+      count: liveProfile.skills.length,
+      tone: liveProfile.skills.length > 0 ? "ok" : "miss",
+    },
+    {
+      id: "projects-section",
+      labelKey: "signals.projects",
+      count: liveProfile.projects.length,
+      tone: liveProfile.projects.length > 0 ? "ok" : "miss",
+    },
+  ];
+
   return (
     <AppPage>
       <PageHeader
@@ -483,7 +652,7 @@ export default function ProfilePage() {
         <div className="mb-5 flex flex-col gap-2 rounded-[var(--radius)] border bg-card/70 p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <span>{t("answerBankPrompt.text")}</span>
           <Button asChild variant="outline" size="sm">
-            <Link href="/answers">{t("answerBankPrompt.action")}</Link>
+            <Link href="/answer-bank">{t("answerBankPrompt.action")}</Link>
           </Button>
         </div>
 
@@ -491,6 +660,106 @@ export default function ProfilePage() {
           <ProfileEmptyState onFillManually={() => setShowEmptyState(false)} />
         ) : (
           <>
+            {/* Resume hero — large display H1 + contact-info row + avatar tile. */}
+            <EditorialPanel className="mb-6">
+              <EditorialPanelBody className="flex flex-col gap-5 sm:flex-row sm:items-start">
+                {/* Avatar tile — gradient initials, mirroring the AppBar chip. */}
+                <div className="flex-shrink-0">
+                  {form.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={form.avatarUrl}
+                      alt={
+                        form.name
+                          ? t("sidebar.profilePhotoNamed", { name: form.name })
+                          : t("sidebar.profilePhoto")
+                      }
+                      className="h-20 w-20 rounded-md border border-rule object-cover"
+                    />
+                  ) : (
+                    <div
+                      aria-hidden="true"
+                      className="grid h-20 w-20 place-items-center overflow-hidden font-display text-[26px] font-bold text-inverse-ink"
+                      style={{
+                        borderRadius: "var(--r-md)",
+                        backgroundImage:
+                          "linear-gradient(135deg, var(--brand), var(--brand-dark))",
+                      }}
+                    >
+                      {initials}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <MonoCap size="sm" tone="muted">
+                    {t("title")}
+                  </MonoCap>
+                  <h2 className="mt-1 font-display text-[28px] font-semibold tracking-tight text-ink">
+                    {form.name || t("sidebar.yourName")}
+                  </h2>
+                  {form.headline ? (
+                    <p className="mt-1 text-[14px] text-ink-2">
+                      {form.headline}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-[14px] text-ink-3">
+                      {t("sidebar.addHeadline")}
+                    </p>
+                  )}
+                  <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px]">
+                    <button
+                      type="button"
+                      onClick={() => focusField("overview", "email")}
+                      className="flex min-w-0 items-center gap-1.5 rounded text-ink-2 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <Mail className="h-3.5 w-3.5 shrink-0 text-ink-3" />
+                      <span className="truncate">
+                        {form.email || t("sidebar.noEmail")}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => focusField("overview", "location")}
+                      className="flex min-w-0 items-center gap-1.5 rounded text-ink-2 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <MapPin className="h-3.5 w-3.5 shrink-0 text-ink-3" />
+                      <span className="truncate">
+                        {form.location || t("sidebar.noLocation")}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        focusField("preferences", "targetSalaryMin")
+                      }
+                      className="flex min-w-0 items-center gap-1.5 rounded text-ink-2 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <DollarSign className="h-3.5 w-3.5 shrink-0 text-ink-3" />
+                      <span className="truncate">{salaryRange}</span>
+                    </button>
+                    {form.linkedin ? (
+                      <span className="flex min-w-0 items-center gap-1.5 text-ink-2">
+                        <Linkedin className="h-3.5 w-3.5 shrink-0 text-ink-3" />
+                        <span className="truncate">{form.linkedin}</span>
+                      </span>
+                    ) : null}
+                    {form.github ? (
+                      <span className="flex min-w-0 items-center gap-1.5 text-ink-2">
+                        <Github className="h-3.5 w-3.5 shrink-0 text-ink-3" />
+                        <span className="truncate">{form.github}</span>
+                      </span>
+                    ) : null}
+                    {form.website ? (
+                      <span className="flex min-w-0 items-center gap-1.5 text-ink-2">
+                        <Globe className="h-3.5 w-3.5 shrink-0 text-ink-3" />
+                        <span className="truncate">{form.website}</span>
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              </EditorialPanelBody>
+            </EditorialPanel>
+
             <div className="mb-6">
               <CompletenessCard
                 result={completeness}
@@ -499,77 +768,85 @@ export default function ProfilePage() {
               />
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-              <aside className="space-y-6">
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex flex-col items-center text-center">
-                      {form.avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={form.avatarUrl}
-                          alt={
-                            form.name
-                              ? t("sidebar.profilePhotoNamed", {
-                                  name: form.name,
-                                })
-                              : t("sidebar.profilePhoto")
-                          }
-                          className="h-24 w-24 rounded-full border object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-24 w-24 items-center justify-center rounded-full border bg-primary text-3xl font-semibold text-primary-foreground">
-                          {initials}
-                        </div>
-                      )}
-                      <h2 className="mt-4 text-xl font-semibold">
-                        {form.name || t("sidebar.yourName")}
-                      </h2>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {form.headline || t("sidebar.addHeadline")}
-                      </p>
-                    </div>
-                    <div className="mt-6 space-y-3 text-sm">
-                      <button
-                        type="button"
-                        onClick={() => focusField("overview", "email")}
-                        className="flex w-full min-w-0 items-center gap-2 rounded text-left text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      >
-                        <Mail className="h-4 w-4 shrink-0" />
-                        <span className="truncate">
-                          {form.email || t("sidebar.noEmail")}
+            <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+              {/* TOC rail + completion ring + lifetime stats + tab nav. */}
+              <aside className="space-y-5">
+                <nav
+                  aria-label={t("tabs.ariaLabel")}
+                  className="flex flex-col gap-0.5"
+                >
+                  <MonoCap size="sm" tone="muted" className="px-2.5 pb-2 pt-1">
+                    {t("tabs.overview")}
+                  </MonoCap>
+                  {sectionStatuses.map((section) => (
+                    <a
+                      key={section.id}
+                      href={`#${section.id}`}
+                      className="flex items-center gap-2 rounded-sm border-l-2 border-transparent px-2.5 py-1.5 text-[13px] text-ink-2 transition-colors hover:bg-rule-strong-bg hover:text-ink"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        setActiveTab("overview");
+                        requestAnimationFrame(() => {
+                          document
+                            .getElementById(section.id)
+                            ?.scrollIntoView({
+                              behavior: "smooth",
+                              block: "start",
+                            });
+                        });
+                      }}
+                    >
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "h-2 w-2 rounded-full",
+                          section.tone === "ok" &&
+                            "bg-[var(--stage-applied-dot)]",
+                          section.tone === "warn" &&
+                            "bg-[var(--stage-interview-dot)]",
+                          section.tone === "miss" && "bg-rule-strong",
+                        )}
+                      />
+                      <span className="flex-1 truncate">
+                        {t(section.labelKey)}
+                      </span>
+                      {section.count !== null ? (
+                        <span className="font-mono text-[10px] text-ink-3">
+                          {section.count}
                         </span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => focusField("overview", "location")}
-                        className="flex w-full min-w-0 items-center gap-2 rounded text-left text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      >
-                        <MapPin className="h-4 w-4 shrink-0" />
-                        <span className="truncate">
-                          {form.location || t("sidebar.noLocation")}
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          focusField("preferences", "targetSalaryMin")
-                        }
-                        className="flex w-full min-w-0 items-center gap-2 rounded text-left text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      >
-                        <DollarSign className="h-4 w-4 shrink-0" />
-                        <span className="truncate">{salaryRange}</span>
-                      </button>
+                      ) : null}
+                    </a>
+                  ))}
+                </nav>
+
+                {/* Profile health ring — visual echo of the completeness
+                    score (the full progressbar + gap list lives in the
+                    <CompletenessCard> above). */}
+                <EditorialPanel aria-hidden="true">
+                  <EditorialPanelBody className="flex items-center gap-3">
+                    <CompletionRing score={completeness.score} />
+                    <div className="min-w-0 text-[12.5px] leading-snug text-ink-2">
+                      <strong className="block text-[13.5px] font-semibold text-ink">
+                        {t("completeness.readiness")}
+                      </strong>
+                      <span className="text-ink-3">
+                        {pluralize(
+                          completeness.gaps.length,
+                          "quick win",
+                          "quick wins",
+                        )}{" "}
+                        left
+                      </span>
                     </div>
-                  </CardContent>
-                </Card>
+                  </EditorialPanelBody>
+                </EditorialPanel>
 
                 <LifetimeStatsCard streak={streak} />
 
                 <div
                   role="tablist"
                   aria-label={t("tabs.ariaLabel")}
-                  className="grid gap-2 rounded-md border bg-card p-2"
+                  className="grid gap-1 rounded-md border border-rule bg-paper p-1.5"
                 >
                   {tabs.map((tab) => {
                     const Icon = tab.icon;
@@ -580,14 +857,14 @@ export default function ProfilePage() {
                         role="tab"
                         aria-selected={activeTab === tab.id}
                         className={cn(
-                          "flex items-center gap-2 rounded px-3 py-2 text-left text-sm font-medium transition-colors",
+                          "flex items-center gap-2 rounded px-2.5 py-1.5 text-left text-[13px] font-medium transition-colors",
                           activeTab === tab.id
                             ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:bg-accent/10 hover:text-foreground",
+                            : "text-ink-2 hover:bg-rule-strong-bg hover:text-ink",
                         )}
                         onClick={() => setActiveTab(tab.id)}
                       >
-                        <Icon className="h-4 w-4" />
+                        <Icon className="h-3.5 w-3.5" />
                         {t(tab.labelKey)}
                       </button>
                     );
@@ -595,40 +872,41 @@ export default function ProfilePage() {
                 </div>
               </aside>
 
-              <section className="space-y-6">
+              <section className="space-y-5">
                 {activeTab === "overview" ? (
                   <>
-                    <Card id="identity" data-section="identity" tabIndex={-1}>
-                      <CardHeader>
-                        <CardTitle className="text-xl">
-                          {t("sections.identity.title")}
-                        </CardTitle>
-                        <CardDescription>
-                          {t("sections.identity.description")}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="grid gap-4 md:grid-cols-2">
-                        <Field id="avatarUrl" label={t("fields.avatarUrl")}>
-                          <Input
-                            id="avatarUrl"
-                            value={form.avatarUrl}
-                            placeholder="https://..."
-                            onChange={(event) =>
-                              updateField("avatarUrl", event.target.value)
-                            }
-                          />
-                        </Field>
-                        <Field id="name" label={t("fields.fullName")}>
-                          <Input
-                            id="name"
-                            value={form.name}
-                            onChange={(event) =>
-                              updateField("name", event.target.value)
-                            }
-                          />
-                        </Field>
-                        <div className="md:col-span-2">
-                          <Field id="headline" label={t("fields.headline")}>
+                    {/* Basics / Identity */}
+                    <EditorialPanel as="article" className="scroll-mt-24">
+                      <div
+                        id="identity"
+                        data-section="identity"
+                        tabIndex={-1}
+                        className="focus:outline-none"
+                      >
+                        <EditorialPanelHeader
+                          title={t("sections.identity.title")}
+                          action={
+                            <SourcePill variant="ai">AI extracted</SourcePill>
+                          }
+                        />
+                        <EditorialPanelBody>
+                          <ResumeRow
+                            label={t("fields.fullName")}
+                            htmlFor="name"
+                            required
+                          >
+                            <Input
+                              id="name"
+                              value={form.name}
+                              onChange={(event) =>
+                                updateField("name", event.target.value)
+                              }
+                            />
+                          </ResumeRow>
+                          <ResumeRow
+                            label={t("fields.headline")}
+                            htmlFor="headline"
+                          >
                             <Input
                               id="headline"
                               value={form.headline}
@@ -637,248 +915,507 @@ export default function ProfilePage() {
                                 updateField("headline", event.target.value)
                               }
                             />
-                          </Field>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card id="contact" data-section="contact">
-                      <CardHeader>
-                        <CardTitle className="text-xl">
-                          {t("sections.contact.title")}
-                        </CardTitle>
-                        <CardDescription>
-                          {t("sections.contact.description")}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="grid gap-4 md:grid-cols-2">
-                        <Field id="email" label={t("fields.email")}>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={form.email}
-                            onChange={(event) =>
-                              updateField("email", event.target.value)
-                            }
-                          />
-                        </Field>
-                        <Field id="phone" label={t("fields.phone")}>
-                          <Input
-                            id="phone"
-                            value={form.phone}
-                            onChange={(event) =>
-                              updateField("phone", event.target.value)
-                            }
-                          />
-                        </Field>
-                        <Field id="location" label={t("fields.location")}>
-                          <Input
-                            id="location"
-                            value={form.location}
-                            onChange={(event) =>
-                              updateField("location", event.target.value)
-                            }
-                          />
-                        </Field>
-                        <Field id="linkedin" label={t("fields.linkedin")}>
-                          <div className="relative">
-                            <Linkedin className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          </ResumeRow>
+                          <ResumeRow
+                            label={t("fields.avatarUrl")}
+                            htmlFor="avatarUrl"
+                          >
                             <Input
-                              id="linkedin"
-                              className="pl-9"
-                              value={form.linkedin}
-                              placeholder="https://linkedin.com/in/..."
-                              onChange={(event) =>
-                                updateField("linkedin", event.target.value)
-                              }
-                            />
-                          </div>
-                        </Field>
-                        <Field id="github" label={t("fields.github")}>
-                          <div className="relative">
-                            <Github className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              id="github"
-                              className="pl-9"
-                              value={form.github}
-                              placeholder="https://github.com/..."
-                              onChange={(event) =>
-                                updateField("github", event.target.value)
-                              }
-                            />
-                          </div>
-                        </Field>
-                        <Field id="website" label={t("fields.website")}>
-                          <div className="relative">
-                            <Globe className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              id="website"
-                              className="pl-9"
-                              value={form.website}
+                              id="avatarUrl"
+                              value={form.avatarUrl}
                               placeholder="https://..."
                               onChange={(event) =>
-                                updateField("website", event.target.value)
+                                updateField("avatarUrl", event.target.value)
                               }
                             />
-                          </div>
-                        </Field>
-                      </CardContent>
-                    </Card>
+                          </ResumeRow>
+                        </EditorialPanelBody>
+                      </div>
+                    </EditorialPanel>
 
-                    <Card id="summary" data-section="summary">
-                      <CardHeader>
-                        <CardTitle className="text-xl">
-                          {t("sections.summary.title")}
-                        </CardTitle>
-                        <CardDescription>
-                          {t("sections.summary.description")}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Field id="summaryText" label={t("fields.summary")}>
-                          <Textarea
-                            id="summaryText"
-                            value={form.summary}
-                            rows={8}
-                            onChange={(event) =>
-                              updateField("summary", event.target.value)
+                    {/* Contact */}
+                    <EditorialPanel as="article" className="scroll-mt-24">
+                      <div id="contact" data-section="contact">
+                        <EditorialPanelHeader
+                          title={t("sections.contact.title")}
+                          action={
+                            <SourcePill variant="user">Hand-written</SourcePill>
+                          }
+                        />
+                        <EditorialPanelBody>
+                          <ResumeRow label={t("fields.email")} htmlFor="email">
+                            <Input
+                              id="email"
+                              type="email"
+                              value={form.email}
+                              onChange={(event) =>
+                                updateField("email", event.target.value)
+                              }
+                            />
+                          </ResumeRow>
+                          <ResumeRow label={t("fields.phone")} htmlFor="phone">
+                            <Input
+                              id="phone"
+                              value={form.phone}
+                              onChange={(event) =>
+                                updateField("phone", event.target.value)
+                              }
+                            />
+                          </ResumeRow>
+                          <ResumeRow
+                            label={t("fields.location")}
+                            htmlFor="location"
+                          >
+                            <Input
+                              id="location"
+                              value={form.location}
+                              onChange={(event) =>
+                                updateField("location", event.target.value)
+                              }
+                            />
+                          </ResumeRow>
+                          <ResumeRow
+                            label={t("fields.linkedin")}
+                            htmlFor="linkedin"
+                          >
+                            <div className="relative">
+                              <Linkedin className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-ink-3" />
+                              <Input
+                                id="linkedin"
+                                className="pl-9"
+                                value={form.linkedin}
+                                placeholder="https://linkedin.com/in/..."
+                                onChange={(event) =>
+                                  updateField("linkedin", event.target.value)
+                                }
+                              />
+                            </div>
+                          </ResumeRow>
+                          <ResumeRow
+                            label={t("fields.github")}
+                            htmlFor="github"
+                          >
+                            <div className="relative">
+                              <Github className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-ink-3" />
+                              <Input
+                                id="github"
+                                className="pl-9"
+                                value={form.github}
+                                placeholder="https://github.com/..."
+                                onChange={(event) =>
+                                  updateField("github", event.target.value)
+                                }
+                              />
+                            </div>
+                          </ResumeRow>
+                          <ResumeRow
+                            label={t("fields.website")}
+                            htmlFor="website"
+                          >
+                            <div className="relative">
+                              <Globe className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-ink-3" />
+                              <Input
+                                id="website"
+                                className="pl-9"
+                                value={form.website}
+                                placeholder="https://..."
+                                onChange={(event) =>
+                                  updateField("website", event.target.value)
+                                }
+                              />
+                            </div>
+                          </ResumeRow>
+                        </EditorialPanelBody>
+                      </div>
+                    </EditorialPanel>
+
+                    {/* Summary */}
+                    <EditorialPanel as="article" className="scroll-mt-24">
+                      <div id="summary" data-section="summary">
+                        <EditorialPanelHeader
+                          title={t("sections.summary.title")}
+                          action={
+                            <SourcePill variant="user">Hand-written</SourcePill>
+                          }
+                        />
+                        <EditorialPanelBody>
+                          <Field id="summaryText" label={t("fields.summary")}>
+                            <Textarea
+                              id="summaryText"
+                              value={form.summary}
+                              rows={6}
+                              onChange={(event) =>
+                                updateField("summary", event.target.value)
+                              }
+                            />
+                          </Field>
+                        </EditorialPanelBody>
+                      </div>
+                    </EditorialPanel>
+
+                    {/* Saved profile signals — 5-up summary */}
+                    <EditorialPanel as="article">
+                      <div id="profile-signals" data-section="profile-signals">
+                        <EditorialPanelHeader
+                          title={t("sections.savedSignals.title")}
+                        />
+                        <EditorialPanelBody className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                          {[
+                            {
+                              id: "experience",
+                              label: t("signals.experience"),
+                              count: liveProfile.experiences.length,
+                            },
+                            {
+                              id: "education",
+                              label: t("signals.education"),
+                              count: liveProfile.education.length,
+                            },
+                            {
+                              id: "skills",
+                              label: t("signals.skills"),
+                              count: liveProfile.skills.length,
+                            },
+                            {
+                              id: "projects",
+                              label: t("signals.projects"),
+                              count: liveProfile.projects.length,
+                            },
+                            {
+                              id: "achievements",
+                              label: t("signals.awards"),
+                              count: liveProfile.certifications.length,
+                            },
+                          ].map((item) => (
+                            <div
+                              key={item.id}
+                              id={item.id}
+                              tabIndex={-1}
+                              className="rounded-md border border-rule bg-background p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            >
+                              <div className="font-display text-2xl font-semibold text-ink">
+                                {item.count}
+                              </div>
+                              <MonoCap
+                                size="sm"
+                                tone="muted"
+                                className="mt-0.5 block"
+                              >
+                                {item.label}
+                              </MonoCap>
+                            </div>
+                          ))}
+                        </EditorialPanelBody>
+                      </div>
+                    </EditorialPanel>
+
+                    {/* Experience — read-only display until inline-edit API exists */}
+                    {liveProfile.experiences.length > 0 ? (
+                      <EditorialPanel as="article" className="scroll-mt-24">
+                        <div
+                          id="experience-section"
+                          data-section="experience-section"
+                        >
+                          <EditorialPanelHeader
+                            title={t("signals.experience")}
+                            eyebrow={pluralize(
+                              liveProfile.experiences.length,
+                              "role",
+                              "roles",
+                            )}
+                            action={
+                              <SourcePill variant="ai">AI extracted</SourcePill>
                             }
                           />
-                        </Field>
-                      </CardContent>
-                    </Card>
-
-                    <Card id="profile-signals" data-section="profile-signals">
-                      <CardHeader>
-                        <CardTitle className="text-xl">
-                          {t("sections.savedSignals.title")}
-                        </CardTitle>
-                        <CardDescription>
-                          {t("sections.savedSignals.description")}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                        {[
-                          {
-                            id: "experience",
-                            label: t("signals.experience"),
-                            count: liveProfile.experiences.length,
-                          },
-                          {
-                            id: "education",
-                            label: t("signals.education"),
-                            count: liveProfile.education.length,
-                          },
-                          {
-                            id: "skills",
-                            label: t("signals.skills"),
-                            count: liveProfile.skills.length,
-                          },
-                          {
-                            id: "projects",
-                            label: t("signals.projects"),
-                            count: liveProfile.projects.length,
-                          },
-                          {
-                            id: "achievements",
-                            label: t("signals.awards"),
-                            count: liveProfile.certifications.length,
-                          },
-                        ].map((item) => (
-                          <div
-                            key={item.id}
-                            id={item.id}
-                            tabIndex={-1}
-                            className="rounded-md border p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                          >
-                            <div className="text-2xl font-semibold">
-                              {item.count}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {item.label}
-                            </div>
+                          <div>
+                            {liveProfile.experiences.map(
+                              (experience, index) => (
+                                <div
+                                  key={experience.id}
+                                  className={cn(
+                                    "px-[18px] py-4",
+                                    index <
+                                      liveProfile.experiences.length - 1 &&
+                                      "border-b border-rule",
+                                  )}
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <CompanyGlyph
+                                      company={experience.company}
+                                      size="lg"
+                                    />
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-baseline justify-between gap-3">
+                                        <h3 className="truncate font-display text-[15px] font-semibold tracking-tight text-ink">
+                                          {experience.title}
+                                        </h3>
+                                        {experience.startDate ? (
+                                          <span className="flex-shrink-0 font-mono text-[11.5px] text-ink-3">
+                                            {experience.startDate}
+                                            {experience.current
+                                              ? " — Present"
+                                              : experience.endDate
+                                                ? ` — ${experience.endDate}`
+                                                : ""}
+                                          </span>
+                                        ) : null}
+                                      </div>
+                                      {experience.company ? (
+                                        <p className="mt-0.5 text-[13px] italic text-ink-3">
+                                          {experience.company}
+                                          {experience.location
+                                            ? ` · ${experience.location}`
+                                            : ""}
+                                        </p>
+                                      ) : null}
+                                      {experience.highlights.length > 0 ? (
+                                        <ul className="mt-2 list-none space-y-1">
+                                          {experience.highlights.map(
+                                            (highlight, idx) => (
+                                              <li
+                                                key={idx}
+                                                className="flex items-start gap-2 text-[13.5px] leading-snug text-ink-2"
+                                              >
+                                                <span
+                                                  aria-hidden
+                                                  className="mt-1 inline-block h-1 w-1 flex-shrink-0 rounded-full bg-ink-3"
+                                                />
+                                                <span>{highlight}</span>
+                                              </li>
+                                            ),
+                                          )}
+                                        </ul>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                </div>
+                              ),
+                            )}
                           </div>
-                        ))}
-                      </CardContent>
-                    </Card>
+                        </div>
+                      </EditorialPanel>
+                    ) : (
+                      <EditorialPanel as="article" className="scroll-mt-24">
+                        <div id="experience-section">
+                          <EditorialPanelHeader
+                            title={t("signals.experience")}
+                          />
+                          <EditorialPanelBody className="flex flex-col items-center gap-3 py-10 text-center">
+                            <BriefcaseBusiness className="h-6 w-6 text-ink-3" />
+                            <p className="max-w-prose text-[13px] text-ink-3">
+                              {t("emptyState.description")}
+                            </p>
+                            <Button asChild size="sm" variant="outline">
+                              <Link href="/bank">
+                                {t("emptyState.uploadResume")}
+                              </Link>
+                            </Button>
+                          </EditorialPanelBody>
+                        </div>
+                      </EditorialPanel>
+                    )}
 
-                    {careerDetailProfile ? (
-                      <Card id="career-details" data-section="career-details">
-                        <CardHeader>
-                          <CardTitle className="text-xl">
-                            {t("sections.careerDetails.title")}
-                          </CardTitle>
-                          <CardDescription>
-                            {t("sections.careerDetails.description")}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-5">
-                          {careerDetailProfile.experiences.map((experience) => (
-                            <div
-                              key={experience.id}
-                              className="rounded-md border p-4"
-                            >
-                              <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-                                <h3 className="font-medium">
-                                  {experience.title}
-                                </h3>
-                                <span className="text-sm text-muted-foreground">
-                                  {experience.company}
-                                </span>
-                              </div>
-                              {experience.highlights.length > 0 ? (
-                                <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                                  {experience.highlights.map((highlight) => (
-                                    <li key={highlight}>{highlight}</li>
-                                  ))}
-                                </ul>
-                              ) : null}
-                            </div>
-                          ))}
-
-                          {careerDetailProfile.projects.map((project) => (
-                            <div
-                              key={project.id}
-                              className="rounded-md border p-4"
-                            >
-                              <h3 className="font-medium">{project.name}</h3>
-                              {project.description ? (
-                                <p className="mt-2 text-sm text-muted-foreground">
-                                  {project.description}
+                    {/* Education */}
+                    {liveProfile.education.length > 0 ? (
+                      <EditorialPanel as="article" className="scroll-mt-24">
+                        <div
+                          id="education-section"
+                          data-section="education-section"
+                        >
+                          <EditorialPanelHeader
+                            title={t("signals.education")}
+                            eyebrow={pluralize(
+                              liveProfile.education.length,
+                              "entry",
+                              "entries",
+                            )}
+                            action={
+                              <SourcePill variant="ai">AI extracted</SourcePill>
+                            }
+                          />
+                          <div>
+                            {liveProfile.education.map((entry, index) => (
+                              <div
+                                key={entry.id}
+                                className={cn(
+                                  "px-[18px] py-4",
+                                  index < liveProfile.education.length - 1 &&
+                                    "border-b border-rule",
+                                )}
+                              >
+                                <div className="flex items-baseline justify-between gap-3">
+                                  <h3 className="truncate font-display text-[15px] font-semibold tracking-tight text-ink">
+                                    {entry.degree}
+                                    {entry.field ? ` · ${entry.field}` : ""}
+                                  </h3>
+                                  {entry.endDate ? (
+                                    <span className="flex-shrink-0 font-mono text-[11.5px] text-ink-3">
+                                      {entry.endDate}
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <p className="mt-0.5 text-[13px] italic text-ink-3">
+                                  {entry.institution}
                                 </p>
-                              ) : null}
-                              {project.highlights.length > 0 ? (
-                                <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                                  {project.highlights.map((highlight) => (
-                                    <li key={highlight}>{highlight}</li>
-                                  ))}
-                                </ul>
-                              ) : null}
-                            </div>
-                          ))}
-                        </CardContent>
-                      </Card>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </EditorialPanel>
+                    ) : null}
+
+                    {/* Skills — chip cloud */}
+                    {liveProfile.skills.length > 0 ? (
+                      <EditorialPanel as="article" className="scroll-mt-24">
+                        <div id="skills-section" data-section="skills-section">
+                          <EditorialPanelHeader
+                            title={t("signals.skills")}
+                            eyebrow={pluralize(
+                              liveProfile.skills.length,
+                              "tag",
+                              "tags",
+                            )}
+                            action={
+                              <SourcePill variant="ai">AI extracted</SourcePill>
+                            }
+                          />
+                          <EditorialPanelBody>
+                            {(() => {
+                              const grouped = liveProfile.skills.reduce(
+                                (acc, skill) => {
+                                  const key = skill.category;
+                                  acc[key] = acc[key] ?? [];
+                                  acc[key]!.push(skill);
+                                  return acc;
+                                },
+                                {} as Record<string, typeof liveProfile.skills>,
+                              );
+                              const categoryLabels: Record<string, string> = {
+                                technical: "Technical",
+                                soft: "Soft skills",
+                                language: "Languages",
+                                tool: "Tools",
+                                other: "Other",
+                              };
+                              return Object.entries(grouped).map(
+                                ([category, items], idx) => (
+                                  <div
+                                    key={category}
+                                    className={cn(idx > 0 && "mt-4")}
+                                  >
+                                    <MonoCap
+                                      size="sm"
+                                      tone="muted"
+                                      className="block"
+                                    >
+                                      {categoryLabels[category] ?? category}
+                                    </MonoCap>
+                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                      {items.map((skill) => (
+                                        <span
+                                          key={skill.id}
+                                          className="inline-flex items-center rounded-full border border-rule bg-background px-2.5 py-1 text-[12.5px] text-ink"
+                                        >
+                                          {skill.name}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ),
+                              );
+                            })()}
+                          </EditorialPanelBody>
+                        </div>
+                      </EditorialPanel>
+                    ) : null}
+
+                    {/* Projects */}
+                    {liveProfile.projects.length > 0 ? (
+                      <EditorialPanel as="article" className="scroll-mt-24">
+                        <div
+                          id="projects-section"
+                          data-section="projects-section"
+                        >
+                          <EditorialPanelHeader
+                            title={t("signals.projects")}
+                            eyebrow={pluralize(
+                              liveProfile.projects.length,
+                              "project",
+                              "projects",
+                            )}
+                            action={
+                              <SourcePill variant="ai">AI extracted</SourcePill>
+                            }
+                          />
+                          <div>
+                            {liveProfile.projects.map((project, index) => (
+                              <div
+                                key={project.id}
+                                className={cn(
+                                  "px-[18px] py-4",
+                                  index < liveProfile.projects.length - 1 &&
+                                    "border-b border-rule",
+                                )}
+                              >
+                                <h3 className="font-display text-[15px] font-semibold tracking-tight text-ink">
+                                  {project.name}
+                                </h3>
+                                {project.description ? (
+                                  <p className="mt-1 text-[13px] text-ink-2">
+                                    {project.description}
+                                  </p>
+                                ) : null}
+                                {project.highlights.length > 0 ? (
+                                  <ul className="mt-2 list-none space-y-1">
+                                    {project.highlights.map(
+                                      (highlight, idx) => (
+                                        <li
+                                          key={idx}
+                                          className="flex items-start gap-2 text-[13.5px] leading-snug text-ink-2"
+                                        >
+                                          <span
+                                            aria-hidden
+                                            className="mt-1 inline-block h-1 w-1 flex-shrink-0 rounded-full bg-ink-3"
+                                          />
+                                          <span>{highlight}</span>
+                                        </li>
+                                      ),
+                                    )}
+                                  </ul>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </EditorialPanel>
+                    ) : null}
+
+                    {/* Re-render the legacy career details card for back-compat
+                        with anything that scrolls to #career-details; only
+                        shown when at least one experience or project exists. */}
+                    {careerDetailProfile ? (
+                      <div
+                        id="career-details"
+                        data-section="career-details"
+                        aria-hidden="true"
+                      />
                     ) : null}
                   </>
                 ) : null}
 
                 {activeTab === "preferences" ? (
                   <>
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-xl">
-                          {t("workStyle.title")}
-                        </CardTitle>
-                        <CardDescription>
+                    <EditorialPanel as="article">
+                      <EditorialPanelHeader title={t("workStyle.title")} />
+                      <EditorialPanelBody>
+                        <p className="mb-3 text-[13px] text-ink-3">
                           {t("workStyle.description")}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        </p>
+                        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                           {workStyleOptions.map((option) => (
                             <label
                               key={option.value}
-                              className="flex cursor-pointer items-center gap-3 rounded-md border p-3 text-sm"
+                              className="flex cursor-pointer items-center gap-3 rounded-md border border-rule bg-background p-3 text-[13px] text-ink"
                             >
                               <input
                                 type="checkbox"
@@ -890,20 +1427,18 @@ export default function ProfilePage() {
                             </label>
                           ))}
                         </div>
-                      </CardContent>
-                    </Card>
+                      </EditorialPanelBody>
+                    </EditorialPanel>
 
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-xl">
-                          <Sparkles className="h-5 w-5 text-primary" />
-                          {t("targetRoles.title")}
-                        </CardTitle>
-                        <CardDescription>
+                    <EditorialPanel as="article">
+                      <EditorialPanelHeader
+                        title={t("targetRoles.title")}
+                        icon={Sparkles}
+                      />
+                      <EditorialPanelBody>
+                        <p className="mb-3 text-[13px] text-ink-3">
                           {t("targetRoles.description")}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
+                        </p>
                         <Field id="targetRoles" label={t("fields.targetRoles")}>
                           <Textarea
                             id="targetRoles"
@@ -918,115 +1453,123 @@ export default function ProfilePage() {
                             }}
                           />
                         </Field>
-                      </CardContent>
-                    </Card>
+                      </EditorialPanelBody>
+                    </EditorialPanel>
 
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-xl">
-                          {t("salary.title")}
-                        </CardTitle>
-                        <CardDescription>
+                    <EditorialPanel as="article">
+                      <EditorialPanelHeader title={t("salary.title")} />
+                      <EditorialPanelBody>
+                        <p className="mb-3 text-[13px] text-ink-3">
                           {t("salary.description")}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="grid gap-4 md:grid-cols-3">
-                        <Field
-                          id="targetSalaryCurrency"
-                          label={t("fields.currency")}
-                        >
-                          <Input
+                        </p>
+                        <div className="grid gap-4 md:grid-cols-3">
+                          <Field
                             id="targetSalaryCurrency"
-                            value={form.targetSalaryCurrency}
-                            onChange={(event) =>
-                              updateField(
-                                "targetSalaryCurrency",
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </Field>
-                        <Field id="targetSalaryMin" label={t("fields.minimum")}>
-                          <Input
+                            label={t("fields.currency")}
+                          >
+                            <Input
+                              id="targetSalaryCurrency"
+                              value={form.targetSalaryCurrency}
+                              onChange={(event) =>
+                                updateField(
+                                  "targetSalaryCurrency",
+                                  event.target.value,
+                                )
+                              }
+                            />
+                          </Field>
+                          <Field
                             id="targetSalaryMin"
-                            inputMode="numeric"
-                            value={form.targetSalaryMin}
-                            onChange={(event) =>
-                              updateField("targetSalaryMin", event.target.value)
-                            }
-                          />
-                        </Field>
-                        <Field id="targetSalaryMax" label={t("fields.maximum")}>
-                          <Input
+                            label={t("fields.minimum")}
+                          >
+                            <Input
+                              id="targetSalaryMin"
+                              inputMode="numeric"
+                              value={form.targetSalaryMin}
+                              onChange={(event) =>
+                                updateField(
+                                  "targetSalaryMin",
+                                  event.target.value,
+                                )
+                              }
+                            />
+                          </Field>
+                          <Field
                             id="targetSalaryMax"
-                            inputMode="numeric"
-                            value={form.targetSalaryMax}
-                            onChange={(event) =>
-                              updateField("targetSalaryMax", event.target.value)
-                            }
-                          />
-                        </Field>
-                      </CardContent>
-                    </Card>
+                            label={t("fields.maximum")}
+                          >
+                            <Input
+                              id="targetSalaryMax"
+                              inputMode="numeric"
+                              value={form.targetSalaryMax}
+                              onChange={(event) =>
+                                updateField(
+                                  "targetSalaryMax",
+                                  event.target.value,
+                                )
+                              }
+                            />
+                          </Field>
+                        </div>
+                      </EditorialPanelBody>
+                    </EditorialPanel>
                   </>
                 ) : null}
 
                 {activeTab === "privacy" ? (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-xl">
-                        {t("privacy.title")}
-                      </CardTitle>
-                      <CardDescription>
+                  <EditorialPanel as="article">
+                    <EditorialPanelHeader title={t("privacy.title")} />
+                    <EditorialPanelBody>
+                      <p className="mb-3 text-[13px] text-ink-3">
                         {t("privacy.description")}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <label className="flex items-start gap-3 rounded-md border p-4">
-                        <input
-                          type="checkbox"
-                          checked={form.openToRecruiters}
-                          onChange={(event) =>
-                            updateField(
-                              "openToRecruiters",
-                              event.target.checked,
-                            )
-                          }
-                          className="mt-1 h-4 w-4 rounded border-input"
-                        />
-                        <span>
-                          <span className="block text-sm font-medium">
-                            {t("privacy.openToRecruiters.title")}
+                      </p>
+                      <div className="space-y-3">
+                        <label className="flex items-start gap-3 rounded-md border border-rule bg-background p-4">
+                          <input
+                            type="checkbox"
+                            checked={form.openToRecruiters}
+                            onChange={(event) =>
+                              updateField(
+                                "openToRecruiters",
+                                event.target.checked,
+                              )
+                            }
+                            className="mt-1 h-4 w-4 rounded border-input"
+                          />
+                          <span>
+                            <span className="block text-[13.5px] font-medium text-ink">
+                              {t("privacy.openToRecruiters.title")}
+                            </span>
+                            <span className="mt-1 block text-[13px] text-ink-3">
+                              {t("privacy.openToRecruiters.description")}
+                            </span>
                           </span>
-                          <span className="mt-1 block text-sm text-muted-foreground">
-                            {t("privacy.openToRecruiters.description")}
-                          </span>
-                        </span>
-                      </label>
+                        </label>
 
-                      <label className="flex items-start gap-3 rounded-md border p-4">
-                        <input
-                          type="checkbox"
-                          checked={form.shareContactInfo}
-                          onChange={(event) =>
-                            updateField(
-                              "shareContactInfo",
-                              event.target.checked,
-                            )
-                          }
-                          className="mt-1 h-4 w-4 rounded border-input"
-                        />
-                        <span>
-                          <span className="block text-sm font-medium">
-                            {t("privacy.shareContactInfo.title")}
+                        <label className="flex items-start gap-3 rounded-md border border-rule bg-background p-4">
+                          <input
+                            type="checkbox"
+                            checked={form.shareContactInfo}
+                            onChange={(event) =>
+                              updateField(
+                                "shareContactInfo",
+                                event.target.checked,
+                              )
+                            }
+                            className="mt-1 h-4 w-4 rounded border-input"
+                          />
+                          <span>
+                            <span className="block text-[13.5px] font-medium text-ink">
+                              {t("privacy.shareContactInfo.title")}
+                            </span>
+                            <span className="mt-1 block text-[13px] text-ink-3">
+                              {t("privacy.shareContactInfo.description")}
+                            </span>
                           </span>
-                          <span className="mt-1 block text-sm text-muted-foreground">
-                            {t("privacy.shareContactInfo.description")}
-                          </span>
-                        </span>
-                      </label>
-                    </CardContent>
-                  </Card>
+                        </label>
+                      </div>
+                    </EditorialPanelBody>
+                  </EditorialPanel>
                 ) : null}
               </section>
             </div>

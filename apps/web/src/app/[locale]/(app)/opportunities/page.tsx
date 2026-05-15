@@ -2,38 +2,37 @@
 
 import { nowIso } from "@/lib/format/time";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
+  ArrowRight,
   Briefcase,
-  CalendarClock,
-  DollarSign,
-  ExternalLink,
+  Clipboard,
   FileDown,
-  Filter,
   LayoutGrid,
   List,
-  MapPin,
   Plus,
   Search,
   Sparkles,
-  Tag,
-  Trophy,
   X,
-  type LucideIcon,
 } from "lucide-react";
 import { ImportJobDialog } from "@/components/jobs/import-job-dialog";
 import { AddOpportunityWizard } from "@/components/opportunities/add-opportunity-wizard";
 import { Badge } from "@/components/ui/badge";
-import { StatusPill } from "@/components/opportunities/status-pill";
 import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   AppPage,
   PageContent,
   PageHeader,
-  PagePanel,
   StandardEmptyState,
 } from "@/components/ui/page-layout";
 import {
@@ -43,38 +42,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  SkeletonButton,
-  SkeletonJobCard,
-  SkeletonKanbanLane,
-} from "@/components/ui/skeleton";
+import { SkeletonJobCard, SkeletonKanbanLane } from "@/components/ui/skeleton";
 import { VirtualList } from "@/components/ui/virtual-list";
 import { showAchievementToasts } from "@/components/streak/achievement-toast";
 import { useToast } from "@/components/ui/toast";
 import { useErrorToast } from "@/hooks/use-error-toast";
+import { useUndoableAction } from "@/hooks/use-undoable-action";
 import { ESTIMATED_CARD_HEIGHT_OPPORTUNITY_ROW } from "@/lib/constants/virtualization";
 import { readJsonResponse } from "@/lib/http";
 import { extractUnlockedFromResponse } from "@/lib/streak/client";
-import { cn } from "@/lib/utils";
+import { pluralize } from "@/lib/text/pluralize";
 import { Link } from "@/i18n/navigation";
+import {
+  EditorialPanel,
+  PasteBox,
+  type PasteBoxHandle,
+} from "@/components/editorial";
 import {
   DEFAULT_KANBAN_VISIBLE_LANES,
   DEFAULT_OPPORTUNITY_FILTERS,
-  OPPORTUNITY_KANBAN_COLUMNS,
   OPPORTUNITY_SORT_OPTIONS,
-  OPPORTUNITY_SOURCE_OPTIONS,
-  OPPORTUNITY_STATUS_OPTIONS,
-  OPPORTUNITY_TYPE_TAB_OPTIONS,
-  REMOTE_TYPE_OPTIONS,
   SAMPLE_OPPORTUNITIES,
   countActiveOpportunityFilters,
   filterOpportunities,
-  formatOpportunityDate,
-  formatOpportunityLocation,
-  formatOpportunitySalary,
   getOpportunitiesViewStorage,
   getOpportunityFiltersFromStatusSearchParam,
-  getOpportunityFilterOptions,
   hasActiveOpportunityFilters,
   normalizeKanbanVisibleLanes,
   parseOpportunityStatusSearchParam,
@@ -89,10 +81,12 @@ import {
 import type { SettingsResponse } from "@/types/api";
 import { OpportunitiesEmptyHero } from "./_components/empty-hero";
 import { KanbanBoard } from "./_components/kanban-board";
+import { OpportunityDrawer } from "./_components/opportunity-drawer";
+import { OpportunityRow } from "./_components/opportunity-row";
 import { SegmentedToggle } from "./_components/segmented-toggle";
+import { StatusTabs, type StatusTabValue } from "./_components/status-tabs";
 
 const STORAGE_KEY = "taida-opportunities";
-const FILTERS_OPEN_STORAGE_KEY = "taida:opportunities:filters-open";
 
 interface OpportunitiesResponse {
   opportunities?: Opportunity[];
@@ -104,6 +98,18 @@ interface UpdateOpportunityResponse {
   opportunity?: Opportunity;
   unlocked?: unknown[];
 }
+
+// Tab options for the editorial filter bar. We keep the canonical
+// OpportunityStatus enum (8 stages) but only surface the most common ones
+// here; the kanban view + the legacy status select still cover the rest.
+const STATUS_TAB_VALUES: ReadonlyArray<StatusTabValue> = [
+  "all",
+  "saved",
+  "applied",
+  "interviewing",
+  "offer",
+  "rejected",
+];
 
 export default function OpportunitiesPage({
   searchParams = {},
@@ -137,19 +143,21 @@ export default function OpportunitiesPage({
   const [visibleKanbanLanes, setVisibleKanbanLanes] = useState<KanbanLaneId[]>([
     ...DEFAULT_KANBAN_VISIBLE_LANES,
   ]);
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [hasLoadedFiltersPreference, setHasLoadedFiltersPreference] =
-    useState(false);
   const [hasFetched, setHasFetched] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMoreOpportunities, setHasMoreOpportunities] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [drawerOpportunityId, setDrawerOpportunityId] = useState<string | null>(
+    null,
+  );
   const [hasCachedData, setHasCachedData] = useState(() => {
     if (typeof window === "undefined") return false;
     return Boolean(window.localStorage.getItem(STORAGE_KEY));
   });
   const showErrorToast = useErrorToast();
   const { addToast } = useToast();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
+  const pasteRef = useRef<PasteBoxHandle | null>(null);
 
   const fetchOpportunities = useCallback(async () => {
     try {
@@ -259,43 +267,45 @@ export default function OpportunitiesPage({
     void fetchKanbanSettings();
   }, [showErrorToast]);
 
-  useEffect(() => {
-    setIsFiltersOpen(readFiltersOpenPreference());
-    setHasLoadedFiltersPreference(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hasLoadedFiltersPreference) return;
-    writeFiltersOpenPreference(isFiltersOpen);
-  }, [hasLoadedFiltersPreference, isFiltersOpen]);
-
   const filteredOpportunities = useMemo(
     () => filterOpportunities(opportunities, filters, urlStatusFilters),
     [opportunities, filters, urlStatusFilters],
   );
 
-  const filterOptions = useMemo(
-    () => getOpportunityFilterOptions(opportunities),
-    [opportunities],
-  );
-
-  const counts = useMemo(
-    () => ({
+  const counts = useMemo(() => {
+    const base: Record<StatusTabValue, number> = {
       all: opportunities.length,
-      job: opportunities.filter((opportunity) => opportunity.type === "job")
-        .length,
-      hackathon: opportunities.filter(
-        (opportunity) => opportunity.type === "hackathon",
-      ).length,
-      pending: opportunities.filter(
-        (opportunity) => opportunity.status === "pending",
-      ).length,
-    }),
-    [opportunities],
-  );
+      pending: 0,
+      saved: 0,
+      applied: 0,
+      interviewing: 0,
+      offer: 0,
+      rejected: 0,
+      expired: 0,
+      dismissed: 0,
+    };
+    for (const opp of opportunities) {
+      if (opp.status in base) {
+        base[opp.status] = (base[opp.status] ?? 0) + 1;
+      }
+    }
+    return base;
+  }, [opportunities]);
 
-  const hasActiveFilters = hasActiveOpportunityFilters(filters);
+  // Pending opportunities are the inbound review queue. The link in the
+  // page head is suppressed when there's nothing to review.
+  const reviewQueueCount = counts.pending;
+
   const activeFilterCount = countActiveOpportunityFilters(filters);
+  const hasActiveFilters = hasActiveOpportunityFilters(filters);
+
+  const drawerOpportunity = useMemo(
+    () =>
+      drawerOpportunityId
+        ? (opportunities.find((opp) => opp.id === drawerOpportunityId) ?? null)
+        : null,
+    [opportunities, drawerOpportunityId],
+  );
 
   function updateFilter<T extends keyof OpportunityFilters>(
     key: T,
@@ -318,6 +328,24 @@ export default function OpportunitiesPage({
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextOpportunities));
   }
 
+  async function persistStatusChange(
+    opportunityId: string,
+    status: OpportunityStatus,
+  ) {
+    const response = await fetch(
+      `/api/opportunities/${encodeURIComponent(opportunityId)}/status`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      },
+    );
+    return readJsonResponse<UpdateOpportunityResponse>(
+      response,
+      "Failed to update opportunity status",
+    );
+  }
+
   async function handleStatusChange(
     opportunityId: string,
     status: OpportunityStatus,
@@ -334,18 +362,7 @@ export default function OpportunitiesPage({
     saveOpportunities(nextOpportunities);
 
     try {
-      const response = await fetch(
-        `/api/opportunities/${encodeURIComponent(opportunityId)}/status`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status }),
-        },
-      );
-      const data = await readJsonResponse<UpdateOpportunityResponse>(
-        response,
-        "Failed to update opportunity status",
-      );
+      const data = await persistStatusChange(opportunityId, status);
 
       if (data.opportunity) {
         saveOpportunities(
@@ -377,6 +394,27 @@ export default function OpportunitiesPage({
     }
   }
 
+  // Reversible archive: status flips to `dismissed`. Wraps both directions
+  // in `useUndoableAction` so the toast offers an Undo within 5s, per the
+  // destructive-actions pattern (B — optimistic undo snackbar).
+  const archiveOpportunity = useUndoableAction<{
+    opportunity: Opportunity;
+  }>({
+    action: async ({ opportunity }) => {
+      await handleStatusChange(opportunity.id, "dismissed");
+    },
+    undoAction: async ({ opportunity }) => {
+      await handleStatusChange(opportunity.id, opportunity.status);
+    },
+    message: "Opportunity archived",
+    description: "Undo to restore it to your active list.",
+  });
+
+  async function handleArchive(opportunity: Opportunity) {
+    if (opportunity.status === "dismissed") return;
+    await archiveOpportunity({ opportunity });
+  }
+
   async function handleShowKanbanLane(lane: KanbanLaneId) {
     const previousVisibleLanes = visibleKanbanLanes;
     const nextVisibleLanes = normalizeKanbanVisibleLanes([
@@ -405,23 +443,81 @@ export default function OpportunitiesPage({
     }
   }
 
+  // PasteBox submit handler. If the input looks like a URL, hand off to the
+  // existing scrape endpoint; otherwise open the Add wizard with the
+  // pasted JD prefilled. The wizard already handles auth, scoring, and
+  // persistence — we don't reinvent that pipeline here.
+  async function handlePasteSubmit(value: string) {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+
+    const looksLikeUrl = /^https?:\/\//i.test(trimmed);
+    if (!looksLikeUrl) {
+      // TODO(opportunities-paste): wire JD-text -> /api/opportunities/analyze
+      // once the unauth analyze endpoint exists. For now we route into the
+      // existing wizard with the pasted text as a starting point.
+      setIsFormOpen(true);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/opportunities/scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: trimmed }),
+      });
+      await readJsonResponse<unknown>(response, "Failed to scrape opportunity");
+      addToast({
+        type: "info",
+        title: "Opportunity captured",
+        description: "Review it in your queue to confirm the details.",
+      });
+      pasteRef.current?.clear();
+      await fetchOpportunities();
+    } catch (error) {
+      showErrorToast(error, {
+        title: "Could not import that URL",
+        fallbackDescription:
+          "Double-check the link or paste the JD text directly.",
+      });
+    }
+  }
+
   function getOpportunityKey(opportunity: Opportunity): string {
     return opportunity.id;
   }
 
   function renderOpportunityRow({ item: opportunity }: { item: Opportunity }) {
-    function updateRowStatus(status: OpportunityStatus) {
-      void handleStatusChange(opportunity.id, status);
-    }
-
     return (
       <OpportunityRow
         opportunity={opportunity}
+        onOpen={(opp) => setDrawerOpportunityId(opp.id)}
+        onArchive={(opp) => {
+          void confirm({
+            title: "Archive this opportunity?",
+            description:
+              "It will move out of your active list. You can restore it from the toast that appears.",
+            confirmLabel: "Archive",
+            confirmVariant: "outline",
+          }).then((confirmed) => {
+            if (confirmed) {
+              void handleArchive(opp);
+            }
+          });
+        }}
         locale={locale}
-        onStatusChange={updateRowStatus}
       />
     );
   }
+
+  const tabOptions = STATUS_TAB_VALUES.map((value) => ({
+    value,
+    label: value === "all" ? t("status.all") : t(`status.${value}` as const),
+    count: counts[value] ?? 0,
+  }));
+
+  const activeTab: StatusTabValue =
+    filters.status === "all" ? "all" : filters.status;
 
   return (
     <AppPage>
@@ -440,26 +536,6 @@ export default function OpportunitiesPage({
               value={viewMode}
               onChange={handleViewModeChange}
             />
-            {viewMode === "list" ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsFiltersOpen((open) => !open)}
-                aria-expanded={isFiltersOpen}
-                aria-controls="opportunities-filters-panel"
-              >
-                <Filter className="mr-2 h-4 w-4" />
-                {commonT("filters")}
-                {hasActiveFilters ? (
-                  <Badge
-                    variant="secondary"
-                    className="ml-2 h-5 px-1.5 text-[11px]"
-                  >
-                    {activeFilterCount}
-                  </Badge>
-                ) : null}
-              </Button>
-            ) : null}
             <Button variant="outline" onClick={() => setIsImportOpen(true)}>
               <FileDown className="mr-2 h-4 w-4" />
               {commonT("import")}
@@ -472,305 +548,134 @@ export default function OpportunitiesPage({
         }
       />
 
-      <PageContent className="space-y-6">
+      <PageContent className="space-y-5">
+        {reviewQueueCount > 0 ? (
+          <div className="flex justify-end">
+            <Link
+              href="/opportunities/review"
+              className="inline-flex items-center gap-1.5 rounded-sm border border-rule bg-paper px-2.5 py-1 text-[12px] font-medium text-ink-2 transition-colors hover:border-rule-strong hover:text-ink"
+              style={{ borderRadius: "var(--r-sm)" }}
+            >
+              {pluralize(reviewQueueCount, "opportunity", "opportunities")} in
+              review queue
+              <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+        ) : null}
+
         {opportunities.length === 0 ? (
           <OpportunitiesEmptyHero
             onAdd={() => setIsFormOpen(true)}
             onImport={() => setIsImportOpen(true)}
           />
-        ) : (
-          <div
-            className={cn(
-              "grid gap-6",
-              viewMode === "list" &&
-                isFiltersOpen &&
-                "lg:grid-cols-[280px_1fr]",
+        ) : viewMode === "kanban" ? (
+          <Suspense fallback={<OpportunitiesKanbanBodySkeleton />}>
+            {!hasFetched && !hasCachedData ? (
+              <OpportunitiesKanbanBodySkeleton />
+            ) : (
+              <div data-testid="opportunities-list">
+                <KanbanBoard
+                  opportunities={filteredOpportunities}
+                  visibleLanes={visibleKanbanLanes}
+                  onStatusChange={(opportunityId, status) =>
+                    void handleStatusChange(opportunityId, status)
+                  }
+                  onShowLane={(lane) => void handleShowKanbanLane(lane)}
+                />
+              </div>
             )}
-          >
-            {viewMode === "list" && isFiltersOpen ? (
-              <div id="opportunities-filters-panel">
-                <PagePanel as="aside">
-                  <div className="mb-5 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                      <Filter className="h-4 w-4" />
-                      {t("filters.panel")}
-                    </div>
-                    {hasActiveFilters ? (
-                      <Button variant="ghost" size="sm" onClick={clearFilters}>
-                        <X className="mr-2 h-4 w-4" />
-                        {commonT("clear")}
-                      </Button>
-                    ) : null}
-                  </div>
+          </Suspense>
+        ) : (
+          <>
+            <PasteBox
+              ref={pasteRef}
+              icon={Clipboard}
+              title="Paste a job description"
+              subtitle="Slothing scores it against your profile and drafts a tailored resume in seconds."
+              submitLabel="Analyze match"
+              onSubmit={(value) => void handlePasteSubmit(value)}
+            />
 
-                  <div className="space-y-5">
-                    <div className="space-y-2">
-                      <Label htmlFor="opportunity-type">
-                        {t("filters.type")}
-                      </Label>
-                      <Select
-                        value={filters.typeTab}
-                        onValueChange={(value) =>
-                          updateFilter(
-                            "typeTab",
-                            value as OpportunityFilters["typeTab"],
-                          )
-                        }
-                      >
-                        <SelectTrigger id="opportunity-type">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {OPPORTUNITY_TYPE_TAB_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {translateOpportunityOption(t, option.label)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+            <div
+              className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between"
+              data-testid="opportunities-filters"
+            >
+              <StatusTabs
+                ariaLabel={t("filters.status")}
+                options={tabOptions}
+                value={activeTab}
+                onChange={(value) =>
+                  updateFilter(
+                    "status",
+                    (value === "all"
+                      ? "all"
+                      : value) as OpportunityFilters["status"],
+                  )
+                }
+              />
 
-                    <div className="space-y-2">
-                      <Label htmlFor="opportunity-status">
-                        {t("filters.status")}
-                      </Label>
-                      <Select
-                        value={filters.status}
-                        onValueChange={(value) =>
-                          updateFilter(
-                            "status",
-                            value as OpportunityFilters["status"],
-                          )
-                        }
-                      >
-                        <SelectTrigger id="opportunity-status">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {OPPORTUNITY_STATUS_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {translateOpportunityOption(t, option.label)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+              <div className="grid gap-2 sm:grid-cols-[minmax(200px,1fr)_180px] xl:w-[460px]">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
+                  <Input
+                    value={filters.searchQuery}
+                    onChange={(event) =>
+                      updateFilter("searchQuery", event.target.value)
+                    }
+                    placeholder={t("filters.searchPlaceholder")}
+                    className="pl-8"
+                    aria-label={t("filters.searchAria")}
+                  />
+                </div>
+                <Select
+                  value={filters.sortBy}
+                  onValueChange={(value) =>
+                    updateFilter(
+                      "sortBy",
+                      value as OpportunityFilters["sortBy"],
+                    )
+                  }
+                >
+                  <SelectTrigger aria-label={t("filters.sortAria")}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {OPPORTUNITY_SORT_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {t("filters.sortBy", {
+                          label: translateOpportunityOption(t, option.label),
+                        })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="opportunity-source">
-                        {t("filters.source")}
-                      </Label>
-                      <Select
-                        value={filters.source}
-                        onValueChange={(value) =>
-                          updateFilter(
-                            "source",
-                            value as OpportunityFilters["source"],
-                          )
-                        }
-                      >
-                        <SelectTrigger id="opportunity-source">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {OPPORTUNITY_SOURCE_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {translateOpportunityOption(t, option.label)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="opportunity-tag">
-                        {t("filters.tags")}
-                      </Label>
-                      <Select
-                        value={filters.tag}
-                        onValueChange={(value) => updateFilter("tag", value)}
-                      >
-                        <SelectTrigger id="opportunity-tag">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">
-                            {t("filters.allTags")}
-                          </SelectItem>
-                          {filterOptions.tags.map((tag) => (
-                            <SelectItem key={tag} value={tag}>
-                              {tag}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="opportunity-remote">
-                        {t("filters.remote")}
-                      </Label>
-                      <Select
-                        value={filters.remoteType}
-                        onValueChange={(value) =>
-                          updateFilter(
-                            "remoteType",
-                            value as OpportunityFilters["remoteType"],
-                          )
-                        }
-                      >
-                        <SelectTrigger id="opportunity-remote">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {REMOTE_TYPE_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {translateOpportunityOption(t, option.label)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="opportunity-tech">
-                        {t("filters.tech")}
-                      </Label>
-                      <Select
-                        value={filters.techStack}
-                        onValueChange={(value) =>
-                          updateFilter("techStack", value)
-                        }
-                      >
-                        <SelectTrigger id="opportunity-tech">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">
-                            {t("filters.anyStack")}
-                          </SelectItem>
-                          {filterOptions.techStacks.map((tech) => (
-                            <SelectItem key={tech} value={tech}>
-                              {tech}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </PagePanel>
+            {hasActiveFilters ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary" className="text-sm">
+                  {pluralize(activeFilterCount, "filter")} active
+                </Badge>
+                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  <X className="mr-1 h-3.5 w-3.5" />
+                  {commonT("clearAll")}
+                </Button>
               </div>
             ) : null}
 
-            <section aria-label={t("title")} className="min-w-0">
-              {hasActiveFilters ? (
-                <ActiveFiltersChips
-                  filters={filters}
-                  onClear={clearFilters}
-                  onRemove={updateFilter}
-                  t={t}
-                  commonT={commonT}
-                />
-              ) : null}
+            <div className="text-sm text-ink-3">
+              {t("summary", {
+                shown: filteredOpportunities.length,
+                total: opportunities.length,
+              })}
+            </div>
 
-              <Suspense fallback={<OpportunitiesFiltersSkeleton />}>
-                <div
-                  className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between"
-                  data-testid="opportunities-filters"
-                >
-                  <div className="inline-flex w-full rounded-lg border bg-card p-1 sm:w-auto">
-                    {OPPORTUNITY_TYPE_TAB_OPTIONS.map((tab) => (
-                      <button
-                        key={tab.value}
-                        type="button"
-                        onClick={() => updateFilter("typeTab", tab.value)}
-                        className={cn(
-                          "min-h-11 flex-1 rounded-md px-4 text-sm font-medium transition-colors sm:flex-none",
-                          filters.typeTab === tab.value
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                        )}
-                      >
-                        {translateOpportunityOption(t, tab.label)}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-[minmax(220px,1fr)_200px] xl:w-[560px]">
-                    <div className="relative">
-                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        value={filters.searchQuery}
-                        onChange={(event) =>
-                          updateFilter("searchQuery", event.target.value)
-                        }
-                        placeholder={t("filters.searchPlaceholder")}
-                        className="pl-9"
-                        aria-label={t("filters.searchAria")}
-                      />
-                    </div>
-                    <Select
-                      value={filters.sortBy}
-                      onValueChange={(value) =>
-                        updateFilter(
-                          "sortBy",
-                          value as OpportunityFilters["sortBy"],
-                        )
-                      }
-                    >
-                      <SelectTrigger aria-label={t("filters.sortAria")}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {OPPORTUNITY_SORT_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {t("filters.sortBy", {
-                              label: translateOpportunityOption(
-                                t,
-                                option.label,
-                              ),
-                            })}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </Suspense>
-
-              <div className="mb-4 text-sm text-muted-foreground">
-                {t("summary", {
-                  shown: filteredOpportunities.length,
-                  total: opportunities.length,
-                })}
-                <span className="mx-2 text-muted-foreground/50">·</span>
-                {t("counts.jobs", { count: counts.job })}
-                <span className="mx-2 text-muted-foreground/50">·</span>
-                {t("counts.hackathons", { count: counts.hackathon })}
-                <span className="mx-2 text-muted-foreground/50">·</span>
-                {t("counts.pending", { count: counts.pending })}
-              </div>
-
-              <Suspense fallback={<OpportunitiesKanbanSettingsSkeleton />}>
-                <div data-testid="opportunities-kanban-settings" />
-              </Suspense>
-
-              <Suspense
-                fallback={
-                  viewMode === "kanban" ? (
-                    <OpportunitiesKanbanBodySkeleton />
-                  ) : (
-                    <OpportunitiesListBodySkeleton />
-                  )
-                }
-              >
-                {!hasFetched && !hasCachedData ? (
-                  viewMode === "kanban" ? (
-                    <OpportunitiesKanbanBodySkeleton />
-                  ) : (
-                    <OpportunitiesListBodySkeleton />
-                  )
-                ) : filteredOpportunities.length === 0 ? (
+            <Suspense fallback={<OpportunitiesListBodySkeleton />}>
+              {!hasFetched && !hasCachedData ? (
+                <OpportunitiesListBodySkeleton />
+              ) : filteredOpportunities.length === 0 ? (
+                <EditorialPanel className="p-6">
                   <StandardEmptyState
                     icon={Briefcase}
                     title={t("empty.noMatchesTitle")}
@@ -781,47 +686,45 @@ export default function OpportunitiesPage({
                       </Button>
                     }
                   />
-                ) : viewMode === "kanban" ? (
-                  <div data-testid="opportunities-list">
-                    <KanbanBoard
-                      opportunities={filteredOpportunities}
-                      visibleLanes={visibleKanbanLanes}
-                      onStatusChange={(opportunityId, status) =>
-                        void handleStatusChange(opportunityId, status)
-                      }
-                      onShowLane={(lane) => void handleShowKanbanLane(lane)}
-                    />
-                  </div>
-                ) : (
-                  <div data-testid="opportunities-list" className="space-y-4">
-                    <VirtualList
-                      items={filteredOpportunities}
-                      getKey={getOpportunityKey}
-                      estimateSize={ESTIMATED_CARD_HEIGHT_OPPORTUNITY_ROW}
-                      className="max-h-[calc(100vh-22rem)]"
-                      itemClassName="pb-4"
-                      renderItem={renderOpportunityRow}
-                    />
-                    {hasMoreOpportunities ? (
-                      <div className="flex justify-center">
-                        <Button
-                          variant="outline"
-                          onClick={() => void loadMoreOpportunities()}
-                          disabled={isLoadingMore}
-                        >
-                          {isLoadingMore
-                            ? "Loading..."
-                            : "Load more opportunities"}
-                        </Button>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-              </Suspense>
-            </section>
-          </div>
+                </EditorialPanel>
+              ) : (
+                <div data-testid="opportunities-list" className="space-y-2.5">
+                  <VirtualList
+                    items={filteredOpportunities}
+                    getKey={getOpportunityKey}
+                    estimateSize={ESTIMATED_CARD_HEIGHT_OPPORTUNITY_ROW}
+                    className="max-h-[calc(100vh-26rem)]"
+                    itemClassName="pb-2.5"
+                    renderItem={renderOpportunityRow}
+                  />
+                  {hasMoreOpportunities ? (
+                    <div className="flex justify-center">
+                      <Button
+                        variant="outline"
+                        onClick={() => void loadMoreOpportunities()}
+                        disabled={isLoadingMore}
+                      >
+                        {isLoadingMore
+                          ? "Loading..."
+                          : "Load more opportunities"}
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </Suspense>
+          </>
         )}
       </PageContent>
+
+      <OpportunityDrawer
+        opportunity={drawerOpportunity}
+        onClose={() => setDrawerOpportunityId(null)}
+        onStatusChange={(opp, status) =>
+          void handleStatusChange(opp.id, status)
+        }
+        locale={locale}
+      />
 
       <AddOpportunityWizard
         open={isFormOpen}
@@ -834,33 +737,9 @@ export default function OpportunitiesPage({
         onOpenChange={setIsImportOpen}
         onJobImported={fetchOpportunities}
       />
+
+      {confirmDialog}
     </AppPage>
-  );
-}
-
-function OpportunitiesFiltersSkeleton() {
-  return (
-    <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-      <div className="flex flex-wrap gap-2">
-        {Array.from({ length: 3 }).map((_, index) => (
-          <SkeletonButton key={index} className="h-11 w-24" />
-        ))}
-      </div>
-      <div className="grid gap-3 sm:grid-cols-[minmax(220px,1fr)_200px] xl:w-[560px]">
-        <SkeletonButton className="h-10 w-full" />
-        <SkeletonButton className="h-10 w-full" />
-      </div>
-    </div>
-  );
-}
-
-function OpportunitiesKanbanSettingsSkeleton() {
-  return (
-    <div className="mb-4 flex flex-wrap gap-2">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <SkeletonButton key={index} className="h-9 w-28" />
-      ))}
-    </div>
   );
 }
 
@@ -884,191 +763,11 @@ function OpportunitiesKanbanBodySkeleton() {
   );
 }
 
-function readFiltersOpenPreference(): boolean {
-  if (typeof window === "undefined") return false;
-
-  try {
-    return window.localStorage.getItem(FILTERS_OPEN_STORAGE_KEY) === "true";
-  } catch {
-    return false;
-  }
-}
-
-function writeFiltersOpenPreference(isOpen: boolean): void {
-  if (typeof window === "undefined") return;
-
-  try {
-    window.localStorage.setItem(FILTERS_OPEN_STORAGE_KEY, String(isOpen));
-  } catch {
-    // Keep the in-memory panel state when localStorage writes are unavailable.
-  }
-}
-
-function ActiveFiltersChips({
-  filters,
-  onClear,
-  onRemove,
-  t,
-  commonT,
-}: {
-  filters: OpportunityFilters;
-  onClear: () => void;
-  onRemove: <K extends keyof OpportunityFilters>(
-    key: K,
-    value: OpportunityFilters[K],
-  ) => void;
-  t: (key: string, values?: Record<string, string>) => string;
-  commonT: (key: string) => string;
-}) {
-  const chips = [
-    filters.searchQuery.trim()
-      ? {
-          key: "search",
-          label: t("filters.activeSearch", {
-            value: filters.searchQuery.trim(),
-          }),
-          onRemove: () => onRemove("searchQuery", ""),
-        }
-      : null,
-    filters.typeTab !== DEFAULT_OPPORTUNITY_FILTERS.typeTab
-      ? {
-          key: "type",
-          label: t("filters.activeType", {
-            value: translateOpportunityOption(
-              t,
-              getOptionLabel(OPPORTUNITY_TYPE_TAB_OPTIONS, filters.typeTab),
-            ),
-          }),
-          onRemove: () =>
-            onRemove("typeTab", DEFAULT_OPPORTUNITY_FILTERS.typeTab),
-        }
-      : null,
-    filters.status !== DEFAULT_OPPORTUNITY_FILTERS.status
-      ? {
-          key: "status",
-          label: t("filters.activeStatus", {
-            value: translateOpportunityOption(
-              t,
-              getOptionLabel(OPPORTUNITY_STATUS_OPTIONS, filters.status),
-            ),
-          }),
-          onRemove: () =>
-            onRemove("status", DEFAULT_OPPORTUNITY_FILTERS.status),
-        }
-      : null,
-    filters.source !== DEFAULT_OPPORTUNITY_FILTERS.source
-      ? {
-          key: "source",
-          label: t("filters.activeSource", {
-            value: translateOpportunityOption(
-              t,
-              getOptionLabel(OPPORTUNITY_SOURCE_OPTIONS, filters.source),
-            ),
-          }),
-          onRemove: () =>
-            onRemove("source", DEFAULT_OPPORTUNITY_FILTERS.source),
-        }
-      : null,
-    filters.remoteType !== DEFAULT_OPPORTUNITY_FILTERS.remoteType
-      ? {
-          key: "remoteType",
-          label: t("filters.activeRemote", {
-            value: translateOpportunityOption(
-              t,
-              getOptionLabel(REMOTE_TYPE_OPTIONS, filters.remoteType),
-            ),
-          }),
-          onRemove: () =>
-            onRemove("remoteType", DEFAULT_OPPORTUNITY_FILTERS.remoteType),
-        }
-      : null,
-    filters.tag !== DEFAULT_OPPORTUNITY_FILTERS.tag
-      ? {
-          key: "tag",
-          label: t("filters.activeTag", { value: filters.tag }),
-          onRemove: () => onRemove("tag", DEFAULT_OPPORTUNITY_FILTERS.tag),
-        }
-      : null,
-    filters.techStack !== DEFAULT_OPPORTUNITY_FILTERS.techStack
-      ? {
-          key: "techStack",
-          label: t("filters.activeTech", { value: filters.techStack }),
-          onRemove: () =>
-            onRemove("techStack", DEFAULT_OPPORTUNITY_FILTERS.techStack),
-        }
-      : null,
-  ].filter(
-    (chip): chip is { key: string; label: string; onRemove: () => void } =>
-      Boolean(chip),
-  );
-
-  if (chips.length === 0) return null;
-
-  return (
-    <div className="mb-4 flex flex-wrap items-center gap-2">
-      {chips.map((chip) => (
-        <Badge
-          key={chip.key}
-          variant="secondary"
-          className="gap-1.5 pr-1 text-sm"
-        >
-          {chip.label}
-          <button
-            type="button"
-            className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
-            onClick={chip.onRemove}
-            aria-label={t("filters.remove", { label: chip.label })}
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </Badge>
-      ))}
-      <Button variant="ghost" size="sm" onClick={onClear}>
-        {commonT("clearAll")}
-      </Button>
-    </div>
-  );
-}
-
-function getOptionLabel<T extends string>(
-  options: ReadonlyArray<{ value: T; label: string }>,
-  value: T,
-): string {
-  return options.find((option) => option.value === value)?.label ?? value;
-}
-
 function translateOpportunityOption(
   t: (key: string) => string,
   label: string,
 ): string {
   const keyByLabel: Record<string, string> = {
-    Roles: "tabs.job",
-    Hackathons: "tabs.hackathon",
-    All: "tabs.all",
-    "All statuses": "status.all",
-    Pending: "status.pending",
-    Saved: "status.saved",
-    Applied: "status.applied",
-    Interviewing: "status.interviewing",
-    Offer: "status.offer",
-    Rejected: "status.rejected",
-    Expired: "status.expired",
-    Dismissed: "status.dismissed",
-    Job: "types.job",
-    Hackathon: "types.hackathon",
-    "All sources": "sources.all",
-    WaterlooWorks: "sources.waterlooworks",
-    LinkedIn: "sources.linkedin",
-    Indeed: "sources.indeed",
-    Greenhouse: "sources.greenhouse",
-    Lever: "sources.lever",
-    Devpost: "sources.devpost",
-    Manual: "sources.manual",
-    URL: "sources.url",
-    "Any remote type": "remote.all",
-    Remote: "remote.remote",
-    Hybrid: "remote.hybrid",
-    Onsite: "remote.onsite",
     Deadline: "sort.deadline",
     "Date scraped": "sort.scrapedAt",
     Company: "sort.company",
@@ -1077,127 +776,4 @@ function translateOpportunityOption(
 
   const key = keyByLabel[label];
   return key ? t(key) : label;
-}
-
-function OpportunityRow({
-  opportunity,
-  locale,
-  onStatusChange,
-}: {
-  opportunity: Opportunity;
-  locale: string;
-  onStatusChange: (status: OpportunityStatus) => void;
-}) {
-  const isHackathon = opportunity.type === "hackathon";
-
-  return (
-    <PagePanel as="article" className="p-5">
-      <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-        <div className="min-w-0 flex-1 space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge
-              variant={isHackathon ? "warning" : "info"}
-              className="capitalize"
-            >
-              {isHackathon ? "Hackathon" : "Job"}
-            </Badge>
-            <StatusPill status={opportunity.status} />
-            <span className="text-sm text-muted-foreground">
-              {opportunity.source}
-            </span>
-          </div>
-
-          <div>
-            <Link
-              href={`/opportunities/${opportunity.id}`}
-              className="group inline-flex min-h-11 items-center"
-            >
-              <h2 className="break-words text-xl font-semibold tracking-normal text-foreground group-hover:text-primary">
-                {opportunity.title}
-              </h2>
-            </Link>
-            <div className="mt-1 text-sm font-medium text-muted-foreground">
-              {opportunity.company}
-            </div>
-          </div>
-
-          <p className="line-clamp-3 max-w-prose text-sm leading-6 text-muted-foreground">
-            {opportunity.summary}
-          </p>
-
-          <div className="flex flex-wrap gap-2">
-            {(opportunity.techStack ?? []).slice(0, 5).map((tech) => (
-              <Badge key={tech} variant="secondary">
-                {tech}
-              </Badge>
-            ))}
-            {opportunity.tags.map((tag) => (
-              <Badge key={tag} variant="outline">
-                <Tag className="mr-1 h-3 w-3" />
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid shrink-0 gap-3 text-sm text-muted-foreground sm:grid-cols-2 xl:w-80 xl:grid-cols-1">
-          <Meta icon={MapPin} value={formatOpportunityLocation(opportunity)} />
-          <Meta
-            icon={CalendarClock}
-            value={
-              opportunity.deadline
-                ? `Due ${formatOpportunityDate(opportunity.deadline, locale)}`
-                : "No deadline"
-            }
-          />
-          <Meta
-            icon={DollarSign}
-            value={formatOpportunitySalary(opportunity, locale)}
-          />
-          <Select
-            value={opportunity.status}
-            onValueChange={(value) =>
-              onStatusChange(value as OpportunityStatus)
-            }
-          >
-            <SelectTrigger
-              aria-label={`Update status for ${opportunity.title}`}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {OPPORTUNITY_KANBAN_COLUMNS.map((status) => (
-                <SelectItem key={status.value} value={status.value}>
-                  {status.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {isHackathon && opportunity.teamSize && (
-            <Meta
-              icon={Trophy}
-              value={`Team ${opportunity.teamSize.min}-${opportunity.teamSize.max}`}
-            />
-          )}
-          {opportunity.sourceUrl && (
-            <Button variant="outline" size="sm" asChild>
-              <a href={opportunity.sourceUrl} target="_blank" rel="noreferrer">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Open source
-              </a>
-            </Button>
-          )}
-        </div>
-      </div>
-    </PagePanel>
-  );
-}
-
-function Meta({ icon: Icon, value }: { icon: LucideIcon; value: string }) {
-  return (
-    <div className="flex min-h-9 items-center gap-2 rounded-md bg-muted/60 px-3 py-2">
-      <Icon className="h-4 w-4 shrink-0 text-primary" />
-      <span className="min-w-0 break-words">{value}</span>
-    </div>
-  );
 }
