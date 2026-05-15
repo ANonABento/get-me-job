@@ -58,7 +58,9 @@
       "profile": "프로필",
       "settings": "설정",
       "components": "구성 요소",
-      "answers": "답변"
+      "answers": "답변",
+      "toolkit": "툴킷",
+      "ats": "ATS 스캐너"
     }
   },
   "marketing": {

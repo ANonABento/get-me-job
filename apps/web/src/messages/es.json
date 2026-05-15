@@ -58,7 +58,9 @@
       "profile": "Perfil",
       "settings": "Configuración",
       "components": "Componentes",
-      "answers": "Respuestas"
+      "answers": "Respuestas",
+      "toolkit": "Herramientas",
+      "ats": "Escáner ATS"
     }
   },
   "marketing": {

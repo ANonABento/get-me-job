@@ -87,13 +87,13 @@ describe("navigationGroups", () => {
     const prep = getGroup("Prep");
     const items = prep.items.map((i) => [i.name, i.href]);
     expect(items).toEqual([
-      ["Email Templates", "/emails"],
       ["Interview Prep", "/interview"],
-      ["Salary Tools", "/salary"],
+      ["ATS Scanner", "/ats"],
+      ["Toolkit", "/toolkit"],
     ]);
-    const salaryTools = getItem(prep.items, "Salary Tools");
-    expect(salaryTools.href).toBe("/salary");
-    expect(salaryTools.icon).toBeDefined();
+    const toolkit = getItem(prep.items, "Toolkit");
+    expect(toolkit.href).toBe("/toolkit");
+    expect(toolkit.icon).toBeDefined();
   });
 
   it("should have Analytics in Reporting group", () => {
@@ -113,9 +113,9 @@ describe("navigationGroups", () => {
       ["Opportunities", "/opportunities"],
       ["Review Queue", "/opportunities/review"],
       ["Calendar", "/calendar"],
-      ["Email Templates", "/emails"],
       ["Interview Prep", "/interview"],
-      ["Salary Tools", "/salary"],
+      ["ATS Scanner", "/ats"],
+      ["Toolkit", "/toolkit"],
       ["Analytics", "/analytics"],
     ];
 

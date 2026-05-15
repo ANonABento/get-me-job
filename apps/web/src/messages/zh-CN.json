@@ -58,7 +58,9 @@
       "profile": "个人资料",
       "settings": "设置",
       "components": "组件",
-      "answers": "回答"
+      "answers": "回答",
+      "toolkit": "工具箱",
+      "ats": "ATS 扫描器"
     }
   },
   "marketing": {

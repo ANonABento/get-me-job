@@ -21,6 +21,8 @@ import {
   ClipboardList,
   ChevronRight,
   UserCircle,
+  Wrench,
+  ScanLine,
   type LucideIcon,
 } from "lucide-react";
 import { useLLMStatus } from "@/hooks/useLLMStatus";
@@ -116,22 +118,22 @@ export const navigationGroups: NavGroup[] = [
     messageKey: "groups.prep",
     items: [
       {
-        name: "Email Templates",
-        messageKey: "items.emails",
-        href: "/emails",
-        icon: Mail,
-      },
-      {
         name: "Interview Prep",
         messageKey: "items.interview",
         href: "/interview",
         icon: MessageSquare,
       },
       {
-        name: "Salary Tools",
-        messageKey: "items.salary",
-        href: "/salary",
-        icon: DollarSign,
+        name: "ATS Scanner",
+        messageKey: "items.ats",
+        href: "/ats",
+        icon: ScanLine,
+      },
+      {
+        name: "Toolkit",
+        messageKey: "items.toolkit",
+        href: "/toolkit",
+        icon: Wrench,
       },
     ],
   },
