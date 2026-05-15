@@ -5,8 +5,13 @@ export type PageWidth = "full" | "narrow" | "wide";
 
 const pageWidthClasses: Record<PageWidth, string> = {
   full: "",
+  // `narrow` keeps a centred typographic column for forms / articles.
   narrow: "mx-auto max-w-3xl",
-  wide: "mx-auto max-w-screen-2xl",
+  // `wide` previously capped at max-w-screen-2xl (1536px), which left
+  // orphan margins on viewports wider than ~1776px once we dropped the
+  // coach rail. Now full-bleed; `narrow` is the explicit opt-in if a
+  // page needs constrained content.
+  wide: "",
 };
 
 export function getPageWidthClassName(width: PageWidth) {
@@ -56,7 +61,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <header className={cn("border-b bg-card/70", className)}>
-      <div className={cn("px-5 py-6 sm:px-8", getPageWidthClassName(width))}>
+      <div className={cn("px-6 py-6", getPageWidthClassName(width))}>
         <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="flex max-w-3xl items-start gap-4">
             <PageIconTile icon={Icon} className="mt-1" />
@@ -94,11 +99,11 @@ export function PageContent({
 }: PageContentProps) {
   return (
     <div
-      className={cn(
-        "px-5 py-6 sm:px-8",
-        getPageWidthClassName(width),
-        className,
-      )}
+      // 24px horizontal padding (px-6) matches the editorial header's text
+      // inset so cards align with the page title. The design uses 32px but
+      // assumes a 320px coach rail filling the right side; without that
+      // rail, 32px feels orphaned and 0 feels edge-flush.
+      className={cn("px-6 py-6", getPageWidthClassName(width), className)}
     >
       {children}
     </div>
@@ -220,7 +225,7 @@ export function PagePanel({
   return (
     <Component
       className={cn(
-        "rounded-lg border bg-card p-5 shadow-sm sm:p-6",
+        "app-shell-panel rounded-lg border bg-card shadow-sm",
         className,
       )}
     >

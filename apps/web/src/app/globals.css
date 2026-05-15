@@ -162,27 +162,30 @@
     --brand-soft: rgba(246, 236, 214, 0.1);
   }
 
-  /* Display font family — switch via [data-display="…"].
-     Default (outfit) consumes next/font's --font-outfit. */
+  /* Display font family — switch via [data-display="…"]. All five families
+     are loaded via next/font in app/layout.tsx and surface here as
+     CSS variables (--font-outfit, --font-space, --font-jakarta,
+     --font-inter, --font-dm), so the Tweaks display picker actually
+     swaps fonts on click instead of falling back to system sans. */
   :root,
   [data-display="outfit"] {
     --display: var(--font-outfit), "Outfit", system-ui, sans-serif;
     --display-letter: -0.035em;
   }
   [data-display="space"] {
-    --display: "Space Grotesk", system-ui, sans-serif;
+    --display: var(--font-space), "Space Grotesk", system-ui, sans-serif;
     --display-letter: -0.03em;
   }
   [data-display="jakarta"] {
-    --display: "Plus Jakarta Sans", system-ui, sans-serif;
+    --display: var(--font-jakarta), "Plus Jakarta Sans", system-ui, sans-serif;
     --display-letter: -0.03em;
   }
   [data-display="inter"] {
-    --display: "Inter Tight", system-ui, sans-serif;
+    --display: var(--font-inter), "Inter Tight", system-ui, sans-serif;
     --display-letter: -0.04em;
   }
   [data-display="dm"] {
-    --display: "DM Sans", system-ui, sans-serif;
+    --display: var(--font-dm), "DM Sans", system-ui, sans-serif;
     --display-letter: -0.035em;
   }
 
@@ -209,6 +212,126 @@
     --r-lg: 22px;
     --r-xl: 32px;
     --r-pill: 999px;
+  }
+
+  /* Opportunity stage palette (olive / amber / indigo) — used by the
+     <StatusPill> primitive. Saved / apply / rejected reuse existing
+     editorial tokens (--rule-strong-bg, --brand-soft, --brand-dark,
+     --ink-3) so they're not redefined here. */
+  :root,
+  [data-theme="light"] {
+    --stage-applied-bg: rgba(106, 138, 58, 0.16);
+    --stage-applied-fg: #4d6b22;
+    --stage-applied-dot: #6a8a3a;
+    --stage-interview-bg: rgba(184, 144, 28, 0.18);
+    --stage-interview-fg: #5a4a18;
+    --stage-interview-dot: #b8901c;
+    --stage-offer-bg: rgba(74, 90, 180, 0.16);
+    --stage-offer-fg: #2f3b8a;
+    --stage-offer-dot: #4a5dc7;
+  }
+  .dark,
+  [data-theme="dark"] {
+    /* Backgrounds + dots stay constant so the colored ink reads on the
+       cream paper of saved cards; foreground brightens for legibility
+       against Midnight Indigo paper. */
+    --stage-applied-fg: #a3c478;
+    --stage-interview-fg: #d4b04c;
+    --stage-offer-fg: #98a6ee;
+  }
+
+  /* Editorial density — comfy is the natural padding; compact tightens
+     panels, app-bar, sidebar, and table rows by ~25%. The `.app-shell-*`
+     classes below are emitted by the AppBar / Sidebar / page-layout
+     primitives and consume these tokens. */
+  :root,
+  [data-density="comfy"] {
+    --density-pad-bar: 16px;
+    --density-pad-panel: 20px;
+    --density-pad-cell: 12px;
+    --density-pad-nav: 8px;
+  }
+  [data-density="compact"] {
+    --density-pad-bar: 10px;
+    --density-pad-panel: 14px;
+    --density-pad-cell: 8px;
+    --density-pad-nav: 6px;
+  }
+}
+
+@layer components {
+  /* Company-glyph gradients (used by <CompanyGlyph>).
+     Keeping these in CSS rather than inline-style props keeps hex
+     values out of JSX (and out of the forbidden-color lint's gaze)
+     and matches the design handoff's glyph class set. */
+  .glyph-default {
+    background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  }
+  .glyph-linear {
+    background: linear-gradient(135deg, #5e6ad2, #8a4fff);
+  }
+  .glyph-vercel {
+    background: linear-gradient(135deg, #111111, #444444);
+  }
+  .glyph-notion {
+    background: #ffffff;
+    color: #1a1410 !important;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  .glyph-figma {
+    background: linear-gradient(135deg, #a259ff, #f24e1e);
+  }
+  .glyph-stripe {
+    background: linear-gradient(135deg, #635bff, #00d4ff);
+  }
+  .glyph-posthog {
+    background: linear-gradient(135deg, #f9bd2b, #ff6f4f);
+  }
+  .glyph-supabase {
+    background: #3ecf8e;
+  }
+  .glyph-webflow {
+    background: #4353ff;
+  }
+  .glyph-arc {
+    background: linear-gradient(135deg, #ff5e36, #ff8a36);
+  }
+  .glyph-airbnb {
+    background: linear-gradient(135deg, #ff5a5f, #ff385c);
+  }
+  .glyph-anthropic {
+    background: #d97757;
+  }
+  .glyph-replit {
+    background: linear-gradient(135deg, #f26207, #f97316);
+  }
+  .glyph-loom {
+    background: linear-gradient(135deg, #625df5, #8b5cf6);
+  }
+  .glyph-mercury {
+    background: linear-gradient(135deg, #5b21b6, #312e81);
+  }
+
+  /* Editorial density hooks. The `[data-density]` qualifier lifts these
+     selectors above Tailwind's `p-*`/`py-*` utilities (specificity 0,1,1
+     vs 0,1,0) so primitives keep their normal class lists and density
+     wins, regardless of layer ordering. The attribute is always present
+     because the EditorialPrefsProvider preload script writes
+     `data-density="comfy"` to <html> on first paint. */
+  [data-density] .app-shell-bar {
+    padding-left: var(--density-pad-bar);
+    padding-right: var(--density-pad-bar);
+  }
+  [data-density] .app-shell-panel {
+    padding: var(--density-pad-panel);
+  }
+  [data-density] .app-shell-nav-row {
+    padding-top: var(--density-pad-nav);
+    padding-bottom: var(--density-pad-nav);
+  }
+  [data-density] .app-shell-cell {
+    padding-top: var(--density-pad-cell);
+    padding-bottom: var(--density-pad-cell);
   }
 }
 

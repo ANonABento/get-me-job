@@ -2,7 +2,6 @@
 
 import { Flame, Trophy } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { PagePanel } from "@/components/ui/page-layout";
 import { pluralize } from "@/lib/text/pluralize";
 import { cn } from "@/lib/utils";
 import type { StreakState } from "@/lib/streak/types";
@@ -12,6 +11,11 @@ interface StreakHeroCardProps {
   streak: StreakState | null;
 }
 
+/**
+ * Editorial paper-card treatment of the daily-rhythm / best-streak data.
+ * Paper bg, rule border, mono-caps eyebrow, display-font number — no more
+ * primary-tinted hero panel.
+ */
 export function StreakHeroCard({ streak }: StreakHeroCardProps) {
   const t = useTranslations("streak");
   const a11yT = useA11yTranslations();
@@ -21,58 +25,117 @@ export function StreakHeroCard({ streak }: StreakHeroCardProps) {
   const weekDays = streak?.weekDays ?? [];
 
   return (
-    <PagePanel className="overflow-hidden border-primary/20 bg-primary/5">
+    <section
+      style={{
+        backgroundColor: "var(--paper)",
+        border: "1px solid var(--rule)",
+        borderRadius: "var(--r-lg)",
+        padding: "18px 20px",
+      }}
+    >
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <div className="inline-flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-1 text-xs font-semibold uppercase text-primary">
-            <Flame className="h-3.5 w-3.5" />
-            {t("badgeLabel")}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span
+              className="grid h-8 w-8 flex-shrink-0 place-items-center"
+              style={{
+                backgroundColor: "var(--brand-soft)",
+                color: "var(--brand-dark)",
+                borderRadius: "var(--r-sm)",
+              }}
+              aria-hidden="true"
+            >
+              <Flame className="h-4 w-4" />
+            </span>
+            <span
+              className="font-mono text-[10px] uppercase"
+              style={{
+                letterSpacing: "0.16em",
+                color: "var(--ink-3)",
+              }}
+            >
+              {t("badgeLabel")}
+            </span>
           </div>
-          <div className="mt-4 flex items-end gap-3">
-            <span className="text-5xl font-bold leading-none text-foreground">
+
+          <div className="mt-3 flex items-baseline gap-3">
+            <span
+              style={{
+                fontFamily: "var(--display)",
+                fontSize: "36px",
+                fontWeight: 700,
+                lineHeight: 1,
+                letterSpacing: "-0.03em",
+                color: "var(--ink)",
+              }}
+            >
               {currentStreak}
             </span>
-            <span className="pb-1 text-sm font-medium text-muted-foreground">
+            <span className="text-[13.5px]" style={{ color: "var(--ink-3)" }}>
               {pluralize(currentStreak, "day")}
             </span>
           </div>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
+
+          <p
+            className="mt-2.5 text-[13.5px] leading-snug"
+            style={{ color: "var(--ink-2)" }}
+          >
             {currentStreak > 0 ? t("activeMessage") : t("startMessage")}
           </p>
         </div>
 
-        <div className="min-w-[220px] rounded-lg border bg-card/70 p-4">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-medium uppercase text-muted-foreground">
-                {t("bestStreak")}
-              </p>
-              <p className="mt-1 flex items-center gap-2 text-sm font-semibold">
-                <Trophy className="h-4 w-4 text-warning" />
-                {pluralize(longestStreak, "day")}
-              </p>
-            </div>
+        <div
+          className="flex flex-shrink-0 flex-col gap-2.5 sm:w-[240px]"
+          style={{
+            backgroundColor: "var(--bg)",
+            border: "1px solid var(--rule)",
+            borderRadius: "var(--r-md)",
+            padding: "12px 14px",
+          }}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span
+              className="font-mono text-[10px] uppercase"
+              style={{
+                letterSpacing: "0.16em",
+                color: "var(--ink-3)",
+              }}
+            >
+              {t("bestStreak")}
+            </span>
+            <span
+              className="inline-flex items-center gap-1.5 text-[12px] font-semibold"
+              style={{ color: "var(--ink)" }}
+            >
+              <Trophy
+                className="h-3.5 w-3.5"
+                style={{ color: "var(--brand)" }}
+                aria-hidden="true"
+              />
+              {pluralize(longestStreak, "day")}
+            </span>
           </div>
           <div
-            className="grid grid-cols-7 gap-2"
+            className="grid grid-cols-7 gap-1.5"
             aria-label={a11yT("weeklyActivity")}
           >
             {weekDays.map((day) => (
               <div
                 key={day.date}
                 title={day.date}
-                className={cn(
-                  "h-8 rounded-md border transition-colors",
-                  day.active
-                    ? "border-success/40 bg-success/30"
-                    : "border-border bg-muted/40",
-                  day.today ? "ring-2 ring-primary/40" : "",
-                )}
+                className={cn("h-2.5")}
+                style={{
+                  borderRadius: "var(--r-pill)",
+                  backgroundColor: day.active
+                    ? "var(--brand)"
+                    : "var(--rule-strong-bg)",
+                  boxShadow: day.today ? "0 0 0 3px var(--brand-soft)" : "none",
+                }}
               />
             ))}
           </div>
         </div>
       </div>
-    </PagePanel>
+    </section>
   );
 }
