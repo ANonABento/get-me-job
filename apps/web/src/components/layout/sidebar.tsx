@@ -12,14 +12,12 @@ import {
   Settings,
   Menu,
   X,
-  Rocket,
   BarChart3,
   Mail,
   Calendar,
   DollarSign,
   FileText,
   Rows3,
-  ChevronsLeft,
   ClipboardList,
   ChevronRight,
   UserCircle,
@@ -171,9 +169,9 @@ export function getSidebarNavItemClassName({
   collapsed,
 }: SidebarNavItemClassNameOptions): string {
   return cn(
-    "app-sidebar-nav-item group relative flex min-h-[42px] items-center gap-3 rounded-lg border px-2.5 py-2 text-sm font-medium transition-all duration-200",
+    "app-sidebar-nav-item app-shell-nav-row group relative flex min-h-[36px] items-center gap-2.5 rounded-sm border px-2.5 text-[13.5px] font-medium transition-all duration-200",
     isActive
-      ? "border-primary/20 bg-card text-foreground shadow-sm"
+      ? "border-primary/20 bg-card text-foreground shadow-sm font-semibold"
       : "border-transparent text-muted-foreground hover:border-border/70 hover:bg-card/70 hover:text-foreground",
     collapsed && "justify-center px-2",
   );
@@ -209,7 +207,6 @@ export function getActiveSidebarItem(
 export function Sidebar() {
   const pathname = usePathname();
   const t = useTranslations("nav");
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isDesktopViewport, setIsDesktopViewport] = useState<boolean | null>(
     null,
@@ -239,12 +236,10 @@ export function Sidebar() {
     return () => mediaQuery.removeEventListener("change", syncViewport);
   }, []);
 
-  // Close mobile menu on route change
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
 
-  // Close mobile menu on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") setMobileOpen(false);
@@ -253,9 +248,6 @@ export function Sidebar() {
     return () => document.removeEventListener("keydown", handleEscape);
   }, []);
 
-  // Manage focus when the mobile drawer opens/closes. On open we move focus
-  // into the drawer; on close (transition true→false) we return focus to the
-  // trigger so screen-reader / keyboard users land somewhere meaningful.
   useEffect(() => {
     if (mobileOpen) {
       mobileCloseButtonRef.current?.focus();
@@ -265,8 +257,6 @@ export function Sidebar() {
     previousMobileOpenRef.current = mobileOpen;
   }, [mobileOpen]);
 
-  // Trap Tab focus inside the drawer while it's open so keyboard users can't
-  // accidentally tab into the page underneath the modal-style overlay.
   useEffect(() => {
     if (!mobileOpen) return;
     const drawer = sidebarRef.current;
@@ -292,7 +282,6 @@ export function Sidebar() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [mobileOpen]);
 
-  // Lock body scroll while the mobile drawer is open
   useEffect(() => {
     if (typeof document === "undefined") return;
     if (!mobileOpen) return;
@@ -305,39 +294,23 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile app header */}
-      <header
-        className="fixed inset-x-0 top-0 z-30 flex h-16 items-center gap-3 border-b bg-background/95 px-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/85 lg:hidden"
-        aria-label={`${t("brand")} ${mobileHeaderTitle}`}
+      {/* Mobile-only menu trigger — the AppBar handles the rest of the chrome
+          on mobile, but it's hidden on small screens, so we expose a small
+          floating menu button here. */}
+      <button
+        ref={mobileOpenButtonRef}
+        type="button"
+        onClick={() => setMobileOpen(true)}
+        className="fixed left-3 top-3 z-30 flex h-10 w-10 items-center justify-center rounded-md border bg-card text-foreground shadow-sm transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 lg:hidden"
+        aria-label={`${t("openMenu")} — ${mobileHeaderTitle}`}
+        aria-haspopup="dialog"
+        aria-expanded={mobileOpen}
+        aria-controls="primary-sidebar"
       >
-        <button
-          ref={mobileOpenButtonRef}
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border bg-card text-foreground shadow-sm transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          aria-label={t("openMenu")}
-          aria-haspopup="dialog"
-          aria-expanded={mobileOpen}
-          aria-controls="primary-sidebar"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-            <Rocket className="h-4 w-4" />
-          </div>
-          <div className="flex min-w-0 flex-col">
-            <span className="truncate text-sm font-bold leading-tight text-foreground">
-              {t("brand")}
-            </span>
-            <span className="truncate text-xs font-medium text-muted-foreground">
-              {mobileHeaderTitle}
-            </span>
-          </div>
-        </div>
-      </header>
+        <Menu className="h-5 w-5" />
+      </button>
 
-      {/* Mobile overlay */}
+      {/* Mobile overlay scrim */}
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-scrim/50 backdrop-blur-sm lg:hidden"
@@ -346,7 +319,6 @@ export function Sidebar() {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         ref={sidebarRef}
         id="primary-sidebar"
@@ -354,99 +326,59 @@ export function Sidebar() {
         aria-hidden={isMobileDrawerClosed ? true : undefined}
         aria-modal={mobileOpen ? "true" : undefined}
         role={mobileOpen ? "dialog" : undefined}
-        inert={isMobileDrawerClosed ? true : undefined}
+        // React 18's HTMLAttributes types `inert` as boolean but the DOM
+        // expects an attribute presence. Spread via a typed object to bypass
+        // the prop-name normalization that triggers React's warning.
+        {...({
+          inert: isMobileDrawerClosed ? "" : undefined,
+        } as Record<string, string | undefined>)}
         className={cn(
-          "app-sidebar fixed inset-y-0 left-0 z-50 flex flex-col border-r bg-background transition-all duration-300 ease-in-out grain",
-          collapsed ? "w-[72px]" : "w-[264px]",
-          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          // Mobile: fixed overlay drawer
+          "fixed inset-y-0 left-0 z-50 flex w-[240px] flex-shrink-0 flex-col transition-transform duration-300 ease-in-out",
+          // Desktop: relative-positioned cell inside the (app) flex layout
+          "lg:relative lg:inset-auto lg:z-0 lg:translate-x-0",
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
+        style={{
+          backgroundColor: "var(--bg)",
+          borderRight: "1px solid var(--rule)",
+        }}
       >
-        {/* Header */}
-        <div
-          className={cn(
-            "flex h-[72px] items-center border-b bg-card/35",
-            collapsed ? "justify-center px-3" : "justify-between px-4",
-          )}
-        >
-          {collapsed ? (
-            <button
-              type="button"
-              onClick={() => setCollapsed(false)}
-              className="hidden h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm transition-opacity hover:opacity-90 lg:flex"
-              aria-label={t("expand")}
-              title={t("expand")}
-            >
-              <Rocket className="h-5 w-5" />
-            </button>
-          ) : (
-            <Link
-              href="/dashboard"
-              className="flex min-h-11 min-w-0 items-center gap-3"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-lg shadow-sm">
-                <Rocket className="h-5 w-5" />
-              </div>
-              <div className="flex min-w-0 flex-col">
-                <span className="truncate text-lg font-bold leading-tight gradient-text">
-                  {t("brand")}
-                </span>
-                <span className="truncate text-2xs text-muted-foreground">
-                  {t("tagline")}
-                </span>
-              </div>
-            </Link>
-          )}
-
-          {!collapsed && (
-            <button
-              type="button"
-              onClick={() => setCollapsed(true)}
-              className="hidden h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:flex"
-              aria-label={t("collapse")}
-              title={t("collapse")}
-            >
-              <ChevronsLeft className="h-4 w-4" />
-            </button>
-          )}
-
-          {/* Mobile close button */}
+        {/* Mobile-only close button row */}
+        <div className="flex h-14 items-center justify-between px-3 lg:hidden">
+          <span
+            className="truncate text-sm font-semibold"
+            style={{ color: "var(--ink)" }}
+          >
+            {t("brand")}
+          </span>
           <button
             ref={mobileCloseButtonRef}
             type="button"
             onClick={() => setMobileOpen(false)}
-            className="flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-foreground lg:hidden"
+            className="grid h-9 w-9 place-items-center text-muted-foreground hover:text-foreground"
             aria-label={t("closeMenu")}
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Navigation — overflow-y-auto only when expanded; collapsed has no y-overflow and needs visible for tooltips */}
-        <nav
-          className={cn(
-            "app-sidebar-nav flex-1 px-3 py-3",
-            collapsed ? "overflow-visible" : "overflow-y-auto",
-          )}
-        >
+        <nav className="app-sidebar-nav flex-1 overflow-y-auto px-3 py-3">
           {navigationGroups.map((group, groupIndex) => (
-            <div
-              key={group.label}
-              className={cn(
-                groupIndex === 0 && collapsed && "pt-8",
-                groupIndex > 0 &&
-                  (collapsed ? "mt-3 pt-3 border-t border-border/50" : "mt-4"),
-              )}
-            >
-              {/* Section label - only show when expanded */}
-              {!collapsed && (
-                <div className="px-3 mb-2">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
-                    {t(group.messageKey)}
-                  </span>
-                </div>
-              )}
+            <div key={group.label} className={groupIndex > 0 ? "mt-4" : ""}>
+              <div className="px-2 pb-1.5 pt-3">
+                <span
+                  className="font-mono text-[10px] uppercase"
+                  style={{
+                    letterSpacing: "0.14em",
+                    color: "var(--ink-3)",
+                  }}
+                >
+                  {t(group.messageKey)}
+                </span>
+              </div>
 
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {group.items.map((item) => {
                   const isActive = activeHref === item.href;
                   const label = t(item.messageKey);
@@ -455,32 +387,19 @@ export function Sidebar() {
                       key={item.name}
                       href={item.href}
                       aria-current={isActive ? "page" : undefined}
-                      title={collapsed ? label : undefined}
-                      aria-label={collapsed ? label : undefined}
                       className={getSidebarNavItemClassName({
                         isActive,
-                        collapsed,
+                        collapsed: false,
                       })}
                       {...getSidebarNavItemState(isActive)}
                     >
                       <item.icon
                         className={cn(
-                          "h-5 w-5 shrink-0",
+                          "h-4 w-4 flex-shrink-0",
                           isActive ? "text-primary" : "text-current",
                         )}
                       />
-                      {!collapsed && (
-                        <span className="min-w-0 truncate">{label}</span>
-                      )}
-
-                      {/* Tooltip for collapsed state */}
-                      {collapsed && (
-                        <div className="absolute left-full ml-2 hidden group-hover:flex items-center z-50">
-                          <div className="bg-popover text-popover-foreground text-sm font-medium px-3 py-1.5 rounded-lg shadow-elevated border whitespace-nowrap">
-                            {label}
-                          </div>
-                        </div>
-                      )}
+                      <span className="min-w-0 truncate">{label}</span>
                     </Link>
                   );
                 })}
@@ -489,9 +408,13 @@ export function Sidebar() {
           ))}
         </nav>
 
-        {/* Bottom navigation */}
-        <div className="border-t bg-card/40 p-3 space-y-1">
-          <CreditBalanceBadge collapsed={collapsed} />
+        <div
+          className="space-y-2 p-3"
+          style={{ borderTop: "1px solid var(--rule)" }}
+        >
+          <CreditBalanceBadge collapsed={false} />
+          <SidebarExtensionCard collapsed={false} />
+
           {bottomNavigation.map((item) => {
             const isActive = activeHref === item.href;
             const label = t(item.messageKey);
@@ -501,80 +424,66 @@ export function Sidebar() {
                   key={item.name}
                   href={item.href}
                   aria-current={isActive ? "page" : undefined}
-                  title={collapsed ? label : undefined}
-                  aria-label={collapsed ? label : undefined}
                   className={getSidebarNavItemClassName({
                     isActive,
-                    collapsed,
+                    collapsed: false,
                   })}
                   {...getSidebarNavItemState(isActive)}
                 >
-                  <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                  <span
+                    className="relative grid h-7 w-7 flex-shrink-0 place-items-center overflow-hidden text-[12px] font-semibold"
+                    style={{
+                      borderRadius: "var(--r-sm)",
+                      backgroundImage:
+                        "linear-gradient(135deg, var(--brand), var(--brand-dark))",
+                      color: "var(--bg)",
+                    }}
+                  >
                     {profileSnapshot.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={profileSnapshot.avatarUrl}
-                        alt={
-                          profileSnapshot.name
-                            ? `${profileSnapshot.name} profile photo`
-                            : t("profilePhoto")
-                        }
+                        alt=""
                         className="h-full w-full object-cover"
                       />
                     ) : (
                       profileSnapshot.initials
                     )}
-                  </div>
-                  {!collapsed && (
-                    <>
-                      <span className="min-w-0 flex-1 truncate">
-                        {profileSnapshot.firstName}
-                      </span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </>
-                  )}
-
-                  {collapsed && (
-                    <div className="absolute left-full ml-2 hidden group-hover:flex items-center">
-                      <div className="bg-popover text-popover-foreground text-sm font-medium px-3 py-1.5 rounded-lg shadow-elevated border whitespace-nowrap">
-                        {label}
-                      </div>
-                    </div>
-                  )}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate">
+                    {profileSnapshot.firstName}
+                  </span>
+                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
                 </Link>
               );
             }
             return (
               <Fragment key={item.name}>
-                {item.href === "/settings" ? (
-                  <SidebarExtensionCard collapsed={collapsed} />
-                ) : null}
                 <Link
                   href={item.href}
                   aria-current={isActive ? "page" : undefined}
-                  title={collapsed ? label : undefined}
-                  aria-label={collapsed ? label : undefined}
                   className={getSidebarNavItemClassName({
                     isActive,
-                    collapsed,
+                    collapsed: false,
                   })}
                   {...getSidebarNavItemState(isActive)}
                 >
                   <div className="relative shrink-0">
                     <item.icon
                       className={cn(
-                        "h-5 w-5",
+                        "h-4 w-4",
                         isActive ? "text-primary" : "text-current",
                       )}
                     />
                     {item.href === "/settings" && (
                       <span
                         className={cn(
-                          "absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background",
+                          "absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border-2",
                           llmStatus.configured
                             ? "bg-success"
                             : "bg-muted-foreground/40",
                         )}
+                        style={{ borderColor: "var(--bg)" }}
                         title={
                           llmStatus.configured
                             ? t("llmConfigured", {
@@ -585,32 +494,13 @@ export function Sidebar() {
                       />
                     )}
                   </div>
-                  {!collapsed && (
-                    <span className="min-w-0 truncate">{label}</span>
-                  )}
-
-                  {/* Tooltip for collapsed state */}
-                  {collapsed && (
-                    <div className="absolute left-full ml-2 hidden group-hover:flex items-center">
-                      <div className="bg-popover text-popover-foreground text-sm font-medium px-3 py-1.5 rounded-lg shadow-elevated border whitespace-nowrap">
-                        {label}
-                      </div>
-                    </div>
-                  )}
+                  <span className="min-w-0 truncate">{label}</span>
                 </Link>
               </Fragment>
             );
           })}
         </div>
       </aside>
-
-      {/* Spacer for main content */}
-      <div
-        className={cn(
-          "hidden lg:block shrink-0 transition-all duration-300",
-          collapsed ? "w-[72px]" : "w-[264px]",
-        )}
-      />
     </>
   );
 }

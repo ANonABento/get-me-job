@@ -25,7 +25,9 @@ describe("page layout helpers", () => {
   it("returns the expected width classes", () => {
     expect(getPageWidthClassName("full")).toBe("");
     expect(getPageWidthClassName("narrow")).toBe("mx-auto max-w-3xl");
-    expect(getPageWidthClassName("wide")).toBe("mx-auto max-w-screen-2xl");
+    // `wide` is full-bleed now that we've dropped the coach rail; the
+    // previous `max-w-screen-2xl` cap stranded content on wide viewports.
+    expect(getPageWidthClassName("wide")).toBe("");
   });
 
   it("renders a standard page header", () => {
@@ -74,7 +76,7 @@ describe("page layout helpers", () => {
       "pb-24",
     );
     expect(screen.getByText("Content")).toHaveClass(
-      "px-5",
+      "px-6",
       "py-6",
       "max-w-3xl",
     );

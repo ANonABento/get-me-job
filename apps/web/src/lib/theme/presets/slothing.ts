@@ -45,8 +45,10 @@ export const slothingTheme = {
     ring: "21 44% 51%",
     ...sharedStatusTokens,
     radius: "0.625rem", // 10px = --r-md soft
-    shadowCard: "0 18px 40px rgba(60, 40, 20, 0.14)",
-    shadowElevated: "0 30px 80px rgba(60, 40, 20, 0.14)",
+    // Editorial intent: paper cards are flat (bg + border only).
+    // Shadow is reserved for hover-lift, drawers, modals, popovers.
+    shadowCard: "none",
+    shadowElevated: "0 20px 50px rgba(60, 40, 20, 0.18)",
     shadowButton: "none",
     fontFamily: bodyFont,
     fontHeading: displayFont,
@@ -82,8 +84,9 @@ export const slothingTheme = {
     ring: "23 67% 63%",
     ...sharedStatusTokens,
     radius: "0.625rem",
-    shadowCard: "0 18px 40px rgba(0, 0, 0, 0.55)",
-    shadowElevated: "0 30px 80px rgba(0, 0, 0, 0.55)",
+    // Flat paper cards on dark too. Modals/drawers keep elevation.
+    shadowCard: "none",
+    shadowElevated: "0 20px 50px rgba(0, 0, 0, 0.55)",
     shadowButton: "none",
     fontFamily: bodyFont,
     fontHeading: displayFont,
