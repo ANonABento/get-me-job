@@ -128,10 +128,17 @@ function VirtualListInner<T>(
       role={role}
       aria-label={ariaLabel}
       data-virtual-parent=""
+      // The virtualizer measures container size on mount, so the
+      // server renders 0 rows while the client renders the visible
+      // window. That delta is expected — suppress the resulting
+      // hydration warning rather than disable SSR for the entire
+      // list.
+      suppressHydrationWarning
     >
       <div
         className="relative w-full"
         style={{ height: `${virtualizer.getTotalSize()}px` }}
+        suppressHydrationWarning
       >
         {virtualItems.map((virtualItem) => {
           const item = items[virtualItem.index];

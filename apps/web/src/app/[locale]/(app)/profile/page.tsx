@@ -663,32 +663,39 @@ export default function ProfilePage() {
             {/* Resume hero — large display H1 + contact-info row + avatar tile. */}
             <EditorialPanel className="mb-6">
               <EditorialPanelBody className="flex flex-col gap-5 sm:flex-row sm:items-start">
-                {/* Avatar tile — gradient initials, mirroring the AppBar chip. */}
+                {/* Avatar tile — flat editorial treatment matching the
+                    AppBar chip. Initials live as the base layer; the
+                    img sits on top and self-hides on error (handles
+                    stale seed URLs like example.com). */}
                 <div className="flex-shrink-0">
-                  {form.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={form.avatarUrl}
-                      alt={
-                        form.name
-                          ? t("sidebar.profilePhotoNamed", { name: form.name })
-                          : t("sidebar.profilePhoto")
-                      }
-                      className="h-20 w-20 rounded-md border border-rule object-cover"
-                    />
-                  ) : (
-                    <div
-                      aria-hidden="true"
-                      className="grid h-20 w-20 place-items-center overflow-hidden font-display text-[26px] font-bold text-inverse-ink"
-                      style={{
-                        borderRadius: "var(--r-md)",
-                        backgroundImage:
-                          "linear-gradient(135deg, var(--brand), var(--brand-dark))",
-                      }}
-                    >
-                      {initials}
-                    </div>
-                  )}
+                  <div
+                    className="relative grid h-20 w-20 place-items-center overflow-hidden font-display text-[26px] font-bold"
+                    style={{
+                      borderRadius: "var(--r-md)",
+                      backgroundColor: "var(--brand-soft)",
+                      border: "1px solid var(--rule)",
+                      color: "var(--brand-dark)",
+                    }}
+                  >
+                    <span aria-hidden="true">{initials}</span>
+                    {form.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={form.avatarUrl}
+                        alt={
+                          form.name
+                            ? t("sidebar.profilePhotoNamed", {
+                                name: form.name,
+                              })
+                            : t("sidebar.profilePhoto")
+                        }
+                        className="absolute inset-0 h-full w-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : null}
+                  </div>
                 </div>
                 <div className="min-w-0 flex-1">
                   <MonoCap size="sm" tone="muted">
@@ -787,12 +794,10 @@ export default function ProfilePage() {
                         event.preventDefault();
                         setActiveTab("overview");
                         requestAnimationFrame(() => {
-                          document
-                            .getElementById(section.id)
-                            ?.scrollIntoView({
-                              behavior: "smooth",
-                              block: "start",
-                            });
+                          document.getElementById(section.id)?.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                          });
                         });
                       }}
                     >

@@ -18,8 +18,14 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent/10 hover:text-accent",
         link: "text-primary underline-offset-4 hover:underline",
+        // `gradient` is retained as a variant name for back-compat with
+        // ~8 callsites (Add Opportunity, Add Opportunity Wizard CTAs,
+        // etc.) but it no longer renders a gradient — the editorial
+        // pass removed gradients globally. It now matches the primary
+        // variant: flat midnight ink on cream paper, with a subtle
+        // hover-to-brand-dark.
         gradient:
-          "bg-[image:var(--gradient-primary)] text-primary-foreground hover:opacity-90 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)] transition-all",
+          "bg-primary text-primary-foreground hover:bg-brand-dark transition-colors",
       },
       size: {
         default: "h-11 px-4 py-2",
