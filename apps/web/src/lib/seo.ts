@@ -31,9 +31,9 @@ const pages = {
     path: "/dashboard",
   },
   bank: {
-    title: "Documents",
+    title: "Knowledge Bank",
     description:
-      "Manage your resume sections, work experiences, and career documents in one place.",
+      "Reusable components and answers from your career — extracted resumes, projects, skills, and saved Q&A.",
     path: "/bank",
   },
   builder: {
