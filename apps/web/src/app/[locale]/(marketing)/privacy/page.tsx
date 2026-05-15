@@ -70,6 +70,16 @@ export default function PrivacyPage() {
             explicitly use.
           </p>
           <p className="mt-4">
+            <strong>Slothing AI credits vs. BYOK.</strong> On Weekly and Monthly
+            plans, your content is sent to Slothing&apos;s LLM provider accounts
+            to generate AI outputs. We do not use your job search content to
+            train models, and we do not retain raw LLM inputs beyond what is
+            needed to display results. On BYOK (Hosted Free), content goes
+            directly from the app to the provider you configured; their terms
+            and data policies apply. In both cases, you can review which
+            providers are involved in the relevant account settings screen.
+          </p>
+          <p className="mt-4">
             <strong>Browser extension.</strong> The Slothing browser extension
             requests only the permissions needed to read job pages you visit on
             supported job sites and to keep your connection token in extension

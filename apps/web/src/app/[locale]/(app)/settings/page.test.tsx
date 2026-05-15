@@ -143,12 +143,12 @@ describe("SettingsPage", () => {
   it("renders the settings shell at the wide page width", () => {
     const { container } = renderSettingsPage();
 
+    // `wide` is full-bleed now (dropped the `max-w-screen-2xl` cap when
+    // the coach rail came out). Editorial header inset is `px-6 py-6`.
     const header = screen.getByRole("banner");
-    expect(header.firstElementChild).toHaveClass("max-w-screen-2xl");
+    expect(header.firstElementChild).toHaveClass("px-6", "py-6");
 
-    const content = container.querySelector(
-      ".px-5.py-6.sm\\:px-8.max-w-screen-2xl",
-    );
+    const content = container.querySelector(".px-6.py-6");
     expect(content).not.toBeNull();
   });
 
