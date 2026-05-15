@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import SettingsPage from "./page";
 import messages from "@/messages/en.json";
 
@@ -8,6 +8,20 @@ const mocks = vi.hoisted(() => ({
   useDataIO: vi.fn(),
   useLLMSettings: vi.fn(),
 }));
+
+// jsdom doesn't ship IntersectionObserver. Stub it so the scroll-spy
+// nav can mount without throwing.
+class StubIntersectionObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords() {
+    return [];
+  }
+  root = null;
+  rootMargin = "";
+  thresholds = [];
+}
 
 vi.mock("./use-data-io", () => ({
   useDataIO: mocks.useDataIO,
@@ -99,6 +113,10 @@ vi.mock("@/components/settings/gmail-auto-status-section", () => ({
   ),
 }));
 
+vi.mock("@/components/settings/danger-zone-section", () => ({
+  DangerZoneSection: () => <section data-testid="danger-zone-section" />,
+}));
+
 function mockSettingsPage(provider = "openai") {
   mocks.useLLMSettings.mockReturnValue({
     config: { provider, model: "gpt-4o-mini", apiKey: "test-key" },
@@ -135,6 +153,14 @@ function renderSettingsPage() {
 }
 
 describe("SettingsPage", () => {
+  beforeAll(() => {
+    // jsdom shim — SettingsNav uses IntersectionObserver for scroll spy.
+    Object.defineProperty(window, "IntersectionObserver", {
+      writable: true,
+      value: StubIntersectionObserver,
+    });
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockSettingsPage();
@@ -174,21 +200,57 @@ describe("SettingsPage", () => {
     expect(screen.getByTestId("data-management")).toBeInTheDocument();
     expect(screen.getByTestId("google-integration")).toBeInTheDocument();
     expect(screen.getByTestId("gmail-auto-status-section")).toBeInTheDocument();
+    expect(screen.getByTestId("danger-zone-section")).toBeInTheDocument();
   });
 
-  it("shows the Ollama warning only for Ollama and keeps it by the selector", () => {
+  it("renders the vertical settings nav with anchor links to every section", () => {
+    renderSettingsPage();
+
+    const nav = screen.getByRole("navigation", { name: /settings sections/i });
+    expect(nav).toBeInTheDocument();
+
+    const linkLabels = [
+      "Account",
+      "Appearance",
+      "Integrations",
+      "AI keys",
+      "Data",
+      "Plan & usage",
+      "Danger zone",
+    ];
+    for (const label of linkLabels) {
+      expect(
+        within(nav).getByRole("link", { name: new RegExp(`^${label}`, "i") }),
+      ).toBeInTheDocument();
+    }
+
+    // Every nav link should have a matching section[id] anchor.
+    const hrefs = [
+      "#account",
+      "#appearance",
+      "#integrations",
+      "#ai-keys",
+      "#data",
+      "#plan-usage",
+      "#danger",
+    ];
+    for (const href of hrefs) {
+      const id = href.slice(1);
+      expect(document.getElementById(id)).not.toBeNull();
+    }
+  });
+
+  it("shows the Ollama warning only for Ollama and keeps it inside the AI keys section", () => {
     mockSettingsPage("ollama");
 
     const { unmount } = renderSettingsPage();
 
     expect(screen.getByText("Make sure Ollama is running")).toBeInTheDocument();
 
-    const aiGroup = screen
-      .getByTestId("llm-provider-selector")
-      .closest(".space-y-6");
-    expect(aiGroup).not.toBeNull();
+    const aiSection = document.getElementById("ai-keys");
+    expect(aiSection).not.toBeNull();
     expect(
-      within(aiGroup as HTMLElement).getByText("Make sure Ollama is running"),
+      within(aiSection as HTMLElement).getByText("Make sure Ollama is running"),
     ).toBeInTheDocument();
 
     unmount();
