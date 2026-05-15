@@ -40,7 +40,8 @@
       "documents": "文档",
       "pipeline": "进展",
       "prep": "准备",
-      "reporting": "报告"
+      "reporting": "报告",
+      "library": "文档"
     },
     "items": {
       "dashboard": "仪表盘",
@@ -55,7 +56,9 @@
       "salary": "薪资工具",
       "analytics": "数据分析",
       "profile": "个人资料",
-      "settings": "设置"
+      "settings": "设置",
+      "components": "文档",
+      "answers": "答案库"
     }
   },
   "marketing": {

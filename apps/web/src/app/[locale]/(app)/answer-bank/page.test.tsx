@@ -12,15 +12,13 @@ describe("AnswerBankRedirectPage", () => {
     redirectMock.mockClear();
   });
 
-  it("redirects to the Knowledge Bank answers tab", () => {
+  it("redirects to the new /answers route", () => {
     AnswerBankRedirectPage({ params: { locale: "en" } });
-
-    expect(redirectMock).toHaveBeenCalledWith("/en/bank?tab=answers");
+    expect(redirectMock).toHaveBeenCalledWith("/en/answers");
   });
 
   it("preserves the active locale segment", () => {
     AnswerBankRedirectPage({ params: { locale: "fr" } });
-
-    expect(redirectMock).toHaveBeenCalledWith("/fr/bank?tab=answers");
+    expect(redirectMock).toHaveBeenCalledWith("/fr/answers");
   });
 });

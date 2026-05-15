@@ -40,7 +40,8 @@
       "documents": "문서",
       "pipeline": "파이프라인",
       "prep": "준비",
-      "reporting": "리포트"
+      "reporting": "리포트",
+      "library": "문서"
     },
     "items": {
       "dashboard": "대시보드",
@@ -55,7 +56,9 @@
       "salary": "연봉 도구",
       "analytics": "분석",
       "profile": "프로필",
-      "settings": "설정"
+      "settings": "설정",
+      "components": "문서",
+      "answers": "답변 뱅크"
     }
   },
   "marketing": {

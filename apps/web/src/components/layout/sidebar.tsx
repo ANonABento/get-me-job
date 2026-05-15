@@ -64,23 +64,23 @@ export const navigationGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Documents",
-    messageKey: "groups.documents",
+    label: "Library",
+    messageKey: "groups.library",
     items: [
       {
-        name: "Documents",
-        messageKey: "items.documents",
-        href: "/bank",
+        name: "Components",
+        messageKey: "items.components",
+        href: "/components",
         icon: Database,
       },
       {
-        name: "Answer Bank",
-        messageKey: "items.answerBank",
-        href: "/answer-bank",
+        name: "Answers",
+        messageKey: "items.answers",
+        href: "/answers",
         icon: ClipboardList,
       },
       {
-        name: "Document Studio",
+        name: "Studio",
         messageKey: "items.studio",
         href: "/studio",
         icon: FileText,
@@ -434,9 +434,9 @@ export function Sidebar() {
                     className="relative grid h-7 w-7 flex-shrink-0 place-items-center overflow-hidden text-[12px] font-semibold"
                     style={{
                       borderRadius: "var(--r-sm)",
-                      backgroundImage:
-                        "linear-gradient(135deg, var(--brand), var(--brand-dark))",
-                      color: "var(--bg)",
+                      backgroundColor: "var(--brand-soft)",
+                      border: "1px solid var(--rule)",
+                      color: "var(--brand-dark)",
                     }}
                   >
                     {profileSnapshot.avatarUrl ? (

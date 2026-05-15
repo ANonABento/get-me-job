@@ -40,7 +40,8 @@
       "documents": "ドキュメント",
       "pipeline": "パイプライン",
       "prep": "準備",
-      "reporting": "レポート"
+      "reporting": "レポート",
+      "library": "ドキュメント"
     },
     "items": {
       "dashboard": "ダッシュボード",
@@ -55,7 +56,9 @@
       "salary": "給与ツール",
       "analytics": "分析",
       "profile": "プロフィール",
-      "settings": "設定"
+      "settings": "設定",
+      "components": "ドキュメント",
+      "answers": "回答バンク"
     }
   },
   "marketing": {

@@ -25,8 +25,10 @@
     --bg-2: #e9dec8;
     --paper: #fffaef;
 
-    /* Ink */
-    --ink: #1a1410;
+    /* Ink — overridden per `[data-ink]` below. Default kept here so any
+       page rendered without the EditorialPrefsProvider still gets a
+       sane fallback. */
+    --ink: #1a1530;
     --ink-2: #3a2f24;
     --ink-3: #6a5e4a;
 
@@ -93,6 +95,27 @@
     --bg: #ede0c8;
     --bg-2: #e0cfa6;
     --paper: #fffaee;
+  }
+
+  /* Ink shade — light mode only (dark mode keeps the cream variant
+     defined in .dark below). Switch via [data-ink="…"]; default is
+     `midnight` because pure black against cream reads harsh.
+     Driven by EditorialPrefsProvider + Tweaks. */
+  :root[data-ink="black"]:not(.dark),
+  [data-theme="light"][data-ink="black"] {
+    --ink: #1a1410;
+    --inverse-bg: #1a1410;
+  }
+  :root[data-ink="midnight"]:not(.dark),
+  :root:not([data-ink]):not(.dark),
+  [data-theme="light"][data-ink="midnight"] {
+    --ink: #1a1530;
+    --inverse-bg: #1a1530;
+  }
+  :root[data-ink="espresso"]:not(.dark),
+  [data-theme="light"][data-ink="espresso"] {
+    --ink: #2a1a14;
+    --inverse-bg: #2a1a14;
   }
 
   /* Editorial brand accents (separate from shadcn --accent).
@@ -260,56 +283,32 @@
 }
 
 @layer components {
-  /* Company-glyph gradients (used by <CompanyGlyph>).
-     Keeping these in CSS rather than inline-style props keeps hex
-     values out of JSX (and out of the forbidden-color lint's gaze)
-     and matches the design handoff's glyph class set. */
-  .glyph-default {
-    background: linear-gradient(135deg, var(--brand), var(--brand-dark));
-  }
-  .glyph-linear {
-    background: linear-gradient(135deg, #5e6ad2, #8a4fff);
-  }
-  .glyph-vercel {
-    background: linear-gradient(135deg, #111111, #444444);
-  }
-  .glyph-notion {
-    background: #ffffff;
-    color: #1a1410 !important;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-  }
-  .glyph-figma {
-    background: linear-gradient(135deg, #a259ff, #f24e1e);
-  }
-  .glyph-stripe {
-    background: linear-gradient(135deg, #635bff, #00d4ff);
-  }
-  .glyph-posthog {
-    background: linear-gradient(135deg, #f9bd2b, #ff6f4f);
-  }
-  .glyph-supabase {
-    background: #3ecf8e;
-  }
-  .glyph-webflow {
-    background: #4353ff;
-  }
-  .glyph-arc {
-    background: linear-gradient(135deg, #ff5e36, #ff8a36);
-  }
-  .glyph-airbnb {
-    background: linear-gradient(135deg, #ff5a5f, #ff385c);
-  }
-  .glyph-anthropic {
-    background: #d97757;
-  }
-  .glyph-replit {
-    background: linear-gradient(135deg, #f26207, #f97316);
-  }
-  .glyph-loom {
-    background: linear-gradient(135deg, #625df5, #8b5cf6);
-  }
+  /* Editorial company-glyph treatment (used by <CompanyGlyph>).
+     One flat style — paper background, 1px rule, ink-2 monogram in
+     display font. No gradients (gradients felt too SaaS); per-company
+     coloring dropped in favor of a quieter, editorial monogram that
+     pairs with whatever brand/accent the user has set. The
+     individual .glyph-* class names are kept so existing JSX that
+     references them (e.g. `glyph-linear`) still picks up the
+     editorial style. */
+  .glyph-default,
+  .glyph-linear,
+  .glyph-vercel,
+  .glyph-notion,
+  .glyph-figma,
+  .glyph-stripe,
+  .glyph-posthog,
+  .glyph-supabase,
+  .glyph-webflow,
+  .glyph-arc,
+  .glyph-airbnb,
+  .glyph-anthropic,
+  .glyph-replit,
+  .glyph-loom,
   .glyph-mercury {
-    background: linear-gradient(135deg, #5b21b6, #312e81);
+    background: var(--paper);
+    color: var(--ink-2);
+    border: 1px solid var(--rule);
   }
 
   /* Editorial density hooks. The `[data-density]` qualifier lifts these

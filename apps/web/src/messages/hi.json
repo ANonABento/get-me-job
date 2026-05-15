@@ -40,7 +40,8 @@
       "documents": "दस्तावेज़",
       "pipeline": "पाइपलाइन",
       "prep": "तैयारी",
-      "reporting": "रिपोर्टिंग"
+      "reporting": "रिपोर्टिंग",
+      "library": "दस्तावेज़"
     },
     "items": {
       "dashboard": "डैशबोर्ड",
@@ -55,7 +56,9 @@
       "salary": "वेतन उपकरण",
       "analytics": "एनालिटिक्स",
       "profile": "प्रोफ़ाइल",
-      "settings": "सेटिंग्स"
+      "settings": "सेटिंग्स",
+      "components": "दस्तावेज़",
+      "answers": "उत्तर बैंक"
     }
   },
   "marketing": {

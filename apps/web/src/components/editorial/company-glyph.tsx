@@ -59,7 +59,7 @@ interface CompanyGlyphProps {
   size?: CompanyGlyphSize;
   className?: string;
   /**
-   * Override the initial shown over the gradient. Useful when the API
+   * Override the initial shown in the monogram. Useful when the API
    * gives you "linear" but you want the user-facing label to read "L".
    */
   initial?: string;
@@ -72,13 +72,15 @@ export function CompanyGlyph({
   initial,
 }: CompanyGlyphProps) {
   const glyphClass = getGlyphClass(company);
-  // Notion glyph is white-on-white, so it needs the !important color in
-  // globals.css to override the inverse-ink fallback applied here.
+  // Flat editorial treatment — paper bg, 1px rule, brand-dark monogram.
+  // Per-company differentiation removed (gradients felt too SaaS); the
+  // glyph class names still resolve via getGlyphClass() for back-compat
+  // but every variant is visually identical.
   return (
     <span
       aria-hidden="true"
       className={cn(
-        "inline-flex items-center justify-center rounded-sm font-display font-bold text-inverse-ink",
+        "inline-flex items-center justify-center rounded-sm font-display font-bold",
         sizeClass[size],
         glyphClass,
         className,

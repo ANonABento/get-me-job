@@ -40,7 +40,8 @@
       "documents": "Fichiers",
       "pipeline": "Suivi",
       "prep": "Préparation",
-      "reporting": "Rapports"
+      "reporting": "Rapports",
+      "library": "Fichiers"
     },
     "items": {
       "dashboard": "Tableau de bord",
@@ -55,7 +56,9 @@
       "salary": "Outils de salaire",
       "analytics": "Analyses",
       "profile": "Profil",
-      "settings": "Paramètres"
+      "settings": "Paramètres",
+      "components": "Fichiers",
+      "answers": "Banque de réponses"
     }
   },
   "marketing": {

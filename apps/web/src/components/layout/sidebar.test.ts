@@ -36,7 +36,7 @@ describe("navigationGroups", () => {
     const labels = navigationGroups.map((g) => g.label);
     expect(labels).toEqual([
       "Home",
-      "Documents",
+      "Library",
       "Pipeline",
       "Prep",
       "Reporting",
@@ -49,18 +49,18 @@ describe("navigationGroups", () => {
     expect(names).toContain("Dashboard");
   });
 
-  it("should have document tools in Documents group", () => {
-    const documents = getGroup("Documents");
-    const names = getItemNames(documents.items);
-    expect(names).toContain("Documents");
-    expect(names).toContain("Answer Bank");
-    expect(names).toContain("Document Studio");
+  it("should have library tools in Library group", () => {
+    const library = getGroup("Library");
+    const names = getItemNames(library.items);
+    expect(names).toContain("Components");
+    expect(names).toContain("Answers");
+    expect(names).toContain("Studio");
   });
 
-  it("should show one Document Studio link instead of separate document routes", () => {
-    const documents = getGroup("Documents");
-    const names = getItemNames(documents.items);
-    expect(names).toContain("Document Studio");
+  it("should show one Studio link instead of separate document routes", () => {
+    const library = getGroup("Library");
+    const names = getItemNames(library.items);
+    expect(names).toContain("Studio");
     expect(names).not.toContain("Resume Builder");
     expect(names).not.toContain("Tailor Resume");
     expect(names).not.toContain("Cover Letter");
@@ -107,9 +107,9 @@ describe("navigationGroups", () => {
     const allItems = navigationGroups.flatMap((g) => g.items);
     const expectedHrefs = [
       ["Dashboard", "/dashboard"],
-      ["Documents", "/bank"],
-      ["Answer Bank", "/answer-bank"],
-      ["Document Studio", "/studio"],
+      ["Components", "/components"],
+      ["Answers", "/answers"],
+      ["Studio", "/studio"],
       ["Opportunities", "/opportunities"],
       ["Review Queue", "/opportunities/review"],
       ["Calendar", "/calendar"],
@@ -231,7 +231,7 @@ describe("getActiveSidebarItem", () => {
     ["/opportunities", "Opportunities"],
     ["/opportunities/acme", "Opportunities"],
     ["/opportunities/review", "Review Queue"],
-    ["/studio", "Document Studio"],
+    ["/studio", "Studio"],
     ["/dashboard", "Dashboard"],
   ])("resolves %s to %s", (pathname, expectedName) => {
     expect(getActiveSidebarItem(pathname, items)?.name).toBe(expectedName);

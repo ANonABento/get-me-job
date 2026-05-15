@@ -1,15 +1,15 @@
 import { redirect } from "next/navigation";
 
 /**
- * `/answer-bank` is folded into the Knowledge Bank umbrella at `/bank`.
- * The Q&A library renders inside the "Answers" tab. This route is now a
- * 308 redirect so deep links and external traffic land in the right
- * place. Same pattern as `/builder` → `/studio`.
+ * Legacy `/answer-bank` redirect — the route renamed to `/answers`
+ * when the bank/answer-bank split was reaffirmed (see
+ * `docs/editorial-rebuild-todo.md`). The 308 preserves any bookmark
+ * or extension link still pointing here.
  */
 export default function AnswerBankRedirectPage({
   params,
 }: {
   params: { locale: string };
 }) {
-  redirect(`/${params.locale}/bank?tab=answers`);
+  redirect(`/${params.locale}/answers`);
 }

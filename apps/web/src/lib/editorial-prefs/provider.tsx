@@ -46,6 +46,7 @@ function applyToDocument(prefs: EditorialPrefs) {
   root.setAttribute("data-display", prefs.display);
   root.setAttribute("data-radius", prefs.radius);
   root.setAttribute("data-density", prefs.density);
+  root.setAttribute("data-ink", prefs.ink);
 }
 
 function persist(prefs: EditorialPrefs) {

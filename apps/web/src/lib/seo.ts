@@ -31,10 +31,10 @@ const pages = {
     path: "/dashboard",
   },
   bank: {
-    title: "Knowledge Bank",
+    title: "Components",
     description:
-      "Reusable components and answers from your career — extracted resumes, projects, skills, and saved Q&A.",
-    path: "/bank",
+      "Reusable components from your career — extracted resume bullets, projects, skills, and stories.",
+    path: "/components",
   },
   builder: {
     title: "Resume Builder",
@@ -55,10 +55,10 @@ const pages = {
     path: "/documents",
   },
   answerBank: {
-    title: "Answer Bank",
+    title: "Answers",
     description:
-      "Manage reusable answers for application forms, repeated questions, and autofill workflows.",
-    path: "/answer-bank",
+      "Saved answers to application questions and behavioral interview prompts. Reusable across forms and autofill.",
+    path: "/answers",
   },
   studio: {
     title: "Document Studio",

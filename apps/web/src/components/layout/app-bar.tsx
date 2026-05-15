@@ -183,9 +183,9 @@ export function AppBar({ className }: AppBarProps) {
             className="grid h-7 w-7 place-items-center overflow-hidden font-bold"
             style={{
               borderRadius: "var(--r-sm)",
-              backgroundImage:
-                "linear-gradient(135deg, var(--brand), var(--brand-dark))",
-              color: "var(--bg)",
+              backgroundColor: "var(--brand-soft)",
+              border: "1px solid var(--rule)",
+              color: "var(--brand-dark)",
               fontFamily: "var(--display)",
               fontSize: "13px",
             }}

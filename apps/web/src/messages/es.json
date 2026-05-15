@@ -40,7 +40,8 @@
       "documents": "Documentos",
       "pipeline": "Flujo",
       "prep": "Preparación",
-      "reporting": "Informes"
+      "reporting": "Informes",
+      "library": "Documentos"
     },
     "items": {
       "dashboard": "Panel",
@@ -55,7 +56,9 @@
       "salary": "Herramientas salariales",
       "analytics": "Analíticas",
       "profile": "Perfil",
-      "settings": "Configuración"
+      "settings": "Configuración",
+      "components": "Documentos",
+      "answers": "Banco de respuestas"
     }
   },
   "marketing": {

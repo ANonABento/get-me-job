@@ -32,6 +32,7 @@
     "groups": {
       "home": "Home",
       "documents": "Documents",
+      "library": "Library",
       "pipeline": "Pipeline",
       "prep": "Prep",
       "reporting": "Reporting"
@@ -40,7 +41,9 @@
       "dashboard": "Dashboard",
       "documents": "Documents",
       "answerBank": "Answer Bank",
-      "studio": "Document Studio",
+      "components": "Components",
+      "answers": "Answers",
+      "studio": "Studio",
       "opportunities": "Opportunities",
       "reviewQueue": "Review Queue",
       "calendar": "Calendar",

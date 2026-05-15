@@ -10,11 +10,13 @@ import {
   ACCENTS,
   DENSITIES,
   DISPLAY_FONTS,
+  INKS,
   RADII,
   useEditorialPrefs,
   type AccentId,
   type DensityId,
   type DisplayFontId,
+  type InkId,
   type RadiusId,
 } from "@/lib/editorial-prefs";
 import { cn } from "@/lib/utils";
@@ -170,6 +172,14 @@ function EditorialControlsSection() {
               />
             ))}
           </div>
+        </ControlGroup>
+
+        <ControlGroup label="Ink">
+          <ChipRow
+            value={prefs.ink}
+            onChange={(value) => setPref("ink", value as InkId)}
+            options={INKS.map((i) => ({ id: i.id, label: i.label }))}
+          />
         </ControlGroup>
 
         <ControlGroup label="Display font">

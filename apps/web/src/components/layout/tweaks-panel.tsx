@@ -7,11 +7,13 @@ import {
   ACCENTS,
   DENSITIES,
   DISPLAY_FONTS,
+  INKS,
   RADII,
   useEditorialPrefs,
   type AccentId,
   type DensityId,
   type DisplayFontId,
+  type InkId,
   type RadiusId,
 } from "@/lib/editorial-prefs";
 import { useTheme } from "@/components/theme-provider";
@@ -152,6 +154,17 @@ export function TweaksPanel() {
                   />
                 ))}
               </div>
+            </Section>
+
+            <Section label="Ink">
+              <ChipRow
+                value={prefs.ink}
+                onChange={(value) => setPref("ink", value as InkId)}
+                options={INKS.map((ink) => ({
+                  id: ink.id,
+                  label: ink.label,
+                }))}
+              />
             </Section>
 
             <Section label="Display font">
