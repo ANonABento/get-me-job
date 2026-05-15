@@ -101,6 +101,12 @@ const pages = {
       "Generate professional follow-up emails, thank-you notes, and outreach templates.",
     path: "/emails",
   },
+  toolkit: {
+    title: "Toolkit",
+    description:
+      "Quick-reach tools for the offer and comms phase — email templates, salary research, and more.",
+    path: "/toolkit",
+  },
   analytics: {
     title: "Analytics",
     description:
