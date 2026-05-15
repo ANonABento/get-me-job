@@ -79,6 +79,27 @@ interface ScrapedOpportunity {
 
 interface ScannerFormProps {
   locale?: string;
+  /**
+   * Optional initial value for the job description textarea. Used by the
+   * in-app `/ats` page when the user picks a saved opportunity. Only
+   * seeds the first render; subsequent edits are user-controlled.
+   */
+  defaultJobText?: string;
+  /**
+   * Hide the post-scan "Sign up free" promo (used in-app where the user
+   * is already authenticated).
+   */
+  hideSignupPromo?: boolean;
+  /**
+   * Fires once after each successful scan with the full result. The
+   * marketing scanner ignores this; the in-app page uses it to persist
+   * the scan to history.
+   */
+  onScanComplete?: (payload: {
+    result: ATSScanResult;
+    jdText: string;
+    jdMatch: JdMatchResult | null;
+  }) => void;
 }
 
 function completeProfile(profile: Partial<Profile>, rawText?: string): Profile {
@@ -229,11 +250,16 @@ function getParseApiErrorMessage(code: unknown, fallback?: string) {
   return fallback || "Could not parse that resume.";
 }
 
-export function ScannerForm({ locale = "en" }: ScannerFormProps = {}) {
+export function ScannerForm({
+  locale = "en",
+  defaultJobText,
+  hideSignupPromo = false,
+  onScanComplete,
+}: ScannerFormProps = {}) {
   const a11yT = useA11yTranslations();
 
   const [resumeText, setResumeText] = useState("");
-  const [jobText, setJobText] = useState("");
+  const [jobText, setJobText] = useState(defaultJobText ?? "");
   const [jobUrl, setJobUrl] = useState("");
   const [parsedProfile, setParsedProfile] = useState<Profile | null>(null);
   const [fileMeta, setFileMeta] = useState<FileMeta | undefined>();
@@ -429,6 +455,14 @@ export function ScannerForm({ locale = "en" }: ScannerFormProps = {}) {
         }),
       );
       setAnalyzing(false);
+
+      if (onScanComplete) {
+        onScanComplete({
+          result: analysis,
+          jdText,
+          jdMatch: jdMatchResult,
+        });
+      }
     });
   }
 
@@ -514,25 +548,33 @@ export function ScannerForm({ locale = "en" }: ScannerFormProps = {}) {
 
         <ReferralHint />
 
-        <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-8 text-center">
-          <h3 className="mb-2 text-xl font-bold">
-            Want AI-powered resume tailoring?
-          </h3>
-          <p className="mb-4 text-muted-foreground">
-            Get personalized rewrites, keyword optimization, and cover letters
-            generated for each job.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <Button variant="gradient" size="pill" asChild>
-              <Link href={{ pathname: "/sign-in", query: { callbackUrl } }}>
-                Sign up free &rarr;
-              </Link>
-            </Button>
+        {hideSignupPromo ? (
+          <div className="flex justify-center">
             <Button variant="outline" onClick={handleReset}>
               Scan another resume
             </Button>
           </div>
-        </div>
+        ) : (
+          <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-8 text-center">
+            <h3 className="mb-2 text-xl font-bold">
+              Want AI-powered resume tailoring?
+            </h3>
+            <p className="mb-4 text-muted-foreground">
+              Get personalized rewrites, keyword optimization, and cover letters
+              generated for each job.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <Button variant="gradient" size="pill" asChild>
+                <Link href={{ pathname: "/sign-in", query: { callbackUrl } }}>
+                  Sign up free &rarr;
+                </Link>
+              </Button>
+              <Button variant="outline" onClick={handleReset}>
+                Scan another resume
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

@@ -1,6 +1,7 @@
 import db from "./legacy";
 import { generateId } from "@/lib/utils";
 import type { ATSScanReport } from "@/lib/ats/analyzer";
+import type { ATSScanResult } from "@/lib/ats/analyzer";
 import type { FixSuggestion } from "@/lib/ats/fix-suggestions";
 
 interface RawScanRow {
@@ -75,6 +76,81 @@ export function saveScanResult(
 
   if (result.changes === 0) {
     throw new Error("Job not found");
+  }
+
+  return id;
+}
+
+/**
+ * Save a scan that originated from the in-app /ats page (browser-side
+ * `ScannerForm`). The form returns an `ATSScanResult` plus a free-text
+ * JD; we persist score columns + a wrapped JSON payload that stores the
+ * label, optional opportunity id, and full result for replay.
+ */
+export interface InAppScanSavePayload {
+  result: ATSScanResult;
+  jobLabel?: string;
+  jobCompany?: string;
+  jobTitle?: string;
+  opportunityId?: string;
+  jdText?: string;
+}
+
+export function saveInAppScan(
+  userId: string,
+  payload: InAppScanSavePayload,
+): string {
+  const id = generateId();
+  const { result } = payload;
+  const opportunityId = payload.opportunityId?.trim();
+
+  const stmt = db.prepare(
+    `INSERT INTO ats_scan_history
+     (id, user_id, job_id, overall_score, letter_grade, formatting_score, structure_score, content_score, keywords_score, issue_count, fix_count, report_json, scanned_at)
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+     ${opportunityId ? "WHERE EXISTS (SELECT 1 FROM jobs WHERE id = ? AND user_id = ?)" : ""}`,
+  );
+
+  const wrappedReport = {
+    label:
+      payload.jobLabel ||
+      (payload.jobTitle && payload.jobCompany
+        ? `${payload.jobTitle} @ ${payload.jobCompany}`
+        : payload.jobTitle || payload.jobCompany || "Standalone scan"),
+    jobTitle: payload.jobTitle ?? null,
+    jobCompany: payload.jobCompany ?? null,
+    jdText: payload.jdText ?? null,
+    result,
+  };
+
+  const args: Array<string | number | null> = [
+    id,
+    userId,
+    opportunityId || null,
+    result.overall,
+    result.letterGrade,
+    result.legacy.score.formatting,
+    Math.round(
+      (result.axes.sectionCompleteness.score +
+        result.axes.datesAndTenure.score) /
+        2,
+    ),
+    result.legacy.score.content,
+    result.legacy.score.keywords,
+    result.issues.length,
+    0,
+    JSON.stringify(wrappedReport),
+    result.scannedAt,
+  ];
+
+  if (opportunityId) {
+    args.push(opportunityId, userId);
+  }
+
+  const sqlResult = stmt.run(...args);
+
+  if (sqlResult.changes === 0) {
+    throw new Error("Opportunity not found");
   }
 
   return id;
