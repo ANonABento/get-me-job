@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth, isDevAuthBypassAllowed, isNextAuthConfigured } from "@/auth";
+import { AppBar } from "@/components/layout/app-bar";
 import { Sidebar } from "@/components/layout/sidebar";
+import { TweaksPanel } from "@/components/layout/tweaks-panel";
 import { ToastProvider } from "@/components/ui/toast";
 import { KeyboardShortcutsProvider } from "@/components/keyboard-shortcuts";
 import { CommandPalette } from "@/components/command-palette/command-palette";
@@ -23,18 +25,28 @@ async function AppShell({ children }: { children: React.ReactNode }) {
           >
             {t("skipToMain")}
           </a>
-          <div className="flex h-screen bg-background text-foreground">
-            <Sidebar />
-            <main
-              id="main-content"
-              className="flex-1 overflow-x-hidden overflow-y-auto overscroll-y-none bg-background pt-16 lg:pt-0"
-              role="main"
-              aria-label={t("mainContent")}
-              tabIndex={-1}
-            >
-              {children}
-            </main>
+          <div
+            className="flex h-screen flex-col text-foreground"
+            style={{ backgroundColor: "var(--bg)" }}
+          >
+            <div className="hidden lg:block">
+              <AppBar />
+            </div>
+            <div className="flex min-h-0 flex-1">
+              <Sidebar />
+              <main
+                id="main-content"
+                className="flex-1 overflow-x-hidden overflow-y-auto overscroll-y-none pt-16 lg:pt-0"
+                style={{ backgroundColor: "var(--bg)" }}
+                role="main"
+                aria-label={t("mainContent")}
+                tabIndex={-1}
+              >
+                {children}
+              </main>
+            </div>
           </div>
+          <TweaksPanel />
           <CommandPalette />
           <OnboardingDialog />
         </ToastProvider>

@@ -103,8 +103,12 @@ describe("Dashboard onboarding", () => {
     renderDashboard();
 
     expect(
-      await screen.findByText("Welcome, Kevin. Let's set up your workspace."),
+      await screen.findByRole("heading", {
+        level: 2,
+        name: /Set up your workspace/i,
+      }),
     ).toBeInTheDocument();
+    expect(await screen.findByText(/Today, Kevin/)).toBeInTheDocument();
     expect(
       screen.getByText((_content, element) =>
         Boolean(
@@ -129,11 +133,10 @@ describe("Dashboard onboarding", () => {
     renderDashboard();
 
     expect(
-      await screen.findByText(
-        "Welcome back, Kevin. Here's what needs your attention.",
-      ),
+      await screen.findByRole("heading", { level: 1, name: /Today, Kevin/ }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Today")).toBeInTheDocument();
+    // Active state shows the editorial pipeline strip
+    expect(await screen.findByText("Pipeline")).toBeInTheDocument();
   });
 
   it("deep-links pipeline stages to matching opportunity status filters", async () => {
@@ -159,7 +162,7 @@ describe("Dashboard onboarding", () => {
     expect(
       screen.getByRole("link", { name: /Interviewing\s*3/ }),
     ).toHaveAttribute("href", "/en/opportunities?status=interviewing");
-    expect(screen.getByRole("link", { name: /Offer\s*4/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Offered\s*4/ })).toHaveAttribute(
       "href",
       "/en/opportunities?status=offered",
     );
@@ -179,11 +182,7 @@ describe("Dashboard onboarding", () => {
         method: "POST",
       });
     });
-    expect(
-      await screen.findByText(
-        "Welcome back, Kevin. Here's what needs your attention.",
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Pipeline")).toBeInTheDocument();
   });
 
   it("drops the name when onboarding state has no first name", async () => {
@@ -192,8 +191,11 @@ describe("Dashboard onboarding", () => {
     renderDashboard();
 
     expect(
-      await screen.findByText("Let's set up your workspace."),
+      await screen.findByRole("heading", { level: 1, name: /^Today$/ }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { level: 1, name: /Today,/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders available dashboard panels when streak fails and retries only that panel", async () => {
@@ -207,12 +209,10 @@ describe("Dashboard onboarding", () => {
     renderDashboard();
 
     expect(
-      await screen.findByText(
-        "Welcome back, Kevin. Here's what needs your attention.",
-      ),
+      await screen.findByRole("heading", { level: 1, name: /Today, Kevin/ }),
     ).toBeInTheDocument();
-    expect(screen.getAllByText("Documents").length).toBeGreaterThan(0);
-    expect(screen.getByText("Recent opportunities")).toBeInTheDocument();
+    expect(await screen.findByText("Pipeline")).toBeInTheDocument();
+    expect(screen.getByText("Recent applications")).toBeInTheDocument();
     expect(screen.getByText("Couldn't load this section")).toBeInTheDocument();
 
     fetchMock.resolveStreak();

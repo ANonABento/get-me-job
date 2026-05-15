@@ -3,9 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import { getSiteMetadata } from "@/lib/seo";
 
 vi.mock("next/font/google", () => ({
-  Plus_Jakarta_Sans: () => ({ variable: "--font-sans" }),
   JetBrains_Mono: () => ({ variable: "--font-jetbrains" }),
   Outfit: () => ({ variable: "--font-outfit" }),
+  Space_Grotesk: () => ({ variable: "--font-space" }),
+  Plus_Jakarta_Sans: () => ({ variable: "--font-jakarta" }),
+  Inter_Tight: () => ({ variable: "--font-inter" }),
+  DM_Sans: () => ({ variable: "--font-dm" }),
 }));
 
 vi.mock("geist/font/sans", () => ({
