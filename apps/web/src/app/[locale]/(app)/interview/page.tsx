@@ -9,6 +9,7 @@ import { InterviewSummary } from "@/components/interview/interview-summary";
 import { QuickPracticeDialog } from "@/components/interview/quick-practice-dialog";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { AppPage, PageContent, PageHeader } from "@/components/ui/page-layout";
+import { EditorialPanel } from "@/components/editorial";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { useFollowUp } from "@/hooks/useFollowUp";
 import { useInterviewSession } from "@/hooks/useInterviewSession";
@@ -18,6 +19,9 @@ import type {
 } from "@/lib/constants";
 import type { InterviewMode, PastSession } from "@/types/interview";
 import { useA11yTranslations } from "@/lib/i18n/use-a11y-translations";
+import { CoachRail } from "./_components/coach-rail";
+import { InterviewShell } from "./_components/interview-shell";
+import { SessionRail } from "./_components/session-rail";
 
 const QUESTION_COUNT_STORAGE_KEY = "taida:interview:question-count";
 const TIMER_STORAGE_KEY = "taida:interview:timer-enabled";
@@ -123,71 +127,91 @@ export default function InterviewPage() {
     return <InterviewSkeleton />;
   }
 
+  const stageContent = !interview.session ? (
+    <Suspense fallback={<SkeletonCard />}>
+      <InterviewJobSelection
+        opportunities={interview.opportunities}
+        selectedJob={interview.selectedJob}
+        generating={interview.generating}
+        onStartInterview={handleStartInterview}
+        onStartQuickPractice={openQuickPractice}
+        difficulty={difficulty}
+        onDifficultyChange={setDifficulty}
+        pastSessions={interview.pastSessions}
+        onResumeSession={handleResumeSession}
+        onDeleteSession={(sessionId) => void handleDeleteSession(sessionId)}
+      />
+    </Suspense>
+  ) : isComplete ? (
+    <Suspense fallback={<SkeletonCard />}>
+      <InterviewSummary
+        session={interview.session}
+        selectedJob={selectedJobData}
+        onReset={resetInterview}
+      />
+    </Suspense>
+  ) : (
+    <Suspense fallback={<SkeletonCard />}>
+      <InterviewActiveSession
+        session={interview.session}
+        selectedJobData={selectedJobData}
+        currentAnswer={interview.currentAnswer}
+        onChangeAnswer={interview.setCurrentAnswer}
+        submitting={interview.submitting || followUp.submittingFollowUp}
+        onSubmitAnswer={() => void interview.submitAnswer()}
+        onSkipQuestion={async () => {
+          const confirmed = await confirm({
+            title: "Skip this question?",
+            description:
+              "It will be marked as skipped in your summary so you can revisit it later.",
+            confirmLabel: "Skip",
+          });
+          if (confirmed) {
+            await interview.skipQuestion();
+          }
+        }}
+        onEndInterview={resetInterview}
+        followUpMode={followUp.followUpMode}
+        currentFollowUp={followUp.currentFollowUp}
+        loadingFollowUp={followUp.loadingFollowUp}
+        onRequestFollowUp={() => void followUp.requestFollowUp()}
+        onSubmitFollowUp={() => void followUp.submitFollowUpAnswer()}
+        onSkipFollowUp={followUp.skipFollowUp}
+      />
+    </Suspense>
+  );
+
   return (
     <AppPage className="pb-0">
       <PageHeader
         width="wide"
         icon={Sparkles}
         title={a11yT("interviewPreparation")}
-        description="Practice with AI-generated questions tailored to your target jobs and receive instant feedback."
+        description="Practice with AI-generated questions tailored to your target jobs, with the Sloth Coach rail on hand for tips."
       />
 
       <PageContent>
-        {!interview.session ? (
-          <Suspense fallback={<SkeletonCard />}>
-            <InterviewJobSelection
-              opportunities={interview.opportunities}
-              selectedJob={interview.selectedJob}
-              generating={interview.generating}
-              onStartInterview={handleStartInterview}
-              onStartQuickPractice={openQuickPractice}
-              difficulty={difficulty}
-              onDifficultyChange={setDifficulty}
+        <InterviewShell
+          rail={
+            <SessionRail
               pastSessions={interview.pastSessions}
-              onResumeSession={handleResumeSession}
-              onDeleteSession={(sessionId) =>
-                void handleDeleteSession(sessionId)
-              }
+              opportunities={interview.opportunities}
+              activeSessionId={interview.session?.id ?? null}
+              onResume={handleResumeSession}
+              onDelete={(sessionId) => void handleDeleteSession(sessionId)}
             />
-          </Suspense>
-        ) : isComplete ? (
-          <Suspense fallback={<SkeletonCard />}>
-            <InterviewSummary
+          }
+          stage={
+            <EditorialPanel className="bg-paper">{stageContent}</EditorialPanel>
+          }
+          coach={
+            <CoachRail
               session={interview.session}
               selectedJob={selectedJobData}
-              onReset={resetInterview}
+              pastSessions={interview.pastSessions}
             />
-          </Suspense>
-        ) : (
-          <Suspense fallback={<SkeletonCard />}>
-            <InterviewActiveSession
-              session={interview.session}
-              selectedJobData={selectedJobData}
-              currentAnswer={interview.currentAnswer}
-              onChangeAnswer={interview.setCurrentAnswer}
-              submitting={interview.submitting || followUp.submittingFollowUp}
-              onSubmitAnswer={() => void interview.submitAnswer()}
-              onSkipQuestion={async () => {
-                const confirmed = await confirm({
-                  title: "Skip this question?",
-                  description:
-                    "It will be marked as skipped in your summary so you can revisit it later.",
-                  confirmLabel: "Skip",
-                });
-                if (confirmed) {
-                  await interview.skipQuestion();
-                }
-              }}
-              onEndInterview={resetInterview}
-              followUpMode={followUp.followUpMode}
-              currentFollowUp={followUp.currentFollowUp}
-              loadingFollowUp={followUp.loadingFollowUp}
-              onRequestFollowUp={() => void followUp.requestFollowUp()}
-              onSubmitFollowUp={() => void followUp.submitFollowUpAnswer()}
-              onSkipFollowUp={followUp.skipFollowUp}
-            />
-          </Suspense>
-        )}
+          }
+        />
       </PageContent>
       <QuickPracticeDialog
         open={quickPracticeOpen}
