@@ -21,8 +21,12 @@ import {
   BarChart3,
   RefreshCw,
   Puzzle,
+  Database,
+  ScanLine,
+  MessageSquare,
   type LucideIcon,
 } from "lucide-react";
+import { QuickActionStrip, QuickActionCard } from "@/components/editorial";
 import {
   calculateProfileCompleteness,
   type ProfileCompletenessResult,
@@ -777,6 +781,41 @@ function ActiveDashboard({
           <StreakHeroCard streak={streak} />
         )}
       </Suspense>
+
+      {/* Quick action strip — 4 primary verbs, the "what now" deck.
+          Per v2 dashboard spec; replaces the legacy EditorialFocusedMoves
+          two-row task list. Contextual focused moves live further down
+          the rail if/when we wire them back. */}
+      <QuickActionStrip>
+        <QuickActionCard
+          icon={Database}
+          title="Add to Components"
+          subtitle="Drop in a resume, notes, or review."
+          href="/components"
+          shortcut={["⌘", "U"]}
+        />
+        <QuickActionCard
+          icon={ScanLine}
+          title="Analyze a JD"
+          subtitle="Paste a job description, get a match score."
+          href="/opportunities"
+          shortcut={["⌘", "J"]}
+        />
+        <QuickActionCard
+          icon={FileText}
+          title="Open Studio"
+          subtitle="Tailor a resume or cover letter."
+          href="/studio"
+          shortcut={["⌘", "S"]}
+        />
+        <QuickActionCard
+          icon={MessageSquare}
+          title="Run a mock interview"
+          subtitle="Text or voice · tuned to your live JDs."
+          href="/interview"
+          shortcut={["⌘", "I"]}
+        />
+      </QuickActionStrip>
 
       <Suspense fallback={<SkeletonCard />}>
         {statsError ? (
