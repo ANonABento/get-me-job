@@ -9,6 +9,14 @@ describe("LinkedInScraper", () => {
     window.history.replaceState(null, "", "/jobs/search/?currentJobId=471268");
   });
 
+  it("handles LinkedIn selected-job search results URLs", () => {
+    expect(
+      new LinkedInScraper().canHandle(
+        "https://www.linkedin.com/jobs/search-results/?currentJobId=4414255803",
+      ),
+    ).toBe(true);
+  });
+
   it("detects selected search jobs before the full description block loads", async () => {
     document.body.innerHTML = `
       <main>

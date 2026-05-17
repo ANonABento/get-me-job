@@ -7,6 +7,7 @@ export class LinkedInScraper extends BaseScraper {
   readonly source = "linkedin";
   readonly urlPatterns = [
     /linkedin\.com\/jobs\/view\/(\d+)/,
+    /linkedin\.com\/jobs\/search-results/,
     /linkedin\.com\/jobs\/search/,
     /linkedin\.com\/jobs\/collections/,
   ];

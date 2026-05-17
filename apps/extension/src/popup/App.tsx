@@ -78,6 +78,9 @@ const CONTENT_SCRIPT_URL_PATTERNS = [
   /workdayjobs\.com\//,
   /myworkdayjobs\.com\//,
 ];
+const LINKEDIN_JOBS_URL_PATTERN =
+  /linkedin\.com\/jobs\/(?:view|search-results|search|collections)/;
+const LINKEDIN_JOB_RETRY_DELAYS_MS = [600, 1400];
 
 function matchBulkSource(url: string | undefined): BulkSourceKey | null {
   if (!url) return null;
@@ -91,6 +94,10 @@ function hasContentScriptHost(url: string | undefined): boolean {
   return (
     !!url && CONTENT_SCRIPT_URL_PATTERNS.some((pattern) => pattern.test(url))
   );
+}
+
+function isLinkedInJobsUrl(url: string | undefined): boolean {
+  return !!url && LINKEDIN_JOBS_URL_PATTERN.test(url);
 }
 
 export default function App() {
@@ -194,7 +201,7 @@ export default function App() {
     }
   }
 
-  async function checkPageStatus() {
+  async function checkPageStatus(attempt = 0) {
     const [tab] = await chrome.tabs.query({
       active: true,
       currentWindow: true,
@@ -217,6 +224,15 @@ export default function App() {
             scrapedJob: context.page.job,
           });
           setPageProbeState("ready");
+          if (
+            !context.page.job &&
+            isLinkedInJobsUrl(tab.url) &&
+            attempt < LINKEDIN_JOB_RETRY_DELAYS_MS.length
+          ) {
+            window.setTimeout(() => {
+              void checkPageStatus(attempt + 1);
+            }, LINKEDIN_JOB_RETRY_DELAYS_MS[attempt]);
+          }
         }
       } catch {
         setPageProbeState(
@@ -550,6 +566,7 @@ export default function App() {
   }
 
   const detectedJob = pageStatus?.scrapedJob;
+  const supportedSite = supportedTabLabel();
   const workspaceVisible = !!surfaceContext?.workspace.visible;
   const showWwBulk = wwState && wwState.kind === "list";
   const detectedBulkSources = (
@@ -560,7 +577,8 @@ export default function App() {
     !detectedJob &&
     !showWwBulk &&
     detectedBulkSources.length === 0 &&
-    pageProbeState !== "needs-refresh";
+    pageProbeState !== "needs-refresh" &&
+    !supportedSite;
   const hasPageStatus =
     !!detectedJob || !!pageStatus?.hasForm || pageProbeState === "ready";
   const currentTabTitle = workspaceVisible
@@ -667,7 +685,7 @@ export default function App() {
               </button>
             )}
             {!detectedJob && pageProbeState === "ready" && (
-              <button className="btn block" onClick={checkPageStatus}>
+              <button className="btn block" onClick={() => checkPageStatus()}>
                 Scan again
               </button>
             )}
@@ -712,6 +730,15 @@ export default function App() {
             <p className="idle-title">Unsupported page</p>
             <p className="idle-sub">
               Open a supported job posting or application page.
+            </p>
+          </div>
+        )}
+
+        {!hasPageStatus && !nothingDetected && supportedSite && (
+          <div className="idle">
+            <p className="idle-title">{supportedSite} is supported</p>
+            <p className="idle-sub">
+              Scanning this tab for a job posting or application form.
             </p>
           </div>
         )}
