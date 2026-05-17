@@ -2,20 +2,11 @@
 
 import { nowIso } from "@/lib/format/time";
 
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
   ArrowRight,
   Briefcase,
-  ChevronDown,
-  Clipboard,
   FileDown,
   LayoutGrid,
   List,
@@ -54,11 +45,8 @@ import { readJsonResponse } from "@/lib/http";
 import { extractUnlockedFromResponse } from "@/lib/streak/client";
 import { pluralize } from "@/lib/text/pluralize";
 import { Link } from "@/i18n/navigation";
-import {
-  EditorialPanel,
-  PasteBox,
-  type PasteBoxHandle,
-} from "@/components/editorial";
+import { EditorialPanel } from "@/components/editorial";
+
 import {
   DEFAULT_KANBAN_VISIBLE_LANES,
   DEFAULT_OPPORTUNITY_FILTERS,
@@ -140,12 +128,6 @@ export default function OpportunitiesPage({
   );
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  // PasteBox is collapsed by default — the opportunity list is the
-  // primary content on this page, the JD-paste tool is the secondary
-  // workflow. Open via the disclosure trigger or by clicking elsewhere
-  // (eg the "Analyze a JD" quick action from the dashboard) which
-  // could later set this to true on mount.
-  const [pasteBoxOpen, setPasteBoxOpen] = useState(false);
   const [viewMode, setViewMode] = useState<OpportunityViewMode>("list");
   const [visibleKanbanLanes, setVisibleKanbanLanes] = useState<KanbanLaneId[]>([
     ...DEFAULT_KANBAN_VISIBLE_LANES,
@@ -164,7 +146,6 @@ export default function OpportunitiesPage({
   const showErrorToast = useErrorToast();
   const { addToast } = useToast();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
-  const pasteRef = useRef<PasteBoxHandle | null>(null);
 
   const fetchOpportunities = useCallback(async () => {
     try {
@@ -450,46 +431,6 @@ export default function OpportunitiesPage({
     }
   }
 
-  // PasteBox submit handler. If the input looks like a URL, hand off to the
-  // existing scrape endpoint; otherwise open the Add wizard with the
-  // pasted JD prefilled. The wizard already handles auth, scoring, and
-  // persistence — we don't reinvent that pipeline here.
-  async function handlePasteSubmit(value: string) {
-    const trimmed = value.trim();
-    if (!trimmed) return;
-
-    const looksLikeUrl = /^https?:\/\//i.test(trimmed);
-    if (!looksLikeUrl) {
-      // TODO(opportunities-paste): wire JD-text -> /api/opportunities/analyze
-      // once the unauth analyze endpoint exists. For now we route into the
-      // existing wizard with the pasted text as a starting point.
-      setIsFormOpen(true);
-      return;
-    }
-
-    try {
-      const response = await fetch("/api/opportunities/scrape", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: trimmed }),
-      });
-      await readJsonResponse<unknown>(response, "Failed to scrape opportunity");
-      addToast({
-        type: "info",
-        title: "Opportunity captured",
-        description: "Review it in your queue to confirm the details.",
-      });
-      pasteRef.current?.clear();
-      await fetchOpportunities();
-    } catch (error) {
-      showErrorToast(error, {
-        title: "Could not import that URL",
-        fallbackDescription:
-          "Double-check the link or paste the JD text directly.",
-      });
-    }
-  }
-
   function getOpportunityKey(opportunity: Opportunity): string {
     return opportunity.id;
   }
@@ -545,15 +486,15 @@ export default function OpportunitiesPage({
               onChange={handleViewModeChange}
             />
             <Button
-              variant="outline"
+              variant="gradient"
               size="sm"
               onClick={() => setIsImportOpen(true)}
             >
               <FileDown className="mr-2 h-4 w-4" />
-              {commonT("import")}
+              {t("importJob")}
             </Button>
             <Button
-              variant="gradient"
+              variant="secondary"
               size="sm"
               onClick={() => setIsFormOpen(true)}
             >
@@ -566,17 +507,19 @@ export default function OpportunitiesPage({
 
       <PageContent className="space-y-5">
         {reviewQueueCount > 0 ? (
-          <div className="flex justify-end">
-            <Link
-              href="/opportunities/review"
-              className="inline-flex items-center gap-1.5 rounded-sm border border-rule bg-paper px-2.5 py-1 text-[12px] font-medium text-ink-2 transition-colors hover:border-rule-strong hover:text-ink"
-              style={{ borderRadius: "var(--r-sm)" }}
-            >
+          <Link
+            href="/opportunities/review"
+            className="flex w-full flex-wrap items-center justify-between gap-3 rounded-md border border-rule bg-paper p-3 text-sm font-medium text-ink-2 transition-all hover:border-rule-strong hover:text-ink sm:flex-nowrap"
+          >
+            <span>
               {pluralize(reviewQueueCount, "opportunity", "opportunities")} in
               review queue
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              Review now
               <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
+            </span>
+          </Link>
         ) : null}
 
         {opportunities.length === 0 ? (
@@ -603,64 +546,52 @@ export default function OpportunitiesPage({
           </Suspense>
         ) : (
           <>
-            {pasteBoxOpen ? (
-              <div className="relative">
-                <PasteBox
-                  ref={pasteRef}
-                  icon={Clipboard}
-                  title="Paste a job description"
-                  subtitle="Slothing scores it against your profile and drafts a tailored resume in seconds."
-                  submitLabel="Analyze match"
-                  onSubmit={(value) => void handlePasteSubmit(value)}
-                />
-                <button
-                  type="button"
-                  onClick={() => setPasteBoxOpen(false)}
-                  aria-label="Close paste a job description"
-                  className="absolute right-3 top-3 grid h-7 w-7 place-items-center rounded-sm text-muted-foreground transition-colors hover:bg-rule-strong-bg hover:text-foreground"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setPasteBoxOpen(true)}
-                className="group inline-flex h-9 items-center gap-2 rounded-sm border border-rule bg-paper px-3 text-[13px] font-medium transition-colors hover:border-rule-strong"
-                style={{
-                  backgroundColor: "var(--paper)",
-                  borderColor: "var(--rule)",
-                }}
-              >
-                <Clipboard
-                  className="h-3.5 w-3.5"
-                  style={{ color: "var(--brand)" }}
-                />
-                Paste a job description
-                <ChevronDown
-                  className="h-3 w-3 transition-transform"
-                  style={{ color: "var(--ink-3)" }}
-                />
-              </button>
-            )}
-
             <div
               className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between"
               data-testid="opportunities-filters"
             >
-              <StatusTabs
-                ariaLabel={t("filters.status")}
-                options={tabOptions}
-                value={activeTab}
-                onChange={(value) =>
-                  updateFilter(
-                    "status",
-                    (value === "all"
-                      ? "all"
-                      : value) as OpportunityFilters["status"],
-                  )
-                }
-              />
+              <div className="w-full sm:hidden">
+                <Select
+                  value={activeTab}
+                  onValueChange={(value) =>
+                    updateFilter(
+                      "status",
+                      (value === "all"
+                        ? "all"
+                        : value) as OpportunityFilters["status"],
+                    )
+                  }
+                >
+                  <SelectTrigger
+                    aria-label={t("filters.status")}
+                    className="w-full"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tabOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label} ({option.count})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="hidden sm:block">
+                <StatusTabs
+                  ariaLabel={t("filters.status")}
+                  options={tabOptions}
+                  value={activeTab}
+                  onChange={(value) =>
+                    updateFilter(
+                      "status",
+                      (value === "all"
+                        ? "all"
+                        : value) as OpportunityFilters["status"],
+                    )
+                  }
+                />
+              </div>
 
               <div className="grid gap-2 sm:grid-cols-[minmax(200px,1fr)_180px] xl:w-[460px]">
                 <div className="relative">

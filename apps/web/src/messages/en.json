@@ -327,7 +327,8 @@
     "viewMode": "Opportunity view mode",
     "list": "List",
     "kanban": "Kanban",
-    "addOpportunity": "Add Opportunity",
+    "addOpportunity": "Manually add",
+    "importJob": "Import Job",
     "filters": {
       "panel": "Filters",
       "type": "Type",
@@ -824,10 +825,14 @@
       },
       "page": {
         "review": {
-          "title": "Review detected document components",
-          "description": "{filename} was split into {count, plural, one {# editable component} other {# editable components}}. Save corrections as you go.",
+          "title": "Clean up imported components",
+          "description": "{filename} was split into {count, plural, one {# editable component} other {# editable components}}. Edit, merge, or discard them — your changes save as you go.",
           "keepEditing": "Keep editing later",
-          "done": "Done"
+          "done": "All done",
+          "discardImport": "Discard import",
+          "discardConfirmTitle": "Discard {count, plural, one {# imported component} other {# imported components}}?",
+          "discardConfirmDescription": "This removes the {count, plural, one {component} other {components}} just imported from {filename}. You can re-upload the file later.",
+          "discardConfirm": "Discard"
         },
         "moveBullets": {
           "title": "Move selected bullets",
@@ -1073,6 +1078,7 @@
     "uploadFile": "Upload file (Ctrl+U)",
     "failedToLoadDocuments": "Failed to load documents",
     "expand": "Expand",
+    "collapse": "Collapse",
     "selectAllVisibleComponents": "Select all visible components",
     "noComponentsDetected": "No components detected",
     "noComponentsLeft": "No components left",

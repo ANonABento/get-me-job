@@ -1,6 +1,7 @@
 "use client";
 
 import { Briefcase, FileDown, Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { StandardEmptyState } from "@/components/ui/page-layout";
 import { useA11yTranslations } from "@/lib/i18n/use-a11y-translations";
@@ -15,6 +16,7 @@ export function OpportunitiesEmptyHero({
   onImport,
 }: OpportunitiesEmptyHeroProps) {
   const a11yT = useA11yTranslations();
+  const t = useTranslations("opportunities");
 
   return (
     <StandardEmptyState
@@ -23,13 +25,13 @@ export function OpportunitiesEmptyHero({
       description="Save a role to start tracking applications, deadlines, and tailored documents."
       action={
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Button variant="gradient" onClick={onAdd}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Opportunity
-          </Button>
-          <Button variant="ghost" onClick={onImport}>
+          <Button variant="gradient" onClick={onImport}>
             <FileDown className="mr-2 h-4 w-4" />
-            Import from CSV
+            {t("importJob")}
+          </Button>
+          <Button variant="secondary" onClick={onAdd}>
+            <Plus className="mr-2 h-4 w-4" />
+            {t("addOpportunity")}
           </Button>
         </div>
       }

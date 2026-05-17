@@ -333,7 +333,8 @@
     "viewMode": "机会视图模式",
     "list": "列表",
     "kanban": "Kanban",
-    "addOpportunity": "添加机会",
+    "addOpportunity": "手动添加",
+    "importJob": "导入职位",
     "filters": {
       "panel": "筛选",
       "type": "类型",
@@ -833,7 +834,11 @@
           "title": "查看检测到的文档组件",
           "description": "{filename} 已拆分为 {count, plural, one {# 个可编辑组件} other {# 个可编辑组件}}。请边修正边保存。",
           "keepEditing": "稍后继续编辑",
-          "done": "完成"
+          "done": "完成",
+          "discardImport": "放弃导入",
+          "discardConfirmTitle": "确定要放弃 {count, plural, one {# 个导入的组件} other {# 个导入的组件}} 吗？",
+          "discardConfirmDescription": "这将删除刚刚从 {filename} 导入的 {count, plural, one {组件} other {组件}}。你之后可以重新上传该文件。",
+          "discardConfirm": "放弃"
         },
         "moveBullets": {
           "title": "移动所选要点",
@@ -1079,6 +1084,7 @@
     "uploadFile": "上传文件（Ctrl+U）",
     "failedToLoadDocuments": "加载文档失败",
     "expand": "扩张",
+    "collapse": "折叠",
     "selectAllVisibleComponents": "选择所有可见组件",
     "noComponentsDetected": "未检测到任何组件",
     "noComponentsLeft": "没有留下任何组件",

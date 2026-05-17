@@ -37,7 +37,7 @@ export function StatusTabs({
       role="tablist"
       aria-label={ariaLabel}
       className={cn(
-        "inline-flex flex-wrap items-center gap-0.5 rounded-md border border-rule bg-paper p-1",
+        "inline-flex flex-nowrap items-center gap-0.5 overflow-x-auto rounded-md border border-rule bg-paper p-1 whitespace-nowrap",
         className,
       )}
       style={{ borderRadius: "var(--r-md)" }}
