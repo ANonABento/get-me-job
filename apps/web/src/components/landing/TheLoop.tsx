@@ -37,7 +37,7 @@ export function TheLoop() {
           </span>
         </p>
 
-        <div className="relative mx-auto mt-5 max-w-[1300px] overflow-hidden rounded-[22px] border border-rule bg-paper shadow-paper-elevated">
+        <div className="relative mx-auto mt-5 max-w-[1300px] overflow-hidden rounded-2xl border border-rule bg-paper shadow-paper-elevated">
           <span className="absolute right-3.5 top-3.5 z-[3] inline-flex items-center gap-2 rounded-full bg-inverse px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-inverse-ink">
             <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-brand">
               <span

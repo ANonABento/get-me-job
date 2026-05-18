@@ -92,7 +92,7 @@ function HeroVideoStage() {
   }, []);
 
   return (
-    <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[18px] border border-rule shadow-paper-elevated">
+    <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl border border-rule shadow-paper-elevated">
       {/* Paper backdrop gradient via solid layered tokens — no inline hex */}
       <div className="absolute inset-0 z-[0] bg-paper" aria-hidden="true" />
       <div

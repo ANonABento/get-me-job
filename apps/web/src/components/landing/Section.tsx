@@ -146,7 +146,7 @@ function SectionCopy({
 
 function SectionVisual(props: SectionProps) {
   return (
-    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[22px] border border-rule bg-paper shadow-paper-elevated">
+    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-rule bg-paper shadow-paper-elevated">
       <FrameCap label={props.frameLabel} />
       {props.variant === "video" ? <LiveBadge label="autoplay" /> : null}
 
