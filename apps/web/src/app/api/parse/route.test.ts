@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   gateOptionalAiFeature: vi.fn(),
   parseResumeWithLLM: vi.fn(),
   parseResumeBasic: vi.fn(),
+  smartParseResume: vi.fn(),
   populateBankFromProfile: vi.fn(),
   mergeParsedProfileForAutoPromote: vi.fn(),
 }));
@@ -33,6 +34,10 @@ vi.mock("@/lib/billing/ai-gate", () => ({
 vi.mock("@/lib/parser/resume", () => ({
   parseResumeWithLLM: mocks.parseResumeWithLLM,
   parseResumeBasic: mocks.parseResumeBasic,
+}));
+
+vi.mock("@/lib/parser/smart-parser", () => ({
+  smartParseResume: mocks.smartParseResume,
 }));
 
 vi.mock("@/lib/resume/info-bank", () => ({
@@ -77,6 +82,14 @@ describe("/api/parse route", () => {
       (existing, parsed) => parsed,
     );
     mocks.parseResumeBasic.mockReturnValue({ contact: { name: "Ada" } });
+    mocks.smartParseResume.mockResolvedValue({
+      profile: { contact: { name: "Ada" } },
+      confidence: 0.9,
+      sectionsDetected: ["contact"],
+      llmUsed: false,
+      llmSectionsCount: 0,
+      warnings: [],
+    });
     mocks.parseResumeWithLLM.mockReturnValue({ contact: { name: "Ada AI" } });
   });
 
@@ -90,7 +103,11 @@ describe("/api/parse route", () => {
     expect(response.status).toBe(200);
     expect(mocks.gateOptionalAiFeature).not.toHaveBeenCalled();
     expect(mocks.parseResumeWithLLM).not.toHaveBeenCalled();
-    expect(mocks.parseResumeBasic).toHaveBeenCalledWith("Ada Lovelace resume");
+    expect(mocks.parseResumeBasic).not.toHaveBeenCalled();
+    expect(mocks.smartParseResume).toHaveBeenCalledWith(
+      "Ada Lovelace resume",
+      null,
+    );
 
     const body = await response.json();
     expect(body).toMatchObject({
@@ -186,6 +203,11 @@ describe("/api/parse route", () => {
       creditsUsed: 0,
       creditSource: "none",
     });
+    expect(mocks.smartParseResume).toHaveBeenCalledWith(
+      "Ada Lovelace resume",
+      null,
+    );
+    expect(mocks.parseResumeBasic).not.toHaveBeenCalled();
     expect(refund).toHaveBeenCalledTimes(1);
   });
 });

@@ -361,6 +361,22 @@ Designed and routed double-layer PCBs`;
       "Designed and routed double-layer PCBs",
     ]);
   });
+
+  it("does not let embedded link URLs pollute experience headers", () => {
+    const text = `Robotics Engineer — Reazon Human Interaction Lab — Akihabara, Tokyo, Japan https://openarm.dev/ Jun 2025 — Aug 2025
+• Designed a lightweight exoskeleton wrist controller`;
+
+    const result = extractExperiences(text);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      title: "Robotics Engineer",
+      company: "Reazon Human Interaction Lab",
+      location: "Akihabara, Tokyo, Japan",
+      startDate: "Jun 2025",
+      endDate: "Aug 2025",
+    });
+  });
 });
 
 describe("extractEducation", () => {
@@ -473,6 +489,13 @@ github.com/janedoe`;
     expect(contact.linkedin).toBe("linkedin.com/in/janedoe");
     expect(contact.github).toBe("github.com/janedoe");
   });
+
+  it("extracts name from the first pipe-delimited contact line", () => {
+    const text = `Kevin Jiang | Dual Citizen (U.S. & Canada) | k69jiang@uwaterloo.ca
+Kevin Jiang Portfolio`;
+    const { contact } = extractContact(text);
+    expect(contact.name).toBe("Kevin Jiang");
+  });
 });
 
 describe("extractSkills", () => {
@@ -517,6 +540,93 @@ describe("extractSkills", () => {
     expect(
       extractSkills("C++, C#, Node.js").map((skill) => skill.name),
     ).toEqual(["C++", "C#", "Node.js"]);
+  });
+});
+
+describe("extractFieldsFromSections project parsing", () => {
+  it("stores project URLs from header links instead of treating them as stack items", () => {
+    const result = extractFieldsFromSections([
+      {
+        type: "projects",
+        startIndex: 0,
+        endIndex: 2,
+        content: `Expressive Animatronic Head | Python | PyTorch | ROS2 | Linux | llama.cpp | Whisper | ESP32 | FreeRTOS | Fusion 360 https://github.com/MaidReal/Head
+- Integrated Silero for real-time speech, gaze, and movement sync
+One Handed Keyboard | C | STM32 | GPIO | UART | FSM | 3D-Printing | OnShape https://github.com/k69jiang/keyboard
+- Programmed STM32 microcontrollers to process GPIO-based key inputs`,
+      },
+    ]);
+
+    expect(result.projects).toHaveLength(2);
+    expect(result.projects[0]).toMatchObject({
+      name: "Expressive Animatronic Head",
+      url: "https://github.com/MaidReal/Head",
+      technologies: expect.arrayContaining(["llama.cpp", "Fusion 360"]),
+    });
+    expect(result.projects[0].technologies).not.toContain(
+      "https://github.com/MaidReal/Head",
+    );
+    expect(result.projects[1]).toMatchObject({
+      name: "One Handed Keyboard",
+      url: "https://github.com/k69jiang/keyboard",
+      technologies: expect.arrayContaining(["C", "STM32", "GPIO"]),
+      highlights: expect.arrayContaining([
+        "Programmed STM32 microcontrollers to process GPIO-based key inputs",
+      ]),
+    });
+    expect(result.projects[1].technologies).not.toContain(
+      "https://github.com/k69jiang/keyboard",
+    );
+  });
+
+  it("keeps a long linked project header from being merged into the previous bullet", () => {
+    const result = extractFieldsFromSections([
+      {
+        type: "projects",
+        startIndex: 0,
+        endIndex: 5,
+        content: `One Handed Keyboard | C | STM32 | GPIO | UART | FSM | 3D-Printing | OnShape https://github.com/ANonABento/SeqKeyTransmitter
+- Combined a trie and fuzzy algorithm for prefix and approximate autocomplete system through a list of 10,000 words
+VR Haptic Gloves | C++ | ESP32 | Arduino | 3D-Printing | OnShape | Cura | Soldering https://docs.google.com/document/d/e/2PACX-1vRLroLu5HL4aumIrzk0m8yt12p1fcz71PYzMZr4-zGnSM3_nHtHXJBuG4p2ZwJUUarX05p-KjZQPZsa/pub
+- Built an affordable full-finger tracking glove with servo-assisted haptics`,
+      },
+    ]);
+
+    expect(result.projects).toHaveLength(2);
+    expect(result.projects[0]).toMatchObject({
+      name: "One Handed Keyboard",
+      highlights: [
+        "Combined a trie and fuzzy algorithm for prefix and approximate autocomplete system through a list of 10,000 words",
+      ],
+    });
+    expect(result.projects[1]).toMatchObject({
+      name: "VR Haptic Gloves",
+      url: "https://docs.google.com/document/d/e/2PACX-1vRLroLu5HL4aumIrzk0m8yt12p1fcz71PYzMZr4-zGnSM3_nHtHXJBuG4p2ZwJUUarX05p-KjZQPZsa/pub",
+      highlights: [
+        "Built an affordable full-finger tracking glove with servo-assisted haptics",
+      ],
+    });
+  });
+
+  it("keeps bare custom-domain project URLs without treating technology names as links", () => {
+    const result = extractFieldsFromSections([
+      {
+        type: "projects",
+        startIndex: 0,
+        endIndex: 2,
+        content: `Launch Tracker | Next.js | llama.cpp | launch.example.dev/demo
+- Built a dashboard`,
+      },
+    ]);
+
+    expect(result.projects[0]).toMatchObject({
+      name: "Launch Tracker",
+      url: "launch.example.dev/demo",
+      technologies: expect.arrayContaining(["Next.js", "llama.cpp"]),
+    });
+    expect(result.projects[0].technologies).not.toContain(
+      "launch.example.dev/demo",
+    );
   });
 });
 
@@ -573,5 +683,27 @@ describe("extractFieldsFromSections", () => {
     expect(result.education).toEqual([]);
     expect(result.skills).toEqual([]);
     expect(result.projects).toEqual([]);
+  });
+
+  it("extracts repeated sections instead of only the first occurrence", () => {
+    const result = extractFieldsFromSections([
+      {
+        type: "experience" as const,
+        content: "Engineer | Acme | Jan 2020 - Present\n- Built x",
+        startIndex: 0,
+        endIndex: 50,
+      },
+      {
+        type: "experience" as const,
+        content: "Volunteer | Community Lab | Jan 2021 - Jan 2022\n- Helped y",
+        startIndex: 51,
+        endIndex: 110,
+      },
+    ]);
+
+    expect(result.experiences.map((experience) => experience.company)).toEqual([
+      "Acme",
+      "Community Lab",
+    ]);
   });
 });

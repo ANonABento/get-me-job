@@ -12,7 +12,8 @@ import {
   isAiGateResponse,
   type OptionalAiGatePass,
 } from "@/lib/billing/ai-gate";
-import { parseResumeWithLLM, parseResumeBasic } from "@/lib/parser/resume";
+import { parseResumeWithLLM } from "@/lib/parser/resume";
+import { smartParseResume } from "@/lib/parser/smart-parser";
 import { parseDocumentSchema } from "@/lib/constants";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { populateBankFromProfile } from "@/lib/resume/info-bank";
@@ -38,6 +39,11 @@ async function parseResumeText(
   llmConfig: LLMConfig | null,
   creditSource: "self-host" | "byok" | "credits" | "none",
 ): Promise<ParseResumeResult> {
+  const parseWithSmartFallback = async () => {
+    const result = await smartParseResume(text, null);
+    return result.profile;
+  };
+
   if (mode === "ai" && llmConfig) {
     try {
       const parsedProfile = await parseResumeWithLLM(text, llmConfig);
@@ -51,7 +57,7 @@ async function parseResumeText(
       };
     } catch (llmError) {
       console.error("LLM parsing failed, falling back to basic:", llmError);
-      const parsedProfile = parseResumeBasic(text);
+      const parsedProfile = await parseWithSmartFallback();
       return {
         parsedProfile,
         parsingMethod: "basic",
@@ -64,7 +70,7 @@ async function parseResumeText(
   }
 
   log.debug("parse", "no LLM configured; using basic regex parsing");
-  const parsedProfile = parseResumeBasic(text);
+  const parsedProfile = await parseWithSmartFallback();
   return {
     parsedProfile,
     parsingMethod: "basic",

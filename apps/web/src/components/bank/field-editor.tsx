@@ -5,19 +5,27 @@ import { Label } from "@/components/ui/label";
 import { listToText, textToList } from "./chunk-card-utils";
 import type { FieldEditorProps } from "./chunk-card.types";
 
-export function FieldEditor({ field, value, onChange }: FieldEditorProps) {
+export function FieldEditor({
+  field,
+  value,
+  onChange,
+  hideLabel = false,
+}: FieldEditorProps) {
   switch (field.type) {
     case "text":
       return (
         <div className="space-y-1">
-          <Label
-            htmlFor={`field-${field.key}`}
-            className="text-xs text-muted-foreground"
-          >
-            {field.label}
-          </Label>
+          {hideLabel ? null : (
+            <Label
+              htmlFor={`field-${field.key}`}
+              className="text-xs text-muted-foreground"
+            >
+              {field.label}
+            </Label>
+          )}
           <Input
             id={`field-${field.key}`}
+            aria-label={hideLabel ? field.label : undefined}
             value={(value as string) ?? ""}
             onChange={(e) => onChange(field.key, e.target.value)}
             placeholder={field.placeholder}
@@ -28,14 +36,17 @@ export function FieldEditor({ field, value, onChange }: FieldEditorProps) {
     case "textarea":
       return (
         <div className="space-y-1">
-          <Label
-            htmlFor={`field-${field.key}`}
-            className="text-xs text-muted-foreground"
-          >
-            {field.label}
-          </Label>
+          {hideLabel ? null : (
+            <Label
+              htmlFor={`field-${field.key}`}
+              className="text-xs text-muted-foreground"
+            >
+              {field.label}
+            </Label>
+          )}
           <textarea
             id={`field-${field.key}`}
+            aria-label={hideLabel ? field.label : undefined}
             value={(value as string) ?? ""}
             onChange={(e) => onChange(field.key, e.target.value)}
             placeholder={field.placeholder}
@@ -49,29 +60,35 @@ export function FieldEditor({ field, value, onChange }: FieldEditorProps) {
           <input
             id={`field-${field.key}`}
             type="checkbox"
+            aria-label={hideLabel ? field.label : undefined}
             checked={!!value}
             onChange={(e) => onChange(field.key, e.target.checked)}
             className="h-4 w-4 rounded border-input"
           />
-          <Label
-            htmlFor={`field-${field.key}`}
-            className="text-xs text-muted-foreground"
-          >
-            {field.label}
-          </Label>
+          {hideLabel ? null : (
+            <Label
+              htmlFor={`field-${field.key}`}
+              className="text-xs text-muted-foreground"
+            >
+              {field.label}
+            </Label>
+          )}
         </div>
       );
     case "list":
       return (
         <div className="space-y-1">
-          <Label
-            htmlFor={`field-${field.key}`}
-            className="text-xs text-muted-foreground"
-          >
-            {field.label}
-          </Label>
+          {hideLabel ? null : (
+            <Label
+              htmlFor={`field-${field.key}`}
+              className="text-xs text-muted-foreground"
+            >
+              {field.label}
+            </Label>
+          )}
           <textarea
             id={`field-${field.key}`}
+            aria-label={hideLabel ? field.label : undefined}
             value={listToText(value)}
             onChange={(e) => onChange(field.key, textToList(e.target.value))}
             placeholder={field.placeholder}
@@ -82,14 +99,17 @@ export function FieldEditor({ field, value, onChange }: FieldEditorProps) {
     case "select":
       return (
         <div className="space-y-1">
-          <Label
-            htmlFor={`field-${field.key}`}
-            className="text-xs text-muted-foreground"
-          >
-            {field.label}
-          </Label>
+          {hideLabel ? null : (
+            <Label
+              htmlFor={`field-${field.key}`}
+              className="text-xs text-muted-foreground"
+            >
+              {field.label}
+            </Label>
+          )}
           <select
             id={`field-${field.key}`}
+            aria-label={hideLabel ? field.label : undefined}
             value={(value as string) ?? ""}
             onChange={(e) => onChange(field.key, e.target.value)}
             className="flex h-8 w-full rounded-md border-[length:var(--border-width)] border-input bg-background px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

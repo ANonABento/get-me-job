@@ -20,8 +20,18 @@ export interface PdfPositionItem {
   y1: number;
 }
 
+export interface PdfLinkAnnotation {
+  url: string;
+  page: number;
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
 export interface PdfPositionDocument {
   items: PdfPositionItem[];
+  links: PdfLinkAnnotation[];
   pageDimensions: Array<{ page: number; width: number; height: number }>;
 }
 
@@ -48,6 +58,14 @@ interface PdfJsTextItem {
 interface PdfJsPage {
   getViewport: (opts: { scale: number }) => { width: number; height: number };
   getTextContent: () => Promise<{ items: PdfJsTextItem[] }>;
+  getAnnotations?: () => Promise<PdfJsAnnotation[]>;
+}
+
+interface PdfJsAnnotation {
+  subtype?: string;
+  url?: string;
+  unsafeUrl?: string;
+  rect?: number[];
 }
 
 interface PdfJsDocument {
@@ -108,6 +126,24 @@ function itemFromPdfJs(
   };
 }
 
+function linkFromPdfJsAnnotation(
+  annotation: PdfJsAnnotation,
+  pageNumber: number,
+  pageHeight: number,
+): PdfLinkAnnotation | null {
+  if (annotation.subtype !== "Link") return null;
+  const url = annotation.url ?? annotation.unsafeUrl;
+  if (!url || !/^https?:\/\//i.test(url)) return null;
+  const rect = annotation.rect;
+  if (!Array.isArray(rect) || rect.length < 4) return null;
+  const [rawX0, rawY0, rawX1, rawY1] = rect;
+  const x0 = Math.min(rawX0, rawX1);
+  const x1 = Math.max(rawX0, rawX1);
+  const y0 = Math.max(0, pageHeight - Math.max(rawY0, rawY1));
+  const y1 = Math.max(0, pageHeight - Math.min(rawY0, rawY1));
+  return { url, page: pageNumber, x0, y0, x1, y1 };
+}
+
 export interface ExtractPdfPositionsOptions {
   /**
    * When true, retain junk items (single-char separators, all-punctuation
@@ -136,6 +172,7 @@ export async function extractPdfPositions(
   const document = await loadingTask.promise;
   try {
     const items: PdfPositionItem[] = [];
+    const links: PdfLinkAnnotation[] = [];
     const pageDimensions: PdfPositionDocument["pageDimensions"] = [];
     for (let p = 1; p <= document.numPages; p += 1) {
       const page = await document.getPage(p);
@@ -147,6 +184,11 @@ export async function extractPdfPositions(
       });
       const textContent = await page.getTextContent();
       const pageItems: PdfPositionItem[] = [];
+      const annotations = (await page.getAnnotations?.()) ?? [];
+      for (const annotation of annotations) {
+        const link = linkFromPdfJsAnnotation(annotation, p, viewport.height);
+        if (link) links.push(link);
+      }
       for (const raw of textContent.items) {
         const item = itemFromPdfJs(raw, p, viewport.height);
         if (!item) continue;
@@ -165,7 +207,7 @@ export async function extractPdfPositions(
       });
       items.push(...pageItems);
     }
-    return { items, pageDimensions };
+    return { items, links, pageDimensions };
   } finally {
     await document.destroy?.();
   }

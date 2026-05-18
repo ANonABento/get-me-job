@@ -29,6 +29,8 @@ const PHONE_REGEX = /(\+?1?[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
 const LINKEDIN_REGEX = /linkedin\.com\/in\/[\w-]+/i;
 const GITHUB_REGEX = /github\.com\/[\w-]+/i;
 const URL_REGEX = /https?:\/\/[\w.-]+\.\w{2,}[\w/.-]*/;
+const PROJECT_URL_REGEX =
+  /\b(?:https?:\/\/[^\s|,;)]+|www\.[^\s|,;)]+|(?:[a-z0-9-]+\.)+[a-z]{2,}\/[^\s|,;)]+)/i;
 const BULLET_MARKER_REGEX = /^[•●○◦■▪▸→✓\-–—*]$/;
 const BULLET_LINE_REGEX = /^[•●○◦■▪▸→✓\-–—*]\s*/;
 const SKILL_SPLIT_REGEX = /[,;|•·]/;
@@ -244,6 +246,14 @@ function stripDateRange(line: string): string {
     .trim();
 }
 
+function stripUrls(line: string): string {
+  return line
+    .replace(URL_REGEX, "")
+    .replace(PROJECT_URL_REGEX, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function extractSingleYear(line: string): string {
   return line.match(SINGLE_YEAR_REGEX)?.[0] ?? "";
 }
@@ -266,7 +276,10 @@ function isLikelySectionHeader(line: string): boolean {
 }
 
 function isLikelyEntryHeader(line: string): boolean {
-  return hasDateRange(line) || (line.includes("|") && line.length < 180);
+  return (
+    hasDateRange(line) ||
+    (line.includes("|") && (line.length < 180 || PROJECT_URL_REGEX.test(line)))
+  );
 }
 
 /**
@@ -416,7 +429,21 @@ export function extractContact(text: string): {
   const github = text.match(GITHUB_REGEX)?.[0];
   const website = text.match(URL_REGEX)?.[0];
 
+  const firstLineName = lines[0]
+    ?.split("|")
+    .map((part) => part.trim())
+    .find(
+      (part) =>
+        part.length > 1 &&
+        part.length < 60 &&
+        !EMAIL_REGEX.test(part) &&
+        !PHONE_REGEX.test(part) &&
+        !URL_REGEX.test(part),
+    )
+    ?.replace(/^#{1,6}\s+/, "");
+
   const name =
+    firstLineName ||
     lines
       .find(
         (l) =>
@@ -426,7 +453,8 @@ export function extractContact(text: string): {
           l.length > 1 &&
           l.length < 60,
       )
-      ?.replace(/^#{1,6}\s+/, "") || "";
+      ?.replace(/^#{1,6}\s+/, "") ||
+    "";
 
   const locationMatch = text.match(
     /([A-Z][a-z]+(?:\s[A-Z][a-z]+)*),?\s*[A-Z]{2}(?:\s+\d{5})?/,
@@ -485,7 +513,7 @@ export function extractExperiences(text: string): Experience[] {
   }
 
   function parseHeader(line: string, dateStr: string) {
-    const withoutDates = stripDateRange(line)
+    const withoutDates = stripUrls(stripDateRange(line))
       .replace(/\s*[-–—]\s*$/, "")
       .trim();
     const pipeParts = withoutDates
@@ -973,6 +1001,8 @@ export function extractSkills(text: string): Skill[] {
           item.name.length >= 2 &&
           item.name.length <= 50 &&
           /[\p{L}\p{N}]/u.test(item.name) &&
+          !URL_REGEX.test(item.name) &&
+          !PROJECT_URL_REGEX.test(item.name) &&
           !ORPHAN_SKILL_LABELS.has(normalized)
         );
       });
@@ -998,6 +1028,7 @@ function extractProjects(text: string): Project[] {
   let current: {
     name: string;
     description: string;
+    url?: string;
     technologies: string[];
     highlights: string[];
   } | null = null;
@@ -1008,20 +1039,26 @@ function extractProjects(text: string): Project[] {
       id: generateId(),
       name: current.name,
       description: current.description.trim(),
-      url: undefined,
+      url: current.url,
       technologies: current.technologies,
       highlights: current.highlights,
     });
   }
 
   function parseProjectHeader(line: string) {
-    const cleanedLine = line.replace(/[^\p{L}\p{N}\s|.+#/-]/gu, "").trim();
+    const urlMatch = line.match(PROJECT_URL_REGEX);
+    const url = urlMatch?.[0];
+    const lineWithoutUrl = url ? line.replace(url, " ") : line;
+    const cleanedLine = lineWithoutUrl
+      .replace(/[^\p{L}\p{N}\s|.+#/-]/gu, "")
+      .trim();
     const parts = cleanedLine
       .split("|")
       .map((part) => part.trim())
       .filter(Boolean);
     return {
       name: parts[0] || line.trim(),
+      url,
       technologies: parts.slice(1),
     };
   }
@@ -1035,10 +1072,14 @@ function extractProjects(text: string): Project[] {
         current.highlights.push(bullet);
         current.description += (current.description ? " " : "") + bullet;
       }
-    } else if (/^[A-Z0-9]/.test(trimmed) && trimmed.length < 180) {
+    } else if (
+      /^[A-Z0-9]/.test(trimmed) &&
+      (trimmed.length < 180 ||
+        (trimmed.includes("|") && PROJECT_URL_REGEX.test(trimmed)))
+    ) {
       pushCurrent();
-      const { name, technologies } = parseProjectHeader(trimmed);
-      current = { name, description: "", technologies, highlights: [] };
+      const { name, url, technologies } = parseProjectHeader(trimmed);
+      current = { name, description: "", url, technologies, highlights: [] };
     } else if (current) {
       current.description += " " + trimmed;
     }
@@ -1051,27 +1092,30 @@ function extractProjects(text: string): Project[] {
 export function extractFieldsFromSections(
   sections: DetectedSection[],
 ): ExtractedFields {
-  const contactSection = sections.find((s) => s.type === "contact");
-  const summarySection = sections.find((s) => s.type === "summary");
-  const experienceSection = sections.find((s) => s.type === "experience");
-  const educationSection = sections.find((s) => s.type === "education");
-  const skillsSection = sections.find((s) => s.type === "skills");
-  const projectsSection = sections.find((s) => s.type === "projects");
+  const contentFor = (type: DetectedSection["type"]) =>
+    sections
+      .filter((section) => section.type === type)
+      .map((section) => section.content)
+      .filter(Boolean)
+      .join("\n");
 
-  const { contact } = contactSection
-    ? extractContact(contactSection.content)
+  const contactText = contentFor("contact");
+  const summaryText = contentFor("summary");
+  const experienceText = contentFor("experience");
+  const educationText = contentFor("education");
+  const skillsText = contentFor("skills");
+  const projectsText = contentFor("projects");
+
+  const { contact } = contactText
+    ? extractContact(contactText)
     : { contact: { name: "", confidence: 0 } as ContactInfo };
 
   return {
     contact,
-    summary: summarySection?.content || "",
-    experiences: experienceSection
-      ? extractExperiences(experienceSection.content)
-      : [],
-    education: educationSection
-      ? extractEducation(educationSection.content)
-      : [],
-    skills: skillsSection ? extractSkills(skillsSection.content) : [],
-    projects: projectsSection ? extractProjects(projectsSection.content) : [],
+    summary: summaryText,
+    experiences: experienceText ? extractExperiences(experienceText) : [],
+    education: educationText ? extractEducation(educationText) : [],
+    skills: skillsText ? extractSkills(skillsText) : [],
+    projects: projectsText ? extractProjects(projectsText) : [],
   };
 }

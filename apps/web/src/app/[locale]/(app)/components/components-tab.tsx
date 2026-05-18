@@ -36,6 +36,7 @@ import {
   CATEGORY_FIELDS,
   cleanContent,
   FieldEditor,
+  type FieldDef,
 } from "@/components/bank/chunk-card";
 import { BulkActionBar } from "@/components/bank/bulk-action-bar";
 import { UploadOverlay } from "@/components/bank/upload-overlay";
@@ -54,7 +55,6 @@ import {
   Rows3,
   Save,
   Sparkles,
-  Tag,
   Trash2,
   Upload,
   X,
@@ -187,9 +187,49 @@ function getEntryLabel(entry: BankEntry): string {
   const title = entry.content.title ? String(entry.content.title) : "";
   const company = entry.content.company ? String(entry.content.company) : "";
   const name = entry.content.name ? String(entry.content.name) : "";
+  const institution = entry.content.institution
+    ? String(entry.content.institution)
+    : "";
+  const degree = entry.content.degree ? String(entry.content.degree) : "";
+  const issuer = entry.content.issuer ? String(entry.content.issuer) : "";
 
-  if (title || company) return [title, company].filter(Boolean).join(" at ");
+  if (title || company) return [title, company].filter(Boolean).join(" — ");
+  if (entry.category === "education") {
+    return [degree, institution].filter(Boolean).join(" — ") || "Education";
+  }
+  if (entry.category === "certification") {
+    return [name, issuer].filter(Boolean).join(" — ") || "Certification";
+  }
   return name || "Component";
+}
+
+function getPdfOrderKey(entry: BankEntry): number {
+  if (Array.isArray(entry.sourceBbox) && entry.sourceBbox.length > 0) {
+    let page = Infinity;
+    let y = Infinity;
+    let x = Infinity;
+    for (const [bboxPage, x0, y0] of entry.sourceBbox) {
+      if (bboxPage < page || (bboxPage === page && y0 < y)) {
+        page = bboxPage;
+        y = y0;
+        x = x0;
+      } else if (bboxPage === page && y0 === y && x0 < x) {
+        x = x0;
+      }
+    }
+    return page * 1_000_000 + y * 1_000 + x;
+  }
+
+  const order = Number(entry.content.sourceOrder ?? entry.content.order);
+  if (Number.isFinite(order)) return 10_000_000 + order;
+
+  return 20_000_000 + toEpoch(entry.createdAt);
+}
+
+function sortByPdfOrder(a: BankEntry, b: BankEntry): number {
+  const orderDelta = getPdfOrderKey(a) - getPdfOrderKey(b);
+  if (orderDelta !== 0) return orderDelta;
+  return a.id.localeCompare(b.id);
 }
 
 function getParentKey(entry: BankEntry): string {
@@ -796,6 +836,23 @@ export function BankComponentsTab({
               : entry,
           )
           .concat(created),
+      );
+      setUploadReview((prev) =>
+        prev && prev.entries.some((entry) => entry.id === parent.id)
+          ? {
+              ...prev,
+              entries: prev.entries
+                .map((entry) =>
+                  entry.id === parent.id
+                    ? {
+                        ...entry,
+                        content: withChildCount(entry, nextChildCount),
+                      }
+                    : entry,
+                )
+                .concat(created),
+            }
+          : prev,
       );
       await persistParentChildCount(parent, nextChildCount);
     } catch (err) {
@@ -1704,7 +1761,7 @@ export function BankComponentsTab({
                     </div>
                   ) : null}
                 </DialogHeader>
-                <div className="h-[72vh] overflow-hidden">
+                <div className="h-[68vh] overflow-hidden">
                   {uploadReview ? (
                     <UploadReviewEntries
                       entries={uploadReview.entries}
@@ -1722,6 +1779,7 @@ export function BankComponentsTab({
                       })}
                       onUpdate={handleReviewUpdate}
                       onDelete={handleReviewDelete}
+                      onCreateBullet={handleCreateChild}
                       onMergeChildren={handleReviewMergeChildren}
                       onAttachBullet={handleReviewAttachBullet}
                       documentId={uploadReview.documentId}
@@ -2584,11 +2642,121 @@ function compactReviewFieldLabel(label: string): string {
     .replace(/^Skill Name$/i, "Name");
 }
 
+function isStackFieldKey(key: string): boolean {
+  return key === "technologies" || key === "skills";
+}
+
+function getReviewEditField(field: FieldDef): FieldDef {
+  if (!isStackFieldKey(field.key)) {
+    return {
+      ...field,
+      label: compactReviewFieldLabel(field.label),
+    };
+  }
+
+  return {
+    ...field,
+    label: "Stack",
+    placeholder: "TypeScript\nPostgreSQL\nFigma\nCustomer research",
+  };
+}
+
 function getReviewListValue(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value
     .map((item) => String(item).trim())
     .filter((item) => item.length > 0);
+}
+
+function getReviewStack(content: Record<string, unknown>): string[] {
+  const stack = [
+    ...getReviewListValue(content.technologies),
+    ...getReviewListValue(content.skills),
+  ];
+  return Array.from(new Set(stack));
+}
+
+function getReviewFieldValueLabel(value: unknown): ReactNode {
+  if (Array.isArray(value)) return value.map(String).join(", ");
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  return String(value);
+}
+
+function isReviewUrl(value: unknown): value is string {
+  return typeof value === "string" && /^https?:\/\/[^\s]+$/i.test(value.trim());
+}
+
+function overviewFieldClass(field: FieldDef): string {
+  if (
+    field.key === "institution" ||
+    field.key === "description" ||
+    field.key === "url"
+  ) {
+    return "sm:col-span-2";
+  }
+  if (field.type === "textarea") return "sm:col-span-2";
+  return "";
+}
+
+function CountDot({ count }: { count: number }) {
+  return (
+    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-border bg-muted px-1.5 font-mono text-[10px] leading-none text-muted-foreground">
+      {count}
+    </span>
+  );
+}
+
+function ReviewSectionHeader({
+  title,
+  count,
+  description,
+}: {
+  title: string;
+  count?: number;
+  description?: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+      <div className="min-w-0 shrink-0">
+        <div className="flex items-center gap-2">
+          <p className="font-display text-sm font-semibold tracking-tight">
+            {title}
+          </p>
+          {typeof count === "number" ? <CountDot count={count} /> : null}
+        </div>
+      </div>
+      {description ? (
+        <p className="min-w-0 text-xs leading-relaxed text-muted-foreground sm:text-right">
+          {description}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function ReviewPanelBox({
+  title,
+  count,
+  description,
+  children,
+}: {
+  title: string;
+  count?: number;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rounded-md border border-border bg-card">
+      <div className="border-b px-4 py-3">
+        <ReviewSectionHeader
+          title={title}
+          count={count}
+          description={description}
+        />
+      </div>
+      <div className="p-4">{children}</div>
+    </div>
+  );
 }
 
 function getNewParsedChildren(
@@ -2611,6 +2779,7 @@ function UploadReviewEntries({
   existingEntries,
   onUpdate,
   onDelete,
+  onCreateBullet,
   onMergeChildren,
   onAttachBullet,
   documentId,
@@ -2620,6 +2789,10 @@ function UploadReviewEntries({
   existingEntries: BankEntry[];
   onUpdate: (id: string, content: Record<string, unknown>) => void;
   onDelete: (id: string) => void;
+  onCreateBullet: (
+    parent: BankEntry,
+    description: string,
+  ) => void | Promise<void>;
   onMergeChildren: (
     parsedEntry: BankEntry,
     existingEntry: BankEntry,
@@ -2633,7 +2806,10 @@ function UploadReviewEntries({
 
   const roots = useMemo(() => entries.filter(isReviewRootEntry), [entries]);
   const needsReviewBullets = useMemo(
-    () => entries.filter((entry) => isBulletNeedsReview(entry, entries)),
+    () =>
+      entries
+        .filter((entry) => isBulletNeedsReview(entry, entries))
+        .sort(sortByPdfOrder),
     [entries],
   );
   const reviewItems = useMemo(() => {
@@ -2641,7 +2817,7 @@ function UploadReviewEntries({
     return [
       ...needsReviewBullets,
       ...roots.filter((entry) => !reviewIds.has(entry.id)),
-    ];
+    ].sort(sortByPdfOrder);
   }, [needsReviewBullets, roots]);
   const parentCandidates = useMemo(
     () =>
@@ -2669,6 +2845,7 @@ function UploadReviewEntries({
   const [bulletEditContent, setBulletEditContent] = useState<
     Record<string, unknown>
   >({});
+  const [newBulletText, setNewBulletText] = useState("");
   // Per-session "keep both" decisions. When a user keeps both copies of a
   // duplicate (P1.2), the warning panel is dismissed for that parsed entry
   // until the modal is re-opened.
@@ -2738,6 +2915,7 @@ function UploadReviewEntries({
     setEditContent({});
     setEditingBulletId(null);
     setBulletEditContent({});
+    setNewBulletText("");
   }, [selectedId]);
 
   const selectedEntry =
@@ -2791,12 +2969,36 @@ function UploadReviewEntries({
   const selectedFields = selectedEntry
     ? CATEGORY_FIELDS[selectedEntry.category]
     : [];
-  const selectedTechnologies = selectedEntry
-    ? getReviewListValue(selectedEntry.content.technologies)
+  const selectedStack = selectedEntry
+    ? getReviewStack(selectedEntry.content)
+    : [];
+  const selectedHighlights = selectedEntry
+    ? getReviewListValue(selectedEntry.content.highlights)
+    : [];
+  const selectedOverviewFields = selectedEntry
+    ? selectedFields.filter((field) => {
+        if (isStackFieldKey(field.key) || field.key === "highlights") {
+          return false;
+        }
+        const value = selectedEntry.content[field.key];
+        if (value === undefined || value === null || value === "") {
+          return false;
+        }
+        if (Array.isArray(value) && value.length === 0) {
+          return false;
+        }
+        return true;
+      })
     : [];
   const isEditingSelected = Boolean(
     selectedEntry && editingEntryId === selectedEntry.id,
   );
+  const canHaveBullets = Boolean(
+    selectedEntry &&
+    (selectedEntry.category === "experience" ||
+      selectedEntry.category === "project"),
+  );
+  const showBulletSection = canHaveBullets || childEntries.length > 0;
   const selectedAttentionReason = selectedReviewReason
     ? selectedReviewReason
     : duplicateEntries.length > 0 && !keepBothIds.has(selectedEntry?.id ?? "")
@@ -2837,6 +3039,14 @@ function UploadReviewEntries({
   function cancelBulletEdit() {
     setEditingBulletId(null);
     setBulletEditContent({});
+  }
+
+  async function createReviewBullet() {
+    if (!selectedEntry) return;
+    const description = newBulletText.trim();
+    if (!description) return;
+    await onCreateBullet(selectedEntry, description);
+    setNewBulletText("");
   }
 
   if (entries.length === 0) {
@@ -2893,12 +3103,12 @@ function UploadReviewEntries({
               type="button"
               onClick={() => setSelectedId(entry.id)}
               className={cn(
-                "w-full rounded-md border border-transparent px-2.5 py-2 text-left transition-colors",
+                "w-full rounded-md border px-2.5 py-2 text-left shadow-[0_1px_0_rgba(15,23,42,0.03)] transition-colors",
                 active
-                  ? "border-primary bg-primary/10"
+                  ? "border-primary bg-primary/10 shadow-none"
                   : reviewReason
                     ? "border-warning/40 bg-warning/5 hover:bg-warning/10"
-                    : "hover:border-border hover:bg-background/70",
+                    : "border-border/70 bg-background/65 hover:border-primary/35 hover:bg-primary/5",
               )}
             >
               <div className="flex items-start justify-between gap-1.5">
@@ -2934,12 +3144,12 @@ function UploadReviewEntries({
   return (
     <div
       className={cn(
-        "grid h-[68vh] min-h-0 grid-cols-1",
+        "grid h-full min-h-0 grid-cols-1",
         // lg+ — 3-pane (or 2-pane when no PDF). Components | Document | Review.
         // On <lg the same DOM tree stacks vertically — components and document
         // get capped vertical bands so the review pane below stays usable.
         documentTabAvailable
-          ? "lg:grid-cols-[240px_minmax(560px,1fr)_minmax(460px,0.78fr)]"
+          ? "lg:grid-cols-[260px_minmax(520px,1fr)_minmax(460px,0.78fr)]"
           : "lg:grid-cols-[minmax(0,1fr)_minmax(460px,0.78fr)]",
       )}
     >
@@ -2963,11 +3173,11 @@ function UploadReviewEntries({
           />
         </div>
       ) : null}
-      <section className="min-h-0 overflow-y-auto bg-background p-5 pb-8">
+      <section className="min-h-0 overflow-y-auto bg-background px-5 py-4">
         {selectedEntry ? (
           <div className="space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="font-mono text-xs uppercase tracking-[0.16em] text-muted-foreground">
                   Review component
                 </p>
@@ -2986,72 +3196,66 @@ function UploadReviewEntries({
                   </button>
                 ) : null}
               </div>
-              <div className="flex flex-col items-start gap-2 sm:items-end">
-                <div className="flex flex-wrap justify-end gap-2">
-                  <Badge variant="secondary">
-                    {CATEGORY_LABELS[selectedEntry.category]}
-                  </Badge>
-                  <Badge variant="success">
-                    {Math.round((selectedEntry.confidenceScore ?? 0) * 100)}%
-                    confidence
-                  </Badge>
-                  {childEntries.length > 0 ? (
-                    <Badge variant="outline">
-                      {pluralize(childEntries.length, "bullet")}
-                    </Badge>
-                  ) : null}
-                  {selectedWarnings.map((warning) => (
-                    <Badge key={warning} variant="warning">
-                      {warning}
-                    </Badge>
-                  ))}
-                </div>
-                <div className="flex flex-wrap justify-end gap-2">
-                  {isEditingSelected ? (
-                    <>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={cancelSelectedEdit}
-                      >
-                        <X className="mr-1.5 h-3.5 w-3.5" />
-                        Cancel
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={saveSelectedEdit}
-                      >
-                        <Save className="mr-1.5 h-3.5 w-3.5" />
-                        Save
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={beginEditSelected}
-                      >
-                        <Edit3 className="mr-1.5 h-3.5 w-3.5" />
-                        Edit
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => onDelete(selectedEntry.id)}
-                      >
-                        <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                        Delete
-                      </Button>
-                    </>
-                  )}
-                </div>
+              <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                {isEditingSelected ? (
+                  <>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={cancelSelectedEdit}
+                    >
+                      <X className="mr-1.5 h-3.5 w-3.5" />
+                      Cancel
+                    </Button>
+                    <Button type="button" size="sm" onClick={saveSelectedEdit}>
+                      <Save className="mr-1.5 h-3.5 w-3.5" />
+                      Save
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={beginEditSelected}
+                    >
+                      <Edit3 className="mr-1.5 h-3.5 w-3.5" />
+                      Edit
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => onDelete(selectedEntry.id)}
+                    >
+                      <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                      Delete
+                    </Button>
+                  </>
+                )}
               </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary">
+                {CATEGORY_LABELS[selectedEntry.category]}
+              </Badge>
+              <Badge variant="success">
+                {Math.round((selectedEntry.confidenceScore ?? 0) * 100)}%
+                confidence
+              </Badge>
+              {childEntries.length > 0 ? (
+                <Badge variant="outline">
+                  {pluralize(childEntries.length, "bullet")}
+                </Badge>
+              ) : null}
+              {selectedWarnings.map((warning) => (
+                <Badge key={warning} variant="warning">
+                  {warning}
+                </Badge>
+              ))}
             </div>
             {selectedAttentionReason ? (
               <div className="rounded-md border border-warning/35 bg-warning/10 px-3 py-2 text-sm">
@@ -3150,194 +3354,231 @@ function UploadReviewEntries({
                 ))}
               </div>
             ) : null}
-            <div className="rounded-md border border-border bg-card">
-              <div className="border-b px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <Tag className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-display text-sm font-semibold tracking-tight">
-                    Details
-                  </span>
-                </div>
-              </div>
-              <div className="space-y-4 p-4">
-                {isEditingSelected ? (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {selectedFields.map((field) => (
-                      <div
-                        key={field.key}
-                        className={
-                          field.type === "textarea" || field.type === "list"
-                            ? "sm:col-span-2"
-                            : undefined
+            {isEditingSelected ? (
+              <div className="space-y-3">
+                {selectedFields.map((field) => {
+                  const reviewField = getReviewEditField(field);
+                  return (
+                    <ReviewPanelBox key={field.key} title={reviewField.label}>
+                      <FieldEditor
+                        field={reviewField}
+                        value={editContent[field.key]}
+                        hideLabel
+                        onChange={(key, value) =>
+                          setEditContent((current) => ({
+                            ...current,
+                            [key]: value,
+                          }))
                         }
+                      />
+                      {isStackFieldKey(field.key) ? (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          One per line. Include languages, frameworks, tools,
+                          hardware, protocols, methods, or domain skills.
+                        </p>
+                      ) : field.type === "list" ? (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          One item per line.
+                        </p>
+                      ) : null}
+                    </ReviewPanelBox>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {selectedOverviewFields.length > 0 ? (
+                  <ReviewPanelBox title="Overview">
+                    <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
+                      {selectedOverviewFields.map((field) => {
+                        const value = selectedEntry.content[field.key];
+                        const label = compactReviewFieldLabel(field.label);
+                        return (
+                          <div
+                            key={field.key}
+                            className={cn("min-w-0", overviewFieldClass(field))}
+                          >
+                            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                              {label}
+                            </p>
+                            {isReviewUrl(value) ? (
+                              <a
+                                href={value}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mt-1 block break-words text-sm font-medium text-primary underline-offset-4 hover:underline"
+                              >
+                                {value}
+                              </a>
+                            ) : (
+                              <p className="mt-1 break-words text-sm leading-relaxed">
+                                {getReviewFieldValueLabel(value)}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ReviewPanelBox>
+                ) : null}
+
+                {selectedStack.length > 0 ? (
+                  <ReviewPanelBox
+                    title="Stack"
+                    count={selectedStack.length}
+                    description="Technologies, tools, and skills parsed for this component."
+                  >
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedStack.map((item) => (
+                        <Badge key={item} variant="secondary">
+                          {item}
+                        </Badge>
+                      ))}
+                    </div>
+                  </ReviewPanelBox>
+                ) : null}
+
+                {selectedHighlights.length > 0 ? (
+                  <ReviewPanelBox
+                    title="Highlights"
+                    count={selectedHighlights.length}
+                  >
+                    <ul className="space-y-2">
+                      {selectedHighlights.map((highlight) => (
+                        <li
+                          key={highlight}
+                          className="text-sm leading-relaxed text-foreground"
+                        >
+                          {highlight}
+                        </li>
+                      ))}
+                    </ul>
+                  </ReviewPanelBox>
+                ) : null}
+              </div>
+            )}
+
+            {showBulletSection ? (
+              <div className="rounded-md border border-border bg-card">
+                <div className="border-b px-4 py-3">
+                  <ReviewSectionHeader
+                    title="Bullet points"
+                    count={childEntries.length}
+                    description={pluralize(
+                      childEntries.length,
+                      "parsed bullet",
+                    )}
+                  />
+                </div>
+                {isEditingSelected && canHaveBullets ? (
+                  <div className="border-b bg-muted/20 p-4">
+                    <label
+                      htmlFor="review-new-bullet"
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      Add bullet
+                    </label>
+                    <textarea
+                      id="review-new-bullet"
+                      value={newBulletText}
+                      onChange={(event) => setNewBulletText(event.target.value)}
+                      placeholder="Add one bullet point..."
+                      className="mt-1 min-h-[72px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                    <div className="mt-2 flex justify-end">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => void createReviewBullet()}
+                        disabled={!newBulletText.trim()}
                       >
-                        <FieldEditor
-                          field={{
-                            ...field,
-                            label: compactReviewFieldLabel(field.label),
-                          }}
-                          value={editContent[field.key]}
-                          onChange={(key, value) =>
-                            setEditContent((current) => ({
-                              ...current,
-                              [key]: value,
-                            }))
-                          }
-                        />
-                      </div>
-                    ))}
+                        <Plus className="mr-1.5 h-3.5 w-3.5" />
+                        Add bullet
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+                {childEntries.length > 0 ? (
+                  <div className="divide-y divide-border">
+                    {childEntries.map((child, index) => {
+                      const isEditingBullet = editingBulletId === child.id;
+                      return (
+                        <div key={child.id} className="px-4 py-3">
+                          {isEditingBullet ? (
+                            <div className="space-y-3">
+                              <FieldEditor
+                                field={CATEGORY_FIELDS.bullet[0]}
+                                value={bulletEditContent.description}
+                                onChange={(key, value) =>
+                                  setBulletEditContent((current) => ({
+                                    ...current,
+                                    [key]: value,
+                                  }))
+                                }
+                              />
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={cancelBulletEdit}
+                                >
+                                  <X className="mr-1.5 h-3.5 w-3.5" />
+                                  Cancel
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={() => saveBulletEdit(child)}
+                                >
+                                  <Save className="mr-1.5 h-3.5 w-3.5" />
+                                  Save
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-start gap-3">
+                              <span className="mt-0.5 font-mono text-xs text-muted-foreground">
+                                {index + 1}
+                              </span>
+                              <p className="min-w-0 flex-1 text-sm leading-relaxed">
+                                {String(child.content.description ?? "")}
+                              </p>
+                              <div className="flex shrink-0 items-center gap-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => beginBulletEdit(child)}
+                                  aria-label="Edit bullet"
+                                >
+                                  <Edit3 className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive"
+                                  onClick={() => onDelete(child.id)}
+                                  aria-label="Delete bullet"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {selectedFields
-                        .filter((field) => {
-                          if (
-                            field.key === "technologies" ||
-                            field.key === "highlights"
-                          ) {
-                            return false;
-                          }
-                          const value = selectedEntry.content[field.key];
-                          if (
-                            value === undefined ||
-                            value === null ||
-                            value === ""
-                          ) {
-                            return false;
-                          }
-                          if (Array.isArray(value) && value.length === 0) {
-                            return false;
-                          }
-                          return true;
-                        })
-                        .map((field) => {
-                          const value = selectedEntry.content[field.key];
-                          return (
-                            <div key={field.key} className="min-w-0">
-                              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                                {compactReviewFieldLabel(field.label)}
-                              </p>
-                              <p className="mt-1 break-words text-sm leading-relaxed">
-                                {Array.isArray(value)
-                                  ? value.map(String).join(", ")
-                                  : String(value)}
-                              </p>
-                            </div>
-                          );
-                        })}
-                    </div>
-
-                    {selectedTechnologies.length > 0 ? (
-                      <div>
-                        <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                          Technologies
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          {selectedTechnologies.map((technology) => (
-                            <Badge key={technology} variant="secondary">
-                              {technology}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
+                  <div className="p-4 text-sm text-muted-foreground">
+                    No bullet points were parsed for this component.
                   </div>
                 )}
               </div>
-            </div>
-
-            <div className="rounded-md border border-border bg-card">
-              <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
-                <div>
-                  <p className="font-display text-sm font-semibold tracking-tight">
-                    Bullet points
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {pluralize(childEntries.length, "parsed bullet")}
-                  </p>
-                </div>
-              </div>
-              {childEntries.length > 0 ? (
-                <div className="divide-y divide-border">
-                  {childEntries.map((child, index) => {
-                    const isEditingBullet = editingBulletId === child.id;
-                    return (
-                      <div key={child.id} className="px-4 py-3">
-                        {isEditingBullet ? (
-                          <div className="space-y-3">
-                            <FieldEditor
-                              field={CATEGORY_FIELDS.bullet[0]}
-                              value={bulletEditContent.description}
-                              onChange={(key, value) =>
-                                setBulletEditContent((current) => ({
-                                  ...current,
-                                  [key]: value,
-                                }))
-                              }
-                            />
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={cancelBulletEdit}
-                              >
-                                <X className="mr-1.5 h-3.5 w-3.5" />
-                                Cancel
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={() => saveBulletEdit(child)}
-                              >
-                                <Save className="mr-1.5 h-3.5 w-3.5" />
-                                Save
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-start gap-3">
-                            <span className="mt-0.5 font-mono text-xs text-muted-foreground">
-                              {index + 1}
-                            </span>
-                            <p className="min-w-0 flex-1 text-sm leading-relaxed">
-                              {String(child.content.description ?? "")}
-                            </p>
-                            <div className="flex shrink-0 items-center gap-1">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => beginBulletEdit(child)}
-                                aria-label="Edit bullet"
-                              >
-                                <Edit3 className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive"
-                                onClick={() => onDelete(child.id)}
-                                aria-label="Delete bullet"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="p-4 text-sm text-muted-foreground">
-                  No bullet points were parsed for this component.
-                </div>
-              )}
-            </div>
+            ) : null}
           </div>
         ) : (
           <StandardEmptyState

@@ -431,4 +431,39 @@ Engineer at Corp
       expect.arrayContaining(["TypeScript", "Kubernetes", "OpenTelemetry"]),
     );
   });
+
+  it("parses portfolio sections as projects without contaminating skills", async () => {
+    const result = await smartParseResume(`Alex Lee | alex@example.com
+
+EXPERIENCE
+Engineer | Acme | Jan 2020 - Present
+- Built x
+
+EDUCATION
+B.S. in Computer Science
+State University
+2020 - 2024
+
+SKILLS
+TypeScript, React, SQL
+
+PORTFOLIO
+Launch Tracker | Next.js | launch.example.dev/demo
+- Built a dashboard`);
+
+    expect(result.profile.projects).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "Launch Tracker",
+          url: "launch.example.dev/demo",
+          technologies: expect.arrayContaining(["Next.js"]),
+        }),
+      ]),
+    );
+    expect(result.profile.skills?.map((skill) => skill.name)).toEqual([
+      "TypeScript",
+      "React",
+      "SQL",
+    ]);
+  });
 });

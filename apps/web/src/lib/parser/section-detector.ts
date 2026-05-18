@@ -36,7 +36,7 @@ const SECTION_HEADER_PATTERNS: Record<SectionType, RegExp> = {
   skills:
     /^(?:SKILLS|TECHNICAL\s+SKILLS|CORE\s+COMPETENCIES|COMPETENCIES|KEY\s+SKILLS|AREAS?\s+OF\s+EXPERTISE|TECHNOLOGIES|TECH\s+STACK|PROFICIENCIES)$/im,
   projects:
-    /^(?:PROJECTS|PERSONAL\s+PROJECTS|SIDE\s+PROJECTS|KEY\s+PROJECTS|SELECTED\s+PROJECTS|NOTABLE\s+PROJECTS)$/im,
+    /^(?:PROJECTS|PERSONAL\s+PROJECTS|SIDE\s+PROJECTS|KEY\s+PROJECTS|SELECTED\s+PROJECTS|NOTABLE\s+PROJECTS|PORTFOLIO|PROJECT\s+PORTFOLIO|OPEN\s+SOURCE|CASE\s+STUDIES)$/im,
   certifications:
     /^(?:CERTIFICATIONS?|LICENSES?\s*(?:&|AND)?\s*CERTIFICATIONS?|CREDENTIALS|PROFESSIONAL\s+CERTIFICATIONS?|CERTIFICATES?)$/im,
   awards:
@@ -70,11 +70,32 @@ const BULLET_PATTERN = /^\s*[•●○■▪▸\-–—*]\s+/;
 const EMAIL_PATTERN = /[\w.-]+@[\w.-]+\.\w+/;
 const PHONE_PATTERN = /(\+?1?[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
 const URL_PATTERN =
-  /(?:https?:\/\/[\w.-]+|(?:www\.)?(?:linkedin\.com|github\.com)\/[\w-]+)/i;
+  /(?:https?:\/\/[^\s|,;)]+|(?:www\.)?(?:linkedin\.com|github\.com)\/[\w/-]+)/i;
 const DEGREE_PATTERN =
   /\b(?:Bachelor|Master|Ph\.?D|BMath|BASc|B\.?A\.?Sc\.?|M\.?S\.?|B\.?S\.?|B\.?A\.?|M\.?A\.?|M\.?B\.?A\.?|Associate|Doctorate|Doctor\s+of)\b/i;
 const SKILL_LIST_PATTERN = /^[\w#+.\-/]+(?:\s*[,|•]\s*[\w#+.\-/]+){2,}/;
 const GPA_PATTERN = /\b(?:GPA|Grade)[\s:]*\d\.\d/i;
+
+function cleanHeaderCandidate(line: string): string {
+  return line
+    .replace(URL_PATTERN, "")
+    .replace(/^#{1,6}\s+/, "")
+    .replace(/[:\-–—_=]+$/, "")
+    .replace(/^[:\-–—_=]+/, "")
+    .replace(/[^\p{L}\p{N}\s&/]+/gu, "")
+    .trim();
+}
+
+function isCapsHeaderCandidate(cleaned: string): boolean {
+  return (
+    cleaned.length >= 3 &&
+    cleaned.length <= 40 &&
+    cleaned === cleaned.toUpperCase() &&
+    /[A-Z]/.test(cleaned) &&
+    !/^\d/.test(cleaned) &&
+    /[A-Z]{3,}/.test(cleaned)
+  );
+}
 
 /**
  * Detect sections in resume text using regex header matching and content heuristics.
@@ -120,17 +141,11 @@ function detectByHeaders(text: string): Section[] {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trim();
+    const cleaned = cleanHeaderCandidate(trimmed);
 
-    if (trimmed.length > 0 && trimmed.length <= 50) {
-      // Strip common formatting: underlines, dashes, colons
-      const cleaned = trimmed
-        .replace(/^#{1,6}\s+/, "")
-        .replace(/[:\-–—_=]+$/, "")
-        .replace(/^[:\-–—_=]+/, "")
-        .replace(/[^\p{L}\p{N}\s&/]+$/gu, "")
-        .trim();
-
+    if (cleaned.length > 0 && cleaned.length <= 50) {
       if (cleaned.length > 0) {
+        let matchedKnownHeader = false;
         for (const sectionType of SECTION_TYPE_ORDER) {
           const pattern = SECTION_HEADER_PATTERNS[sectionType];
           if (pattern.test(cleaned)) {
@@ -140,8 +155,21 @@ function detectByHeaders(text: string): Section[] {
               charIndex: charOffset,
               headerLength: line.length,
             });
+            matchedKnownHeader = true;
             break;
           }
+        }
+        if (
+          !matchedKnownHeader &&
+          matches.length > 0 &&
+          isCapsHeaderCandidate(cleaned)
+        ) {
+          matches.push({
+            type: "unknown",
+            lineIndex: i,
+            charIndex: charOffset,
+            headerLength: line.length,
+          });
         }
       }
     }
@@ -169,17 +197,10 @@ function detectByCapsHeaders(text: string, lines: string[]): Section[] {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trim();
+    const cleaned = cleanHeaderCandidate(trimmed);
 
     // ALL CAPS line that's short enough to be a header
-    if (
-      trimmed.length >= 3 &&
-      trimmed.length <= 40 &&
-      trimmed === trimmed.toUpperCase() &&
-      /[A-Z]/.test(trimmed) &&
-      !/^\d/.test(trimmed) &&
-      // Exclude lines that are just punctuation or phone numbers
-      /[A-Z]{3,}/.test(trimmed)
-    ) {
+    if (isCapsHeaderCandidate(cleaned)) {
       const sectionType = inferSectionTypeFromContent(lines, i);
       if (sectionType) {
         matches.push({
@@ -206,22 +227,14 @@ function buildSectionsFromMatches(
   // Sort by position
   matches.sort((a, b) => a.charIndex - b.charIndex);
 
-  // Deduplicate: keep first occurrence of each type
-  const seen = new Set<SectionType>();
-  const deduped = matches.filter((m) => {
-    if (seen.has(m.type)) return false;
-    seen.add(m.type);
-    return true;
-  });
-
   const sections: Section[] = [];
 
-  for (let i = 0; i < deduped.length; i++) {
-    const match = deduped[i];
+  for (let i = 0; i < matches.length; i++) {
+    const match = matches[i];
     // Content starts after the header line
     const contentStart = match.charIndex + match.headerLength + 1;
     const contentEnd =
-      i + 1 < deduped.length ? deduped[i + 1].charIndex : text.length;
+      i + 1 < matches.length ? matches[i + 1].charIndex : text.length;
 
     const content = text.slice(contentStart, contentEnd).trim();
     if (content.length > 0) {

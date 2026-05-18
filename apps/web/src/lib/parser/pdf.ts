@@ -79,6 +79,20 @@ function sanitizeExtractedPdfText(text: string): string {
     .replace(/[ \t]+\n/g, "\n");
 }
 
+function isReconstructedSectionHeading(line: string): boolean {
+  const cleaned = line.replace(/[^\p{L}\p{N}\s&/]/gu, "").trim();
+  return (
+    cleaned.length >= 3 &&
+    cleaned.length <= 50 &&
+    cleaned === cleaned.toUpperCase() &&
+    /[A-Z]{3,}/.test(cleaned)
+  );
+}
+
+function isProjectsHeading(line: string): boolean {
+  return /^PROJECTS?$/i.test(line.replace(/[^\p{L}\p{N}\s]/gu, "").trim());
+}
+
 /**
  * Some PDFs ship text as positioned glyphs with no embedded line
  * structure (LaTeX-compiled resumes are the worst offenders) —
@@ -95,26 +109,43 @@ async function extractTextFromPositions(dataBuffer: Buffer): Promise<string> {
   // parsing needs (the bullet `•` tells `extractExperiences` what's a
   // highlight; the soft-hyphen `­` is often a date-range separator).
   // The matcher path filters them out elsewhere for its own reasons.
-  const { items, pageDimensions } = await extractPdfPositions(dataBuffer, {
-    includeJunk: true,
-  });
+  const { items, links, pageDimensions } = await extractPdfPositions(
+    dataBuffer,
+    {
+      includeJunk: true,
+    },
+  );
   if (items.length === 0) return "";
   const pageOut: string[] = [];
   for (const { page } of pageDimensions) {
     const pageItems = items.filter((it) => it.page === page);
+    const pageLinks = links.filter((link) => link.page === page);
     if (pageItems.length === 0) continue;
     const lines: {
       y: number;
+      y1: number;
       segs: { x0: number; x1: number; text: string }[];
+      links: string[];
     }[] = [];
     for (const it of pageItems) {
       const h = Math.max(it.y1 - it.y0, 8);
       const found = lines.find((l) => Math.abs(l.y - it.y0) < h * 0.6);
       const seg = { x0: it.x0, x1: it.x1, text: it.text };
-      if (found) found.segs.push(seg);
-      else lines.push({ y: it.y0, segs: [seg] });
+      if (found) {
+        found.segs.push(seg);
+        found.y1 = Math.max(found.y1, it.y1);
+      } else {
+        lines.push({ y: it.y0, y1: it.y1, segs: [seg], links: [] });
+      }
     }
     lines.sort((a, b) => a.y - b.y);
+    for (const link of pageLinks) {
+      const line = lines.find(
+        (candidate) => link.y1 >= candidate.y && link.y0 <= candidate.y1,
+      );
+      if (line && !line.links.includes(link.url)) line.links.push(link.url);
+    }
+    let inProjectsSection = false;
     const lineStrings = lines.map((l) => {
       const sorted = l.segs.sort((a, b) => a.x0 - b.x0);
       let out = "";
@@ -140,6 +171,19 @@ async function extractTextFromPositions(dataBuffer: Buffer): Promise<string> {
         }
         out += seg.text;
         lastRight = seg.x1;
+      }
+
+      const isProjectHeadingLine = isProjectsHeading(out);
+      if (isProjectHeadingLine) {
+        inProjectsSection = true;
+      } else if (isReconstructedSectionHeading(out)) {
+        inProjectsSection = false;
+      }
+
+      for (const url of inProjectsSection && !isProjectHeadingLine
+        ? l.links
+        : []) {
+        if (!out.includes(url)) out += ` ${url}`;
       }
       return out;
     });

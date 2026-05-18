@@ -38,25 +38,48 @@ interface HighlightLayerProps {
  */
 const CATEGORY_PALETTE: Record<
   BankCategory,
-  { fill: string; outline: string }
+  { fill: string; idleFill: string; outline: string }
 > = {
   experience: {
     fill: "rgba(99, 102, 241, 0.32)",
+    idleFill: "rgba(99, 102, 241, 0.08)",
     outline: "rgb(99, 102, 241)",
   },
-  project: { fill: "rgba(168, 85, 247, 0.32)", outline: "rgb(168, 85, 247)" },
-  education: { fill: "rgba(20, 184, 166, 0.32)", outline: "rgb(20, 184, 166)" },
-  skill: { fill: "rgba(14, 165, 233, 0.32)", outline: "rgb(14, 165, 233)" },
-  bullet: { fill: "rgba(99, 102, 241, 0.24)", outline: "rgb(99, 102, 241)" },
+  project: {
+    fill: "rgba(168, 85, 247, 0.32)",
+    idleFill: "rgba(168, 85, 247, 0.08)",
+    outline: "rgb(168, 85, 247)",
+  },
+  education: {
+    fill: "rgba(20, 184, 166, 0.32)",
+    idleFill: "rgba(20, 184, 166, 0.08)",
+    outline: "rgb(20, 184, 166)",
+  },
+  skill: {
+    fill: "rgba(14, 165, 233, 0.32)",
+    idleFill: "rgba(14, 165, 233, 0.07)",
+    outline: "rgb(14, 165, 233)",
+  },
+  bullet: {
+    fill: "rgba(99, 102, 241, 0.24)",
+    idleFill: "rgba(99, 102, 241, 0.07)",
+    outline: "rgb(99, 102, 241)",
+  },
   achievement: {
     fill: "rgba(245, 158, 11, 0.34)",
+    idleFill: "rgba(245, 158, 11, 0.08)",
     outline: "rgb(245, 158, 11)",
   },
   certification: {
     fill: "rgba(168, 85, 247, 0.28)",
+    idleFill: "rgba(168, 85, 247, 0.08)",
     outline: "rgb(168, 85, 247)",
   },
-  hackathon: { fill: "rgba(244, 63, 94, 0.32)", outline: "rgb(244, 63, 94)" },
+  hackathon: {
+    fill: "rgba(244, 63, 94, 0.32)",
+    idleFill: "rgba(244, 63, 94, 0.08)",
+    outline: "rgb(244, 63, 94)",
+  },
 };
 
 export function HighlightLayer({
@@ -90,7 +113,7 @@ export function HighlightLayer({
                 top,
                 width,
                 height,
-                backgroundColor: palette.fill,
+                backgroundColor: selected ? palette.fill : palette.idleFill,
                 outlineColor: selected ? palette.outline : "transparent",
                 outlineStyle: "solid",
                 outlineWidth: selected ? 2 : 1,

@@ -43,4 +43,5 @@ export interface FieldEditorProps {
   field: FieldDef;
   value: unknown;
   onChange: (key: string, value: unknown) => void;
+  hideLabel?: boolean;
 }

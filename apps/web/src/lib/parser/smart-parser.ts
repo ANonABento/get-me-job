@@ -19,16 +19,19 @@ type DetectedSection = Section & { text: string; confidence: number };
 
 function calculateSectionConfidence(sections: Section[]): number {
   if (sections.length === 0) return 0;
-  const hasExperience = sections.some((s) => s.type === "experience");
-  const hasEducation = sections.some((s) => s.type === "education");
-  const hasSkills = sections.some((s) => s.type === "skills");
-  const hasContact = sections.some((s) => s.type === "contact");
-  let score = sections.length * 0.1;
+  const knownSections = sections.filter((s) => s.type !== "unknown");
+  const hasExperience = knownSections.some((s) => s.type === "experience");
+  const hasEducation = knownSections.some((s) => s.type === "education");
+  const hasSkills = knownSections.some((s) => s.type === "skills");
+  const hasContact = knownSections.some((s) => s.type === "contact");
+  const hasUnknown = sections.length !== knownSections.length;
+  let score = knownSections.length * 0.1;
   if (hasExperience) score += 0.3;
   if (hasEducation) score += 0.2;
   if (hasSkills) score += 0.1;
   if (hasContact) score += 0.1;
-  return Math.min(score, 1.0);
+  if (hasUnknown) score -= 0.2;
+  return Math.max(0, Math.min(score, 1.0));
 }
 import {
   extractFieldsFromSections,
@@ -67,9 +70,10 @@ export async function smartParseResume(
   const sections: DetectedSection[] = rawSections.map((s) => ({
     ...s,
     text: s.content,
-    confidence: 0.7,
+    confidence: s.type === "unknown" ? 0.3 : 0.7,
   }));
   const sectionConfidence = calculateSectionConfidence(rawSections);
+  const hasUnknownSections = rawSections.some((s) => s.type === "unknown");
 
   // Step 2: Extract fields deterministically
   const extracted = extractFieldsFromSections(sections);
@@ -90,14 +94,19 @@ export async function smartParseResume(
   const sectionsDetected = sections.filter((s) => true).map((s) => s.type);
 
   // Step 4: High confidence → return deterministic result
-  if (overallConfidence >= CONFIDENCE_THRESHOLD) {
+  if (
+    overallConfidence >= CONFIDENCE_THRESHOLD &&
+    (!hasUnknownSections || !llmConfig)
+  ) {
     return {
       profile: buildProfile(extracted, text),
       confidence: overallConfidence,
       sectionsDetected,
       llmUsed: false,
       llmSectionsCount: 0,
-      warnings: [],
+      warnings: hasUnknownSections
+        ? ["Unrecognized resume section detected"]
+        : [],
     };
   }
 
@@ -141,6 +150,9 @@ export async function smartParseResume(
   }
   if (!extracted.contact.name) {
     warnings.push("Could not detect name");
+  }
+  if (hasUnknownSections) {
+    warnings.push("Unrecognized resume section detected");
   }
 
   return {
@@ -243,7 +255,7 @@ For each section, extract the relevant data. Return a JSON object with these key
   "experience": [{ "company": "", "title": "", "startDate": "", "endDate": "", "current": false, "description": "", "highlights": [] }],
   "education": [{ "institution": "", "degree": "", "field": "", "startDate": "", "endDate": "", "gpa": "", "highlights": [] }],
   "skills": [{ "name": "", "category": "technical|soft|language|tool|other" }],
-  "projects": [{ "name": "", "description": "", "technologies": [], "highlights": [] }],
+  "projects": [{ "name": "", "description": "", "url": "", "technologies": [], "highlights": [] }],
   "summary": "text"
 }
 

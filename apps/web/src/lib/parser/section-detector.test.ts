@@ -114,6 +114,85 @@ Open Source CLI Tool
       expect(skills!.content).toContain("JavaScript");
       expect(skills!.content).toContain("TypeScript");
     });
+
+    it("detects a projects header even when PDF link annotations attach to it", () => {
+      const text = `Kevin Jiang
+k69jiang@uwaterloo.ca
+
+EXPERIENCE
+Robotics Engineer — Reazon Human Interaction Lab | Jun 2025 — Aug 2025
+• Built an interactive Three.js web interface
+
+PROJECTS 🔗 https://docs.google.com/document/u/0/d/example/edit
+One Handed Keyboard | C | STM32 | GPIO | UART | FSM | 3D-Printing | OnShape 🔗 https://github.com/ANonABento/SeqKeyTransmitter
+• Engineered a low-cost, wrist-mounted texting device
+
+EDUCATION
+University of Waterloo — BASc in Computer Engineering | Sept 2024 - Present`;
+
+      const sections = detectSections(text);
+      const types = sectionTypes(sections);
+
+      expect(types).toEqual(
+        expect.arrayContaining(["experience", "projects", "education"]),
+      );
+      expect(findSection(sections, "experience")!.content).not.toContain(
+        "One Handed Keyboard",
+      );
+      expect(findSection(sections, "projects")!.content).toContain(
+        "One Handed Keyboard",
+      );
+    });
+
+    it("keeps repeated section headers as separate boundaries", () => {
+      const text = `Alex Lee
+alex@example.com
+
+EXPERIENCE
+Engineer | Acme | Jan 2020 - Present
+- Built x
+
+EDUCATION
+B.S. in Computer Science
+State University
+2020 - 2024
+
+ADDITIONAL EXPERIENCE
+Volunteer | Community Lab | Jan 2021 - Jan 2022
+- Helped y`;
+
+      const sections = detectSections(text);
+      const experienceSections = sections.filter(
+        (section) => section.type === "experience",
+      );
+
+      expect(experienceSections).toHaveLength(2);
+      expect(findSection(sections, "education")!.content).not.toContain(
+        "ADDITIONAL EXPERIENCE",
+      );
+    });
+
+    it("recognizes portfolio as a projects section instead of folding it into skills", () => {
+      const text = `Alex Lee
+alex@example.com
+
+SKILLS
+TypeScript, React, SQL
+
+PORTFOLIO
+Launch Tracker | Next.js | https://launch.example.dev
+- Built a dashboard`;
+
+      const sections = detectSections(text);
+
+      expect(sectionTypes(sections)).toContain("projects");
+      expect(findSection(sections, "skills")!.content).not.toContain(
+        "Launch Tracker",
+      );
+      expect(findSection(sections, "projects")!.content).toContain(
+        "Launch Tracker",
+      );
+    });
   });
 
   describe("resume with alternative headers", () => {
