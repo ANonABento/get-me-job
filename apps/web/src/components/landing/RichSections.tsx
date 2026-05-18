@@ -150,31 +150,3 @@ export function WhySlothing() {
     </DeepSection>
   );
 }
-
-/* ───────────────── Closer stats — 4 numbers in the closer ─────────────────
- *
- * Sits inside the existing <Closer/>, BUT can also be rendered standalone.
- */
-const CLOSER_STATS = [
-  { num: "BYOK", cap: "Bring your key" },
-  { num: "AGPL", cap: "Open license" },
-  { num: "$0", cap: "Free to start" },
-  { num: "100%", cap: "Self-hostable" },
-] as const;
-
-export function CloserStats() {
-  return (
-    <div className="mt-10 flex flex-wrap gap-9 border-t border-inverse-ink/15 pt-8 dark:border-rule">
-      {CLOSER_STATS.map((stat) => (
-        <div key={stat.num}>
-          <div className="font-display text-[28px] font-bold tracking-tight leading-none text-inverse-ink">
-            {stat.num}
-          </div>
-          <div className="mt-1.5 text-[12.5px] text-inverse-ink/55">
-            {stat.cap}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
