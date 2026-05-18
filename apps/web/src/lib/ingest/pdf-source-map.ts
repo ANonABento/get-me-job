@@ -72,7 +72,13 @@ function lineText(tokens: PdfPositionItem[]): string {
     if (!tokenText) return text;
     if (index === 0 || !text) return tokenText;
     const previous = tokens[index - 1];
-    const prefix = shouldJoinWithoutLeadingSpace(previous, token) ? "" : " ";
+    const gap = token.x0 - previous.x1;
+    const prefix =
+      gap >= 72 && previous.text.trim() !== "|" && tokenText !== "|"
+        ? " | "
+        : shouldJoinWithoutLeadingSpace(previous, token)
+          ? ""
+          : " ";
     return `${text}${prefix}${tokenText}`;
   }, "");
 }

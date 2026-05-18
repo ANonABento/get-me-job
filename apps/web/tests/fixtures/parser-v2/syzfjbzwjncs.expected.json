@@ -10,14 +10,16 @@
   "education": [
     {
       "institution": "Southwestern University",
+      "location": "Georgetown, TX",
       "degree": "Bachelor of Arts",
-      "field": "Computer Science",
+      "field": "Computer Science, Minor in Business",
       "startDate": "Aug. 2018",
       "endDate": "May 2021",
       "sourceSpanIds": ["p1-l004", "p1-l005"]
     },
     {
       "institution": "Blinn College",
+      "location": "Bryan, TX",
       "degree": "Associate's",
       "field": "Liberal Arts",
       "startDate": "Aug. 2014",

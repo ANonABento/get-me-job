@@ -70,6 +70,7 @@ export interface ParsedExperienceV2 {
 export interface ParsedEducationV2 {
   id: string;
   institution: string;
+  location?: string;
   degree: string;
   field: string;
   startDate?: string;

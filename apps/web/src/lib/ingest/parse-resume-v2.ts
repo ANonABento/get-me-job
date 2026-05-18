@@ -139,6 +139,34 @@ function parseContact(
   };
 }
 
+function parseEducationDegreeAndField(line: string): {
+  degree: string;
+  field: string;
+} {
+  const normalized = normalizeText(line);
+  const longWithIn = normalized.match(
+    /^((?:Bachelor(?:'s)?|Master(?:'s)?|Associate(?:'s)?|Doctor(?:ate)?)\s+of\s+.+?)\s+in\s+(.+)$/i,
+  );
+  if (longWithIn) {
+    return {
+      degree: longWithIn[1].trim(),
+      field: longWithIn[2].trim(),
+    };
+  }
+
+  const shortWithIn = normalized.match(
+    /^((?:Associate(?:'s)?|Bachelor(?:'s)?|Master(?:'s)?|Ph\.?D\.?|B\.S\.?|B\.A\.?|M\.S\.?|M\.A\.?|MBA|M\.Eng\.?|B\.Eng\.?))\s+in\s+(.+)$/i,
+  );
+  if (shortWithIn) {
+    return {
+      degree: shortWithIn[1].trim(),
+      field: shortWithIn[2].trim(),
+    };
+  }
+
+  return parseDegreeAndField(normalized);
+}
+
 function parseEducation(lines: SourceLine[]): ParsedEducationV2[] {
   const education: ParsedEducationV2[] = [];
   for (let i = 0; i < lines.length; i += 1) {
@@ -150,7 +178,7 @@ function parseEducation(lines: SourceLine[]): ParsedEducationV2[] {
     const degreeParts = lineParts(degreeLine);
     const dateText = extractDateRange(degreeParts.right || degreeLine.text);
     const { start, end } = splitDateRange(dateText);
-    const { degree, field } = parseDegreeAndField(
+    const { degree, field } = parseEducationDegreeAndField(
       normalizeText(degreeParts.left || degreeLine.text),
     );
     const sourceSpanIds = [schoolLine.id, degreeLine.id];
@@ -158,6 +186,7 @@ function parseEducation(lines: SourceLine[]): ParsedEducationV2[] {
     education.push({
       id: stableId("edu", sourceSpanIds, `${schoolParts.left}:${degree}`),
       institution: schoolParts.left || schoolLine.text,
+      location: schoolParts.right || undefined,
       degree,
       field,
       startDate: start,

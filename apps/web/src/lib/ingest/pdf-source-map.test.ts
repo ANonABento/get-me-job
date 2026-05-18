@@ -39,7 +39,10 @@ describe("buildPdfSourceMap", () => {
     expect(firstToken.bbox.y1).toBeGreaterThan(firstToken.bbox.y0);
 
     expect(sourceMap.rawText).toContain(
-      "Southwestern University Georgetown, TX\nBachelor of Arts in Computer Science, Minor in Business Aug. 2018 – May 2021",
+      "Southwestern University | Georgetown, TX\nBachelor of Arts in Computer Science, Minor in Business | Aug. 2018 – May 2021",
+    );
+    expect(sourceMap.rawText).toContain(
+      "Gitlytics | Python, Flask, React, PostgreSQL, Docker | June 2020 – Present",
     );
     expect(sourceMap.rawText).toContain(
       "• Explored methods to generate video game dungeons based off of The Legend of Zelda",

@@ -519,12 +519,12 @@ Behavior:
 
 Highlight states:
 
-| State | Meaning | Visual |
-| --- | --- | --- |
-| Exact | Parser cited source lines/tokens directly | Strong fill + outline |
-| Partial | Some fields cited, some missing | Dashed outline |
-| Fuzzy | Legacy/fallback fuzzy match | Amber outline + "best guess" |
-| Missing | No reliable source location | No PDF highlight; show source warning |
+| State   | Meaning                                   | Visual                                |
+| ------- | ----------------------------------------- | ------------------------------------- |
+| Exact   | Parser cited source lines/tokens directly | Strong fill + outline                 |
+| Partial | Some fields cited, some missing           | Dashed outline                        |
+| Fuzzy   | Legacy/fallback fuzzy match               | Amber outline + "best guess"          |
+| Missing | No reliable source location               | No PDF highlight; show source warning |
 
 ### Raw Text Fallback
 
@@ -718,3 +718,54 @@ Eventually:
 - Keep deterministic parsing self-hostable.
 - Add AI as an optional parser mode that is source-cited and validated.
 - Keep old routes working while replacing their internals.
+
+## Implementation Status
+
+### 2026-05-18 Branch Status
+
+Branch:
+
+```text
+codex/document-ingestion-v2
+```
+
+The branch contains the first source-grounded parser spike. It is intentionally
+not merged to `main` yet.
+
+Completed:
+
+- Added `apps/web/tests/fixtures/parser-v2/syzfjbzwjncs.pdf`.
+- Added `apps/web/tests/fixtures/parser-v2/syzfjbzwjncs.expected.json`.
+- Added in-memory source-map types in `apps/web/src/lib/ingest/types.ts`.
+- Added PDF source-map builder in
+  `apps/web/src/lib/ingest/pdf-source-map.ts`.
+- Added deterministic parser entry point in
+  `apps/web/src/lib/ingest/parse-resume-v2.ts`.
+- Added dev-only diagnostic helper in
+  `apps/web/src/lib/ingest/diagnostics.ts`.
+- Added focused Vitest coverage for source-map reconstruction and parser output.
+
+Known gaps before this branch should merge:
+
+- Rebase or re-create the branch on current `main`; the current branch also
+  carries unrelated BentoRouter/LLM changes from an older base.
+- Keep the first-slice patch limited to docs, `apps/web/src/lib/ingest/`, and
+  `apps/web/tests/fixtures/parser-v2/`.
+- Align fixture expectations with the Evaluation Plan:
+  - education entries include `location`.
+  - Southwestern field includes `Computer Science, Minor in Business`.
+  - source-map reconstructed lines show visual column separation, for example
+    `Southwestern University | Georgetown, TX`.
+- Run focused parser/source-map tests and `pnpm --dir apps/web type-check`.
+
+Next implementation slices:
+
+1. Finish first-slice correctness hardening listed above.
+2. Add a small source-span resolver that maps `sourceSpanIds` to bboxes for
+   parser-v2 diagnostics and future preview-v2 wiring.
+3. Add source quality classification (`exact`, `partial`, `missing`) for
+   parser-v2 roots and bullets.
+4. Only after the parser/source-map core is stable, add persistence for
+   `document_artifacts` and `document_parse_runs`.
+5. Keep `/api/upload` and `/api/parse` route migration out of this branch until
+   persistence is reviewed separately.
