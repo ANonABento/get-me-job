@@ -775,6 +775,9 @@ Next implementation slices:
 5. Add persistence for `document_artifacts`, plus a read-only source artifact
    API. Done on `main` in `7819ba18`.
 6. Add persistence for `document_parse_runs`, plus basic parser-v2 create/read
-   routes. In progress.
-7. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+   routes. Done on `main` in `5a9e3087`.
+7. Add explicit document extraction route that reads stored document files and
+   persists parser-v2 source artifacts without changing legacy upload/parse
+   side effects. Done in the extraction-route slice.
+8. Keep `/api/upload` and `/api/parse` route migration out until persistence is
    reviewed separately.
