@@ -1,92 +1,100 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { DeepSection, MonoCap } from "./primitives";
-import { CloserStats } from "./RichSections";
+import { MonoCap } from "./primitives";
 
-/* ───────────────── Closer ───────────────── */
+/**
+ * Dark closer band — full-bleed --inverse-bg with mascot on the right
+ * and a four-stat strip beneath the CTAs.
+ *
+ * Token-driven so the band stays intentional in both light + dark
+ * themes (the slothing preset flips --inverse-bg/--inverse-ink so the
+ * indigo wall stays the inverse of whatever the rest of the page is).
+ */
 export function Closer() {
   return (
-    <DeepSection className="pt-0">
-      <div className="relative overflow-hidden rounded-2xl bg-inverse p-8 text-inverse-ink md:p-12 lg:p-16">
-        <div className="grid gap-10 lg:grid-cols-[0.74fr_1.26fr] lg:items-center">
+    <section className="border-t border-rule bg-inverse text-inverse-ink">
+      <div className="mx-auto w-full max-w-[1480px] px-5 py-20 md:px-10 md:py-24 lg:py-28">
+        <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)] lg:gap-16">
           <div>
-            <MonoCap className="text-inverse-ink/55">
+            <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-inverse-ink/55">
               Ready when you are
-            </MonoCap>
-            <h2 className="mt-4 font-display text-closer-h2">
+            </span>
+            <h2 className="mt-4 max-w-[16ch] font-display text-[clamp(40px,5vw,62px)] font-extrabold leading-[0.96] tracking-display">
               Atomize your career once.
               <br />
-              Apply for the rest of it.
+              <span className="text-inverse-ink/50">
+                Apply for the rest of it.
+              </span>
             </h2>
-            <p className="mt-4 max-w-[48ch] text-[17px] leading-7 opacity-80">
+            <p className="mt-5 max-w-[50ch] text-[17px] leading-[1.55] text-inverse-ink/75">
               Free to start. Free to self-host. Bring your own keys, or use
               hosted Slothing when you want the boring parts handled.
             </p>
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Button asChild size="lg" variant="default">
-                <Link href="/sign-in">Try Slothing free</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <a
-                  href="https://github.com/ANonABento/slothing"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Star on GitHub
-                </a>
-              </Button>
+
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <Link
+                href="/sign-in"
+                className="inline-flex items-center gap-1.5 rounded-full bg-page px-5 py-3 text-[14px] font-semibold text-ink transition-opacity hover:opacity-90"
+              >
+                Try Slothing free <span aria-hidden>→</span>
+              </Link>
+              <a
+                href="https://github.com/ANonABento/slothing"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-inverse-ink/40 bg-transparent px-5 py-3 text-[14px] font-semibold text-inverse-ink transition-colors hover:border-inverse-ink/70"
+              >
+                <span aria-hidden>★</span> Star on GitHub
+              </a>
             </div>
+
             <CloserStats />
           </div>
 
-          <div className="relative min-h-[420px]">
-            <div className="absolute inset-x-0 top-0 rounded-xl border border-inverse-ink/15 bg-inverse-ink/5 p-4 backdrop-blur">
-              <div className="flex items-center justify-between border-b border-inverse-ink/15 pb-3">
-                <MonoCap className="text-inverse-ink/55">
-                  Today in Slothing
-                </MonoCap>
-                <span className="rounded-sm bg-inverse-ink/10 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-inverse-ink/70">
-                  focused
-                </span>
-              </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {[
-                  ["Tailor resume", "Figma design engineer"],
-                  ["Fill application", "Greenhouse form ready"],
-                  ["Prep story", "Roadmap pushback answer"],
-                  ["Send follow-up", "Linear recruiter thread"],
-                ].map(([title, body]) => (
-                  <div
-                    key={title}
-                    className="rounded-lg border border-inverse-ink/[0.12] bg-inverse-ink/[0.07] p-3"
-                  >
-                    <div className="text-[13px] font-semibold">{title}</div>
-                    <div className="mt-1 text-[12px] opacity-65">{body}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
+          <div className="relative mx-auto flex h-[360px] w-full max-w-[420px] items-end justify-center md:h-[420px]">
             <Image
               src="/brand/sloths/slothing-mascot-closer.png"
-              alt="Slothing mascot seated with a closed resume folder"
+              alt="Slothing mascot at rest"
               fill
-              className="object-contain object-bottom drop-shadow-[0_32px_42px_rgba(0,0,0,0.34)]"
               sizes="(max-width: 768px) 70vw, 420px"
+              className="object-contain object-bottom drop-shadow-[0_24px_32px_rgba(0,0,0,0.4)]"
             />
           </div>
         </div>
       </div>
-    </DeepSection>
+    </section>
+  );
+}
+
+const CLOSER_STATS = [
+  { n: "BYOK", l: "Bring your key" },
+  { n: "AGPL", l: "Open license" },
+  { n: "$0", l: "Free to start" },
+  { n: "100%", l: "Self-hostable" },
+] as const;
+
+function CloserStats() {
+  return (
+    <dl className="mt-8 flex flex-wrap gap-8 border-t border-inverse-ink/20 pt-7 md:gap-10">
+      {CLOSER_STATS.map((stat) => (
+        <div key={stat.n}>
+          <dt className="font-display text-[24px] font-extrabold tracking-tight leading-none text-inverse-ink">
+            {stat.n}
+          </dt>
+          <dd className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.14em] text-inverse-ink/55">
+            {stat.l}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
 /* ───────────────── Footer ───────────────── */
 export function LandingFooter() {
   return (
-    <footer className="border-t border-rule">
-      <div className="mx-auto w-full max-w-wrap px-5 py-12 md:px-10 md:py-16">
+    <footer className="border-t border-rule bg-page">
+      <div className="mx-auto w-full max-w-[1480px] px-5 py-12 md:px-10 md:py-16">
         <div className="grid gap-10 md:grid-cols-4">
           <div>
             <div className="font-display text-[18px] font-bold text-ink">
