@@ -4,6 +4,7 @@ import { auth, isDevAuthBypassAllowed, isNextAuthConfigured } from "@/auth";
 import { AppBar } from "@/components/layout/app-bar";
 import { ChromeProvider } from "@/components/layout/chrome-provider";
 import { Sidebar } from "@/components/layout/sidebar";
+import { RouteScrollReset } from "@/components/layout/route-scroll-reset";
 import { TweaksPanel } from "@/components/layout/tweaks-panel";
 import { ToastProvider } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -63,6 +64,7 @@ async function AppShell({ children }: { children: React.ReactNode }) {
                     aria-label={t("mainContent")}
                     tabIndex={-1}
                   >
+                    <RouteScrollReset />
                     {children}
                   </main>
                 </div>

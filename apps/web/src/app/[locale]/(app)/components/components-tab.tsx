@@ -1581,7 +1581,7 @@ export function BankComponentsTab({
           }
         />
         <PageContent>
-          <div className="space-y-6">
+          <div>
             {/* Upload overlay for drag-and-drop */}
             <UploadOverlay onComplete={() => handleDataRefresh()} />
 
