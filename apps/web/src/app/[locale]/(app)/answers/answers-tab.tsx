@@ -1,6 +1,13 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   ClipboardList,
   Copy,
@@ -19,7 +26,6 @@ import { TimeAgo } from "@/components/format/time-ago";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
-import { FilterTabs } from "@/components/ui/filter-tabs";
 import {
   Dialog,
   DialogContent,
@@ -100,6 +106,13 @@ const EMPTY_FORM: AnswerFormState = {
   sourceCompany: "",
   sourceUrl: "",
 };
+
+interface AnswerFilterOption<T extends string> {
+  value: T;
+  label: ReactNode;
+  count?: number;
+  disabled?: boolean;
+}
 
 function entryToForm(entry: AnswerBankEntry): AnswerFormState {
   return {
@@ -542,61 +555,64 @@ export function BankAnswersTab({
               onDismiss={() => setMigrationSummary(null)}
             />
           ) : null}
-          {/* Search row: search + count grouped on the left, sort
-              flush right. justify-between was pushing the count into
-              dead center between search and sort, which read as a
-              loose layout bug. */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative max-w-xl flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={a11yT("searchQuestionsAnswersOrSources")}
-                className={cn(THEME_CONTROL_CLASSES, "w-full pl-9")}
+          <section
+            aria-label="Search and filter answers"
+            className="space-y-3 rounded-md border-[length:var(--border-width)] bg-card/70 p-3 shadow-[var(--shadow-card)] sm:p-4"
+          >
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+              <div className="relative min-w-0">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={a11yT("searchQuestionsAnswersOrSources")}
+                  className={cn(
+                    THEME_CONTROL_CLASSES,
+                    "w-full bg-background/80 pl-10 pr-24 text-sm shadow-none transition-colors placeholder:text-muted-foreground/75 focus:bg-background",
+                  )}
+                />
+                {!loading ? (
+                  <span className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 font-mono text-[11px] tabular-nums text-muted-foreground sm:inline">
+                    {filteredAnswers.length} shown
+                  </span>
+                ) : null}
+              </div>
+              <select
+                value={sort}
+                onChange={(event) => setSort(event.target.value as AnswerSort)}
+                className={cn(
+                  THEME_CONTROL_CLASSES,
+                  "w-full appearance-none bg-background/80 bg-no-repeat px-3 pr-9 text-sm shadow-none transition-colors lg:w-44",
+                )}
+                style={{
+                  backgroundImage:
+                    "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236a5e4a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>\")",
+                  backgroundPosition: "right 0.75rem center",
+                }}
+                aria-label={a11yT("sortAnswers")}
+              >
+                <option value="most_used">Most used</option>
+                <option value="newest">Newest</option>
+                <option value="alpha">A to Z</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <AnswerFilterRow
+                label="Source"
+                ariaLabel="Filter answers by source"
+                options={sourceFilterOptions}
+                value={activeSource}
+                onChange={setActiveSource}
+              />
+              <AnswerFilterRow
+                label="Type"
+                ariaLabel="Filter answers by type"
+                options={answerTypeOptions}
+                value={activeType}
+                onChange={setActiveType}
               />
             </div>
-            {filteredAnswers.length > 0 ? (
-              <span className="whitespace-nowrap text-sm text-muted-foreground">
-                {filteredAnswers.length} shown
-              </span>
-            ) : null}
-            {/* Native select w/ custom chevron — appearance-none kills
-                the browser arrow, then we paint our own via inline
-                SVG bg-image and add right padding so text doesn't
-                collide with the chevron. px-3 horizontal padding so
-                text isn't flush to the border. */}
-            <select
-              value={sort}
-              onChange={(event) => setSort(event.target.value as AnswerSort)}
-              className={cn(
-                THEME_CONTROL_CLASSES,
-                "w-full appearance-none bg-no-repeat px-3 pr-9 text-sm sm:ml-auto sm:w-44",
-              )}
-              style={{
-                backgroundImage:
-                  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236a5e4a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>\")",
-                backgroundPosition: "right 0.75rem center",
-              }}
-              aria-label={a11yT("sortAnswers")}
-            >
-              <option value="most_used">Most used</option>
-              <option value="newest">Newest</option>
-              <option value="alpha">A to Z</option>
-            </select>
-          </div>
-          <FilterTabs
-            ariaLabel="Filter answers by source"
-            options={sourceFilterOptions}
-            value={activeSource}
-            onChange={setActiveSource}
-          />
-          <FilterTabs
-            ariaLabel="Filter answers by type"
-            options={answerTypeOptions}
-            value={activeType}
-            onChange={setActiveType}
-          />
+          </section>
 
           {loading ? (
             <div className="grid gap-3 lg:grid-cols-2">
@@ -673,6 +689,70 @@ export function BankAnswersTab({
         onRestoreVersion={restoreVersion}
       />
       {confirmDialog}
+    </div>
+  );
+}
+
+function AnswerFilterRow<T extends string>({
+  label,
+  ariaLabel,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  ariaLabel: string;
+  options: ReadonlyArray<AnswerFilterOption<T>>;
+  value: T;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="grid gap-2 md:grid-cols-[5rem_minmax(0,1fr)] md:items-start">
+      <div className="pt-2 text-xs font-medium text-muted-foreground">
+        {label}
+      </div>
+      <div
+        role="tablist"
+        aria-label={ariaLabel}
+        className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap pb-1 md:flex-wrap md:overflow-x-visible md:pb-0"
+      >
+        {options.map((option) => {
+          const isActive = option.value === value;
+          const isDisabled = Boolean(option.disabled && !isActive);
+
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              disabled={isDisabled}
+              onClick={() => onChange(option.value)}
+              className={cn(
+                "inline-flex h-9 shrink-0 items-center justify-center rounded-md px-3 text-sm font-medium shadow-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                isActive
+                  ? "bg-ink text-paper"
+                  : "bg-background/70 text-muted-foreground hover:bg-background hover:text-foreground",
+                isDisabled && "cursor-not-allowed opacity-45",
+              )}
+            >
+              {option.label}
+              {typeof option.count === "number" ? (
+                <span
+                  className={cn(
+                    "ml-2 inline-flex h-4 min-w-4 items-center justify-center rounded px-1 font-mono text-[10px] tabular-nums",
+                    isActive
+                      ? "bg-paper text-brand"
+                      : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {option.count}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
