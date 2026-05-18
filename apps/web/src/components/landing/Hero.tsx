@@ -1,127 +1,205 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { HaloEyebrow, MonoCap } from "./primitives";
+import { useEffect, useRef, useState } from "react";
 
 /**
- * Neutral baseline hero — locked copy from the IA pass, but no
- * magazine treatment. Awaiting reference-driven visual direction.
+ * Editorial hero — locked copy + autoplay video stage.
+ *
+ * The video file at /marketing/sections/the-loop.mp4 may not exist yet
+ * (Codex is producing it on a parallel worktree). When the source 404s
+ * we hide the <video> entirely and let the mascot poster carry the
+ * frame so the section never looks broken.
  */
+
 export function LandingHero() {
   return (
-    <section className="relative overflow-hidden border-b border-rule bg-page">
-      <div className="mx-auto w-full max-w-[1480px] px-5 pb-16 pt-9 md:px-10 md:pb-20 md:pt-12">
-        <div className="grid min-h-[calc(100dvh-86px)] items-center gap-12 lg:grid-cols-[minmax(0,0.86fr)_minmax(580px,1.14fr)] lg:gap-10">
+    <section className="border-b border-rule bg-page">
+      <div className="mx-auto w-full max-w-[1480px] px-5 pb-12 pt-7 md:px-10 md:pb-16 md:pt-9 lg:pb-20">
+        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-14">
           {/* Copy column */}
-          <div className="flex max-w-[680px] flex-col gap-6">
-            <HaloEyebrow>A calmer way to job hunt</HaloEyebrow>
+          <div className="flex max-w-[640px] flex-col">
+            <AnnouncementPill />
 
-            <h1 className="text-balance font-display text-hero-h1 text-ink">
+            <h1 className="mt-4 max-w-[14ch] font-display text-[clamp(48px,6vw,78px)] font-extrabold leading-[0.96] tracking-display text-ink">
               You&rsquo;re not lazy.
               <br />
-              Your job search system is.
+              <span className="text-ink-3">Your job search system is.</span>
             </h1>
 
-            <div className="max-w-[58ch] space-y-3 text-hero-sub text-ink-2">
-              <p>
-                Slothing replaces the fifteen tabs, the eight Google Docs, and
-                the cover letter you&rsquo;ve rewritten for the eleventh time.
-              </p>
-              <p className="font-medium text-ink">
+            <p className="mt-5 max-w-[520px] text-[16.5px] leading-[1.5] text-ink-2">
+              Slothing replaces the fifteen tabs, the eight Google Docs, and the
+              cover letter you&rsquo;ve rewritten for the eleventh time.
+              <strong className="mt-1 block font-semibold text-ink">
                 One workspace. One source of truth. One calmer way to apply.
-              </p>
-            </div>
+              </strong>
+            </p>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <Button asChild size="lg">
-                <Link href="/sign-in">
-                  Try Slothing free{" "}
-                  <span className="ml-1 transition-transform group-hover:translate-x-[3px]">
-                    →
-                  </span>
-                </Link>
-              </Button>
-              <Button asChild variant="ghost" size="lg">
-                <a href="#the-loop">See how it works ↓</a>
-              </Button>
-            </div>
-
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-ink-3">
+            <div className="mt-6 flex flex-wrap items-center gap-2.5">
+              <Link
+                href="/sign-in"
+                className="inline-flex items-center gap-1.5 rounded-full bg-ink px-5 py-3 text-[14px] font-semibold text-page transition-opacity hover:opacity-90"
+              >
+                Try Slothing free <span aria-hidden>→</span>
+              </Link>
               <a
                 href="https://github.com/ANonABento/slothing"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 transition-colors hover:text-ink-2"
+                className="inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-ink bg-transparent px-5 py-3 text-[14px] font-semibold text-ink transition-colors hover:bg-rule-strong-bg"
               >
-                <span aria-hidden>★</span>
-                <span>Star on GitHub</span>
+                <span aria-hidden>★</span> Star on GitHub
               </a>
-              <span className="h-1 w-1 rounded-full bg-ink-3/40" aria-hidden />
-              <span>AGPL-3.0 open source</span>
-              <span className="h-1 w-1 rounded-full bg-ink-3/40" aria-hidden />
-              <span>BYOK · self-hostable</span>
             </div>
           </div>
 
-          {/* Visual column — single floating prop + mascot */}
-          <div className="relative mx-auto flex min-h-[520px] w-full max-w-[520px] items-end justify-center lg:mx-0 lg:min-h-[640px] lg:max-w-none">
-            <div
-              aria-hidden="true"
-              className="absolute right-0 top-2 w-[260px] origin-top-right rounded-lg border border-rule bg-paper p-4 shadow-paper-elevated md:right-4 md:w-[300px] md:p-5"
-            >
-              <div className="flex items-center justify-between border-b border-rule pb-2">
-                <MonoCap>Today</MonoCap>
-                <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3">
-                  Tue
-                </span>
-              </div>
-              <div className="mt-3 font-display text-[20px] font-bold leading-tight text-ink md:text-[22px]">
-                Two focused moves.
-                <br />
-                Then you&rsquo;re done.
-              </div>
-              <ul className="mt-4 space-y-2 text-[13px]">
-                {[
-                  ["Tailor resume · Linear", true],
-                  ["Practice STAR · backend loop", false],
-                ].map(([task, done]) => (
-                  <li
-                    key={task as string}
-                    className={`flex items-center gap-2 ${
-                      done ? "text-ink-3 line-through" : "text-ink"
-                    }`}
-                  >
-                    <span
-                      aria-hidden
-                      className={`inline-block h-3 w-3 rounded-full ${
-                        done ? "bg-brand" : "border-2 border-brand"
-                      }`}
-                    />
-                    {task}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-4 flex items-center justify-between border-t border-rule pt-3">
-                <MonoCap>Match</MonoCap>
-                <div className="inline-flex items-center gap-1.5 font-display text-[18px] font-bold text-brand-dark">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
-                  95
-                </div>
-              </div>
-            </div>
-
-            <Image
-              src="/brand/sloths/slothing-mascot-hero.png"
-              alt="Slothing mascot holding a resume folder"
-              fill
-              priority
-              className="object-contain object-bottom drop-shadow-[0_32px_42px_rgba(80,60,30,0.22)] dark:drop-shadow-[0_30px_44px_rgba(0,0,0,0.6)]"
-              sizes="(max-width: 768px) 80vw, (max-width: 1280px) 460px, 560px"
-            />
-          </div>
+          {/* Video stage */}
+          <HeroVideoStage />
         </div>
       </div>
     </section>
+  );
+}
+
+function AnnouncementPill() {
+  return (
+    <span className="inline-flex items-center gap-2.5 rounded-full border border-rule bg-paper py-1 pl-1 pr-3 text-[12.5px] text-ink-2">
+      <span className="rounded-full bg-brand-soft px-2 py-0.5 font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em] text-brand-dark">
+        Demo
+      </span>
+      Watch the loop · 42s
+      <span aria-hidden>→</span>
+    </span>
+  );
+}
+
+function HeroVideoStage() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [hasVideo, setHasVideo] = useState(true);
+
+  useEffect(() => {
+    const node = videoRef.current;
+    if (!node) return;
+    const onError = () => setHasVideo(false);
+    node.addEventListener("error", onError);
+    const sources = node.querySelectorAll("source");
+    sources.forEach((s) => s.addEventListener("error", onError));
+    return () => {
+      node.removeEventListener("error", onError);
+      sources.forEach((s) => s.removeEventListener("error", onError));
+    };
+  }, []);
+
+  return (
+    <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[18px] border border-rule shadow-paper-elevated">
+      {/* Paper backdrop gradient via solid layered tokens — no inline hex */}
+      <div className="absolute inset-0 z-[0] bg-paper" aria-hidden="true" />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 z-[0] opacity-70"
+        style={{
+          backgroundImage:
+            "linear-gradient(180deg, transparent 0%, var(--bg-2) 100%)",
+        }}
+      />
+
+      {/* Frame chrome */}
+      <div className="absolute left-4 top-3 z-[3] inline-flex items-center gap-1.5">
+        <span className="h-2.5 w-2.5 rounded-full bg-brand-soft" />
+        <span className="h-2.5 w-2.5 rounded-full bg-brand-soft" />
+        <span className="h-2.5 w-2.5 rounded-full bg-brand-soft" />
+        <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
+          the loop · auto
+        </span>
+      </div>
+
+      <span className="absolute right-3 top-3 z-[3] inline-flex items-center gap-2 rounded-full bg-inverse px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-inverse-ink">
+        <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-brand">
+          <span
+            aria-hidden
+            className="absolute -inset-1 rounded-full bg-brand opacity-40 animate-ping"
+          />
+        </span>
+        autoplay · loop
+      </span>
+
+      {/* Mascot poster — always visible underneath the video */}
+      <div className="absolute inset-x-0 bottom-0 z-[1] flex h-[86%] items-end justify-center">
+        <Image
+          src="/brand/sloths/slothing-mascot-hero.png"
+          alt="Slothing mascot holding a folder, mid-loop"
+          width={640}
+          height={640}
+          priority
+          className="h-full w-auto object-contain drop-shadow-[0_24px_30px_rgba(80,60,30,0.2)]"
+        />
+      </div>
+
+      {/* Autoplay video — hidden if source 404s */}
+      {hasVideo ? (
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-label="Slothing product loop preview"
+          className="absolute inset-0 z-[2] h-full w-full object-cover"
+        >
+          <source src="/marketing/sections/the-loop.mp4" type="video/mp4" />
+        </video>
+      ) : null}
+
+      {/* Scrub bar */}
+      <div className="absolute inset-x-4 bottom-3 z-[3] flex items-center gap-2.5">
+        <span className="font-mono text-[10.5px] text-ink-3">0:16</span>
+        <div
+          className="flex-1 overflow-hidden rounded-full"
+          style={{ background: "var(--rule-strong)", height: "3px" }}
+        >
+          <div className="h-full hero-scrub-fill rounded-full bg-brand" />
+        </div>
+        <span className="font-mono text-[10.5px] text-ink-3">0:42</span>
+      </div>
+
+      <style jsx>{`
+        @keyframes hero-scrub {
+          from {
+            width: 0%;
+          }
+          to {
+            width: 100%;
+          }
+        }
+        :global(.hero-scrub-fill) {
+          width: 38%;
+          animation: hero-scrub 42s linear infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          :global(.hero-scrub-fill) {
+            animation: none;
+            width: 38%;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/* Announcement bar — slim paper band sitting above the nav. */
+export function AnnouncementBar() {
+  return (
+    <div className="border-b border-rule bg-paper px-4 py-[7px] text-center text-[12.5px] text-ink-2">
+      <span className="mr-2 inline-block rounded-sm bg-brand-soft px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-brand-dark">
+        New
+      </span>
+      <strong className="font-semibold text-ink">The loop is here.</strong>{" "}
+      Atomize once. Apply forever.{" "}
+      <span aria-hidden className="ml-1">
+        →
+      </span>
+    </div>
   );
 }
