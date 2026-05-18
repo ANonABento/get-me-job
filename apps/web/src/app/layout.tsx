@@ -19,6 +19,7 @@ import {
 } from "next/font/google";
 import { GeistSans } from "geist/font/sans";
 import { AuthSessionProvider } from "@/components/auth/session-provider";
+import { WebVitalsReporter } from "@/components/monitoring/web-vitals-reporter";
 import { ThemeProvider } from "@/components/theme-provider";
 import {
   EditorialPrefsProvider,
@@ -237,6 +238,7 @@ export default async function RootLayout({
                 messages={messages}
                 timeZone="UTC"
               >
+                <WebVitalsReporter />
                 {children}
               </NextIntlClientProvider>
             </EditorialPrefsProvider>

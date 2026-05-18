@@ -4,368 +4,232 @@
 
 ---
 
-## Current State: MVP+ Complete ✅
+## Current State: Product MVP+ Complete
 
-Slothing is a **feature-complete single-user MVP** with enhanced features:
+Slothing is a feature-complete job-search workspace for local/self-hosted use, with production-facing infrastructure partially implemented and a few public-launch gaps still visible.
 
-**Core Features:**
-- Resume parsing, tailoring, and PDF export (4 templates)
-- Job tracking with status pipeline
-- AI-powered interview prep (voice + text + audio recording)
-- Cover letter generation
-- Company research
-- Analytics dashboard
-- Calendar and reminders
-- Email templates
-- Multi-provider LLM support (OpenAI, Anthropic, Ollama, OpenRouter)
+**Core product:**
 
-**Recently Added:**
-- Salary negotiation tools (calculator, offer comparison, negotiation scripts)
-- Interview audio recording with playback
-- Organized sidebar navigation with category groups
-- Skip-to-content accessibility
-- Comprehensive documentation
+- Resume parsing, component bank, Studio editing, manual tailoring, AI tailoring, PDF/DOCX/LaTeX/plain-text export, and 7-day share links.
+- Opportunity tracking with review queue, status pipeline, company research, calendar/reminder surfaces, analytics, and dashboard summaries.
+- ATS scanner, cover-letter generation, email templates, interview prep with text/voice/audio recording, and salary tools.
+- Multi-provider LLM support through OpenAI, Anthropic, Ollama, and OpenRouter.
+
+**Extension and agent surfaces:**
+
+- Browser extension for Chrome/Firefox builds, form autofill, answer-bank capture/search, job-page sidebar, inline AI assistant, badge notifications, multistep Workday/Greenhouse support, and bulk Greenhouse/Lever/Workday scraping.
+- Job scrapers for LinkedIn, Indeed, Greenhouse, Lever, Waterloo Works, Workday list pages, and generic JSON-LD job postings.
+- `@slothing/mcp` v1 shipped as a local MCP server with profile, opportunity, opportunity-detail, answer-bank search, and save-answer tools.
+
+**Integrations:**
+
+- Google OAuth/token refresh code exists and gates Settings UI when auth is not configured.
+- Google Calendar, Drive, Gmail, Docs, Sheets, and Contacts API routes/components exist, but remain environment- and account-setup gated.
+- Daily digest, Gmail status detection, Google calendar sync, cleanup, email retry, follow-up, and reminder crons are implemented; weekly digest is intentionally disabled until a distinct weekly email exists.
 
 ---
 
-## Recently Completed ✅
+## Open Gaps From Audit
 
-### Salary Negotiation Tools
+These are the current visible placeholders, planned-but-unshipped specs, or stale roadmap items that still need product decisions.
+
+| Area                         | Status          | Gap                                                                                                                                                                 |
+| ---------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Extension store launch       | Setup-gated     | Store CTAs are hidden until at least one live marketplace URL is configured; Safari support is still planned.                                                       |
+| Google setup UX              | Setup-gated     | Google integration works only when NextAuth/Google OAuth are configured; disabled states now explain the required OAuth/NextAuth setup.                             |
+| Toolkit tabs                 | Cleaned up      | `/toolkit?tab=cover-letter` redirects into Studio cover-letter mode; Recruiter Rewriter is hidden until the workflow ships.                                         |
+| Studio tailor settings       | Wired           | ATS strictness now shapes AI prompt guidance and deterministic manual/fallback formatting.                                                                          |
+| Dashboard interview rail     | Cleaned up      | The interview rail shows real opportunity status instead of placeholder timing.                                                                                     |
+| Advanced onboarding          | Added           | Advanced steps now point to cover letters, interview prep, salary research, Studio templates, and calendar surfaces.                                                |
+| Cron jobs                    | Operationalized | Configured cron routes now do real work; weekly digest is disabled and removed from the deployed schedule until a distinct weekly email ships.                      |
+| Custom template uploads      | Shipped         | HTML/Markdown/DOCX/PDF template import, Studio picker integration, metadata editing, delete, and fallback behavior are wired.                                       |
+| Component preview follow-ups | Partial         | Drive DOCX import and durable TXT/DOCX text previews are wired; preview editing, multi-page drag-select, and image-only PDF OCR remain follow-ups.                  |
+| MCP v2 write tools           | Shipped         | Agent-facing push-job, update-status, and scrape-url tools are exposed through `@slothing/mcp` over extension-token routes.                                         |
+| Pricing waitlist             | Implemented     | Pricing now includes a real waitlist form backed by `/api/waitlist` and persisted waitlist entries.                                                                 |
+| Production platform          | Partial         | Turso production DB setup and hosted migration execution remain account-bound; migration, backup/restore, and deployment runbooks are documented.                  |
+
+---
+
+## Recently Completed
+
+### Studio V3 Actions
+
 **Status:** Complete
-- [x] Market salary calculator by role, location, experience
-- [x] Multi-offer comparison with total comp breakdown
-- [x] AI-powered negotiation script generator
-- [x] Counter-offer suggestions
 
-### Interview Recording
-**Status:** Complete
-- [x] Audio recording during voice practice
-- [x] Playback and review functionality
-- [x] Download recordings
+- [x] Manual tailor wired to deterministic assembly from selected entries.
+- [x] Tailor settings dialog wired and persisted.
+- [x] PDF and DOCX export.
+- [x] LaTeX export endpoint and client download.
+- [x] Plain-text export.
+- [x] Copy HTML.
+- [x] Share link creation and clipboard copy.
 
-### Testing & Quality
-**Status:** Complete (~70% coverage)
-- [x] Unit test coverage increased (344 tests passing)
-- [x] Database layer tests
-- [x] Business logic tests
-- [x] Utility function tests
+### Extension Roadmap Carryover
 
-### Accessibility (WCAG 2.1)
-**Status:** Complete
-- [x] Skip-to-content link
-- [x] Proper ARIA labels on navigation
-- [x] Semantic landmarks (main, nav)
-- [x] Keyboard navigation support
+**Status:** Complete or code-complete
 
-### Documentation
-**Status:** Complete
-- [x] API documentation (`docs/API.md`)
-- [x] User guide (`docs/USER_GUIDE.md`)
-- [x] Developer setup guide (`docs/DEVELOPER.md`)
-- [x] Architecture documentation (`docs/architecture.md`)
+- [x] `externally_connectable` added to Chrome manifest.
+- [x] Badge notifications wired through background service worker.
+- [x] Workday scraper/orchestrator implemented.
+- [x] Bulk Greenhouse/Lever/Workday scrape UI implemented in popup.
+- [x] Inline AI assistant implemented in job-page sidebar.
+- [x] Unit and Playwright scraper coverage added.
 
----
+### MCP V1
 
-## Phase 1: Foundation (High Priority)
+**Status:** Shipped
 
-### 1.1 Authentication System
-**Status:** In Progress (80% Complete)
-**Effort:** Large
-**Stack:** NextAuth
+- [x] Local stdio MCP server package.
+- [x] `get_profile`.
+- [x] `list_opportunities`.
+- [x] `get_opportunity_detail`.
+- [x] `search_answer_bank`.
+- [x] `save_answer`.
 
-- [x] Add NextAuth authentication provider
-- [x] User registration and login flows (sign-in/sign-up pages)
-- [x] Session management (NextAuth session provider + middleware)
-- [x] Protected API routes (middleware + route guards)
-- [x] UserButton in sidebar for profile/logout
-- [ ] Password reset functionality
-- [ ] User-specific data isolation (pending Turso setup)
+### Google Integration Foundation
 
-### 1.2 Database Migration
-**Status:** In Progress (70% Complete)
-**Effort:** Medium
-**Stack:** libSQL/Turso + Drizzle ORM
+**Status:** Code-complete, setup-gated
 
-- [x] Drizzle schema created with all tables
-- [x] userId column added to all tables
-- [x] Drizzle query functions created (async, userId param)
-- [x] Database connection module ready
-- [x] Drizzle config for migrations
-- [ ] Create Turso database (requires account setup)
-- [ ] Run initial migrations
-- [ ] Data migration script from SQLite
-
-### 1.3 Multi-User Support
-**Status:** In Progress (60% Complete)
-**Effort:** Medium
-**Dependencies:** 1.1, 1.2
-
-- [x] New query layer accepts userId parameter
-- [x] Schema supports multi-tenant data
-- [ ] Switch API routes to Drizzle queries (pending Turso)
-- [ ] Per-user settings and preferences
-- [ ] User profile sync with NextAuth
-- [ ] Data deletion (GDPR compliance)
+- [x] Google OAuth token lookup and refresh.
+- [x] Settings connection UI.
+- [x] Calendar event create/list/sync APIs.
+- [x] Drive upload/list/import APIs.
+- [x] Gmail scan/send APIs.
+- [x] Docs create/export support.
+- [x] Sheets export support.
+- [x] Contacts list/search/create support.
 
 ---
 
-## Phase 2: Google Workspace Integration (High Priority)
+## Next Phase Plan: Launch Readiness
 
-> **Full documentation:** [docs/google-integration/](./docs/google-integration/)
+### P0 - Remove Public Placeholders
 
-### 2.1 OAuth Foundation
-**Status:** Not Started
-**Effort:** Medium (3-5 days)
-**Dependencies:** 1.1 (NextAuth Auth)
-**Ticket:** [01-oauth-foundation.md](./docs/google-integration/01-oauth-foundation.md)
+**Goal:** No user-facing "coming soon" affordance should appear on a primary route unless it is behind an intentional launch gate.
 
-- [ ] Enable Google OAuth in Google Cloud Console
-- [ ] Configure OAuth scopes (Calendar, Drive, Gmail)
-- [ ] Create token retrieval utility
-- [ ] Build "Connect Google" UI in Settings
-- [ ] Handle token refresh via NextAuth
+- [x] Publish or hide extension store CTAs until at least one listing is live.
+- [x] Replace `/toolkit?tab=cover-letter` placeholder with a redirect/deep link into Studio's cover-letter workflow.
+- [x] Ship Recruiter Rewriter or remove the tab until the workflow is ready.
+- [x] Replace dashboard interview `coming soon` copy with real interview date/status data or hide the line.
+- [x] Wire ATS strictness into manual/AI tailor generation, or remove the control from the dialog.
+- [x] Add advanced onboarding steps using already-shipped product surfaces.
 
-### 2.2 Calendar Sync
-**Status:** Not Started
-**Effort:** Medium (4-6 days)
-**Dependencies:** 2.1
-**Ticket:** [02-calendar-sync.md](./docs/google-integration/02-calendar-sync.md)
+### P1 - Operationalize Background Work
 
-- [ ] Push interviews to Google Calendar
-- [ ] Push deadlines to Google Calendar
-- [ ] Push reminders to Google Calendar
-- [ ] Pull events to detect existing interviews
-- [ ] Smart reminders (1 day, 1 hour before)
+**Goal:** Every configured cron route should do real work or be removed from deployment config.
 
-### 2.3 Drive Integration
-**Status:** Not Started
-**Effort:** Medium (4-5 days)
-**Dependencies:** 2.1
-**Ticket:** [03-drive-integration.md](./docs/google-integration/03-drive-integration.md)
+- [x] Implement cleanup cron for expired shares, stale sessions, and old transient records.
+- [x] Implement weekly digest or remove the route until a weekly product email exists.
+- [x] Implement email retry cron for failed Gmail/app email sends, or collapse it into the existing send flow.
+- [x] Add cron run logging and a small admin/status view.
 
-- [ ] Create "Slothing" folder structure
-- [ ] Upload resumes to Drive
-- [ ] Upload cover letters to Drive
-- [ ] Generate shareable links
-- [ ] Import resumes from Drive
+### P2 - Public Launch Conversion
 
-### 2.4 Gmail Integration
-**Status:** Not Started
-**Effort:** Large (6-8 days)
-**Dependencies:** 2.1
-**Ticket:** [04-gmail-integration.md](./docs/google-integration/04-gmail-integration.md)
+**Goal:** Make the public site and hosted app credible before store launch.
 
-- [ ] Scan inbox for recruiter emails
-- [ ] Parse emails to extract job details
-- [ ] Auto-create job entries from emails
-- [ ] Detect interview invitations
-- [ ] Send follow-up emails from app
+- [x] Replace pricing email CTA with a waitlist form and `/api/waitlist`.
+- [x] Add extension launch-state feature flag for marketing/onboarding.
+- [x] Verify Google disabled states explain setup rather than implying missing implementation.
+- [x] Add production-safe user data deletion flow.
+- [x] Add Sentry or equivalent error monitoring.
+- [x] Add lightweight product analytics for activation funnels.
 
-### 2.5 Docs & Sheets
-**Status:** Not Started
-**Effort:** Small (2-3 days)
-**Dependencies:** 2.3
-**Ticket:** [05-docs-sheets.md](./docs/google-integration/05-docs-sheets.md)
+### P3 - Template And Preview Follow-Through
 
-- [ ] Export resumes to Google Docs
-- [ ] Create interview prep notes in Docs
-- [ ] Export job tracker to Sheets
-- [ ] Create salary comparison spreadsheets
+**Goal:** Finish the planned document-management workflows after launch blockers are closed.
 
-### 2.6 Contacts & Tasks
-**Status:** Not Started
-**Effort:** Small (2-3 days)
-**Dependencies:** 2.1
-**Ticket:** [06-contacts-tasks.md](./docs/google-integration/06-contacts-tasks.md)
+- [x] Implement custom template upload/import for HTML, Markdown, and DOCX.
+- [x] Add custom template management: rename, delete, and fallback behavior.
+- [x] Add rich custom template metadata editing.
+- [x] Add Drive/plain-text imports to component preview.
+- [x] Add durable text preview storage for non-PDF parsed previews.
+- [x] Explore OCR for image-only PDFs after extractable-PDF paths are stable.
 
-- [ ] Import contacts for networking
-- [ ] Save recruiters to Google Contacts
-- [ ] Sync reminders to Google Tasks
-- [ ] Auto-create follow-up tasks
+### P4 - Agent Write Surface
+
+**Goal:** Promote proven REST workflows into discoverable MCP tools.
+
+- [x] Add `slothing_push_job`.
+- [x] Add `slothing_update_status`.
+- [x] Add `slothing_scrape_url`.
+- [x] Keep MCP v2 as a thin adapter over extension-token routes.
 
 ---
 
-## Phase 3: Other Integrations (Medium Priority)
+## Production Foundation
 
-### 3.1 Email Service Integration
-**Status:** Not Started
-**Effort:** Small
-**Dependencies:** 1.1
+### Authentication And Data Isolation
 
-- [ ] Integrate email service (Resend, SendGrid, or Postmark)
-- [ ] Send generated email templates directly
-- [ ] Email delivery tracking
-- [ ] Unsubscribe handling
-- [ ] Email verification for new accounts
+**Status:** Partial
 
-### 3.2 LinkedIn Integration
-**Status:** Not Started
-**Effort:** Large
-**Dependencies:** 1.1
+- [x] NextAuth provider and session plumbing.
+- [x] Protected pages and guarded API routes.
+- [x] User ID columns and query-layer support.
+- [x] Password reset or documented magic-link-only auth policy.
+- [x] Audit remaining local/raw DB calls for user scoping.
+- [x] Data deletion and export for GDPR-style account closure.
 
-- [ ] LinkedIn OAuth for profile import
-- [ ] Import work experience and education
-- [ ] Import skills and endorsements
-- [ ] Easy Apply integration (if API allows)
-- [ ] Profile sync for updates
+### Database And Deployment
 
-### 3.3 Job Board Integrations
-**Status:** Not Started
-**Effort:** Large
-**Dependencies:** 1.1
+**Status:** Partial
 
-- [ ] Indeed API integration
-- [ ] LinkedIn Jobs scraping/API
-- [ ] Greenhouse job board integration
-- [ ] Lever job board integration
-- [ ] Automatic job import from URLs
+- [x] Drizzle schema and migrations.
+- [x] Local libSQL development flow.
+- [x] Executable production readiness preflight.
+- [ ] Create production Turso/libSQL database.
+- [ ] Run production migrations.
+- [x] Document SQLite-to-Turso migration.
+- [ ] Verify backup/restore plan.
+- [ ] Deploy hosted app with production environment checklist.
 
----
+### Monitoring And Analytics
 
-## Phase 4: Enhanced Features (Lower Priority)
+**Status:** Partial
 
-### 4.1 Real-Time Notifications
-**Status:** Not Started
-**Effort:** Medium
-**Dependencies:** 1.1
-
-- [ ] WebSocket or Server-Sent Events setup
-- [ ] Push notifications for deadlines
-- [ ] Browser notification support
-- [ ] Mobile push (if mobile app added)
-- [ ] Email notification preferences
-
-### 4.2 Advanced Interview Recording
-**Status:** Partial (audio done, video pending)
-**Effort:** Medium
-**Dependencies:** None
-
-- [x] Audio recording during mock interviews
-- [x] Playback and review functionality
-- [ ] Video recording
-- [ ] AI analysis of recorded responses
-- [ ] Body language feedback (stretch goal)
-- [ ] Cloud storage solution for recordings
-
-### 4.3 Networking Features
-**Status:** Not Started
-**Effort:** Medium
-**Dependencies:** 1.1
-
-- [ ] Contact database
-- [ ] Networking event tracker
-- [ ] Follow-up reminders for contacts
-- [ ] Referral tracking
-- [ ] LinkedIn connection notes
-
-### 4.4 External Salary Data
-**Status:** Not Started
-**Effort:** Medium
-**Dependencies:** None
-
-- [ ] Levels.fyi API integration
-- [ ] Glassdoor data integration
-- [ ] Real-time market data
-- [ ] Company-specific comp data
+- [x] Error monitoring.
+- [x] Cron monitoring.
+- [x] Product activation analytics.
+- [x] Core Web Vitals tracking.
 
 ---
 
-## Phase 5: Scale & Polish
+## Later Bets
 
-### 5.1 Deployment & Infrastructure
-**Status:** Not Started
-**Effort:** Medium
-**Dependencies:** 1.2
+These are valuable, but should wait until launch placeholders and production foundations are clean.
 
-- [ ] Production deployment (Vercel, Railway, or Fly.io)
-- [ ] CI/CD pipeline (GitHub Actions)
-- [ ] Environment management (staging, production)
-- [ ] Error monitoring (Sentry)
-- [ ] Analytics tracking (PostHog, Mixpanel)
-
-### 5.2 Mobile App
-**Status:** Not Started
-**Effort:** Large
-**Dependencies:** 1.1, 1.2
-
-- [ ] React Native or Expo app
-- [ ] Core features (job tracking, notifications)
-- [ ] Push notifications
-- [ ] Offline support
-- [ ] App store deployment
-
-### 5.3 Performance & SEO
-**Status:** Not Started
-**Effort:** Small
-**Dependencies:** None
-
-- [ ] Image optimization
-- [ ] Core Web Vitals audit
-- [ ] SEO meta tags
-- [ ] Sitemap generation
-- [ ] Social sharing cards
+- Video interview recording and AI analysis of recorded responses.
+- External salary data from Levels.fyi, Glassdoor, or other providers.
+- LinkedIn OAuth/profile import, subject to API and policy constraints.
+- Networking CRM: contact database, referral tracking, event tracking, and LinkedIn notes.
+- Mobile app.
+- MCP package publication after v1/v2 tool surface is validated.
 
 ---
 
-## Timeline Estimate
+## Tech Stack
 
-| Phase | Duration | Key Milestone |
-|-------|----------|---------------|
-| Phase 1 | 2-3 weeks | Multi-user production-ready |
-| Phase 2 | 3-4 weeks | Google Workspace integration |
-| Phase 3 | 2-3 weeks | Other integrations (LinkedIn, Email) |
-| Phase 4 | 2-3 weeks | Enhanced feature set |
-| Phase 5 | 2-4 weeks | Polished, scalable product |
-
-**Total: 11-17 weeks** for full production readiness
-
----
-
-## Quick Wins Remaining
-
-These don't depend on other phases:
-
-1. **Video recording** - Extend audio recording to video
-2. **External salary data** - Integrate real market data
-3. **Performance audit** - Optimize for Core Web Vitals
-4. **E2E test coverage** - Add Playwright tests for critical flows
-
----
-
-## Tech Stack (Implemented)
-
-| Layer | Technology | Status |
-|-------|------------|--------|
-| **Auth** | NextAuth | ✅ Installed |
-| **Database** | libSQL/Turso + Drizzle | ✅ Schema ready |
-| **Google APIs** | googleapis npm | Planned |
-| **Email** | Resend | Planned |
-| **Hosting** | Vercel | Planned |
-| **Monitoring** | Sentry | Planned |
-| **Analytics** | PostHog | Planned |
-
----
-
-## Next Steps
-
-1. **Create Turso Account** - Set up a hosted libSQL database at https://turso.tech
-2. **Add TURSO_DATABASE_URL** - Configure connection string in `.env.local`
-3. **Run Migrations** - Execute `npm run db:push` to create tables
-4. **Test Auth Flow** - Sign up, sign in, verify data isolation
-5. **Deploy to Vercel** - Connect repo and deploy
+| Layer             | Technology                                      | Status                                                   |
+| ----------------- | ----------------------------------------------- | -------------------------------------------------------- |
+| Auth              | NextAuth                                        | Implemented, env-gated, passwordless policy documented   |
+| Database          | libSQL/Turso + Drizzle                          | Local/schema ready, production runbook documented        |
+| LLM               | OpenAI, Anthropic, Ollama, OpenRouter           | Implemented                                              |
+| Google APIs       | `googleapis`                                    | Implemented, OAuth setup-gated                           |
+| Browser extension | Chrome MV3, Firefox build                       | Code-complete, store listings pending                    |
+| MCP               | `@modelcontextprotocol/sdk`                     | v1 shipped                                               |
+| Billing           | Stripe cloud carve-out                          | Present under `apps/web/src/cloud`, hosted setup pending |
+| Email             | Gmail integration plus app email plans          | Partial                                                  |
+| Monitoring        | Sentry-compatible hook, cron health, Web Vitals | Implemented                                              |
+| Analytics         | Lightweight activation events                   | Implemented                                              |
 
 ---
 
 ## Notes
 
-- Prioritize **Phase 1** before any public launch
-- **LinkedIn integration** is complex due to API restrictions
-- **NextAuth** is installed and configured - handles auth flows
-- **Drizzle schema** is ready - just needs Turso database connection
-- **Job board APIs** may require partnerships or scraping (legal gray area)
-- Keep local libSQL for local dev and Turso for production
-- Documentation is complete in `docs/` directory
+- Treat old "Not Started" Google roadmap docs as historical unless they contradict the code; the current blocker is setup, polish, and launch gating.
+- Keep local libSQL for local dev and Turso/libSQL for production.
+- Job board APIs may require partnerships or scraping policy review; extension-owned scraping is already implemented for the primary targets.
+- Prioritize removing visible placeholders before adding new feature surfaces.
 
 ---
 
-*Last updated: March 2026*
+_Last updated: May 18, 2026_

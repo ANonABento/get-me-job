@@ -74,6 +74,16 @@ Cloud-only variables such as `STRIPE_SECRET_KEY`,
 `SLOTHING_HOSTED_LLM_API_KEY` are for slothing.work-style hosted deployments.
 Self-hosters do not need them.
 
+## Auth Policy
+
+Slothing does not store local passwords and does not ship a password reset flow.
+Configured production sign-in uses Google OAuth, with optional Resend email
+magic links when `RESEND_API_KEY` and `EMAIL_FROM` are set. Recovery is handled
+by the identity provider or by requesting a fresh magic link.
+
+See [Slothing Auth Policy](./auth-policy.md) for the production policy and
+operator notes.
+
 ## Bring Your Own Key
 
 Self-hosted Slothing does not include hosted AI credits. Add your provider in
@@ -99,6 +109,9 @@ Back up these regularly:
 
 Before upgrading, stop the app, take a database backup, then deploy the new
 image or pull the new code.
+
+For hosted Turso backups, restore checks, and Vercel deployment steps, see
+[Production Deployment Runbook](./production-deployment-runbook.md).
 
 ## Hosted Development Notes
 
