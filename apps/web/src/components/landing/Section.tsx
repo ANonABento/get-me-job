@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 /**
@@ -7,40 +8,16 @@ import { useEffect, useRef, useState } from "react";
  *
  * Spec source: docs/handoff/landing-implementation.md §4 + §6.
  *
- * Two visual variants:
- *   - `video`     — autoplay/loop/muted/playsinline, falls back to cropped
- *                   poster panel from /marketing/loop/loop-hero.png when
- *                   the source file is missing.
- *   - `placeholder` — labeled card (no panel crop). Used for sections
- *                   without a recorded demo yet (Extension, Open source).
+ * Every section has a per-section illustration (shipped by Codex in
+ * /marketing/sections/<slug>.png). If a matching demo video lives at
+ * <videoSrc>, it overlays the poster as autoplay/loop/muted. When the
+ * video 404s the poster carries the frame on its own.
  *
  * `flipped` swaps copy/visual at lg+. Visual stays above copy on mobile.
- *
- * Background alternation is owned by the parent (sections marked `alt`
- * get `bg-paper`; otherwise `bg-page`). Keeping it out of this component
- * means we don't need :nth-of-type CSS that breaks if order ever changes.
+ * Background alternation is owned by the parent (`alt` → bg-paper).
  */
 
 type Detail = { label: string; value: string };
-
-type PlaceholderVariant = {
-  variant: "placeholder";
-  frameLabel: string;
-  bigLabel: string;
-  smallLabel: string;
-  smallTail: string;
-};
-
-type VideoVariant = {
-  variant: "video";
-  frameLabel: string;
-  videoSrc: string;
-  /** 1-based index into the 6-panel loop-hero.png panorama for the fallback poster. */
-  posterPanel: 1 | 2 | 3 | 4 | 5 | 6;
-  meta: { path: string; duration: string };
-};
-
-type SectionVariant = VideoVariant | PlaceholderVariant;
 
 export type SectionProps = {
   number: string;
@@ -50,7 +27,13 @@ export type SectionProps = {
   details: [Detail, Detail];
   flipped?: boolean;
   alt?: boolean;
-} & SectionVariant;
+  frameLabel: string;
+  posterSrc: string;
+  posterAlt: string;
+  /** Optional autoplay overlay. Falls back to the poster if it 404s. */
+  videoSrc?: string;
+  meta?: { path: string; duration: string };
+};
 
 export function Section(props: SectionProps) {
   const { number, eyebrow, headline, body, details, flipped, alt } = props;
@@ -148,23 +131,24 @@ function SectionVisual(props: SectionProps) {
   return (
     <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-rule bg-paper shadow-paper-elevated">
       <FrameCap label={props.frameLabel} />
-      {props.variant === "video" ? <LiveBadge label="autoplay" /> : null}
+      {props.videoSrc ? <LiveBadge label="autoplay" /> : null}
 
-      {props.variant === "video" ? (
+      <Image
+        src={props.posterSrc}
+        alt={props.posterAlt}
+        fill
+        sizes="(max-width: 1024px) 100vw, 640px"
+        className="object-cover"
+      />
+
+      {props.videoSrc ? (
         <SectionVideo
           src={props.videoSrc}
-          posterPanel={props.posterPanel}
           alt={`${props.eyebrow} demo recording`}
         />
-      ) : (
-        <SectionPlaceholder
-          big={props.bigLabel}
-          smallLead={props.smallLabel}
-          smallTail={props.smallTail}
-        />
-      )}
+      ) : null}
 
-      {props.variant === "video" ? (
+      {props.meta ? (
         <div className="absolute inset-x-4 bottom-3 z-[3] flex items-center justify-between font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink-3">
           <span>{props.meta.path}</span>
           <span>loops · {props.meta.duration}</span>
@@ -174,15 +158,7 @@ function SectionVisual(props: SectionProps) {
   );
 }
 
-function SectionVideo({
-  src,
-  posterPanel,
-  alt,
-}: {
-  src: string;
-  posterPanel: 1 | 2 | 3 | 4 | 5 | 6;
-  alt: string;
-}) {
+function SectionVideo({ src, alt }: { src: string; alt: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasVideo, setHasVideo] = useState(true);
 
@@ -191,7 +167,6 @@ function SectionVideo({
     if (!node) return;
     const onError = () => setHasVideo(false);
     node.addEventListener("error", onError);
-    // <source> errors don't bubble to <video>; listen on each source too.
     const sources = node.querySelectorAll("source");
     sources.forEach((s) => s.addEventListener("error", onError));
     return () => {
@@ -200,60 +175,20 @@ function SectionVideo({
     };
   }, []);
 
-  // 6-panel panorama: index 1 → 0%, index 6 → 100% (step = 20%).
-  const positionPercent = (posterPanel - 1) * 20;
-
+  if (!hasVideo) return null;
   return (
-    <>
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 z-[0]"
-        style={{
-          backgroundImage: "url('/marketing/loop/loop-hero.png')",
-          backgroundSize: "600% 100%",
-          backgroundRepeat: "no-repeat",
-          backgroundPosition: `${positionPercent}% center`,
-        }}
-      />
-      {hasVideo ? (
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          aria-label={alt}
-          className="absolute inset-0 z-[1] h-full w-full object-cover"
-        >
-          <source src={src} type="video/mp4" />
-        </video>
-      ) : null}
-    </>
-  );
-}
-
-function SectionPlaceholder({
-  big,
-  smallLead,
-  smallTail,
-}: {
-  big: string;
-  smallLead: string;
-  smallTail: string;
-}) {
-  return (
-    <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-3 px-6 text-center">
-      <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-3">
-        {smallLead}
-      </span>
-      <span className="font-display text-[clamp(22px,2.4vw,30px)] font-extrabold tracking-display text-ink">
-        {big}
-      </span>
-      <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-3">
-        {smallTail}
-      </span>
-    </div>
+    <video
+      ref={videoRef}
+      autoPlay
+      muted
+      loop
+      playsInline
+      preload="metadata"
+      aria-label={alt}
+      className="absolute inset-0 z-[1] h-full w-full object-cover"
+    >
+      <source src={src} type="video/mp4" />
+    </video>
   );
 }
 

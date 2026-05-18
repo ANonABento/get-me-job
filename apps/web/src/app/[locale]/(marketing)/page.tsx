@@ -32,6 +32,10 @@ const jsonLd = {
  * 01–06 are the product loop. 07 + 08 prove the section pattern is
  * extensible without breaking rhythm. Backgrounds alternate (odd index
  * page, even index paper), flipped layout alternates every other row.
+ *
+ * Per-section illustrations live at /marketing/sections/<slug>.png
+ * (Codex PR #278). Videos at /marketing/sections/<slug>.mp4 are
+ * optional overlays — the still still carries the frame on its own.
  */
 const SECTIONS: SectionProps[] = [
   {
@@ -45,10 +49,10 @@ const SECTIONS: SectionProps[] = [
     ],
     flipped: false,
     alt: false,
-    variant: "video",
     frameLabel: "atomize.mp4",
+    posterSrc: "/marketing/sections/atomize.png",
+    posterAlt: "Sloth at a desk parsing a stack of resume pages",
     videoSrc: "/marketing/sections/atomize.mp4",
-    posterPanel: 1,
     meta: { path: "/marketing/sections/atomize", duration: "0:12" },
   },
   {
@@ -62,10 +66,10 @@ const SECTIONS: SectionProps[] = [
     ],
     flipped: true,
     alt: true,
-    variant: "video",
     frameLabel: "capture.mp4",
+    posterSrc: "/marketing/sections/capture.png",
+    posterAlt: "Sleeping sloth as job cards drift in from a laptop",
     videoSrc: "/marketing/sections/capture.mp4",
-    posterPanel: 2,
     meta: { path: "/marketing/sections/capture", duration: "0:14" },
   },
   {
@@ -79,10 +83,10 @@ const SECTIONS: SectionProps[] = [
     ],
     flipped: false,
     alt: false,
-    variant: "video",
     frameLabel: "review.mp4",
+    posterSrc: "/marketing/sections/review.png",
+    posterAlt: "Sloth swiping through normalized job cards on a phone",
     videoSrc: "/marketing/sections/review.mp4",
-    posterPanel: 3,
     meta: { path: "/marketing/sections/review", duration: "0:11" },
   },
   {
@@ -96,10 +100,10 @@ const SECTIONS: SectionProps[] = [
     ],
     flipped: true,
     alt: true,
-    variant: "video",
     frameLabel: "tailor.mp4",
+    posterSrc: "/marketing/sections/tailor.png",
+    posterAlt: "Sloth assembling a tailored resume from saved components",
     videoSrc: "/marketing/sections/tailor.mp4",
-    posterPanel: 4,
     meta: { path: "/marketing/sections/tailor", duration: "0:18" },
   },
   {
@@ -113,10 +117,10 @@ const SECTIONS: SectionProps[] = [
     ],
     flipped: false,
     alt: false,
-    variant: "video",
     frameLabel: "autofill.mp4",
+    posterSrc: "/marketing/sections/autofill.png",
+    posterAlt: "Sloth watching an application form autofill from memory",
     videoSrc: "/marketing/sections/autofill.mp4",
-    posterPanel: 5,
     meta: { path: "/marketing/sections/autofill", duration: "0:09" },
   },
   {
@@ -130,10 +134,10 @@ const SECTIONS: SectionProps[] = [
     ],
     flipped: true,
     alt: true,
-    variant: "video",
     frameLabel: "practice.mp4",
+    posterSrc: "/marketing/sections/practice.png",
+    posterAlt: "Sloth rehearsing STAR answers with a research dossier nearby",
     videoSrc: "/marketing/sections/practice.mp4",
-    posterPanel: 6,
     meta: { path: "/marketing/sections/practice", duration: "0:13" },
   },
   {
@@ -147,11 +151,9 @@ const SECTIONS: SectionProps[] = [
     ],
     flipped: false,
     alt: false,
-    variant: "placeholder",
-    frameLabel: "extension.mp4",
-    smallLabel: "/marketing/sections/extension",
-    bigLabel: "Browser extension demo",
-    smallTail: "Recorded · 0:22",
+    frameLabel: "slothing.extension",
+    posterSrc: "/marketing/sections/extension.png",
+    posterAlt: "Slothing extension capturing a job listing in the browser",
   },
   {
     number: "08",
@@ -164,11 +166,10 @@ const SECTIONS: SectionProps[] = [
     ],
     flipped: true,
     alt: true,
-    variant: "placeholder",
     frameLabel: "github.com/ANonABento/slothing",
-    smallLabel: "/marketing/sections/open-source",
-    bigLabel: "★ Star on GitHub",
-    smallTail: "AGPL-3.0 · BYOK · MIT-style cloud carve-out",
+    posterSrc: "/marketing/sections/open-source.png",
+    posterAlt:
+      "Sloth at a workbench with an AGPL license tag, self-hosting setup",
   },
 ];
 
