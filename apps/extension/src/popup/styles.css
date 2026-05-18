@@ -47,17 +47,23 @@
 
 html,
 body {
+  width: min(360px, 100vw);
   font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto,
     Oxygen, Ubuntu, sans-serif;
   font-size: 14px;
   line-height: 1.45;
   color: var(--text);
   background: var(--bg);
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
+#root {
+  width: 100%;
+}
+
 .popup {
-  width: 360px;
+  width: min(360px, 100vw);
   display: flex;
   flex-direction: column;
   background: var(--bg);
@@ -659,7 +665,7 @@ body {
 
 /* ---------- Hero (unauthenticated) ---------- */
 .hero {
-  padding: 28px 24px 22px;
+  padding: 28px 24px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -49,11 +49,12 @@ body {
 }
 
 .options-container {
-  max-width: 1120px;
+  max-width: 1060px;
   margin: 0 auto;
   padding: 18px 20px 28px;
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: start;
   gap: 12px;
 }
 

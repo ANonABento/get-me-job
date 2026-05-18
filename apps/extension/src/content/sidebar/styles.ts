@@ -28,7 +28,7 @@ export const SIDEBAR_STYLES = `
 
 .slothing-sidebar {
   position: fixed;
-  top: 96px;
+  top: clamp(72px, 10vh, 96px);
   right: 0;
   z-index: 2147483000;
   color: var(--slothing-ink);
@@ -98,7 +98,7 @@ export const SIDEBAR_STYLES = `
 
 .panel {
   width: min(330px, calc(100vw - 28px));
-  max-height: min(680px, calc(100vh - 112px));
+  max-height: min(720px, calc(100vh - 96px));
   overflow: auto;
   border-right: 0;
   border-radius: 8px 0 0 8px;
