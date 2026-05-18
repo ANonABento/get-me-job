@@ -121,6 +121,7 @@ export {
   settings,
   documents,
   documentArtifacts,
+  documentParseRuns,
   profile,
   experiences,
   education,
@@ -174,6 +175,7 @@ export * from "./suggested-status-updates";
 export * from "./custom-templates";
 export * from "./profile-bank";
 export * from "./document-artifacts";
+export * from "./document-parse-runs";
 export * from "./answer-bank";
 export * from "./answer-bank-versions";
 export * from "./answer-bank-migration";

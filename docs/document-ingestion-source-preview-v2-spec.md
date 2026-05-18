@@ -773,7 +773,8 @@ Next implementation slices:
 4. Add parser-v2 fixtures beyond `syzfjbzwjncs.pdf` before generalizing
    heuristics.
 5. Add persistence for `document_artifacts`, plus a read-only source artifact
-   API. In progress.
-6. Add persistence for `document_parse_runs`.
+   API. Done on `main` in `7819ba18`.
+6. Add persistence for `document_parse_runs`, plus basic parser-v2 create/read
+   routes. In progress.
 7. Keep `/api/upload` and `/api/parse` route migration out until persistence is
    reviewed separately.

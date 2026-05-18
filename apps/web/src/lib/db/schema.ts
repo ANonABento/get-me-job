@@ -88,6 +88,37 @@ export const documentArtifacts = sqliteTable(
   ],
 );
 
+export const documentParseRuns = sqliteTable(
+  "document_parse_runs",
+  {
+    id: text("id").primaryKey(),
+    documentId: text("document_id").notNull(),
+    artifactId: text("artifact_id").notNull(),
+    userId: text("user_id").notNull().default(DEFAULT_USER_ID),
+    mode: text("mode").notNull(),
+    parserVersion: text("parser_version").notNull(),
+    status: text("status").notNull(),
+    failureReason: text("failure_reason"),
+    confidence: real("confidence").notNull().default(0),
+    warningsJson: text("warnings_json").notNull().default("[]"),
+    structuredJson: text("structured_json").notNull().default("{}"),
+    createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("idx_document_parse_runs_document_created").on(
+      table.userId,
+      table.documentId,
+      table.createdAt,
+    ),
+    index("idx_document_parse_runs_artifact_created").on(
+      table.userId,
+      table.artifactId,
+      table.createdAt,
+    ),
+    index("idx_document_parse_runs_user_status").on(table.userId, table.status),
+  ],
+);
+
 // Profile table
 export const profile = sqliteTable("profile", {
   id: text("id").primaryKey(),
