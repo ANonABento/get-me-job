@@ -2,6 +2,7 @@
 
 import { forwardRef, type ReactNode } from "react";
 import { Input } from "@/components/ui/input";
+import { FilterTabs } from "@/components/ui/filter-tabs";
 import { BANK_CATEGORIES, type BankCategory } from "@/types";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,31 +21,17 @@ const CATEGORY_LABELS: Record<BankCategory, string> = {
 };
 
 type SortOption = "date" | "confidence";
+type CategoryFilter = BankCategory | "all";
 
 interface SearchBarProps {
   query: string;
   onQueryChange: (query: string) => void;
-  activeCategory: BankCategory | "all";
-  onCategoryChange: (category: BankCategory | "all") => void;
+  activeCategory: CategoryFilter;
+  onCategoryChange: (category: CategoryFilter) => void;
   sortBy: SortOption;
   onSortChange: (sort: SortOption) => void;
   counts: Record<string, number>;
   controls?: ReactNode;
-}
-
-function CountBadge({ count, active }: { count: number; active: boolean }) {
-  return (
-    <span
-      className={cn(
-        "ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-md text-xs",
-        active
-          ? "bg-primary-foreground/20 text-primary-foreground"
-          : "bg-background text-muted-foreground",
-      )}
-    >
-      {count}
-    </span>
-  );
 }
 
 export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
@@ -63,7 +50,25 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
   ) {
     const a11yT = useA11yTranslations();
 
-    const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
+    // The "All" tab count must match what clicking it actually shows. Today
+    // the All filter excludes child bullets (see sortedEntries in
+    // components-tab.tsx), so the badge needs to count non-child entries —
+    // exactly what `counts.all` carries when the caller derived it via
+    // `deriveCategoryCounts`. Fall back to summing the per-category values
+    // for callers that haven't migrated.
+    const totalCount =
+      typeof counts.all === "number"
+        ? counts.all
+        : Object.values(counts).reduce((a, b) => a + b, 0);
+    const categoryOptions = [
+      { value: "all" as const, label: "All", count: totalCount },
+      ...BANK_CATEGORIES.map((cat) => ({
+        value: cat,
+        label: CATEGORY_LABELS[cat],
+        count: counts[cat] || 0,
+        disabled: !counts[cat],
+      })),
+    ];
 
     return (
       <div className="space-y-3">
@@ -105,49 +110,12 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
         </div>
 
         {/* Category filter chips */}
-        <div
-          className="flex flex-wrap gap-2"
-          role="tablist"
-          aria-label={a11yT("filterByCategory")}
-        >
-          <button
-            role="tab"
-            aria-selected={activeCategory === "all"}
-            onClick={() => onCategoryChange("all")}
-            className={cn(
-              "min-h-11 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200",
-              activeCategory === "all"
-                ? "bg-[image:var(--gradient-primary)] text-primary-foreground shadow-[var(--shadow-button)] scale-105"
-                : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80",
-            )}
-          >
-            All
-            <CountBadge count={totalCount} active={activeCategory === "all"} />
-          </button>
-          {BANK_CATEGORIES.map((cat) => {
-            const isEmpty = !counts[cat];
-            const isActive = activeCategory === cat;
-            return (
-              <button
-                role="tab"
-                aria-selected={isActive}
-                key={cat}
-                onClick={() => onCategoryChange(cat)}
-                disabled={isEmpty && !isActive}
-                className={cn(
-                  "min-h-11 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200",
-                  isActive
-                    ? "bg-[image:var(--gradient-primary)] text-primary-foreground shadow-[var(--shadow-button)] scale-105"
-                    : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80",
-                  isEmpty && !isActive && "cursor-not-allowed",
-                )}
-              >
-                {CATEGORY_LABELS[cat]}
-                <CountBadge count={counts[cat] || 0} active={isActive} />
-              </button>
-            );
-          })}
-        </div>
+        <FilterTabs
+          ariaLabel={a11yT("filterByCategory")}
+          options={categoryOptions}
+          value={activeCategory}
+          onChange={onCategoryChange}
+        />
       </div>
     );
   },

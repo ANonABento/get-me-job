@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ClipboardList,
   Copy,
@@ -26,6 +19,7 @@ import { TimeAgo } from "@/components/format/time-ago";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FilterTabs } from "@/components/ui/filter-tabs";
 import {
   Dialog,
   DialogContent,
@@ -91,6 +85,14 @@ interface MigrationSummary {
 
 type AnswerSort = "most_used" | "newest" | "alpha";
 type SourceFilter = "all" | AnswerBankSource;
+type AnswerTypeFilter = AnswerComponentType | "all";
+
+const SOURCE_FILTER_LABELS: Record<SourceFilter, string> = {
+  all: "All sources",
+  manual: "Manual",
+  extension: "From extension",
+  curated: "Curated",
+};
 
 const EMPTY_FORM: AnswerFormState = {
   question: "",
@@ -133,9 +135,7 @@ export function BankAnswersTab({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [activeType, setActiveType] = useState<AnswerComponentType | "all">(
-    "all",
-  );
+  const [activeType, setActiveType] = useState<AnswerTypeFilter>("all");
   const [activeSource, setActiveSource] = useState<SourceFilter>("all");
   const [sort, setSort] = useState<AnswerSort>("most_used");
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -257,16 +257,6 @@ export function BankAnswersTab({
       return b.timesUsed - a.timesUsed;
     });
   }, [activeSource, activeType, answers, query, sort]);
-
-  const stats = useMemo(() => {
-    const totalUses = answers.reduce((sum, entry) => sum + entry.timesUsed, 0);
-    const sourceCount = new Set(
-      answers
-        .map((entry) => entry.sourceCompany || entry.sourceUrl)
-        .filter(Boolean),
-    ).size;
-    return { totalUses, sourceCount };
-  }, [answers]);
 
   const typeCounts = useMemo(() => {
     const counts: Record<AnswerComponentType, number> = {
@@ -518,24 +508,31 @@ export function BankAnswersTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onAddAnswerHandleChange]);
 
-  return (
-    <div className="space-y-6">
-      <Suspense
-        fallback={
-          <section className="grid gap-3 md:grid-cols-3">
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-          </section>
-        }
-      >
-        <section className="grid gap-3 md:grid-cols-3">
-          <AnswerStat label="Saved answers" value={answers.length} />
-          <AnswerStat label="Known sources" value={stats.sourceCount} />
-          <AnswerStat label="Autofill uses" value={stats.totalUses} />
-        </section>
-      </Suspense>
+  const sourceFilterOptions = [
+    {
+      value: "all" as const,
+      label: SOURCE_FILTER_LABELS.all,
+      count: answers.length,
+    },
+    ...(["manual", "extension", "curated"] as const).map((source) => ({
+      value: source,
+      label: SOURCE_FILTER_LABELS[source],
+      count: sourceCounts[source],
+      disabled: sourceCounts[source] === 0,
+    })),
+  ];
+  const answerTypeOptions = [
+    { value: "all" as const, label: "All", count: answers.length },
+    ...ANSWER_COMPONENT_TYPES.map((type) => ({
+      value: type,
+      label: ANSWER_COMPONENT_LABELS[type],
+      count: typeCounts[type],
+      disabled: typeCounts[type] === 0,
+    })),
+  ];
 
+  return (
+    <div className="space-y-5">
       <Suspense fallback={<SkeletonCard />}>
         <section className="space-y-4">
           <CrossLinkBanner />
@@ -588,55 +585,18 @@ export function BankAnswersTab({
               <option value="alpha">A to Z</option>
             </select>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <AnswerTypeButton
-              active={activeSource === "all"}
-              count={answers.length}
-              onClick={() => setActiveSource("all")}
-            >
-              All sources
-            </AnswerTypeButton>
-            <AnswerTypeButton
-              active={activeSource === "manual"}
-              count={sourceCounts.manual}
-              onClick={() => setActiveSource("manual")}
-            >
-              Manual
-            </AnswerTypeButton>
-            <AnswerTypeButton
-              active={activeSource === "extension"}
-              count={sourceCounts.extension}
-              onClick={() => setActiveSource("extension")}
-            >
-              From extension
-            </AnswerTypeButton>
-            <AnswerTypeButton
-              active={activeSource === "curated"}
-              count={sourceCounts.curated}
-              onClick={() => setActiveSource("curated")}
-            >
-              Curated
-            </AnswerTypeButton>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <AnswerTypeButton
-              active={activeType === "all"}
-              count={answers.length}
-              onClick={() => setActiveType("all")}
-            >
-              All
-            </AnswerTypeButton>
-            {ANSWER_COMPONENT_TYPES.map((type) => (
-              <AnswerTypeButton
-                key={type}
-                active={activeType === type}
-                count={typeCounts[type]}
-                onClick={() => setActiveType(type)}
-              >
-                {ANSWER_COMPONENT_LABELS[type]}
-              </AnswerTypeButton>
-            ))}
-          </div>
+          <FilterTabs
+            ariaLabel="Filter answers by source"
+            options={sourceFilterOptions}
+            value={activeSource}
+            onChange={setActiveSource}
+          />
+          <FilterTabs
+            ariaLabel="Filter answers by type"
+            options={answerTypeOptions}
+            value={activeType}
+            onChange={setActiveType}
+          />
 
           {loading ? (
             <div className="grid gap-3 lg:grid-cols-2">
@@ -806,54 +766,6 @@ function MigrationBanner({
         </Button>
       </div>
     </div>
-  );
-}
-
-function AnswerStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className={cn(THEME_INTERACTIVE_SURFACE_CLASSES, "p-4")}>
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="mt-1 font-display text-2xl font-semibold tracking-tight">
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function AnswerTypeButton({
-  active,
-  count,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  count: number;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={count === 0 && !active}
-      className={cn(
-        "min-h-10 rounded-md px-3 text-sm font-medium transition-colors",
-        active
-          ? "bg-primary text-primary-foreground"
-          : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground",
-        count === 0 && !active && "cursor-not-allowed opacity-60",
-      )}
-    >
-      {children}
-      <span
-        className={cn(
-          "ml-2 inline-flex min-w-5 justify-center rounded-md px-1 text-xs",
-          active ? "bg-primary-foreground/20" : "bg-background",
-        )}
-      >
-        {count}
-      </span>
-    </button>
   );
 }
 

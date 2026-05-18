@@ -1800,7 +1800,7 @@ export function BankComponentsTab({
                         counts={categoryCounts}
                         controls={
                           <>
-                            <div className="flex items-center rounded-md bg-muted p-1">
+                            <div className="flex items-center gap-1 rounded-md bg-muted p-1">
                               <DisplayModeButton
                                 active={displayMode === "category"}
                                 onClick={() => {
@@ -1817,7 +1817,7 @@ export function BankComponentsTab({
                                 Source
                               </DisplayModeButton>
                             </div>
-                            <div className="flex items-center rounded-md bg-muted p-1">
+                            <div className="flex items-center gap-1 rounded-md bg-muted p-1">
                               <IconModeButton
                                 active={layoutMode === "grid"}
                                 onClick={() => setLayoutMode("grid")}
@@ -2125,12 +2125,10 @@ function DisplayModeButton({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        // P2.5: inactive state gets a subtle bordered pill (not bare text)
-        // so users can tell the inactive option is also a clickable peer.
-        "min-h-8 rounded-md border px-3 text-sm font-medium transition-colors",
+        "min-h-9 rounded-md px-3 text-sm font-medium transition-colors",
         active
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-border/60 text-muted-foreground hover:bg-background/70 hover:text-foreground",
+          ? "bg-ink text-paper shadow-[var(--shadow-button)]"
+          : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
       )}
     >
       {children}
@@ -2156,9 +2154,9 @@ function IconModeButton({
       aria-label={label}
       title={label}
       className={cn(
-        "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
+        "flex h-9 w-9 items-center justify-center rounded-md transition-colors",
         active
-          ? "bg-primary text-primary-foreground"
+          ? "bg-ink text-paper shadow-[var(--shadow-button)]"
           : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
       )}
     >

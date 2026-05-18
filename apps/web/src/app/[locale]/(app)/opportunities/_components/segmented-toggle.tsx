@@ -24,7 +24,7 @@ export function SegmentedToggle<T extends string>({
 }: SegmentedToggleProps<T>) {
   return (
     <div
-      className="flex items-center rounded-md bg-muted p-1"
+      className="flex items-center gap-1 rounded-md bg-muted p-1"
       role="group"
       aria-label={ariaLabel}
     >
@@ -41,7 +41,7 @@ export function SegmentedToggle<T extends string>({
             className={cn(
               "inline-flex min-h-9 items-center justify-center rounded-md px-3 text-sm font-medium transition-colors",
               isActive
-                ? "bg-primary text-primary-foreground"
+                ? "bg-ink text-paper shadow-[var(--shadow-button)]"
                 : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
             )}
           >
