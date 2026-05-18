@@ -10,7 +10,6 @@ import { EvalHealthSection } from "@/components/settings/eval-health-section";
 import { GmailAutoStatusSection } from "@/components/settings/gmail-auto-status-section";
 import { GoogleIntegration } from "@/components/settings/google-integration";
 import { HelpCards } from "@/components/settings/help-cards";
-import { KanbanLanesSection } from "@/components/settings/kanban-lanes-section";
 import { LanguageSection } from "@/components/settings/language-section";
 import { LLMProviderConfig } from "@/components/settings/llm-provider-config";
 import {
@@ -116,7 +115,6 @@ export default function SettingsPage() {
               <GoogleIntegration />
               <GmailAutoStatusSection />
               <OpportunityReviewSection />
-              <KanbanLanesSection />
             </section>
 
             <section

@@ -403,12 +403,9 @@ export default function OpportunitiesPage({
     await archiveOpportunity({ opportunity });
   }
 
-  async function handleShowKanbanLane(lane: KanbanLaneId) {
+  async function handleKanbanLanesChange(nextLanes: readonly KanbanLaneId[]) {
     const previousVisibleLanes = visibleKanbanLanes;
-    const nextVisibleLanes = normalizeKanbanVisibleLanes([
-      ...visibleKanbanLanes,
-      lane,
-    ]);
+    const nextVisibleLanes = normalizeKanbanVisibleLanes(nextLanes);
 
     setVisibleKanbanLanes(nextVisibleLanes);
 
@@ -539,7 +536,9 @@ export default function OpportunitiesPage({
                   onStatusChange={(opportunityId, status) =>
                     void handleStatusChange(opportunityId, status)
                   }
-                  onShowLane={(lane) => void handleShowKanbanLane(lane)}
+                  onVisibleLanesChange={(lanes) =>
+                    void handleKanbanLanesChange(lanes)
+                  }
                 />
               </div>
             )}
@@ -547,7 +546,7 @@ export default function OpportunitiesPage({
         ) : (
           <>
             <div
-              className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between"
+              className="flex flex-col gap-3 xl:flex-row xl:items-center"
               data-testid="opportunities-filters"
             >
               <div className="w-full sm:hidden">
@@ -577,7 +576,7 @@ export default function OpportunitiesPage({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="hidden sm:block">
+              <div className="hidden min-w-0 sm:block xl:flex-none">
                 <StatusTabs
                   ariaLabel={t("filters.status")}
                   options={tabOptions}
@@ -593,7 +592,7 @@ export default function OpportunitiesPage({
                 />
               </div>
 
-              <div className="grid gap-2 sm:grid-cols-[minmax(200px,1fr)_180px] xl:w-[460px]">
+              <div className="grid w-full min-w-0 gap-2 sm:grid-cols-[minmax(220px,1fr)_180px] xl:flex-1">
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
                   <Input

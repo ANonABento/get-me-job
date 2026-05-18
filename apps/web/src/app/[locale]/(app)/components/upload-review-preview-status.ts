@@ -38,7 +38,7 @@ export function getUploadReviewPreviewStatus(input: {
     return {
       kind,
       message:
-        "PDF preview expired. Re-upload to preview the source again. Parsed components are still editable.",
+        "PDF preview appears in the center pane. If it cannot load, re-upload to refresh the source preview.",
     };
   }
 

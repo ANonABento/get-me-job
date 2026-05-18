@@ -296,16 +296,27 @@ describe("ChunkCard", () => {
     );
   });
 
-  it("should show high confidence badge when score >= 0.9", () => {
+  it("does not surface a confidence chip at all when score is high (P1.4)", () => {
+    // High-confidence rows should not carry a chip — the chip is a flag, not
+    // a decoration. The audit's complaint was "every row says 90% green" so
+    // the green chip got demoted; only warning/destructive variants render.
     const entry = makeBankEntry({ confidenceScore: 0.95 });
     render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
-    expect(screen.getByText("High confidence")).toBeInTheDocument();
+    expect(screen.queryByText(/High confidence/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Medium confidence/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Low confidence/i)).not.toBeInTheDocument();
   });
 
-  it("should not show high confidence badge when score < 0.9", () => {
-    const entry = makeBankEntry({ confidenceScore: 0.7 });
+  it("shows a medium-confidence chip when 0.7 <= score < 0.9 (P1.4)", () => {
+    const entry = makeBankEntry({ confidenceScore: 0.8 });
     render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
-    expect(screen.queryByText("High confidence")).not.toBeInTheDocument();
+    expect(screen.getByText("Medium confidence")).toBeInTheDocument();
+  });
+
+  it("shows a low-confidence chip when score < 0.7 (P1.4)", () => {
+    const entry = makeBankEntry({ confidenceScore: 0.5 });
+    render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
+    expect(screen.getByText("Low confidence")).toBeInTheDocument();
   });
 
   it("should expand on click and show content fields", () => {
@@ -539,17 +550,55 @@ describe("ChunkCard", () => {
     expect(onReorderChild).toHaveBeenCalledWith(entry, "child-2", "up");
   });
 
-  it("should hide source document attribution outside dev/debug mode", () => {
-    const entry = makeBankEntry({ sourceDocumentId: "resume-2024.pdf" });
-    render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
-    expect(screen.queryByText("from resume-2024.pdf")).not.toBeInTheDocument();
+  it("renders the source filename (not the raw UUID) when a filename map is provided (P1.5)", () => {
+    const entry = makeBankEntry({ sourceDocumentId: "doc-uuid-123" });
+    render(
+      <ChunkCard
+        entry={entry}
+        onUpdate={vi.fn()}
+        onDelete={vi.fn()}
+        sourceFilenames={new Map([["doc-uuid-123", "KevinJiang_Resume.pdf"]])}
+      />,
+    );
+    expect(screen.getByText("from KevinJiang_Resume.pdf")).toBeInTheDocument();
+    expect(screen.queryByText(/doc-uuid-123/)).not.toBeInTheDocument();
   });
 
-  it("should show source document attribution in debug mode", () => {
+  it("falls back to 'imported file' when the filename map doesn't have the entry's sourceDocumentId (P1.5)", () => {
+    const entry = makeBankEntry({ sourceDocumentId: "doc-uuid-999" });
+    render(
+      <ChunkCard
+        entry={entry}
+        onUpdate={vi.fn()}
+        onDelete={vi.fn()}
+        sourceFilenames={new Map()}
+      />,
+    );
+    expect(screen.getByText("from imported file")).toBeInTheDocument();
+    expect(screen.queryByText(/doc-uuid-999/)).not.toBeInTheDocument();
+  });
+
+  it("does not expose the raw sourceDocumentId on the DOM in non-debug mode (P1.5)", () => {
+    const entry = makeBankEntry({ sourceDocumentId: "doc-uuid-debug" });
+    const { container, unmount } = render(
+      <ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />,
+    );
+    expect(
+      container.querySelector('[data-source-id="doc-uuid-debug"]'),
+    ).toBeNull();
+    unmount();
+  });
+
+  it("exposes the raw sourceDocumentId on `data-source-id` when debug mode is on (P1.5)", () => {
     window.history.pushState({}, "", "/bank?debug=1");
-    const entry = makeBankEntry({ sourceDocumentId: "resume-2024.pdf" });
-    render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
-    expect(screen.getByText("from resume-2024.pdf")).toBeInTheDocument();
+    const entry = makeBankEntry({ sourceDocumentId: "doc-uuid-debug" });
+    const { container, unmount } = render(
+      <ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />,
+    );
+    expect(
+      container.querySelector('[data-source-id="doc-uuid-debug"]'),
+    ).toBeInTheDocument();
+    unmount();
     window.history.pushState({}, "", "/");
   });
 
@@ -676,7 +725,9 @@ describe("ChunkCard", () => {
       },
     });
     render(<ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />);
-    expect(screen.getByText("+2 more")).toBeInTheDocument();
+    // P2.3 lowered the visible cap from 5 → 3; 7 techs - 3 shown = 4 in
+    // overflow.
+    expect(screen.getByText("+4 more")).toBeInTheDocument();
   });
 
   it("should render skill fields correctly in edit mode", () => {
@@ -776,5 +827,53 @@ describe("ChunkCard", () => {
     expect(
       container.querySelector('[data-entry-id="test-1"]'),
     ).toBeInTheDocument();
+  });
+
+  describe("drawer mode (P0.3)", () => {
+    it("calls onSelect instead of expanding when the card is clicked in drawer mode", () => {
+      const entry = makeBankEntry();
+      const onSelect = vi.fn();
+      const { container } = render(
+        <ChunkCard
+          entry={entry}
+          onUpdate={vi.fn()}
+          onDelete={vi.fn()}
+          onSelect={onSelect}
+        />,
+      );
+
+      const trigger = container.querySelector("button");
+      expect(trigger).toBeTruthy();
+      fireEvent.click(trigger as Element);
+
+      expect(onSelect).toHaveBeenCalledTimes(1);
+      // The card must not have expanded inline — the bullets-list region
+      // only renders when local expansion is on.
+      expect(container.textContent).not.toMatch(/Bullet components/i);
+    });
+
+    it("does not render the chevron toggle when onSelect is provided", () => {
+      const entry = makeBankEntry();
+      const { container, rerender } = render(
+        <ChunkCard entry={entry} onUpdate={vi.fn()} onDelete={vi.fn()} />,
+      );
+      // Baseline: chevron is present when there's no drawer wiring.
+      expect(container.querySelectorAll("svg").length).toBeGreaterThan(0);
+      const baselineSvgCount = container.querySelectorAll("svg").length;
+
+      rerender(
+        <ChunkCard
+          entry={entry}
+          onUpdate={vi.fn()}
+          onDelete={vi.fn()}
+          onSelect={vi.fn()}
+        />,
+      );
+      // In drawer mode the trailing chevron disappears, so the SVG count
+      // drops by one (the chevron-down icon).
+      expect(container.querySelectorAll("svg").length).toBeLessThan(
+        baselineSvgCount,
+      );
+    });
   });
 });

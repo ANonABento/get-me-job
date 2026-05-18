@@ -28,7 +28,7 @@ describe("getUploadReviewPreviewStatus", () => {
     );
   });
 
-  it("keeps PDF expired copy source-specific", () => {
+  it("uses neutral PDF preview copy", () => {
     const status = getUploadReviewPreviewStatus({
       filename: "resume.pdf",
       mimeType: "application/pdf",
@@ -36,7 +36,7 @@ describe("getUploadReviewPreviewStatus", () => {
 
     expect(status.kind).toBe("pdf");
     expect(status.message).toBe(
-      "PDF preview expired. Re-upload to preview the source again. Parsed components are still editable.",
+      "PDF preview appears in the center pane. If it cannot load, re-upload to refresh the source preview.",
     );
   });
 });

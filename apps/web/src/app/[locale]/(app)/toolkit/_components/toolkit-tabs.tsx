@@ -4,12 +4,8 @@ import { Suspense, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Mail, DollarSign, FileText, MessageSquareReply } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MonoCap } from "@/components/editorial";
-import {
-  PagePanel,
-  PagePanelHeader,
-  StandardEmptyState,
-} from "@/components/ui/page-layout";
+import { PagePanel, PagePanelHeader } from "@/components/ui/page-layout";
+import { OnboardingEmptyState } from "@/components/ui/empty-states";
 import { EmailTemplatesPane } from "./email-templates-pane";
 import { SalaryResearchPane } from "./salary-research-pane";
 
@@ -34,13 +30,6 @@ const TAB_ICONS: Record<ToolkitTabId, typeof Mail> = {
   salary: DollarSign,
   "cover-letter": FileText,
   recruiter: MessageSquareReply,
-};
-
-const TAB_SECTION_LABEL: Record<ToolkitTabId, string> = {
-  email: "01 · Outreach",
-  salary: "02 · Compensation",
-  "cover-letter": "03 · Letters",
-  recruiter: "04 · Inbox",
 };
 
 function normalizeTab(value: string | null | undefined): ToolkitTabId {
@@ -72,9 +61,13 @@ function ToolkitTabsInner() {
   );
 
   return (
-    <div className="space-y-6">
-      <div role="tablist" aria-label="Toolkit" className="border-b border-rule">
-        <div className="flex flex-wrap gap-1">
+    <div className="space-y-4">
+      <PagePanel className="!p-2">
+        <div
+          role="tablist"
+          aria-label="Toolkit"
+          className="flex flex-wrap gap-1"
+        >
           {TAB_IDS.map((id) => {
             const Icon = TAB_ICONS[id];
             const isActive = id === activeTab;
@@ -89,34 +82,27 @@ function ToolkitTabsInner() {
                 data-tab={id}
                 onClick={() => setTab(id)}
                 className={cn(
-                  "relative flex min-h-11 items-center gap-2 rounded-t-md px-4 py-2.5 text-sm font-medium transition-colors",
+                  "relative flex min-h-10 items-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium transition-colors",
                   isActive
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
                 <Icon className="h-4 w-4" aria-hidden />
                 {TAB_LABELS[id]}
-                {isActive && (
-                  <span
-                    aria-hidden
-                    className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-primary"
-                  />
-                )}
               </button>
             );
           })}
         </div>
-      </div>
+      </PagePanel>
 
       <div
         id={`toolkit-pane-${activeTab}`}
         role="tabpanel"
         aria-labelledby={`toolkit-tab-${activeTab}`}
         data-pane={activeTab}
-        className="space-y-4"
+        className="min-w-0"
       >
-        <MonoCap>{TAB_SECTION_LABEL[activeTab]}</MonoCap>
         {activeTab === "email" && <EmailTemplatesPane />}
         {activeTab === "salary" && <SalaryResearchPane />}
         {activeTab === "cover-letter" && <ComingSoonPane id="cover-letter" />}
@@ -137,10 +123,34 @@ function ComingSoonPane({ id }: { id: ToolkitTabId }) {
   return (
     <PagePanel>
       <PagePanelHeader title={label} icon={Icon} className="mb-4" />
-      <StandardEmptyState
+      <OnboardingEmptyState
         icon={Icon}
+        illustrationName={
+          id === "cover-letter" ? "studio-zero" : "toolkit-recruiter-empty"
+        }
         title="Coming soon"
         description={description}
+        steps={[
+          {
+            icon: Icon,
+            label: "Bring the draft",
+            description:
+              id === "cover-letter"
+                ? "Start from Studio's existing letter workflow."
+                : "Paste the recruiter note you need to answer.",
+          },
+          {
+            icon: MessageSquareReply,
+            label: "Match your voice",
+            description: "Reuse saved answers and profile details.",
+          },
+          {
+            icon: FileText,
+            label: "Send clean copy",
+            description: "Review the final text before it leaves Slothing.",
+          },
+        ]}
+        className="min-h-[420px]"
       />
     </PagePanel>
   );

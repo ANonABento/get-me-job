@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import {
   afterEach,
@@ -43,7 +43,7 @@ describe("AtsScannerPanel", () => {
     vi.unstubAllGlobals();
   });
 
-  it("renders the scanner panel + history panel + opportunity picker fallback", async () => {
+  it("renders scan and history views with the opportunity picker fallback", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.startsWith("/api/opportunities")) {
@@ -61,9 +61,7 @@ describe("AtsScannerPanel", () => {
     expect(
       screen.getByRole("heading", { name: /Scan a resume/i }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: /Scan history/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /History/i })).toBeInTheDocument();
     expect(
       screen.getByText(/Score against an existing opportunity/i),
     ).toBeInTheDocument();
@@ -75,6 +73,11 @@ describe("AtsScannerPanel", () => {
         screen.getByText(/You have no saved opportunities yet/i),
       ).toBeInTheDocument();
     });
+
+    fireEvent.click(screen.getByRole("tab", { name: /History/i }));
+    expect(
+      screen.getByRole("heading", { name: /Scan history/i }),
+    ).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByText(/No scans yet/i)).toBeInTheDocument();
     });
@@ -114,6 +117,7 @@ describe("AtsScannerPanel", () => {
     vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
 
     renderPanel();
+    fireEvent.click(screen.getByRole("tab", { name: /History/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/Senior Engineer @ Acme/i)).toBeInTheDocument();

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useDropzone, type FileRejection } from "react-dropzone";
 import {
   AlertCircle,
@@ -100,6 +101,7 @@ interface ScannerFormProps {
     jdText: string;
     jdMatch: JdMatchResult | null;
   }) => void;
+  resultActions?: ReactNode;
 }
 
 function completeProfile(profile: Partial<Profile>, rawText?: string): Profile {
@@ -255,6 +257,7 @@ export function ScannerForm({
   defaultJobText,
   hideSignupPromo = false,
   onScanComplete,
+  resultActions,
 }: ScannerFormProps = {}) {
   const a11yT = useA11yTranslations();
 
@@ -549,10 +552,11 @@ export function ScannerForm({
         <ReferralHint />
 
         {hideSignupPromo ? (
-          <div className="flex justify-center">
+          <div className="flex flex-wrap justify-center gap-2">
             <Button variant="outline" onClick={handleReset}>
               Scan another resume
             </Button>
+            {resultActions}
           </div>
         ) : (
           <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-8 text-center">

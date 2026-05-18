@@ -20,11 +20,9 @@ import {
   LineChart,
   Zap,
   Download,
-  ChevronDown,
   Printer,
 } from "lucide-react";
 import dynamic from "next/dynamic";
-import { ExtensionInstallButtons } from "@/components/marketing/extension-install-buttons";
 import { AnalyticsSkeleton } from "@/components/skeletons/analytics-skeleton";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,7 +33,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { TimeAgo } from "@/components/format/time-ago";
 import { formatDateAbsolute, nowDate } from "@/lib/format/time";
 import { pluralize } from "@/lib/text/pluralize";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
@@ -48,7 +45,6 @@ import {
   PagePanel,
   PagePanelHeader,
   pageGridClasses,
-  StandardEmptyState,
 } from "@/components/ui/page-layout";
 import {
   SkeletonCard,
@@ -561,82 +557,6 @@ export default function AnalyticsPage() {
                       but aren&apos;t in your profile.
                     </p>
                   </div>
-                )}
-              </PagePanel>
-            </div>
-          </Suspense>
-
-          {/* Recent Activity */}
-          <Suspense fallback={<SkeletonCard />}>
-            <div data-testid="analytics-recent">
-              <PagePanel>
-                <PagePanelHeader
-                  title={a11yT("recentOpportunityActivity")}
-                  icon={Clock}
-                />
-
-                {analytics.recent.jobs.length > 0 ? (
-                  <div className="space-y-3">
-                    {analytics.recent.jobs.map((job) => {
-                      const statusConfig =
-                        STATUS_CONFIG[job.status] || STATUS_CONFIG.saved;
-                      return (
-                        <Link
-                          key={job.id}
-                          href={`/opportunities?highlight=${job.id}`}
-                          className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
-                        >
-                          <div className="flex items-center gap-4">
-                            <div
-                              className={`p-2 rounded-lg ${statusConfig.color}/10`}
-                            >
-                              <statusConfig.icon
-                                className={`h-4 w-4 ${statusConfig.color.replace("bg-", "text-")}`}
-                              />
-                            </div>
-                            <div>
-                              <p className="font-medium">{job.title}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {job.company}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}/10 ${statusConfig.color.replace("bg-", "text-")}`}
-                            >
-                              {statusConfig.label}
-                            </span>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              <TimeAgo date={job.createdAt} />
-                            </p>
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <StandardEmptyState
-                    icon={Briefcase}
-                    title={a11yT("noOpportunitiesTrackedYet")}
-                    action={
-                      <div className="flex flex-col items-center gap-3">
-                        <p className="max-w-sm text-center text-sm text-muted-foreground">
-                          Install the extension to start capturing roles.
-                        </p>
-                        <ExtensionInstallButtons
-                          variant="compact"
-                          onlyDetected
-                        />
-                        <Button asChild variant="outline">
-                          <Link href="/opportunities">
-                            Add your first opportunity
-                          </Link>
-                        </Button>
-                      </div>
-                    }
-                    className="min-h-64"
-                  />
                 )}
               </PagePanel>
             </div>

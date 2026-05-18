@@ -32,7 +32,6 @@ import { useToast } from "@/components/ui/toast";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import { readJsonResponse } from "@/lib/http";
 import { extractUnlockedFromResponse } from "@/lib/streak/client";
-import { getResponsiveDetailGridClass } from "../../shared-layout-utils";
 import { DuplicateSendWarning } from "../../emails/_components/duplicate-send-warning";
 import { findRecentDuplicateSend } from "../../emails/_data/duplicate-send";
 import {
@@ -778,11 +777,11 @@ export function EmailTemplatesPane() {
       <div
         className={
           selectedType
-            ? getResponsiveDetailGridClass(true)
-            : getResponsiveDetailGridClass(false, "comfortable")
+            ? "grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,0.75fr)]"
+            : "space-y-4"
         }
       >
-        <div className="space-y-6">
+        <div className="space-y-4">
           <PagePanel>
             <PagePanelHeader
               title={a11yT("chooseTemplate")}
@@ -823,7 +822,7 @@ export function EmailTemplatesPane() {
             />
             <Suspense fallback={<EmailTemplateFormSkeleton />}>
               <div data-testid="emails-template-form">
-                <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   {TEMPLATE_ORDER.map((type) => {
                     const config = TEMPLATE_CONFIG[type];
                     const Icon = config.icon;
@@ -836,18 +835,18 @@ export function EmailTemplatesPane() {
                           setSelectedType(type);
                           setGeneratedEmail(null);
                         }}
-                        className={`flex items-start gap-4 rounded-lg border p-4 text-left transition-all ${
+                        className={`flex min-h-[6.5rem] items-start gap-3 rounded-md border p-4 text-left transition-all ${
                           isSelected
                             ? "border-primary bg-primary/5"
                             : "hover:border-primary/50 hover:bg-muted/50"
                         }`}
                       >
                         <div
-                          className={`p-2 rounded-lg bg-muted ${config.color}`}
+                          className={`rounded-md bg-muted p-2 ${config.color}`}
                         >
                           <Icon className="h-5 w-5" />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="font-medium">{config.title}</p>
                           <p className="text-sm text-muted-foreground">
                             {config.description}
@@ -896,7 +895,7 @@ export function EmailTemplatesPane() {
                 Preview
               </h2>
               {generatedEmail && (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -950,12 +949,11 @@ export function EmailTemplatesPane() {
                   ) : null}
                 </Suspense>
 
-                <div className="flex gap-2 pt-2">
+                <div className="grid gap-2 pt-2 sm:grid-cols-3">
                   <Button
                     variant="outline"
                     onClick={copyToClipboard}
                     disabled={copied}
-                    className="flex-1"
                   >
                     {copied ? (
                       <>
@@ -969,11 +967,7 @@ export function EmailTemplatesPane() {
                       </>
                     )}
                   </Button>
-                  <Button
-                    onClick={openInMailClient}
-                    variant="outline"
-                    className="flex-1"
-                  >
+                  <Button onClick={openInMailClient} variant="outline">
                     <Send className="h-4 w-4 mr-2" />
                     Mail App
                   </Button>
@@ -1047,7 +1041,7 @@ function EmailActionsSkeleton() {
 
 function EmailTemplateFormSkeleton() {
   return (
-    <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
       {Array.from({ length: 6 }).map((_, index) => (
         <div key={index} className="rounded-lg border p-4">
           <div className="flex items-start gap-4">

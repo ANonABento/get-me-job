@@ -33,7 +33,12 @@ const nextConfig = {
   },
   experimental: {
     instrumentationHook: true,
-    serverComponentsExternalPackages: ['better-sqlite3'],
+    // `pdfjs-dist` must be treated as an external Node module — its top-of-file
+    // `Object.defineProperty(module.exports, '__esModule', ...)` blows up when
+    // Next.js's (rsc) webpack layer hands it a non-object `module.exports`.
+    // Symptom: `TypeError: Object.defineProperty called on non-object` inside
+    // any server route that imports it.
+    serverComponentsExternalPackages: ['better-sqlite3', 'pdfjs-dist'],
   },
   images: {
     remotePatterns: [

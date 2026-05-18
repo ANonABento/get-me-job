@@ -50,7 +50,7 @@ describe("KanbanBoard", () => {
         opportunities={[baseOpportunity]}
         visibleLanes={["saved"]}
         onStatusChange={vi.fn()}
-        onShowLane={vi.fn()}
+        onVisibleLanesChange={vi.fn()}
       />,
     );
 
@@ -82,7 +82,7 @@ describe("KanbanBoard", () => {
         ]}
         visibleLanes={["closed"]}
         onStatusChange={vi.fn()}
-        onShowLane={vi.fn()}
+        onVisibleLanesChange={vi.fn()}
       />,
     );
 
@@ -101,7 +101,7 @@ describe("KanbanBoard", () => {
         opportunities={[baseOpportunity]}
         visibleLanes={["saved", "closed"]}
         onStatusChange={onStatusChange}
-        onShowLane={vi.fn()}
+        onVisibleLanesChange={vi.fn()}
       />,
     );
 
@@ -134,8 +134,8 @@ describe("KanbanBoard", () => {
     expect(onResolve).toHaveBeenCalledWith("dismissed");
   });
 
-  it("lists hidden lanes with cards and exposes one-click reveal", () => {
-    const onShowLane = vi.fn();
+  it("shows hidden lane controls on the board", () => {
+    const onVisibleLanesChange = vi.fn();
     renderWithIntl(
       <KanbanBoard
         opportunities={[
@@ -149,17 +149,16 @@ describe("KanbanBoard", () => {
         ]}
         visibleLanes={["saved"]}
         onStatusChange={vi.fn()}
-        onShowLane={onShowLane}
+        onVisibleLanesChange={onVisibleLanesChange}
       />,
     );
 
     expect(
       screen.queryByRole("region", { name: "Pending opportunities" }),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /1 in hidden lanes/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Show" }));
+    fireEvent.click(screen.getByRole("button", { name: /Pending\s+1/i }));
 
-    expect(onShowLane).toHaveBeenCalledWith("pending");
+    expect(onVisibleLanesChange).toHaveBeenCalledWith(["pending", "saved"]);
   });
 
   it("renders only configured visible lanes", () => {
@@ -168,7 +167,7 @@ describe("KanbanBoard", () => {
         opportunities={[baseOpportunity]}
         visibleLanes={["saved"]}
         onStatusChange={vi.fn()}
-        onShowLane={vi.fn()}
+        onVisibleLanesChange={vi.fn()}
       />,
     );
 
@@ -193,7 +192,7 @@ describe("KanbanBoard", () => {
         opportunities={opportunities}
         visibleLanes={["saved"]}
         onStatusChange={vi.fn()}
-        onShowLane={vi.fn()}
+        onVisibleLanesChange={vi.fn()}
       />,
     );
 

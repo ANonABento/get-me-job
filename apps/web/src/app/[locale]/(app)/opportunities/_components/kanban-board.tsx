@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { DragEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { Eye, GripVertical } from "lucide-react";
+import { Columns3, GripVertical, RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { StatusPill } from "@/components/opportunities/status-pill";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,7 @@ interface KanbanBoardProps {
   opportunities: Opportunity[];
   visibleLanes: readonly KanbanLaneId[];
   onStatusChange: (opportunityId: string, status: OpportunityStatus) => void;
-  onShowLane: (lane: KanbanLaneId) => void;
+  onVisibleLanesChange: (lanes: readonly KanbanLaneId[]) => void;
 }
 
 interface ClosedMove {
@@ -54,11 +54,10 @@ export function KanbanBoard({
   opportunities,
   visibleLanes,
   onStatusChange,
-  onShowLane,
+  onVisibleLanesChange,
 }: KanbanBoardProps) {
   const locale = useLocale();
   const t = useTranslations("opportunities.kanbanBoard");
-  const commonT = useTranslations("common");
   const normalizedVisibleLanes = normalizeKanbanVisibleLanes(visibleLanes);
   const groupedOpportunities = useMemo(
     () => groupOpportunitiesByLane(opportunities),
@@ -68,22 +67,22 @@ export function KanbanBoard({
     string | null
   >(null);
   const [closedMove, setClosedMove] = useState<ClosedMove | null>(null);
-  const [isHiddenPanelOpen, setIsHiddenPanelOpen] = useState(false);
 
-  const hiddenLanes = KANBAN_LANE_IDS.filter(
-    (lane) => !normalizedVisibleLanes.includes(lane),
-  );
-  const hiddenLaneSummaries = hiddenLanes
-    .map((lane) => ({
-      lane,
-      label: KANBAN_LANE_LABELS[lane],
-      opportunities: groupedOpportunities[lane],
-    }))
-    .filter((summary) => summary.opportunities.length > 0);
-  const hiddenOpportunityCount = hiddenLaneSummaries.reduce(
-    (total, summary) => total + summary.opportunities.length,
-    0,
-  );
+  const canReset =
+    normalizedVisibleLanes.length !== DEFAULT_KANBAN_VISIBLE_LANES.length ||
+    normalizedVisibleLanes.some(
+      (lane, index) => lane !== DEFAULT_KANBAN_VISIBLE_LANES[index],
+    );
+
+  function toggleLane(lane: KanbanLaneId) {
+    const isVisible = normalizedVisibleLanes.includes(lane);
+    if (isVisible && normalizedVisibleLanes.length === 1) return;
+
+    const nextVisibleLanes = isVisible
+      ? normalizedVisibleLanes.filter((visibleLane) => visibleLane !== lane)
+      : normalizeKanbanVisibleLanes([...normalizedVisibleLanes, lane]);
+    onVisibleLanesChange(nextVisibleLanes);
+  }
 
   function handleDragStart(
     event: DragEvent<HTMLElement>,
@@ -135,8 +134,58 @@ export function KanbanBoard({
       aria-label={t("region")}
       aria-roledescription={t("roleDescription")}
     >
+      <div className="flex flex-col gap-3 rounded-md border border-rule bg-paper px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-ink-3">
+            <Columns3 className="h-3.5 w-3.5" aria-hidden />
+            Columns
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {KANBAN_LANE_IDS.map((lane) => {
+              const isVisible = normalizedVisibleLanes.includes(lane);
+              const isLastVisible =
+                isVisible && normalizedVisibleLanes.length === 1;
+
+              return (
+                <Button
+                  key={lane}
+                  type="button"
+                  variant={isVisible ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => toggleLane(lane)}
+                  disabled={isLastVisible}
+                  aria-pressed={isVisible}
+                >
+                  {KANBAN_LANE_LABELS[lane]}
+                  <Badge variant="secondary" className="ml-1.5">
+                    {groupedOpportunities[lane].length}
+                  </Badge>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() =>
+            onVisibleLanesChange([...DEFAULT_KANBAN_VISIBLE_LANES])
+          }
+          disabled={!canReset}
+        >
+          <RotateCcw className="mr-2 h-3.5 w-3.5" />
+          Reset
+        </Button>
+      </div>
+
       <div className="overflow-x-auto pb-4" tabIndex={0}>
-        <div className="flex min-w-max gap-4">
+        <div
+          className="grid min-w-full gap-3"
+          style={{
+            gridTemplateColumns: `repeat(${normalizedVisibleLanes.length}, minmax(236px, 1fr))`,
+          }}
+        >
           {normalizedVisibleLanes.map((lane) => {
             const laneOpportunities = groupedOpportunities[lane];
 
@@ -144,7 +193,7 @@ export function KanbanBoard({
               <section
                 key={lane}
                 aria-label={t("laneAria", { lane: KANBAN_LANE_LABELS[lane] })}
-                className="flex min-h-[560px] w-[300px] shrink-0 flex-col rounded-lg border bg-card/70 p-3 lg:w-[320px]"
+                className="flex min-h-[560px] min-w-0 flex-col rounded-md border bg-card/70 p-3"
                 onDragOver={(event) => {
                   event.preventDefault();
                   event.dataTransfer.dropEffect = "move";
@@ -173,59 +222,6 @@ export function KanbanBoard({
           })}
         </div>
       </div>
-
-      {hiddenOpportunityCount > 0 ? (
-        <div className="flex justify-end">
-          <div className="relative">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsHiddenPanelOpen((open) => !open)}
-              aria-expanded={isHiddenPanelOpen}
-            >
-              <Eye className="mr-2 h-4 w-4" />
-              {t("hidden", { count: hiddenOpportunityCount })}
-            </Button>
-            {isHiddenPanelOpen ? (
-              <div className="absolute right-0 z-20 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-lg border bg-popover p-3 text-popover-foreground shadow-lg">
-                <div className="space-y-3">
-                  {hiddenLaneSummaries.map((summary) => (
-                    <div
-                      key={summary.lane}
-                      className="flex items-start justify-between gap-3"
-                    >
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium">
-                          {t("hiddenSummary", {
-                            label: summary.label,
-                            count: summary.opportunities.length,
-                          })}
-                        </div>
-                        <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                          {summary.opportunities
-                            .map((opportunity) => opportunity.title)
-                            .join(", ")}
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          onShowLane(summary.lane);
-                          setIsHiddenPanelOpen(false);
-                        }}
-                      >
-                        {commonT("show")}
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
 
       <ClosedSubstateDialog
         move={closedMove}
@@ -284,7 +280,7 @@ function KanbanLaneCards({
       items={opportunities}
       getKey={getOpportunityKey}
       estimateSize={ESTIMATED_CARD_HEIGHT_KANBAN}
-      className="max-h-[60vh] flex-1"
+      className="-mr-2 max-h-[60vh] flex-1 pr-2"
       itemClassName="pb-3"
       renderItem={renderKanbanCard}
     />
@@ -367,7 +363,7 @@ function OpportunityKanbanCard({
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       className={cn(
-        "cursor-grab rounded-lg border bg-background p-3 shadow-sm transition hover:border-primary/30 hover:shadow-md active:cursor-grabbing",
+        "cursor-grab rounded-md border bg-background p-3 transition hover:border-primary/30 active:cursor-grabbing",
         isDragging && "opacity-50",
       )}
     >

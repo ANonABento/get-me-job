@@ -32,23 +32,32 @@ import {
   type SortOption,
 } from "@/components/bank/search-bar";
 import { ChunkCard } from "@/components/bank/chunk-card";
+import {
+  CATEGORY_FIELDS,
+  cleanContent,
+  FieldEditor,
+} from "@/components/bank/chunk-card";
 import { BulkActionBar } from "@/components/bank/bulk-action-bar";
 import { UploadOverlay } from "@/components/bank/upload-overlay";
 import { ErrorState, getErrorMessage } from "@/components/ui/error-state";
 import { BANK_CATEGORIES, type BankCategory, type BankEntry } from "@/types";
 import {
   AlertTriangle,
-  CheckCircle2,
   ChevronRight,
   Database,
+  Edit3,
   FileText,
   HardDrive,
   LayoutGrid,
   Loader2,
   Plus,
   Rows3,
+  Save,
   Sparkles,
+  Tag,
+  Trash2,
   Upload,
+  X,
 } from "lucide-react";
 import type { SourceDocument } from "@/lib/db/profile-bank";
 import { Badge } from "@/components/ui/badge";
@@ -1100,6 +1109,20 @@ export function BankComponentsTab({
         const reviewData = await reviewRes.json();
         const reviewEntries = (reviewData.entries || []) as BankEntry[];
         if (reviewEntries.length > 0) {
+          try {
+            window.localStorage.setItem(
+              "slothing:dev:last-import",
+              JSON.stringify({
+                documentId,
+                filename: uploadData.document?.filename || file.name,
+                mimeType: uploadData.document?.mimeType || file.type,
+                entryCount: reviewEntries.length,
+                importedAt: new Date().toISOString(),
+              }),
+            );
+          } catch {
+            // Dev-only convenience; blocked storage should not affect uploads.
+          }
           setActiveDocumentId(documentId);
           setUploadReview({
             documentId,
@@ -1631,10 +1654,10 @@ export function BankComponentsTab({
                 }
               }}
             >
-              <DialogContent className="max-h-[92vh] max-w-7xl overflow-hidden p-0">
+              <DialogContent className="max-h-[92vh] max-w-[min(98vw,104rem)] overflow-hidden p-0">
                 <DialogHeader className="border-b px-6 py-5">
                   <DialogTitle className="flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-success" />
+                    <FileText className="h-5 w-5 text-muted-foreground" />
                     {dialogsT("review.title")}
                   </DialogTitle>
                   <DialogDescription>
@@ -1645,7 +1668,11 @@ export function BankComponentsTab({
                         })
                       : ""}
                   </DialogDescription>
-                  {uploadReview ? (
+                  {uploadReview &&
+                  getUploadReviewPreviewStatus({
+                    filename: uploadReview.filename,
+                    mimeType: uploadReview.mimeType,
+                  }).kind !== "pdf" ? (
                     <div className="mt-3 rounded-md border border-border/70 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
                       {
                         getUploadReviewPreviewStatus({
@@ -1656,7 +1683,7 @@ export function BankComponentsTab({
                     </div>
                   ) : null}
                 </DialogHeader>
-                <div className="max-h-[68vh] overflow-hidden">
+                <div className="h-[72vh] overflow-hidden">
                   {uploadReview ? (
                     <UploadReviewEntries
                       entries={uploadReview.entries}
@@ -2528,6 +2555,36 @@ function ConfidenceBadge({ score }: { score: number }) {
   );
 }
 
+function compactReviewFieldLabel(label: string): string {
+  return label
+    .replace(/\s*\(one per line\)/i, "")
+    .replace(/^Project Name$/i, "Name")
+    .replace(/^Job Title$/i, "Title")
+    .replace(/^Skill Name$/i, "Name");
+}
+
+function getReviewListValue(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => String(item).trim())
+    .filter((item) => item.length > 0);
+}
+
+function getNewParsedChildren(
+  parsedChildren: BankEntry[],
+  existingChildren: BankEntry[],
+): BankEntry[] {
+  const existingDescriptions = new Set(
+    existingChildren.map((child) =>
+      normalizeReviewText(child.content.description),
+    ),
+  );
+  return parsedChildren.filter((child) => {
+    const description = normalizeReviewText(child.content.description);
+    return description && !existingDescriptions.has(description);
+  });
+}
+
 function UploadReviewEntries({
   entries,
   existingEntries,
@@ -2585,6 +2642,12 @@ function UploadReviewEntries({
   }, [existingEntries]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [attachParentId, setAttachParentId] = useState("");
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState<Record<string, unknown>>({});
+  const [editingBulletId, setEditingBulletId] = useState<string | null>(null);
+  const [bulletEditContent, setBulletEditContent] = useState<
+    Record<string, unknown>
+  >({});
   // Per-session "keep both" decisions. When a user keeps both copies of a
   // duplicate (P1.2), the warning panel is dismissed for that parsed entry
   // until the modal is re-opened.
@@ -2649,6 +2712,13 @@ function UploadReviewEntries({
     }
   }, [reviewItems, selectedId]);
 
+  useEffect(() => {
+    setEditingEntryId(null);
+    setEditContent({});
+    setEditingBulletId(null);
+    setBulletEditContent({});
+  }, [selectedId]);
+
   const selectedEntry =
     reviewItems.find((entry) => entry.id === selectedId) ??
     reviewItems[0] ??
@@ -2662,6 +2732,12 @@ function UploadReviewEntries({
   const duplicateEntries = selectedEntry
     ? (existingKeys.get(reviewDuplicateKey(selectedEntry)) ?? [])
     : [];
+  const duplicateExistingChildren = duplicateEntries[0]
+    ? getChildEntriesFor(duplicateEntries[0], existingEntries)
+    : [];
+  const newParsedChildren = duplicateEntries[0]
+    ? getNewParsedChildren(childEntries, duplicateExistingChildren)
+    : childEntries;
   const selectedWarnings = selectedEntry
     ? getReviewWarnings(selectedEntry, childEntries, duplicateEntries).filter(
         // P2.6: drop the standalone "Possible duplicate" warning when the
@@ -2691,6 +2767,56 @@ function UploadReviewEntries({
     },
     { bullets: 0, needsReview: 0, duplicates: 0 },
   );
+  const selectedFields = selectedEntry
+    ? CATEGORY_FIELDS[selectedEntry.category]
+    : [];
+  const selectedTechnologies = selectedEntry
+    ? getReviewListValue(selectedEntry.content.technologies)
+    : [];
+  const isEditingSelected = Boolean(
+    selectedEntry && editingEntryId === selectedEntry.id,
+  );
+  const selectedAttentionReason = selectedReviewReason
+    ? selectedReviewReason
+    : duplicateEntries.length > 0 && !keepBothIds.has(selectedEntry?.id ?? "")
+      ? newParsedChildren.length === 0
+        ? "Duplicate found: no new bullets"
+        : `Duplicate found: ${pluralize(newParsedChildren.length, "new bullet")}`
+      : (selectedWarnings[0] ?? null);
+
+  function beginEditSelected() {
+    if (!selectedEntry) return;
+    setEditingEntryId(selectedEntry.id);
+    setEditContent({ ...selectedEntry.content });
+  }
+
+  function saveSelectedEdit() {
+    if (!selectedEntry) return;
+    onUpdate(selectedEntry.id, cleanContent(editContent, selectedFields));
+    setEditingEntryId(null);
+    setEditContent({});
+  }
+
+  function cancelSelectedEdit() {
+    setEditingEntryId(null);
+    setEditContent({});
+  }
+
+  function beginBulletEdit(child: BankEntry) {
+    setEditingBulletId(child.id);
+    setBulletEditContent({ ...child.content });
+  }
+
+  function saveBulletEdit(child: BankEntry) {
+    onUpdate(child.id, cleanContent(bulletEditContent, CATEGORY_FIELDS.bullet));
+    setEditingBulletId(null);
+    setBulletEditContent({});
+  }
+
+  function cancelBulletEdit() {
+    setEditingBulletId(null);
+    setBulletEditContent({});
+  }
 
   if (entries.length === 0) {
     return (
@@ -2723,12 +2849,12 @@ function UploadReviewEntries({
           </Badge>
           {reviewSummary.needsReview > 0 ? (
             <Badge variant="warning" className="text-2xs">
-              {reviewSummary.needsReview} review
+              {reviewSummary.needsReview} needs review
             </Badge>
           ) : null}
           {reviewSummary.duplicates > 0 ? (
             <Badge variant="warning" className="text-2xs">
-              {reviewSummary.duplicates} dup
+              {reviewSummary.duplicates} duplicates
             </Badge>
           ) : null}
         </div>
@@ -2772,7 +2898,9 @@ function UploadReviewEntries({
                 ) : null}
                 <span>{Math.round((entry.confidenceScore ?? 0) * 100)}%</span>
                 {warnings.length > 0 ? (
-                  <span className="text-warning">{warnings.length} warn</span>
+                  <span className="text-warning">
+                    {pluralize(warnings.length, "issue")}
+                  </span>
                 ) : null}
               </div>
             </button>
@@ -2790,8 +2918,8 @@ function UploadReviewEntries({
         // On <lg the same DOM tree stacks vertically — components and document
         // get capped vertical bands so the review pane below stays usable.
         documentTabAvailable
-          ? "lg:grid-cols-[220px_minmax(0,1fr)_380px]"
-          : "lg:grid-cols-[minmax(0,1fr)_380px]",
+          ? "lg:grid-cols-[240px_minmax(560px,1fr)_minmax(460px,0.78fr)]"
+          : "lg:grid-cols-[minmax(0,1fr)_minmax(460px,0.78fr)]",
       )}
     >
       {/* Components list — left column on lg+, stacked top band on <lg. */}
@@ -2814,10 +2942,10 @@ function UploadReviewEntries({
           />
         </div>
       ) : null}
-      <section className="min-h-0 overflow-y-auto p-5">
+      <section className="min-h-0 overflow-y-auto bg-background p-5 pb-8">
         {selectedEntry ? (
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="font-mono text-xs uppercase tracking-[0.16em] text-muted-foreground">
                   Review component
@@ -2833,40 +2961,94 @@ function UploadReviewEntries({
                     onClick={() => handleViewInDocument(selectedEntry.id)}
                     className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                   >
-                    View in document ↗
+                    Jump to highlight ↗
                   </button>
                 ) : null}
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary">
-                  {CATEGORY_LABELS[selectedEntry.category]}
-                </Badge>
-                <Badge variant="success">
-                  {Math.round((selectedEntry.confidenceScore ?? 0) * 100)}%
-                  confidence
-                </Badge>
-                {childEntries.length > 0 ? (
-                  <Badge variant="outline">
-                    {childEntries.length} bullet components
+              <div className="flex flex-col items-start gap-2 sm:items-end">
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Badge variant="secondary">
+                    {CATEGORY_LABELS[selectedEntry.category]}
                   </Badge>
-                ) : null}
-                {selectedWarnings.map((warning) => (
-                  <Badge key={warning} variant="warning">
-                    {warning}
+                  <Badge variant="success">
+                    {Math.round((selectedEntry.confidenceScore ?? 0) * 100)}%
+                    confidence
                   </Badge>
-                ))}
+                  {childEntries.length > 0 ? (
+                    <Badge variant="outline">
+                      {pluralize(childEntries.length, "bullet")}
+                    </Badge>
+                  ) : null}
+                  {selectedWarnings.map((warning) => (
+                    <Badge key={warning} variant="warning">
+                      {warning}
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex flex-wrap justify-end gap-2">
+                  {isEditingSelected ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={cancelSelectedEdit}
+                      >
+                        <X className="mr-1.5 h-3.5 w-3.5" />
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={saveSelectedEdit}
+                      >
+                        <Save className="mr-1.5 h-3.5 w-3.5" />
+                        Save
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={beginEditSelected}
+                      >
+                        <Edit3 className="mr-1.5 h-3.5 w-3.5" />
+                        Edit
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => onDelete(selectedEntry.id)}
+                      >
+                        <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                        Delete
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
+            {selectedAttentionReason ? (
+              <div className="rounded-md border border-warning/35 bg-warning/10 px-3 py-2 text-sm">
+                <span className="font-medium text-warning">
+                  Needs attention:
+                </span>{" "}
+                <span className="text-muted-foreground">
+                  {selectedAttentionReason}
+                </span>
+              </div>
+            ) : null}
             {duplicateEntries.length > 0 &&
             !keepBothIds.has(selectedEntry.id) ? (
               <DuplicateResolutionPanel
                 parsedEntry={selectedEntry}
                 existingEntry={duplicateEntries[0]}
                 parsedChildren={childEntries}
-                existingChildren={getChildEntriesFor(
-                  duplicateEntries[0],
-                  existingEntries,
-                )}
+                existingChildren={duplicateExistingChildren}
                 onDiscard={() => onDelete(selectedEntry.id)}
                 onMergeChildren={() =>
                   onMergeChildren(
@@ -2947,13 +3129,194 @@ function UploadReviewEntries({
                 ))}
               </div>
             ) : null}
-            <ChunkCard
-              key={selectedEntry.id}
-              entry={selectedEntry}
-              onUpdate={onUpdate}
-              onDelete={onDelete}
-              childEntries={childEntries}
-            />
+            <div className="rounded-md border border-border bg-card">
+              <div className="border-b px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-display text-sm font-semibold tracking-tight">
+                    Details
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-4 p-4">
+                {isEditingSelected ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {selectedFields.map((field) => (
+                      <div
+                        key={field.key}
+                        className={
+                          field.type === "textarea" || field.type === "list"
+                            ? "sm:col-span-2"
+                            : undefined
+                        }
+                      >
+                        <FieldEditor
+                          field={{
+                            ...field,
+                            label: compactReviewFieldLabel(field.label),
+                          }}
+                          value={editContent[field.key]}
+                          onChange={(key, value) =>
+                            setEditContent((current) => ({
+                              ...current,
+                              [key]: value,
+                            }))
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {selectedFields
+                        .filter((field) => {
+                          if (
+                            field.key === "technologies" ||
+                            field.key === "highlights"
+                          ) {
+                            return false;
+                          }
+                          const value = selectedEntry.content[field.key];
+                          if (
+                            value === undefined ||
+                            value === null ||
+                            value === ""
+                          ) {
+                            return false;
+                          }
+                          if (Array.isArray(value) && value.length === 0) {
+                            return false;
+                          }
+                          return true;
+                        })
+                        .map((field) => {
+                          const value = selectedEntry.content[field.key];
+                          return (
+                            <div key={field.key} className="min-w-0">
+                              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                                {compactReviewFieldLabel(field.label)}
+                              </p>
+                              <p className="mt-1 break-words text-sm leading-relaxed">
+                                {Array.isArray(value)
+                                  ? value.map(String).join(", ")
+                                  : String(value)}
+                              </p>
+                            </div>
+                          );
+                        })}
+                    </div>
+
+                    {selectedTechnologies.length > 0 ? (
+                      <div>
+                        <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                          Technologies
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {selectedTechnologies.map((technology) => (
+                            <Badge key={technology} variant="secondary">
+                              {technology}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-md border border-border bg-card">
+              <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
+                <div>
+                  <p className="font-display text-sm font-semibold tracking-tight">
+                    Bullet points
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {pluralize(childEntries.length, "parsed bullet")}
+                  </p>
+                </div>
+              </div>
+              {childEntries.length > 0 ? (
+                <div className="divide-y divide-border">
+                  {childEntries.map((child, index) => {
+                    const isEditingBullet = editingBulletId === child.id;
+                    return (
+                      <div key={child.id} className="px-4 py-3">
+                        {isEditingBullet ? (
+                          <div className="space-y-3">
+                            <FieldEditor
+                              field={CATEGORY_FIELDS.bullet[0]}
+                              value={bulletEditContent.description}
+                              onChange={(key, value) =>
+                                setBulletEditContent((current) => ({
+                                  ...current,
+                                  [key]: value,
+                                }))
+                              }
+                            />
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={cancelBulletEdit}
+                              >
+                                <X className="mr-1.5 h-3.5 w-3.5" />
+                                Cancel
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => saveBulletEdit(child)}
+                              >
+                                <Save className="mr-1.5 h-3.5 w-3.5" />
+                                Save
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-start gap-3">
+                            <span className="mt-0.5 font-mono text-xs text-muted-foreground">
+                              {index + 1}
+                            </span>
+                            <p className="min-w-0 flex-1 text-sm leading-relaxed">
+                              {String(child.content.description ?? "")}
+                            </p>
+                            <div className="flex shrink-0 items-center gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => beginBulletEdit(child)}
+                                aria-label="Edit bullet"
+                              >
+                                <Edit3 className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                onClick={() => onDelete(child.id)}
+                                aria-label="Delete bullet"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-4 text-sm text-muted-foreground">
+                  No bullet points were parsed for this component.
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <StandardEmptyState
@@ -2984,15 +3347,10 @@ function DuplicateResolutionPanel({
   onMergeChildren: () => void;
   onKeepBoth: () => void;
 }) {
-  const existingDescriptions = new Set(
-    existingChildren.map((child) =>
-      normalizeReviewText(child.content.description),
-    ),
+  const newParsedChildren = getNewParsedChildren(
+    parsedChildren,
+    existingChildren,
   );
-  const newParsedChildren = parsedChildren.filter((child) => {
-    const description = normalizeReviewText(child.content.description);
-    return description && !existingDescriptions.has(description);
-  });
   // Auto-resolve trivial duplicates (P1.1): when the parsed copy adds zero
   // new bullets, merging is a no-op. Promote `Discard parsed copy` to the
   // default action and disable `Merge bullets` with an explanatory hover.
@@ -3010,8 +3368,8 @@ function DuplicateResolutionPanel({
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
             {nothingNewToMerge
-              ? "This parsed copy adds no new bullets. Discard it to clear the duplicate, or keep both copies in the bank."
-              : "A similar component already exists. Merge only the new parsed bullets, discard this parsed copy, or keep both for now."}
+              ? "This import adds no new bullets for an item you already saved. Use the existing component, or keep this as a duplicate."
+              : "A similar component already exists. Merge only the new bullets, use the existing component, or keep this duplicate."}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -3020,32 +3378,35 @@ function DuplicateResolutionPanel({
             size="sm"
             onClick={onDiscard}
           >
-            Discard parsed copy
+            Use existing
           </Button>
-          <Button
-            variant={nothingNewToMerge ? "ghost" : "outline"}
-            size="sm"
-            onClick={onMergeChildren}
-            disabled={parsedChildren.length === 0 || nothingNewToMerge}
-            title={
-              nothingNewToMerge
-                ? "Nothing new to merge"
-                : parsedChildren.length === 0
-                  ? "No bullets to merge"
-                  : undefined
-            }
-          >
-            Merge bullets
-          </Button>
+          {!nothingNewToMerge ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onMergeChildren}
+              disabled={parsedChildren.length === 0}
+              title={
+                parsedChildren.length === 0 ? "No bullets to merge" : undefined
+              }
+            >
+              Merge new bullets
+            </Button>
+          ) : null}
           <Button variant="ghost" size="sm" onClick={onKeepBoth}>
-            Keep both
+            Keep duplicate
           </Button>
         </div>
       </div>
+      {nothingNewToMerge ? (
+        <p className="mt-3 text-xs text-muted-foreground">
+          Merge is hidden because there are no new bullets to add.
+        </p>
+      ) : null}
       <div className="mt-3 grid gap-3 md:grid-cols-2">
         <div className="rounded-md border border-border/70 bg-background/60 p-3">
           <p className="text-xs font-medium text-muted-foreground">
-            Existing bank component
+            Existing component
           </p>
           <p className="mt-1 text-sm font-medium">
             {getEntryLabel(existingEntry)}
@@ -3057,7 +3418,7 @@ function DuplicateResolutionPanel({
         </div>
         <div className="rounded-md border border-border/70 bg-background/60 p-3">
           <p className="text-xs font-medium text-muted-foreground">
-            Parsed copy
+            This import
           </p>
           <p className="mt-1 text-sm font-medium">
             {getEntryLabel(parsedEntry)}

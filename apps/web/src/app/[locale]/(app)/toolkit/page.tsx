@@ -8,7 +8,7 @@ export default function ToolkitPage() {
       <PageHeader
         icon={Wrench}
         title="Toolkit"
-        description="Quick-reach tools for the offer and comms phase — email templates for the outbox, salary research for the table."
+        description="Email, salary, and recruiter utilities for active opportunities."
         variant="compact"
       />
       <PageContent>

@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Briefcase, FileText, History, Loader2 } from "lucide-react";
+import { FileText, History, Loader2, Plus, ScanSearch } from "lucide-react";
 import {
   EditorialPanel,
   EditorialPanelBody,
   EditorialPanelHeader,
 } from "@/components/editorial";
-import { StandardEmptyState } from "@/components/ui/page-layout";
+import { OnboardingEmptyState } from "@/components/ui/empty-states";
 import { TimeAgo } from "@/components/format/time-ago";
 import { ScannerForm } from "@/components/ats/scanner-form";
 import {
@@ -17,7 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { cn } from "@/lib/utils";
 import { pluralize } from "@/lib/text/pluralize";
 import type { ATSScanResult } from "@/lib/ats/analyzer";
 import type { JdMatchResult } from "@/lib/ats/match-score";
@@ -68,6 +70,7 @@ interface AtsScannerPanelProps {
 
 export function AtsScannerPanel({ locale }: AtsScannerPanelProps) {
   const { addToast } = useToast();
+  const [activeView, setActiveView] = useState<"scan" | "history">("scan");
 
   const [opportunities, setOpportunities] = useState<OpportunityOption[]>([]);
   const [opportunitiesLoading, setOpportunitiesLoading] = useState(true);
@@ -150,6 +153,11 @@ export function AtsScannerPanel({ locale }: AtsScannerPanelProps) {
     setSeedKey((current) => current + 1);
   }, []);
 
+  const startNewScan = useCallback(() => {
+    setActiveView("scan");
+    setSeedKey((current) => current + 1);
+  }, []);
+
   const handleScanComplete = useCallback(
     async ({
       result,
@@ -200,105 +208,189 @@ export function AtsScannerPanel({ locale }: AtsScannerPanelProps) {
 
   return (
     <div className="space-y-6">
-      <EditorialPanel>
-        <EditorialPanelHeader
-          icon={FileText}
-          title="Scan a resume"
-          eyebrow="STEP 1"
-        />
-        <div className="border-b border-rule px-[18px] py-4">
-          <label
-            htmlFor="ats-opportunity-picker"
-            className="mb-2 block text-sm font-medium text-ink"
-          >
-            Score against an existing opportunity{" "}
-            <span className="font-normal text-ink-3">(optional)</span>
-          </label>
-          {opportunitiesLoading ? (
-            <p className="flex items-center gap-2 text-xs text-ink-3">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Loading saved opportunities…
-            </p>
-          ) : opportunitiesError ? (
-            <p className="text-xs text-destructive">{opportunitiesError}</p>
-          ) : hasOpportunities ? (
-            <Select
-              value={selectedOpportunityId}
-              onValueChange={handleOpportunityChange}
-            >
-              <SelectTrigger id="ats-opportunity-picker" className="w-full">
-                <SelectValue placeholder="Paste a JD below, or pick a saved opportunity" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NO_OPPORTUNITY}>
-                  Paste a JD instead
-                </SelectItem>
-                {opportunities.map((opportunity) => (
-                  <SelectItem key={opportunity.id} value={opportunity.id}>
-                    {opportunity.title} — {opportunity.company}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <p className="text-xs text-ink-3">
-              You have no saved opportunities yet. Paste a job description below
-              instead.
-            </p>
-          )}
-          {selectedOpportunity ? (
-            <p className="mt-2 text-xs text-ink-3">
-              Prefilled the JD textarea with{" "}
-              <span className="font-medium text-ink-2">
-                {selectedOpportunity.title}
-              </span>{" "}
-              at {selectedOpportunity.company}.
-            </p>
-          ) : null}
-        </div>
-        <EditorialPanelBody>
-          <ScannerForm
-            key={seedKey}
-            locale={locale}
-            defaultJobText={defaultJobText}
-            hideSignupPromo
-            onScanComplete={handleScanComplete}
-          />
-        </EditorialPanelBody>
-      </EditorialPanel>
+      <div className="flex flex-col gap-3 border-b border-rule pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          role="tablist"
+          aria-label="ATS scanner views"
+          className="flex flex-wrap gap-1"
+        >
+          {[
+            { id: "scan" as const, label: "ATS scan", icon: ScanSearch },
+            { id: "history" as const, label: "History", icon: History },
+          ].map((view) => {
+            const Icon = view.icon;
+            const isActive = activeView === view.id;
 
-      <EditorialPanel>
-        <EditorialPanelHeader
-          icon={History}
-          title="Scan history"
-          eyebrow="STEP 2"
-        />
-        <EditorialPanelBody>
-          {historyLoading ? (
-            <p className="flex items-center gap-2 text-sm text-ink-3">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading history…
-            </p>
-          ) : historyError ? (
-            <p className="text-sm text-destructive">{historyError}</p>
-          ) : history.length === 0 ? (
-            <StandardEmptyState
-              icon={Briefcase}
-              title="No scans yet"
-              description="Run your first scan above. Saved scans show up here with their overall score and a timestamp so you can track changes over time."
-            />
-          ) : (
-            <ul
-              role="list"
-              className="divide-y divide-rule overflow-hidden rounded-md border border-rule bg-page-2"
+            return (
+              <button
+                key={view.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setActiveView(view.id)}
+                className={cn(
+                  "inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-card hover:text-foreground",
+                )}
+              >
+                <Icon className="h-4 w-4" aria-hidden />
+                {view.label}
+              </button>
+            );
+          })}
+        </div>
+        {activeView === "history" ? (
+          <Button type="button" size="sm" onClick={startNewScan}>
+            <Plus className="mr-2 h-4 w-4" />
+            New scan
+          </Button>
+        ) : null}
+      </div>
+
+      {activeView === "scan" ? (
+        <EditorialPanel>
+          <EditorialPanelHeader icon={FileText} title="Scan a resume" />
+          <div className="border-b border-rule px-[18px] py-4">
+            <label
+              htmlFor="ats-opportunity-picker"
+              className="mb-2 block text-sm font-medium text-ink"
             >
-              {history.map((scan) => (
-                <ScanHistoryRow key={scan.id} scan={scan} />
-              ))}
-            </ul>
-          )}
-        </EditorialPanelBody>
-      </EditorialPanel>
+              Score against an existing opportunity{" "}
+              <span className="font-normal text-ink-3">(optional)</span>
+            </label>
+            {opportunitiesLoading ? (
+              <p className="flex items-center gap-2 text-xs text-ink-3">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Loading saved opportunities…
+              </p>
+            ) : opportunitiesError ? (
+              <p className="text-xs text-destructive">{opportunitiesError}</p>
+            ) : hasOpportunities ? (
+              <Select
+                value={selectedOpportunityId}
+                onValueChange={handleOpportunityChange}
+              >
+                <SelectTrigger id="ats-opportunity-picker" className="w-full">
+                  <SelectValue placeholder="Paste a JD below, or pick a saved opportunity" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_OPPORTUNITY}>
+                    Paste a JD instead
+                  </SelectItem>
+                  {opportunities.map((opportunity) => (
+                    <SelectItem key={opportunity.id} value={opportunity.id}>
+                      {opportunity.title} — {opportunity.company}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <p className="text-xs text-ink-3">
+                You have no saved opportunities yet. Paste a job description
+                below instead.
+              </p>
+            )}
+            {selectedOpportunity ? (
+              <p className="mt-2 text-xs text-ink-3">
+                Prefilled the JD textarea with{" "}
+                <span className="font-medium text-ink-2">
+                  {selectedOpportunity.title}
+                </span>{" "}
+                at {selectedOpportunity.company}.
+              </p>
+            ) : null}
+          </div>
+          <EditorialPanelBody>
+            <ScannerForm
+              key={seedKey}
+              locale={locale}
+              defaultJobText={defaultJobText}
+              hideSignupPromo
+              onScanComplete={handleScanComplete}
+              resultActions={
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setActiveView("history")}
+                >
+                  <History className="mr-2 h-4 w-4" />
+                  View history
+                </Button>
+              }
+            />
+          </EditorialPanelBody>
+        </EditorialPanel>
+      ) : (
+        <EditorialPanel>
+          <EditorialPanelHeader
+            icon={History}
+            title="Scan history"
+            action={
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={startNewScan}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                New scan
+              </Button>
+            }
+          />
+          <EditorialPanelBody>
+            {historyLoading ? (
+              <p className="flex items-center gap-2 text-sm text-ink-3">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading history…
+              </p>
+            ) : historyError ? (
+              <p className="text-sm text-destructive">{historyError}</p>
+            ) : history.length === 0 ? (
+              <OnboardingEmptyState
+                icon={ScanSearch}
+                illustrationName="ats-zero"
+                title="No scans yet"
+                description="Run your first scan. Saved scans show up here with their overall score and a timestamp so you can track changes over time."
+                steps={[
+                  {
+                    icon: FileText,
+                    label: "Paste the job",
+                    description: "Use a saved role or a raw job description.",
+                  },
+                  {
+                    icon: ScanSearch,
+                    label: "Scan the resume",
+                    description: "Compare keywords, sections, and ATS signals.",
+                  },
+                  {
+                    icon: History,
+                    label: "Track changes",
+                    description: "Review scores as your draft improves.",
+                  },
+                ]}
+                primaryAction={
+                  <Button type="button" onClick={startNewScan}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    New scan
+                  </Button>
+                }
+                className="min-h-[420px]"
+              />
+            ) : (
+              <ul
+                role="list"
+                className="divide-y divide-rule overflow-hidden rounded-md border border-rule bg-page-2"
+              >
+                {history.map((scan) => (
+                  <ScanHistoryRow key={scan.id} scan={scan} />
+                ))}
+              </ul>
+            )}
+          </EditorialPanelBody>
+        </EditorialPanel>
+      )}
     </div>
   );
 }

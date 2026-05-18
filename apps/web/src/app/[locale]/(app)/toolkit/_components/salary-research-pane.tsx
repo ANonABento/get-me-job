@@ -285,14 +285,14 @@ ${script.close}
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap gap-1 rounded-lg border bg-card/50 p-1">
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-1 rounded-md border bg-card/50 p-1">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "flex min-h-11 items-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors",
+              "flex min-h-10 items-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium transition-colors",
               activeTab === tab.id
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted",

@@ -94,7 +94,7 @@ export function ChunkContentPreview({ entry }: { entry: BankEntry }) {
           ) : null}
           {techs.length > 0 && (
             <div className="flex gap-1 flex-wrap">
-              {techs.slice(0, 5).map((t, i) => (
+              {techs.slice(0, 3).map((t, i) => (
                 <span
                   key={i}
                   className="text-2xs px-1.5 py-0.5 rounded-md bg-accent/10 text-accent font-medium"
@@ -102,9 +102,12 @@ export function ChunkContentPreview({ entry }: { entry: BankEntry }) {
                   {t}
                 </span>
               ))}
-              {techs.length > 5 && (
-                <span className="text-2xs text-muted-foreground">
-                  +{techs.length - 5} more
+              {techs.length > 3 && (
+                <span
+                  className="text-2xs text-muted-foreground"
+                  title={techs.slice(3).join(", ")}
+                >
+                  +{techs.length - 3} more
                 </span>
               )}
             </div>

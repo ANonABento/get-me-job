@@ -50,6 +50,8 @@ export function ChunkCard({
   anySelected,
   childEntries = [],
   forceExpanded = false,
+  onSelect,
+  sourceFilenames,
 }: ChunkCardProps) {
   const [localExpanded, setLocalExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -66,7 +68,10 @@ export function ChunkCard({
   const title = getEntryTitle(entry);
   const fields = CATEGORY_FIELDS[entry.category];
   const showDebugIds = useDevMode();
-  const expanded = forceExpanded || localExpanded;
+  // When `onSelect` is provided, the card never expands inline — clicks route
+  // to the side drawer instead. This is the grid-view behavior.
+  const drawerMode = Boolean(onSelect) && !forceExpanded;
+  const expanded = forceExpanded || (!drawerMode && localExpanded);
 
   function handleEdit() {
     setEditContent({ ...entry.content });
@@ -183,7 +188,14 @@ export function ChunkCard({
             </label>
           )}
           <button
-            onClick={() => !editing && setLocalExpanded(!expanded)}
+            onClick={() => {
+              if (editing) return;
+              if (drawerMode && onSelect) {
+                onSelect();
+                return;
+              }
+              setLocalExpanded(!expanded);
+            }}
             className="flex flex-1 items-start gap-3 text-left min-w-0"
           >
             <div className={cn("p-2 rounded-md shrink-0", config.color)}>
@@ -191,37 +203,60 @@ export function ChunkCard({
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-medium truncate" title={title}>
+                <span
+                  className="font-medium line-clamp-2 leading-snug"
+                  title={title}
+                >
                   {title}
                 </span>
                 <Badge variant="secondary" className="text-2xs">
                   {config.label}
                 </Badge>
-                {entry.confidenceScore >= 0.9 && (
-                  <Badge variant="success" className="text-2xs">
-                    High confidence
+                {/*
+                  Confidence chip is informational, not decorative — only
+                  surface it when something is worth flagging. High-confidence
+                  rows (>= 0.9) carry no chip; medium (0.7–0.9) and low (< 0.7)
+                  show a warning- or destructive-tinted chip so the badge
+                  actually means "review this." (P1.4)
+                */}
+                {entry.confidenceScore < 0.7 ? (
+                  <Badge variant="destructive" className="text-2xs">
+                    Low confidence
                   </Badge>
-                )}
+                ) : entry.confidenceScore < 0.9 ? (
+                  <Badge variant="warning" className="text-2xs">
+                    Medium confidence
+                  </Badge>
+                ) : null}
               </div>
               {!expanded && <ChunkContentPreview entry={entry} />}
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <span className="text-xs text-muted-foreground">
                   <TimeAgo date={entry.createdAt} />
                 </span>
-                {showDebugIds && entry.sourceDocumentId && (
-                  <span className="text-xs text-muted-foreground/60 truncate max-w-[200px]">
-                    from {entry.sourceDocumentId}
+                {entry.sourceDocumentId ? (
+                  <span
+                    className="text-xs text-muted-foreground/80 truncate max-w-[260px]"
+                    data-source-id={
+                      showDebugIds ? entry.sourceDocumentId : undefined
+                    }
+                  >
+                    from{" "}
+                    {sourceFilenames?.get(entry.sourceDocumentId) ??
+                      "imported file"}
                   </span>
-                )}
+                ) : null}
               </div>
             </div>
-            <div className="shrink-0 text-muted-foreground">
-              {expanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </div>
+            {drawerMode ? null : (
+              <div className="shrink-0 text-muted-foreground">
+                {expanded ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </div>
+            )}
           </button>
         </div>
       ) : null}
