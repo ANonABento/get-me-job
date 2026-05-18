@@ -25,6 +25,7 @@ import {
   Sparkles,
   Trophy,
   ListChecks,
+  Text,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ const SECTION_ICONS: Record<BankCategory, LucideIcon> = {
   skill: Wrench,
   project: FolderOpen,
   hackathon: Trophy,
+  paragraph: Text,
   bullet: ListChecks,
   achievement: Award,
   certification: Shield,

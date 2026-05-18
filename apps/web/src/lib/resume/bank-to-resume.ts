@@ -46,6 +46,11 @@ export function bankEntriesToResume(
       case "achievement":
         if (c.description) summaryParts.push(String(c.description));
         break;
+      case "paragraph":
+        if (c.text || c.description) {
+          summaryParts.push(String(c.text || c.description));
+        }
+        break;
       case "bullet":
         // Bullets are child components. Parent experience/project assembly owns
         // their placement, so standalone conversion intentionally skips them.

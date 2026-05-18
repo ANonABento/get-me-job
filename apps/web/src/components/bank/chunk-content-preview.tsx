@@ -177,6 +177,22 @@ export function ChunkContentPreview({ entry }: { entry: BankEntry }) {
           </p>
         </div>
       );
+    case "paragraph":
+      return (
+        <div className="mt-1 space-y-1">
+          <p className="text-sm text-muted-foreground line-clamp-2">
+            {String(c.text || c.description || "")}
+          </p>
+          {[c.targetPosition, c.targetCompany, c.tone].some(Boolean) ? (
+            <p className="text-xs text-muted-foreground">
+              {[c.targetPosition, c.targetCompany, c.tone]
+                .filter(Boolean)
+                .map(String)
+                .join(" · ")}
+            </p>
+          ) : null}
+        </div>
+      );
     case "bullet":
     case "achievement":
       return c.description ? (

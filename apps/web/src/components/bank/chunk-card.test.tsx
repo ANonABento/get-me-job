@@ -97,6 +97,18 @@ describe("getEntryTitle", () => {
     expect(getEntryTitle(entry)).toBe("Reduced latency by 40%");
   });
 
+  it("should return text for paragraph", () => {
+    const entry = makeBankEntry({
+      category: "paragraph",
+      content: {
+        text: "I build reliable onboarding systems for complex products.",
+      },
+    });
+    expect(getEntryTitle(entry)).toBe(
+      "I build reliable onboarding systems for complex products.",
+    );
+  });
+
   it("should fallback gracefully for empty content", () => {
     const entry = makeBankEntry({ category: "skill", content: {} });
     expect(getEntryTitle(entry)).toBe("Skill");
@@ -266,6 +278,17 @@ describe("cleanContent", () => {
     expect(cleaned.title).toBe("Engineer");
     expect(cleaned).not.toHaveProperty("company");
     expect(cleaned).not.toHaveProperty("location");
+  });
+
+  it("should mirror paragraph text to description for duplicate checks and preview matching", () => {
+    const cleaned = cleanContent(
+      { text: "  Reusable paragraph.  " },
+      CATEGORY_FIELDS.paragraph,
+    );
+    expect(cleaned).toMatchObject({
+      text: "Reusable paragraph.",
+      description: "Reusable paragraph.",
+    });
   });
 });
 
@@ -677,6 +700,48 @@ describe("ChunkCard", () => {
     expect(screen.getByText("React")).toBeInTheDocument();
     expect(screen.getByText("Node.js")).toBeInTheDocument();
     expect(screen.getByText("PostgreSQL")).toBeInTheDocument();
+  });
+
+  it("should render and edit paragraph entries", () => {
+    const onUpdate = vi.fn();
+    const entry = makeBankEntry({
+      category: "paragraph",
+      content: {
+        text: "I build reliable onboarding systems for complex products.",
+        targetCompany: "Acme",
+        targetPosition: "Product Engineer",
+        tone: "professional",
+        relatedSellingPoints: ["Improved activation by 22%"],
+      },
+      confidenceScore: 0.62,
+    });
+
+    render(<ChunkCard entry={entry} onUpdate={onUpdate} onDelete={vi.fn()} />);
+
+    expect(screen.getByText("Paragraph")).toBeInTheDocument();
+    expect(screen.getByText("Low confidence")).toBeInTheDocument();
+    expect(
+      screen.getByText("Product Engineer · Acme · professional"),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getAllByText(
+        "I build reliable onboarding systems for complex products.",
+      )[0],
+    );
+    fireEvent.click(screen.getByText("Edit"));
+    fireEvent.change(screen.getByLabelText("Paragraph Text"), {
+      target: { value: "I turn support friction into clean onboarding prose." },
+    });
+    fireEvent.click(screen.getByText("Save"));
+
+    expect(onUpdate).toHaveBeenCalledWith(
+      "test-1",
+      expect.objectContaining({
+        text: "I turn support friction into clean onboarding prose.",
+        description: "I turn support friction into clean onboarding prose.",
+      }),
+    );
   });
 
   it("should show hackathon preview with prizes, team size, and tracks", () => {

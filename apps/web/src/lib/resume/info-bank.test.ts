@@ -16,7 +16,12 @@ import {
   insertBankEntries,
   getDeduplicationKey,
 } from "@/lib/db/profile-bank";
-import { extractBankEntries, populateBankFromProfile } from "./info-bank";
+import {
+  extractBankEntries,
+  extractBankEntriesFromParsedDocument,
+  populateBankFromParsedDocument,
+  populateBankFromProfile,
+} from "./info-bank";
 
 const TEST_USER_ID = "test-user";
 
@@ -48,6 +53,7 @@ describe("Info Bank", () => {
 
       // 1 experience + 1 bullet + 2 skills = 4
       expect(entries).toHaveLength(4);
+      expect(entries.map((entry) => entry.sourceOrder)).toEqual([0, 1, 2, 3]);
 
       const expEntry = entries.find((e) => e.category === "experience");
       expect(expEntry?.content).toEqual({
@@ -317,6 +323,149 @@ describe("Info Bank", () => {
       });
       expect(key).toBe("led team of 5 engineers");
     });
+
+    it("should generate key for paragraph text", () => {
+      const key = getDeduplicationKey("paragraph", {
+        text: "I build reliable onboarding systems.",
+      });
+      expect(key).toBe("i build reliable onboarding systems.");
+    });
+  });
+
+  describe("extractBankEntriesFromParsedDocument", () => {
+    it("creates paragraph and selling-point entries from cover letters", () => {
+      const entries = extractBankEntriesFromParsedDocument(
+        {
+          docType: "cover_letter",
+          data: {
+            targetCompany: "Acme",
+            targetPosition: "Product Engineer",
+            reusableParagraphs: [
+              "I build onboarding systems that improve activation.",
+            ],
+            keySellingPoints: ["Improved activation by 22%"],
+            tone: "professional",
+          },
+        },
+        "doc-cover",
+      );
+
+      expect(entries).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            category: "paragraph",
+            sourceDocumentId: "doc-cover",
+            sourceSection: "cover_letter",
+            content: expect.objectContaining({
+              text: "I build onboarding systems that improve activation.",
+              targetCompany: "Acme",
+              targetPosition: "Product Engineer",
+              tone: "professional",
+              relatedSellingPoints: ["Improved activation by 22%"],
+            }),
+          }),
+          expect.objectContaining({
+            category: "bullet",
+            content: expect.objectContaining({
+              description: "Improved activation by 22%",
+            }),
+          }),
+        ]),
+      );
+    });
+
+    it("creates project parents, bullet children, and explicit stack skills from portfolios", () => {
+      const entries = extractBankEntriesFromParsedDocument(
+        {
+          docType: "portfolio",
+          data: {
+            projects: [
+              {
+                name: "Launch Metrics",
+                description: "Analytics portfolio project",
+                url: "https://github.com/ada/launch-metrics",
+                technologies: ["Next.js", "PostgreSQL"],
+                proofPoints: ["Reduced reporting latency by 45%"],
+                bullets: ["Built dashboards for 12,000 users"],
+              },
+            ],
+            links: ["https://github.com/ada/launch-metrics"],
+            caseStudies: ["Launch Metrics"],
+            technologies: [],
+            proofPoints: [],
+          },
+        },
+        "doc-portfolio",
+      );
+
+      const project = entries.find((entry) => entry.category === "project");
+      const bulletChildren = entries.filter(
+        (entry) => entry.category === "bullet",
+      );
+
+      expect(project?.content).toMatchObject({
+        name: "Launch Metrics",
+        url: "https://github.com/ada/launch-metrics",
+        technologies: ["Next.js", "PostgreSQL"],
+        childCount: 2,
+      });
+      expect(bulletChildren).toHaveLength(2);
+      expect(bulletChildren[0].content).toMatchObject({
+        parentType: "project",
+        parentId: project?.id,
+        parentLabel: "Launch Metrics",
+      });
+      expect(entries.filter((entry) => entry.category === "skill")).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            content: expect.objectContaining({ name: "Next.js" }),
+          }),
+          expect.objectContaining({
+            content: expect.objectContaining({ name: "PostgreSQL" }),
+          }),
+        ]),
+      );
+    });
+
+    it("creates lower-confidence components from career notes", () => {
+      const entries = extractBankEntriesFromParsedDocument(
+        {
+          docType: "career_notes",
+          data: {
+            paragraphs: ["Reusable paragraph from a work log."],
+            bullets: ["Improved onboarding completion by 18%"],
+            achievements: ["Improved onboarding completion by 18%"],
+            projects: [],
+            skills: ["React"],
+          },
+        },
+        "doc-notes",
+      );
+
+      expect(entries).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            category: "paragraph",
+            confidenceScore: 0.62,
+          }),
+          expect.objectContaining({
+            category: "bullet",
+            confidenceScore: 0.58,
+          }),
+          expect.objectContaining({
+            category: "achievement",
+            confidenceScore: 0.6,
+          }),
+        ]),
+      );
+      expect(
+        entries.every(
+          (entry) =>
+            typeof entry.confidenceScore === "number" &&
+            entry.confidenceScore < 0.9,
+        ),
+      ).toBe(true);
+    });
   });
 
   describe("populateBankFromProfile", () => {
@@ -386,6 +535,32 @@ describe("Info Bank", () => {
       expect(result.updated).toBe(0);
       expect(result.skipped).toBe(0);
       expect(insertBankEntries).not.toHaveBeenCalled();
+    });
+
+    it("replaces entries from the same source document before inserting parsed career-document entries", () => {
+      const result = populateBankFromParsedDocument(
+        {
+          docType: "cover_letter",
+          data: {
+            reusableParagraphs: ["A reusable paragraph."],
+            keySellingPoints: [],
+          },
+        },
+        "doc-cover",
+        TEST_USER_ID,
+      );
+
+      expect(result.inserted).toBe(1);
+      expect(deleteBankEntriesBySource).toHaveBeenCalledWith(
+        "doc-cover",
+        TEST_USER_ID,
+      );
+      expect(insertBankEntries).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ category: "paragraph" }),
+        ]),
+        TEST_USER_ID,
+      );
     });
   });
 });

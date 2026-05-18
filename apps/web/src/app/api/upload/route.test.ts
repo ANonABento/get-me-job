@@ -10,8 +10,17 @@ const mocks = vi.hoisted(() => ({
   updateProfile: vi.fn(),
   getLLMConfig: vi.fn(),
   deleteSourceDocuments: vi.fn(),
+  listBankEntriesPaginated: vi.fn(),
+  updateBankEntryPositions: vi.fn(),
   populateBankFromProfile: vi.fn(),
+  populateBankFromParsedDocument: vi.fn(),
   extractTextFromFile: vi.fn(),
+  cachePdfBytes: vi.fn(),
+  deriveHeaderSearchNeedles: vi.fn(),
+  deriveSearchNeedles: vi.fn(),
+  extractPdfPositions: vi.fn(),
+  findPositionsForText: vi.fn(),
+  findSourceLinksForBboxes: vi.fn(),
   classifyDocument: vi.fn(),
   smartParseResume: vi.fn(),
   isLLMConfigured: vi.fn(),
@@ -45,10 +54,25 @@ vi.mock("@/lib/llm/is-configured", () => ({
 
 vi.mock("@/lib/db/profile-bank", () => ({
   deleteSourceDocuments: mocks.deleteSourceDocuments,
+  listBankEntriesPaginated: mocks.listBankEntriesPaginated,
+  updateBankEntryPositions: mocks.updateBankEntryPositions,
+}));
+
+vi.mock("@/lib/parse/pdf-cache", () => ({
+  cachePdfBytes: mocks.cachePdfBytes,
+}));
+
+vi.mock("@/lib/parse/pdf-positions", () => ({
+  deriveHeaderSearchNeedles: mocks.deriveHeaderSearchNeedles,
+  deriveSearchNeedles: mocks.deriveSearchNeedles,
+  extractPdfPositions: mocks.extractPdfPositions,
+  findPositionsForText: mocks.findPositionsForText,
+  findSourceLinksForBboxes: mocks.findSourceLinksForBboxes,
 }));
 
 vi.mock("@/lib/resume/info-bank", () => ({
   populateBankFromProfile: mocks.populateBankFromProfile,
+  populateBankFromParsedDocument: mocks.populateBankFromParsedDocument,
 }));
 
 vi.mock("@/lib/parser/pdf", () => ({
@@ -134,6 +158,31 @@ describe("upload route dedupe flow", () => {
       updated: 0,
       skipped: 0,
     });
+    mocks.populateBankFromParsedDocument.mockReturnValue({
+      inserted: 1,
+      updated: 0,
+      skipped: 0,
+    });
+    mocks.listBankEntriesPaginated.mockReturnValue([
+      {
+        id: "entry-root",
+        userId: "user-1",
+        category: "project",
+        content: { name: "Portfolio" },
+        sourceOrder: 0,
+        confidenceScore: 0.9,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+    ]);
+    mocks.extractPdfPositions.mockResolvedValue({
+      items: [],
+      links: [],
+      pageDimensions: [],
+    });
+    mocks.deriveHeaderSearchNeedles.mockReturnValue(["Portfolio"]);
+    mocks.deriveSearchNeedles.mockReturnValue(["Portfolio"]);
+    mocks.findPositionsForText.mockReturnValue([[1, 72, 100, 160, 112]]);
+    mocks.findSourceLinksForBboxes.mockReturnValue([]);
   });
 
   afterEach(() => {
@@ -340,6 +389,11 @@ describe("upload route dedupe flow", () => {
 
   it("skips smart resume parsing for non-resume documents", async () => {
     mocks.classifyDocument.mockResolvedValueOnce("cover_letter");
+    mocks.populateBankFromParsedDocument.mockReturnValueOnce({
+      inserted: 0,
+      updated: 0,
+      skipped: 0,
+    });
 
     const response = await POST(uploadRequest(pdfFile("cover-letter.pdf")));
 
@@ -349,6 +403,124 @@ describe("upload route dedupe flow", () => {
       success: true,
       entriesCreated: 0,
     });
+  });
+
+  it("parses cover letter uploads into reviewable career-document entries", async () => {
+    mocks.classifyDocument.mockResolvedValueOnce("cover_letter");
+    mocks.extractTextFromFile.mockResolvedValueOnce(
+      "Dear Hiring Manager,\n\nI am applying for the Product Engineer role at Acme Corp because I have built onboarding systems that improved activation by 22%.\n\nAt Beta, I led a cross-functional launch for 12,000 users and shipped reusable analytics dashboards.\n\nSincerely,\nAda",
+    );
+
+    const response = await POST(
+      uploadRequest(
+        fileWithBytes(
+          "cover-letter.txt",
+          "text/plain",
+          new TextEncoder().encode("cover letter"),
+        ),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.smartParseResume).not.toHaveBeenCalled();
+    expect(mocks.saveDocument).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "cover_letter",
+        parsedData: expect.objectContaining({
+          docType: "cover_letter",
+          data: expect.objectContaining({
+            reusableParagraphs: expect.arrayContaining([
+              expect.stringContaining("Product Engineer"),
+            ]),
+            keySellingPoints: expect.arrayContaining([
+              expect.stringContaining("improved activation"),
+            ]),
+          }),
+        }),
+      }),
+      "user-1",
+    );
+    expect(mocks.populateBankFromParsedDocument).toHaveBeenCalledWith(
+      expect.objectContaining({ docType: "cover_letter" }),
+      expect.any(String),
+      "user-1",
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      entriesCreated: 1,
+    });
+  });
+
+  it("parses portfolio uploads without routing through resume parsing", async () => {
+    mocks.classifyDocument.mockResolvedValueOnce("portfolio");
+    mocks.extractTextFromFile.mockResolvedValueOnce(
+      "Portfolio\n\nProject: Launch Metrics\nhttps://github.com/ada/launch-metrics\nStack: Next.js, PostgreSQL\n- Built dashboards for 12,000 users\n- Reduced reporting latency by 45%",
+    );
+
+    const response = await POST(
+      uploadRequest(
+        fileWithBytes(
+          "portfolio.txt",
+          "text/plain",
+          new TextEncoder().encode("portfolio"),
+        ),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.smartParseResume).not.toHaveBeenCalled();
+    expect(mocks.populateBankFromParsedDocument).toHaveBeenCalledWith(
+      expect.objectContaining({
+        docType: "portfolio",
+        data: expect.objectContaining({
+          projects: expect.arrayContaining([
+            expect.objectContaining({
+              name: "Launch Metrics",
+              url: "https://github.com/ada/launch-metrics",
+              technologies: ["Next.js", "PostgreSQL"],
+            }),
+          ]),
+        }),
+      }),
+      expect.any(String),
+      "user-1",
+    );
+  });
+
+  it("parses career notes uploads into low-confidence component data", async () => {
+    mocks.classifyDocument.mockResolvedValueOnce("career_notes");
+    mocks.extractTextFromFile.mockResolvedValueOnce(
+      "Career notes\nSkills: React, facilitation\n- Improved onboarding completion by 18% after rewriting setup flow\n- Built Project Atlas for support teams\n- Mentored two interns on testing habits",
+    );
+
+    const response = await POST(
+      uploadRequest(
+        fileWithBytes(
+          "career-notes.txt",
+          "text/plain",
+          new TextEncoder().encode("career notes"),
+        ),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.smartParseResume).not.toHaveBeenCalled();
+    expect(mocks.populateBankFromParsedDocument).toHaveBeenCalledWith(
+      expect.objectContaining({
+        docType: "career_notes",
+        data: expect.objectContaining({
+          bullets: expect.arrayContaining([
+            expect.stringContaining("Improved onboarding"),
+          ]),
+          achievements: expect.arrayContaining([
+            expect.stringContaining("18%"),
+          ]),
+          skills: ["React", "facilitation"],
+        }),
+      }),
+      expect.any(String),
+      "user-1",
+    );
   });
 
   it("auto-promotes parsed resume data into all structured profile sections", async () => {
@@ -480,5 +652,81 @@ describe("upload route dedupe flow", () => {
     });
     expect(mocks.saveDocument).toHaveBeenCalled();
     expect(mocks.populateBankFromProfile).toHaveBeenCalled();
+  });
+
+  it("stores header bboxes, bullet bboxes, source order, and PDF links during upload matching", async () => {
+    mocks.listBankEntriesPaginated.mockReturnValueOnce([
+      {
+        id: "project-1",
+        userId: "user-1",
+        category: "project",
+        content: { name: "Portfolio" },
+        sourceOrder: 3,
+        confidenceScore: 0.9,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+      {
+        id: "bullet-1",
+        userId: "user-1",
+        category: "bullet",
+        content: {
+          description: "Built dashboards",
+          parentId: "project-1",
+          order: 0,
+        },
+        sourceOrder: 4,
+        confidenceScore: 0.85,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+    ]);
+    mocks.findPositionsForText
+      .mockReturnValueOnce([[1, 72, 100, 160, 112]])
+      .mockReturnValueOnce([[1, 72, 100, 300, 112]])
+      .mockReturnValueOnce([[1, 84, 116, 320, 128]]);
+    mocks.findSourceLinksForBboxes.mockReturnValueOnce([
+      {
+        url: "https://example.com/portfolio",
+        text: "Portfolio",
+        page: 1,
+        bbox: [1, 160, 100, 180, 112],
+      },
+    ]);
+
+    const response = await POST(uploadRequest(pdfFile()));
+
+    expect(response.status).toBe(200);
+    expect(mocks.updateBankEntryPositions).toHaveBeenCalledWith(
+      "project-1",
+      "user-1",
+      expect.objectContaining({
+        page: 1,
+        bboxes: [[1, 72, 100, 300, 112]],
+        headerBboxes: [[1, 72, 100, 160, 112]],
+        sourceLinks: [
+          {
+            url: "https://example.com/portfolio",
+            text: "Portfolio",
+            page: 1,
+            bbox: [1, 160, 100, 180, 112],
+          },
+        ],
+      }),
+    );
+    expect(mocks.updateBankEntryPositions).toHaveBeenCalledWith(
+      "bullet-1",
+      "user-1",
+      expect.objectContaining({
+        page: 1,
+        bboxes: [[1, 84, 116, 320, 128]],
+      }),
+    );
+    expect(mocks.findPositionsForText).toHaveBeenLastCalledWith(
+      "Portfolio",
+      [],
+      expect.objectContaining({
+        category: "bullet",
+        anchorBbox: expect.objectContaining({ page: 1, y0: 100 }),
+      }),
+    );
   });
 });

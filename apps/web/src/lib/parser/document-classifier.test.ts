@@ -63,6 +63,11 @@ describe("classifyDocumentByFilename", () => {
     expect(classifyDocumentByFilename("portfolio.pdf")).toBe("portfolio");
   });
 
+  it("detects career notes by explicit filename", () => {
+    expect(classifyDocumentByFilename("career-notes.txt")).toBe("career_notes");
+    expect(classifyDocumentByFilename("brag-doc.md")).toBe("career_notes");
+  });
+
   it("returns other for unrecognized filenames", () => {
     expect(classifyDocumentByFilename("document.pdf")).toBe("other");
     expect(classifyDocumentByFilename("notes.txt")).toBe("other");
@@ -121,6 +126,30 @@ describe("classifyDocumentByContent", () => {
       classifyDocumentByContent("Notes from the meetup about hiring trends."),
     ).toBeNull();
   });
+
+  it("detects portfolio content from project links and case-study signals", () => {
+    expect(
+      classifyDocumentByContent(
+        "Selected Work\n\nCase Study: Launch Metrics\nGitHub: https://github.com/ada/launch\nStack: Next.js, PostgreSQL\nDemo: https://launch-metrics.app",
+      ),
+    ).toBe("portfolio");
+  });
+
+  it("detects career notes from loose bullet-heavy material without resume headers", () => {
+    expect(
+      classifyDocumentByContent(
+        "Career notes\n- Improved onboarding completion by 18%\n- Mentored two interns\n- Built Project Atlas for support teams",
+      ),
+    ).toBe("career_notes");
+  });
+
+  it("keeps a strong resume as resume even when it mentions a portfolio", () => {
+    expect(
+      classifyDocumentByContent(
+        "Ada Lovelace\nada@example.com\nhttps://github.com/ada\n\nExperience\nBuilt a portfolio review system.\n\nEducation\nBS Computer Science\n\nSkills\nReact, TypeScript",
+      ),
+    ).toBe("resume");
+  });
 });
 
 describe("classifyDocumentWithLLM", () => {
@@ -154,6 +183,17 @@ describe("classifyDocumentWithLLM", () => {
       mockConfig,
     );
     expect(result).toBe("cover_letter");
+  });
+
+  it("returns career_notes for career notes classification", async () => {
+    mockComplete.mockResolvedValue('{"type": "career_notes"}');
+    mockParseJSON.mockReturnValue({ type: "career_notes" });
+
+    const result = await classifyDocumentWithLLM(
+      "- wins\n- skills\n- projects",
+      mockConfig,
+    );
+    expect(result).toBe("career_notes");
   });
 
   it("returns other for invalid LLM response type", async () => {

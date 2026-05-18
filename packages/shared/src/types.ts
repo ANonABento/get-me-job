@@ -137,6 +137,7 @@ export const BANK_CATEGORIES = [
   "skill",
   "project",
   "education",
+  "paragraph",
   "bullet",
   "achievement",
   "certification",
@@ -144,6 +145,15 @@ export const BANK_CATEGORIES = [
 ] as const;
 
 export type BankCategory = (typeof BANK_CATEGORIES)[number];
+
+export type SourceBbox = [number, number, number, number, number];
+
+export interface SourceLinkMetadata {
+  url: string;
+  text?: string;
+  page?: number;
+  bbox?: SourceBbox;
+}
 
 export interface BankEntry {
   id: string;
@@ -163,7 +173,21 @@ export interface BankEntry {
    * entries that span page breaks. `undefined` follows the same rule as
    * `sourcePage` above.
    */
-  sourceBbox?: [number, number, number, number, number][];
+  sourceBbox?: SourceBbox[];
+  /**
+   * Source-preview citation metadata — parser/document order for imported
+   * entries. Used by import review before falling back to bbox/created order.
+   */
+  sourceOrder?: number;
+  /**
+   * Header-only bbox for root components. Root review navigation prefers this
+   * while `sourceBbox` remains the broader/legacy positional metadata.
+   */
+  sourceHeaderBbox?: SourceBbox[];
+  /**
+   * Structured PDF link annotations attached near this entry's source span.
+   */
+  sourceLinks?: SourceLinkMetadata[];
   /**
    * Preview-match cascade P2.2 — which tier resolved this entry's
    * position. `"fuzzy"` for the free-tier deterministic matcher; future
@@ -181,6 +205,7 @@ export interface GroupedBankEntries {
   skill: BankEntry[];
   project: BankEntry[];
   education: BankEntry[];
+  paragraph: BankEntry[];
   bullet: BankEntry[];
   achievement: BankEntry[];
   certification: BankEntry[];

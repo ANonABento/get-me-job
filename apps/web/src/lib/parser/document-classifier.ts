@@ -7,6 +7,7 @@ const VALID_DOCUMENT_TYPES: DocumentType[] = [
   "reference_letter",
   "certificate",
   "portfolio",
+  "career_notes",
   "other",
 ];
 
@@ -16,6 +17,7 @@ const CLASSIFICATION_PROMPT = `You are a document classifier. Based on the text 
 - reference_letter: A letter from a referee endorsing or recommending someone
 - certificate: A certification, diploma, or credential document
 - portfolio: A portfolio or collection of work samples
+- career_notes: Loose career notes, work logs, brag documents, or bullet-heavy source material that is not a resume
 - other: None of the above
 
 Return ONLY a JSON object with this structure (no markdown):
@@ -77,6 +79,16 @@ export function classifyDocumentByFilename(filename: string): DocumentType {
   }
   if (lower.includes("portfolio")) {
     return "portfolio";
+  }
+  if (
+    lower.includes("career-notes") ||
+    lower.includes("career_notes") ||
+    lower.includes("career notes") ||
+    lower.includes("brag-doc") ||
+    lower.includes("brag_doc") ||
+    lower.includes("brag document")
+  ) {
+    return "career_notes";
   }
 
   return "other";
@@ -149,11 +161,58 @@ export function classifyDocumentByContent(text: string): DocumentType | null {
     return "resume";
   }
 
+  const hasPortfolioLanguage =
+    /\b(portfolio|case stud(?:y|ies)|selected work|work samples?|project gallery|live demo|github\.com\/|demo url|source code)\b/.test(
+      normalized,
+    );
+  const projectUrlHits = (
+    text.match(
+      /\b(?:https?:\/\/)?(?:github\.com|gitlab\.com|devpost\.com|[a-z0-9-]+\.(?:dev|app|io|com)\/[^\s)]+)/gi,
+    ) ?? []
+  ).length;
+  const hasRepeatedProjectSignals =
+    (normalized.match(
+      /\b(project|case study|demo|github|stack|technologies)\b/g,
+    )?.length ?? 0) >= 3;
+  if (
+    (hasPortfolioLanguage &&
+      (projectUrlHits >= 1 || hasRepeatedProjectSignals)) ||
+    projectUrlHits >= 2
+  ) {
+    return "portfolio";
+  }
+
   if (
     /\b(certificate of|certifies that|credential id)\b/.test(normalized) ||
     /^\s*certificate\s+of\b/im.test(text)
   ) {
     return "certificate";
+  }
+
+  const rawLines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const bulletLines = rawLines.filter((line) =>
+    /^(?:[-*•]|\d+[.)])\s+/.test(line),
+  );
+  const careerNoteSignals = [
+    /\bachievements?\b/,
+    /\bbrag\b/,
+    /\bwork log\b/,
+    /\bwins?\b/,
+    /\bnotes?\b/,
+    /\bprojects?\b/,
+    /\bskills?\b/,
+    /\bimpact\b/,
+  ].filter((pattern) => pattern.test(normalized)).length;
+  if (
+    bulletLines.length >= 3 &&
+    resumeSectionHits < 2 &&
+    !hasLetterGreeting &&
+    (careerNoteSignals >= 1 || bulletLines.length / rawLines.length >= 0.6)
+  ) {
+    return "career_notes";
   }
 
   return null;

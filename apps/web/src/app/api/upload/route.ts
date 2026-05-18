@@ -25,11 +25,20 @@ import {
   smartParseResume,
   type SmartParseResult,
 } from "@/lib/parser/smart-parser";
+import {
+  parseCareerNotesBasic,
+  parseCoverLetterBasic,
+  parsePortfolioBasic,
+} from "@/lib/parser/resume";
 import { cachePdfBytes } from "@/lib/parse/pdf-cache";
 import {
+  deriveHeaderSearchNeedles,
   deriveSearchNeedles,
   extractPdfPositions,
+  findSourceLinksForBboxes,
   findPositionsForText,
+  type AnchorBbox,
+  type PositionTuple,
 } from "@/lib/parse/pdf-positions";
 import {
   listBankEntriesPaginated,
@@ -272,6 +281,21 @@ export async function POST(request: NextRequest) {
           err instanceof Error ? err.stack : err,
         );
       }
+    } else if (docType === "cover_letter") {
+      parsedData = {
+        docType: "cover_letter",
+        data: parseCoverLetterBasic(extractedText),
+      };
+    } else if (docType === "portfolio") {
+      parsedData = {
+        docType: "portfolio",
+        data: parsePortfolioBasic(extractedText),
+      };
+    } else if (docType === "career_notes") {
+      parsedData = {
+        docType: "career_notes",
+        data: parseCareerNotesBasic(extractedText),
+      };
     }
 
     // Sanitize the persisted display filename so XSS / path traversal cannot
@@ -355,168 +379,233 @@ export async function POST(request: NextRequest) {
           err instanceof Error ? err.stack : err,
         );
       }
-
-      // PF.1 + PF.3 — best-effort: extract per-text-item positions from the
-      // PDF, fuzzy-match every newly-created bank entry back to its source
-      // location, and stash the original PDF bytes in a TTL cache so the
-      // review modal can render a preview. Wrapped in try/catch — a parse
-      // failure here must not break the upload itself.
-      if (
-        entriesCreated > 0 &&
-        (file.type === "application/pdf" ||
-          file.name.toLowerCase().endsWith(".pdf"))
-      ) {
-        try {
-          cachePdfBytes(id, authResult.userId, buffer, "application/pdf");
-          const positions = await extractPdfPositions(buffer);
-          const docEntries = listBankEntriesPaginated({
-            userId: authResult.userId,
-            sourceDocumentId: id,
-            limit: 1000,
+    } else if (
+      parsedData?.docType === "cover_letter" ||
+      parsedData?.docType === "portfolio" ||
+      parsedData?.docType === "career_notes"
+    ) {
+      try {
+        const { populateBankFromParsedDocument } =
+          await import("@/lib/resume/info-bank");
+        const result = populateBankFromParsedDocument(
+          parsedData,
+          id,
+          authResult.userId,
+        );
+        entriesCreated = result.inserted;
+        if (entriesCreated > 0) {
+          log.debug("upload", "career document bank entries ingested", {
+            entriesCreated,
+            docType: parsedData.docType,
           });
-          let matched = 0;
-          const misses: { category: string; needle: string }[] = [];
-          // PF P2.1 — Two-pass matching: roots first (experience,
-          // project, education), then bullets anchored under their
-          // parent's bbox. Anchoring lets the matcher accept short
-          // generic bullets that wouldn't pass the global threshold.
-          const ROOT_CATEGORIES = new Set([
-            "experience",
-            "project",
-            "education",
-            "certification",
-            "hackathon",
-          ]);
-          const rootEntries = docEntries.filter((e) =>
-            ROOT_CATEGORIES.has(e.category),
-          );
-          const childEntries = docEntries.filter(
-            (e) => !ROOT_CATEGORIES.has(e.category),
-          );
+        } else {
+          log.debug("upload", "no structured career document entries found", {
+            docType: parsedData.docType,
+          });
+        }
+      } catch (err) {
+        console.error(
+          "[upload] Career document bank ingest failed:",
+          err instanceof Error ? err.stack : err,
+        );
+      }
+    }
 
-          /** Resolved root bboxes keyed by entry id, used as anchors. */
-          const rootBboxes = new Map<
-            string,
-            ReturnType<typeof findPositionsForText>
-          >();
+    // PF.1 + PF.3 — best-effort: extract per-text-item positions from the
+    // PDF, fuzzy-match every newly-created bank entry back to its source
+    // location, and stash the original PDF bytes in a TTL cache so the
+    // review modal can render a preview. Wrapped in try/catch — a parse
+    // failure here must not break the upload itself.
+    if (
+      entriesCreated > 0 &&
+      (file.type === "application/pdf" ||
+        file.name.toLowerCase().endsWith(".pdf"))
+    ) {
+      try {
+        cachePdfBytes(id, authResult.userId, buffer, "application/pdf");
+        const positions = await extractPdfPositions(buffer);
+        const docEntries = listBankEntriesPaginated({
+          userId: authResult.userId,
+          sourceDocumentId: id,
+          limit: 1000,
+        });
+        let matched = 0;
+        const misses: { category: string; needle: string }[] = [];
+        // PF P2.1 — Two-pass matching: roots first (experience,
+        // project, education), then bullets anchored under their
+        // parent's bbox. Anchoring lets the matcher accept short
+        // generic bullets that wouldn't pass the global threshold.
+        const ROOT_CATEGORIES = new Set([
+          "experience",
+          "project",
+          "education",
+          "certification",
+          "hackathon",
+        ]);
+        const rootEntries = docEntries.filter((e) =>
+          ROOT_CATEGORIES.has(e.category),
+        );
+        const childEntries = docEntries.filter(
+          (e) => !ROOT_CATEGORIES.has(e.category),
+        );
 
-          const matchEntry = (
-            entry: (typeof docEntries)[number],
-            anchorBbox?: import("@/lib/parse/pdf-positions").AnchorBbox,
-          ): ReturnType<typeof findPositionsForText> => {
-            const candidates = deriveSearchNeedles(
-              entry.category,
-              entry.content,
-            );
-            if (candidates.length === 0) {
+        /** Resolved root bboxes keyed by entry id, used as anchors. */
+        const rootBboxes = new Map<string, PositionTuple[]>();
+
+        const resolveBboxes = (
+          entry: (typeof docEntries)[number],
+          candidates: string[],
+          anchorBbox?: AnchorBbox,
+          recordMiss = true,
+        ): PositionTuple[] => {
+          if (candidates.length === 0) {
+            if (recordMiss) {
               misses.push({ category: entry.category, needle: "(empty)" });
-              return [];
             }
-            let bboxes: ReturnType<typeof findPositionsForText> = [];
-            for (const needle of candidates) {
-              bboxes = findPositionsForText(needle, positions.items, {
-                category: entry.category,
-                anchorBbox,
-              });
-              if (bboxes.length > 0) break;
-            }
-            if (bboxes.length === 0) {
-              misses.push({ category: entry.category, needle: candidates[0] });
-              return [];
-            }
-            const firstPage = bboxes[0][0];
-            updateBankEntryPositions(entry.id, authResult.userId, {
-              page: firstPage,
-              bboxes,
+            return [];
+          }
+          let bboxes: PositionTuple[] = [];
+          for (const needle of candidates) {
+            bboxes = findPositionsForText(needle, positions.items, {
+              category: entry.category,
+              anchorBbox,
             });
-            return bboxes;
-          };
+            if (bboxes.length > 0) break;
+          }
+          if (bboxes.length === 0 && recordMiss) {
+            misses.push({ category: entry.category, needle: candidates[0] });
+          }
+          return bboxes;
+        };
 
-          for (const entry of rootEntries) {
-            const bboxes = matchEntry(entry);
-            if (bboxes.length > 0) {
-              rootBboxes.set(entry.id, bboxes);
-              matched += 1;
+        const persistEntryMatch = (
+          entry: (typeof docEntries)[number],
+          bboxes: PositionTuple[],
+          headerBboxes?: PositionTuple[],
+        ) => {
+          if (bboxes.length === 0) return;
+          const firstPage = bboxes[0][0];
+          const linkBboxes =
+            headerBboxes && headerBboxes.length > 0
+              ? [...headerBboxes, ...bboxes]
+              : bboxes;
+          const sourceLinks = findSourceLinksForBboxes(
+            positions.links,
+            positions.items,
+            linkBboxes,
+          );
+          updateBankEntryPositions(entry.id, authResult.userId, {
+            page: firstPage,
+            bboxes,
+            headerBboxes,
+            sourceLinks,
+          });
+        };
+
+        for (const entry of rootEntries) {
+          const headerBboxes = resolveBboxes(
+            entry,
+            deriveHeaderSearchNeedles(entry.category, entry.content),
+            undefined,
+            false,
+          );
+          const bboxes = resolveBboxes(
+            entry,
+            deriveSearchNeedles(entry.category, entry.content),
+          );
+          const effectiveBboxes = bboxes.length > 0 ? bboxes : headerBboxes;
+          persistEntryMatch(
+            entry,
+            effectiveBboxes,
+            headerBboxes.length > 0 ? headerBboxes : undefined,
+          );
+          if (effectiveBboxes.length > 0) {
+            rootBboxes.set(
+              entry.id,
+              headerBboxes.length > 0 ? headerBboxes : effectiveBboxes,
+            );
+            matched += 1;
+          }
+        }
+
+        // Build per-page sorted list of root y0s so each child's
+        // anchor band can extend to the next-sibling-root's y0.
+        // Only the TOP y0 per root contributes — a parent header that
+        // matched two visual lines (e.g. "Babysitter" wrapped to a
+        // second line "Private Residence | Waterloo, IA") would
+        // otherwise add its own second-line y0 to the sorted list,
+        // and the anchor for THAT same parent would then cap at its
+        // own second line instead of at the real next sibling.
+        const rootsByPage = new Map<number, number[]>();
+        for (const bboxes of rootBboxes.values()) {
+          if (bboxes.length === 0) continue;
+          let topY = Infinity;
+          let topPage = bboxes[0][0];
+          for (const [page, , y0] of bboxes) {
+            if (y0 < topY) {
+              topY = y0;
+              topPage = page;
             }
           }
+          const arr = rootsByPage.get(topPage) ?? [];
+          arr.push(topY);
+          rootsByPage.set(topPage, arr);
+        }
+        for (const arr of rootsByPage.values()) arr.sort((a, b) => a - b);
 
-          // Build per-page sorted list of root y0s so each child's
-          // anchor band can extend to the next-sibling-root's y0.
-          // Only the TOP y0 per root contributes — a parent header that
-          // matched two visual lines (e.g. "Babysitter" wrapped to a
-          // second line "Private Residence | Waterloo, IA") would
-          // otherwise add its own second-line y0 to the sorted list,
-          // and the anchor for THAT same parent would then cap at its
-          // own second line instead of at the real next sibling.
-          const rootsByPage = new Map<number, number[]>();
-          for (const bboxes of rootBboxes.values()) {
-            if (bboxes.length === 0) continue;
+        for (const entry of childEntries) {
+          let anchorBbox: AnchorBbox | undefined;
+          const parentId =
+            typeof entry.content.parentId === "string"
+              ? entry.content.parentId
+              : undefined;
+          const parentBboxes = parentId ? rootBboxes.get(parentId) : undefined;
+          if (parentBboxes && parentBboxes.length > 0) {
+            // Pick the top-most parent bbox as the anchor origin —
+            // a wrapped header (two visual lines) would otherwise
+            // land on its lower line and cut off bullets that sit
+            // between the two parent lines.
             let topY = Infinity;
-            let topPage = bboxes[0][0];
-            for (const [page, , y0] of bboxes) {
+            let topPage = parentBboxes[0][0];
+            for (const [page, , y0] of parentBboxes) {
               if (y0 < topY) {
                 topY = y0;
                 topPage = page;
               }
             }
-            const arr = rootsByPage.get(topPage) ?? [];
-            arr.push(topY);
-            rootsByPage.set(topPage, arr);
+            const pageRoots = rootsByPage.get(topPage) ?? [];
+            const nextRootY = pageRoots.find((y) => y > topY + 1);
+            anchorBbox = {
+              page: topPage,
+              y0: topY,
+              yMax: nextRootY ?? topY + 400,
+            };
           }
-          for (const arr of rootsByPage.values()) arr.sort((a, b) => a - b);
-
-          for (const entry of childEntries) {
-            let anchorBbox:
-              | import("@/lib/parse/pdf-positions").AnchorBbox
-              | undefined;
-            const parentId =
-              typeof entry.content.parentId === "string"
-                ? entry.content.parentId
-                : undefined;
-            const parentBboxes = parentId
-              ? rootBboxes.get(parentId)
-              : undefined;
-            if (parentBboxes && parentBboxes.length > 0) {
-              // Pick the top-most parent bbox as the anchor origin —
-              // a wrapped header (two visual lines) would otherwise
-              // land on its lower line and cut off bullets that sit
-              // between the two parent lines.
-              let topY = Infinity;
-              let topPage = parentBboxes[0][0];
-              for (const [page, , y0] of parentBboxes) {
-                if (y0 < topY) {
-                  topY = y0;
-                  topPage = page;
-                }
-              }
-              const pageRoots = rootsByPage.get(topPage) ?? [];
-              const nextRootY = pageRoots.find((y) => y > topY + 1);
-              anchorBbox = {
-                page: topPage,
-                y0: topY,
-                yMax: nextRootY ?? topY + 400,
-              };
-            }
-            if (matchEntry(entry, anchorBbox).length > 0) {
-              matched += 1;
-            }
-          }
-          log.debug("upload", "bank entries matched to positions", {
-            matched,
-            total: docEntries.length,
-            misses: misses
-              .slice(0, 20)
-              .map(
-                (m) =>
-                  `  [${m.category}] "${m.needle.slice(0, 80)}${m.needle.length > 80 ? "…" : ""}"`,
-              ),
-          });
-        } catch (err) {
-          console.error(
-            "[upload] PDF position extraction failed (preview unavailable for this upload):",
-            err instanceof Error ? `${err.message}\n${err.stack}` : err,
+          const bboxes = resolveBboxes(
+            entry,
+            deriveSearchNeedles(entry.category, entry.content),
+            anchorBbox,
           );
+          persistEntryMatch(entry, bboxes);
+          if (bboxes.length > 0) {
+            matched += 1;
+          }
         }
+        log.debug("upload", "bank entries matched to positions", {
+          matched,
+          total: docEntries.length,
+          misses: misses
+            .slice(0, 20)
+            .map(
+              (m) =>
+                `  [${m.category}] "${m.needle.slice(0, 80)}${m.needle.length > 80 ? "…" : ""}"`,
+            ),
+        });
+      } catch (err) {
+        console.error(
+          "[upload] PDF position extraction failed (preview unavailable for this upload):",
+          err instanceof Error ? `${err.message}\n${err.stack}` : err,
+        );
       }
     }
 

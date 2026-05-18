@@ -21,14 +21,49 @@ export type {
   Profile,
   Project,
   Skill,
+  SourceBbox,
+  SourceLinkMetadata,
 } from "@slothing/shared/types";
 export { BANK_CATEGORIES } from "@slothing/shared/types";
 
 export interface CoverLetterData {
   targetCompany?: string;
   targetPosition?: string;
+  reusableParagraphs: string[];
   keySellingPoints: string[];
   tone?: string;
+}
+
+export interface PortfolioProjectData {
+  name: string;
+  description?: string;
+  url?: string;
+  technologies: string[];
+  proofPoints: string[];
+  bullets: string[];
+}
+
+export interface PortfolioData {
+  projects: PortfolioProjectData[];
+  links: string[];
+  caseStudies: string[];
+  technologies: string[];
+  proofPoints: string[];
+}
+
+export interface CareerNotesProjectData {
+  name: string;
+  description?: string;
+  bullets: string[];
+  technologies: string[];
+}
+
+export interface CareerNotesData {
+  paragraphs: string[];
+  bullets: string[];
+  achievements: string[];
+  projects: CareerNotesProjectData[];
+  skills: string[];
 }
 
 export interface ReferenceLetterData {
@@ -47,6 +82,8 @@ export interface CertificateData {
 export type ParsedDocumentData =
   | { docType: "resume"; data: Partial<Profile> }
   | { docType: "cover_letter"; data: CoverLetterData }
+  | { docType: "portfolio"; data: PortfolioData }
+  | { docType: "career_notes"; data: CareerNotesData }
   | { docType: "reference_letter"; data: ReferenceLetterData }
   | { docType: "certificate"; data: CertificateData };
 

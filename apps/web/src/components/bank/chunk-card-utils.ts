@@ -18,6 +18,13 @@ export function getEntryTitle(entry: BankEntry): string {
       return (c.name as string) || "Hackathon";
     case "certification":
       return [c.name, c.issuer].filter(Boolean).join(" — ") || "Certification";
+    case "paragraph":
+      return (
+        (c.title as string) ||
+        (c.text as string)?.slice(0, 80) ||
+        (c.description as string)?.slice(0, 80) ||
+        "Paragraph"
+      );
     case "bullet":
       return (c.description as string)?.slice(0, 80) || "Bullet";
     case "achievement":
@@ -93,6 +100,12 @@ export function cleanContent(
     if (field.type === "text" && typeof cleaned[field.key] === "string") {
       cleaned[field.key] = (cleaned[field.key] as string).trim();
     }
+    if (field.type === "textarea" && typeof cleaned[field.key] === "string") {
+      cleaned[field.key] = (cleaned[field.key] as string).trim();
+    }
+  }
+  if (typeof cleaned.text === "string" && !cleaned.description) {
+    cleaned.description = cleaned.text;
   }
   for (const [key, val] of Object.entries(cleaned)) {
     if (val === "") delete cleaned[key];

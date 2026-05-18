@@ -87,6 +87,7 @@ describe("cover letter generate route", () => {
       project: [],
       hackathon: [],
       education: [],
+      paragraph: [],
       bullet: [],
       achievement: [],
       certification: [],

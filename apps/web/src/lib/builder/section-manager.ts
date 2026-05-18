@@ -22,6 +22,7 @@ export const SECTION_LABELS: Record<BankCategory, string> = {
   skill: "Skills",
   project: "Projects",
   hackathon: "Hackathons",
+  paragraph: "Paragraphs",
   // User-visible label only; "bullet" is the BankCategory key shared with the bank pipeline.
   bullet: "Highlights",
   achievement: "Achievements",
@@ -42,6 +43,7 @@ export const DEFAULT_SECTION_ORDER: BankCategory[] = [
   "skill",
   "project",
   "hackathon",
+  "paragraph",
   "bullet",
   "achievement",
   "certification",

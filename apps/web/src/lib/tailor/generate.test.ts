@@ -91,6 +91,7 @@ function makeBank(): GroupedBankEntries {
     ],
     project: [],
     hackathon: [],
+    paragraph: [],
     bullet: [],
     achievement: [],
     certification: [],
@@ -255,6 +256,42 @@ describe("generateFromBank", () => {
     // 5 highlights → truncated to 4, "A" survives because filter is off.
     expect(result.resume.experiences[0].highlights).toHaveLength(4);
     expect(result.resume.experiences[0].highlights[0]).toBe("A");
+  });
+
+  it("applies strict ATS formatting to deterministic output", async () => {
+    const bank = makeBank();
+    bank.experience[0].content.highlights = [
+      "Built React dashboards — improved onboarding",
+      "• Led TypeScript migration",
+    ];
+    bank.skill[0].content.name = "React → UI";
+
+    const result = await generateFromBank(
+      {
+        bankEntries: bank,
+        matchedEntries: [],
+        contact: { name: "Jane Doe" },
+        jobTitle: "Engineer",
+        company: "Test Corp",
+        jobDescription: "React and TypeScript engineer.",
+        userId: "default",
+        settings: {
+          bulletsPerRole: { min: 1, max: 4 },
+          bulletsPerProject: { min: 0, max: 0 },
+          maxRoles: 1,
+          maxProjects: 0,
+          atsStrictness: "strict",
+          dropBulletsShorterThan: 0,
+        },
+      },
+      null,
+    );
+
+    expect(result.resume.experiences[0].highlights).toEqual([
+      "Built React dashboards - improved onboarding",
+      "Led TypeScript migration",
+    ]);
+    expect(result.resume.skills[0]).toBe("React UI");
   });
 
   it("should fill experiences from bank when few matches", async () => {

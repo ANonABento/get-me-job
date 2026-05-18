@@ -1,6 +1,12 @@
 import db from "./legacy";
 import { generateId } from "@/lib/utils";
-import type { BankEntry, BankCategory, GroupedBankEntries } from "@/types";
+import type {
+  BankEntry,
+  BankCategory,
+  GroupedBankEntries,
+  SourceBbox,
+  SourceLinkMetadata,
+} from "@/types";
 
 interface BankEntryRow {
   id: string;
@@ -14,6 +20,9 @@ interface BankEntryRow {
   source_section?: string | null;
   source_page?: number | null;
   source_bbox?: string | null;
+  source_order?: number | null;
+  source_header_bbox?: string | null;
+  source_links?: string | null;
   match_method?: string | null;
   confidence_score: number;
   created_at: string;
@@ -48,16 +57,43 @@ function readContent(row: BankEntryRow): Record<string, unknown> {
   return content;
 }
 
-function rowToEntry(row: BankEntryRow): BankEntry {
-  let sourceBbox: [number, number, number, number, number][] | undefined;
-  if (row.source_bbox) {
+function parseBboxJson(
+  value: string | null | undefined,
+): SourceBbox[] | undefined {
+  if (value) {
     try {
-      const parsed = JSON.parse(row.source_bbox);
-      if (Array.isArray(parsed)) sourceBbox = parsed;
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed;
     } catch {
       // Ignore malformed JSON — degrade to "no bbox" rather than fail.
     }
   }
+  return undefined;
+}
+
+function parseSourceLinksJson(
+  value: string | null | undefined,
+): SourceLinkMetadata[] | undefined {
+  if (!value) return undefined;
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!Array.isArray(parsed)) return undefined;
+    const links = parsed.filter(
+      (link): link is SourceLinkMetadata =>
+        typeof link === "object" &&
+        link !== null &&
+        typeof (link as SourceLinkMetadata).url === "string",
+    );
+    return links.length > 0 ? links : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function rowToEntry(row: BankEntryRow): BankEntry {
+  const sourceBbox = parseBboxJson(row.source_bbox);
+  const sourceHeaderBbox = parseBboxJson(row.source_header_bbox);
+  const sourceLinks = parseSourceLinksJson(row.source_links);
   return {
     id: row.id,
     userId: row.user_id,
@@ -66,6 +102,9 @@ function rowToEntry(row: BankEntryRow): BankEntry {
     sourceDocumentId: row.source_document_id ?? undefined,
     sourcePage: row.source_page ?? undefined,
     sourceBbox,
+    sourceOrder: row.source_order ?? undefined,
+    sourceHeaderBbox,
+    sourceLinks,
     matchMethod: row.match_method ?? undefined,
     confidenceScore: row.confidence_score,
     createdAt: row.created_at,
@@ -126,6 +165,9 @@ export function ensureProfileBankHierarchySchema(): void {
     // entries that have no PDF source (manual, Drive doc, etc.).
     "ALTER TABLE profile_bank ADD COLUMN source_page INTEGER",
     "ALTER TABLE profile_bank ADD COLUMN source_bbox TEXT",
+    "ALTER TABLE profile_bank ADD COLUMN source_order INTEGER",
+    "ALTER TABLE profile_bank ADD COLUMN source_header_bbox TEXT",
+    "ALTER TABLE profile_bank ADD COLUMN source_links TEXT",
     // Preview-match cascade P2.2 — records which tier of the cascade
     // resolved this entry's position. `null` for legacy rows + entries
     // with no PDF source; `"fuzzy"` for any free-tier deterministic
@@ -157,6 +199,9 @@ export interface InsertBankEntry {
   componentType?: string;
   componentOrder?: number;
   sourceSection?: string;
+  sourceOrder?: number;
+  sourceHeaderBbox?: SourceBbox[];
+  sourceLinks?: SourceLinkMetadata[];
   confidenceScore?: number;
 }
 
@@ -193,6 +238,14 @@ function entrySourceSection(entry: InsertBankEntry): string | null {
   );
 }
 
+function entrySourceOrder(entry: InsertBankEntry): number | null {
+  return entry.sourceOrder ?? numberValue(entry.content.sourceOrder) ?? null;
+}
+
+function serializeJsonMetadata(value: unknown[] | undefined): string | null {
+  return value ? JSON.stringify(value) : null;
+}
+
 export function insertBankEntry(
   entry: InsertBankEntry,
   userId: string,
@@ -204,9 +257,10 @@ export function insertBankEntry(
     INSERT INTO profile_bank (
       id, user_id, category, content, source_document_id,
       parent_id, component_type, component_order, source_section,
+      source_order, source_header_bbox, source_links,
       confidence_score
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
   ).run(
     id,
@@ -218,6 +272,9 @@ export function insertBankEntry(
     entryComponentType(entry),
     entryComponentOrder(entry),
     entrySourceSection(entry),
+    entrySourceOrder(entry),
+    serializeJsonMetadata(entry.sourceHeaderBbox),
+    serializeJsonMetadata(entry.sourceLinks),
     entry.confidenceScore ?? 0.8,
   );
   return id;
@@ -268,6 +325,7 @@ export function getGroupedBankEntries(userId: string): GroupedBankEntries {
     project: [],
     hackathon: [],
     education: [],
+    paragraph: [],
     bullet: [],
     achievement: [],
     certification: [],
@@ -471,6 +529,10 @@ export function getDeduplicationKey(
       return `${content.institution}|${content.degree}`.toLowerCase();
     case "project":
       return `${content.name}`.toLowerCase();
+    case "paragraph":
+      return `${content.text || content.description}`
+        .toLowerCase()
+        .slice(0, 160);
     case "hackathon":
       return `${content.name}|${content.submissionUrl || content.eventUrl}`.toLowerCase();
     case "certification":
@@ -559,7 +621,10 @@ export function updateBankEntryPositions(
   userId: string,
   positions: {
     page: number;
-    bboxes: [number, number, number, number, number][];
+    bboxes: SourceBbox[];
+    sourceOrder?: number;
+    headerBboxes?: SourceBbox[];
+    sourceLinks?: SourceLinkMetadata[];
     /**
      * Match-cascade tier that produced these bboxes. Defaults to
      * `"fuzzy"` for free-tier matches. Premium tiers (when implemented)
@@ -571,11 +636,19 @@ export function updateBankEntryPositions(
   ensureProfileBankHierarchySchema();
   db.prepare(
     `UPDATE profile_bank
-     SET source_page = ?, source_bbox = ?, match_method = ?
+     SET source_page = ?,
+         source_bbox = ?,
+         source_order = coalesce(?, source_order),
+         source_header_bbox = coalesce(?, source_header_bbox),
+         source_links = coalesce(?, source_links),
+         match_method = ?
      WHERE id = ? AND user_id = ?`,
   ).run(
     positions.page,
     JSON.stringify(positions.bboxes),
+    positions.sourceOrder ?? null,
+    serializeJsonMetadata(positions.headerBboxes),
+    serializeJsonMetadata(positions.sourceLinks),
     positions.matchMethod ?? "fuzzy",
     id,
     userId,

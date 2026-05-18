@@ -1,4 +1,4 @@
-import type { Profile } from "@/types";
+import type { ParsedDocumentData, Profile } from "@/types";
 import type { InsertBankEntry } from "@/lib/db/profile-bank";
 import {
   deleteBankEntriesBySource,
@@ -34,6 +34,25 @@ function parentKey(parts: Array<string | undefined>): string {
     .join("|");
 }
 
+function uniqueList(values: string[] | undefined): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of cleanList(values)) {
+    const key = normalizeText(value).toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(value);
+  }
+  return out;
+}
+
+function textContent(value: string): Record<string, unknown> {
+  return {
+    text: value,
+    description: value,
+  };
+}
+
 /**
  * Extract individual bank entries from parsed profile data.
  * Each data point becomes its own entry with category, content, and confidence.
@@ -43,6 +62,8 @@ export function extractBankEntries(
   sourceDocumentId?: string,
 ): InsertBankEntry[] {
   const entries: InsertBankEntry[] = [];
+  let sourceOrder = 0;
+  const nextSourceOrder = () => sourceOrder++;
 
   if (profile.experiences) {
     for (const exp of profile.experiences) {
@@ -60,6 +81,7 @@ export function extractBankEntries(
       entries.push({
         id: parentId,
         category: "experience",
+        sourceOrder: nextSourceOrder(),
         content: {
           company: exp.company,
           title: exp.title,
@@ -82,6 +104,7 @@ export function extractBankEntries(
       highlights.forEach((highlight, index) => {
         entries.push({
           category: "bullet",
+          sourceOrder: nextSourceOrder(),
           content: {
             description: highlight,
             context: `${exp.title} at ${exp.company}`,
@@ -103,6 +126,7 @@ export function extractBankEntries(
       for (const skill of skills) {
         entries.push({
           category: "skill",
+          sourceOrder: nextSourceOrder(),
           content: {
             name: skill,
             context: `Used as ${exp.title} at ${exp.company}`,
@@ -121,6 +145,7 @@ export function extractBankEntries(
     for (const edu of profile.education) {
       entries.push({
         category: "education",
+        sourceOrder: nextSourceOrder(),
         content: {
           institution: edu.institution,
           degree: edu.degree,
@@ -141,6 +166,7 @@ export function extractBankEntries(
     for (const skill of profile.skills) {
       entries.push({
         category: "skill",
+        sourceOrder: nextSourceOrder(),
         content: {
           name: skill.name,
           category: skill.category,
@@ -168,6 +194,7 @@ export function extractBankEntries(
       entries.push({
         id: parentId,
         category: "project",
+        sourceOrder: nextSourceOrder(),
         content: {
           name: proj.name,
           description,
@@ -184,6 +211,7 @@ export function extractBankEntries(
       highlights.forEach((highlight, index) => {
         entries.push({
           category: "bullet",
+          sourceOrder: nextSourceOrder(),
           content: {
             description: highlight,
             context: proj.name,
@@ -207,6 +235,7 @@ export function extractBankEntries(
     for (const cert of profile.certifications) {
       entries.push({
         category: "certification",
+        sourceOrder: nextSourceOrder(),
         content: {
           name: cert.name,
           issuer: cert.issuer,
@@ -234,6 +263,256 @@ export function populateBankFromProfile(
   userId: string,
 ): { inserted: number; updated: number; skipped: number } {
   const entries = extractBankEntries(profile, sourceDocumentId);
+
+  if (sourceDocumentId) {
+    deleteBankEntriesBySource(sourceDocumentId, userId);
+  }
+
+  if (entries.length > 0) {
+    insertBankEntries(entries, userId);
+  }
+
+  return { inserted: entries.length, updated: 0, skipped: 0 };
+}
+
+export function extractBankEntriesFromParsedDocument(
+  parsedData: Exclude<ParsedDocumentData, { docType: "resume" }>,
+  sourceDocumentId?: string,
+): InsertBankEntry[] {
+  const entries: InsertBankEntry[] = [];
+  let sourceOrder = 0;
+  const nextSourceOrder = () => sourceOrder++;
+
+  if (parsedData.docType === "cover_letter") {
+    const data = parsedData.data;
+    for (const paragraph of uniqueList(data.reusableParagraphs)) {
+      entries.push({
+        category: "paragraph",
+        sourceOrder: nextSourceOrder(),
+        content: {
+          ...textContent(paragraph),
+          targetCompany: data.targetCompany,
+          targetPosition: data.targetPosition,
+          tone: data.tone,
+          relatedSellingPoints: uniqueList(data.keySellingPoints),
+        },
+        sourceDocumentId,
+        sourceSection: "cover_letter",
+        confidenceScore: 0.82,
+      });
+    }
+    for (const point of uniqueList(data.keySellingPoints)) {
+      entries.push({
+        category: "bullet",
+        sourceOrder: nextSourceOrder(),
+        content: {
+          description: point,
+          context: "Cover letter selling point",
+          targetCompany: data.targetCompany,
+          targetPosition: data.targetPosition,
+          sourceSection: "cover_letter",
+        },
+        sourceDocumentId,
+        sourceSection: "cover_letter",
+        confidenceScore: 0.78,
+      });
+    }
+  }
+
+  if (parsedData.docType === "portfolio") {
+    const data = parsedData.data;
+    const globalTechnologies = uniqueList(data.technologies);
+    const explicitSkills = new Set<string>();
+    for (const technology of globalTechnologies) explicitSkills.add(technology);
+
+    for (const project of data.projects) {
+      const parentId = generateId();
+      const technologies = uniqueList(project.technologies);
+      for (const technology of technologies) explicitSkills.add(technology);
+      const bullets = uniqueList([...project.bullets, ...project.proofPoints]);
+
+      entries.push({
+        id: parentId,
+        category: "project",
+        sourceOrder: nextSourceOrder(),
+        content: {
+          name: project.name,
+          description: project.description ?? "",
+          url: project.url,
+          technologies,
+          proofPoints: uniqueList(project.proofPoints),
+          highlights: [],
+          childCount: bullets.length,
+        },
+        sourceDocumentId,
+        sourceSection: "portfolio",
+        confidenceScore: 0.84,
+      });
+
+      bullets.forEach((bullet, index) => {
+        entries.push({
+          category: "bullet",
+          sourceOrder: nextSourceOrder(),
+          content: {
+            description: bullet,
+            context: project.name,
+            project: project.name,
+            technologies,
+            parentType: "project",
+            parentId,
+            parentKey: parentKey([project.name]),
+            parentLabel: project.name,
+            order: index,
+            sourceSection: "portfolio",
+          },
+          sourceDocumentId,
+          sourceSection: "portfolio",
+          confidenceScore: 0.78,
+        });
+      });
+    }
+
+    for (const technology of explicitSkills) {
+      entries.push({
+        category: "skill",
+        sourceOrder: nextSourceOrder(),
+        content: {
+          name: technology,
+          category: "technical",
+          context: "Explicit portfolio stack",
+        },
+        sourceDocumentId,
+        sourceSection: "portfolio",
+        confidenceScore: 0.76,
+      });
+    }
+
+    for (const proofPoint of uniqueList(data.proofPoints)) {
+      entries.push({
+        category: "achievement",
+        sourceOrder: nextSourceOrder(),
+        content: {
+          description: proofPoint,
+          sourceSection: "portfolio",
+        },
+        sourceDocumentId,
+        sourceSection: "portfolio",
+        confidenceScore: 0.74,
+      });
+    }
+  }
+
+  if (parsedData.docType === "career_notes") {
+    const data = parsedData.data;
+    for (const paragraph of uniqueList(data.paragraphs)) {
+      entries.push({
+        category: "paragraph",
+        sourceOrder: nextSourceOrder(),
+        content: {
+          ...textContent(paragraph),
+          sourceSection: "career_notes",
+        },
+        sourceDocumentId,
+        sourceSection: "career_notes",
+        confidenceScore: 0.62,
+      });
+    }
+    for (const bullet of uniqueList(data.bullets)) {
+      entries.push({
+        category: "bullet",
+        sourceOrder: nextSourceOrder(),
+        content: {
+          description: bullet,
+          context: "Career notes",
+          sourceSection: "career_notes",
+        },
+        sourceDocumentId,
+        sourceSection: "career_notes",
+        confidenceScore: 0.58,
+      });
+    }
+    for (const achievement of uniqueList(data.achievements)) {
+      entries.push({
+        category: "achievement",
+        sourceOrder: nextSourceOrder(),
+        content: {
+          description: achievement,
+          sourceSection: "career_notes",
+        },
+        sourceDocumentId,
+        sourceSection: "career_notes",
+        confidenceScore: 0.6,
+      });
+    }
+    for (const project of data.projects) {
+      const parentId = generateId();
+      const bullets = uniqueList(project.bullets);
+      const technologies = uniqueList(project.technologies);
+      entries.push({
+        id: parentId,
+        category: "project",
+        sourceOrder: nextSourceOrder(),
+        content: {
+          name: project.name,
+          description: project.description ?? "",
+          technologies,
+          highlights: [],
+          childCount: bullets.length,
+        },
+        sourceDocumentId,
+        sourceSection: "career_notes",
+        confidenceScore: 0.6,
+      });
+      bullets.forEach((bullet, index) => {
+        entries.push({
+          category: "bullet",
+          sourceOrder: nextSourceOrder(),
+          content: {
+            description: bullet,
+            context: project.name,
+            project: project.name,
+            technologies,
+            parentType: "project",
+            parentId,
+            parentKey: parentKey([project.name]),
+            parentLabel: project.name,
+            order: index,
+            sourceSection: "career_notes",
+          },
+          sourceDocumentId,
+          sourceSection: "career_notes",
+          confidenceScore: 0.56,
+        });
+      });
+    }
+    for (const skill of uniqueList(data.skills)) {
+      entries.push({
+        category: "skill",
+        sourceOrder: nextSourceOrder(),
+        content: {
+          name: skill,
+          category: "other",
+          context: "Explicit career notes skill",
+        },
+        sourceDocumentId,
+        sourceSection: "career_notes",
+        confidenceScore: 0.58,
+      });
+    }
+  }
+
+  return entries;
+}
+
+export function populateBankFromParsedDocument(
+  parsedData: Exclude<ParsedDocumentData, { docType: "resume" }>,
+  sourceDocumentId: string | undefined,
+  userId: string,
+): { inserted: number; updated: number; skipped: number } {
+  const entries = extractBankEntriesFromParsedDocument(
+    parsedData,
+    sourceDocumentId,
+  );
 
   if (sourceDocumentId) {
     deleteBankEntriesBySource(sourceDocumentId, userId);

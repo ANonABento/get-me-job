@@ -277,6 +277,17 @@ function createEditableEntry(entry: BankEntry): EditableDocumentEntry {
         body: readString(content.description),
         bullets: [],
       };
+    case "paragraph":
+      return {
+        id: entry.id,
+        heading: readString(content.title) || "Paragraph",
+        subtitle:
+          readString(content.targetPosition) ||
+          readString(content.targetCompany),
+        meta: readString(content.tone) || readString(content.sourceSection),
+        body: readString(content.text) || readString(content.description),
+        bullets: readStringArray(content.relatedSellingPoints),
+      };
     case "bullet":
       return {
         id: entry.id,

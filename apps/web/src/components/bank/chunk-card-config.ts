@@ -7,6 +7,7 @@ import {
   FolderOpen,
   GraduationCap,
   Shield,
+  Text,
   Trophy,
   Wrench,
 } from "lucide-react";
@@ -40,6 +41,11 @@ export const CATEGORY_CONFIG: Record<
     label: "Hackathon",
     icon: Trophy,
     color: "bg-warning/10 text-warning",
+  },
+  paragraph: {
+    label: "Paragraph",
+    icon: Text,
+    color: "bg-success/10 text-success",
   },
   bullet: {
     label: "Bullet",
@@ -314,6 +320,38 @@ export const CATEGORY_FIELDS: Record<BankCategory, FieldDef[]> = {
     },
     { key: "date", label: "Date", type: "text", placeholder: "e.g. 2023-03" },
     { key: "url", label: "URL", type: "text", placeholder: "https://..." },
+  ],
+  paragraph: [
+    {
+      key: "text",
+      label: "Paragraph Text",
+      type: "textarea",
+      placeholder: "Reusable cover letter or career note paragraph",
+    },
+    {
+      key: "targetCompany",
+      label: "Target Company",
+      type: "text",
+      placeholder: "e.g. Acme Corp",
+    },
+    {
+      key: "targetPosition",
+      label: "Target Role",
+      type: "text",
+      placeholder: "e.g. Product Engineer",
+    },
+    {
+      key: "tone",
+      label: "Tone",
+      type: "text",
+      placeholder: "e.g. professional",
+    },
+    {
+      key: "relatedSellingPoints",
+      label: "Related Selling Points (one per line)",
+      type: "list",
+      placeholder: "Built scalable APIs\nLed team of 5",
+    },
   ],
   bullet: [
     {

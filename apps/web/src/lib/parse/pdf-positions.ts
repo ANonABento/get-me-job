@@ -48,6 +48,13 @@ export type PositionTuple = [
   y1: number,
 ];
 
+export interface SourceLinkMetadata {
+  url: string;
+  text?: string;
+  page?: number;
+  bbox?: PositionTuple;
+}
+
 interface PdfJsTextItem {
   str?: string;
   transform?: number[];
@@ -789,6 +796,64 @@ function buildBboxTuples(
   return tuples;
 }
 
+function bboxIntersectsLink(bbox: PositionTuple, link: PdfLinkAnnotation) {
+  const [page, x0, y0, x1, y1] = bbox;
+  if (link.page !== page) return false;
+  const overlapsY = link.y1 >= y0 && link.y0 <= y1;
+  const nearX = link.x1 >= x0 - 32 && link.x0 <= x1 + 32;
+  return overlapsY && nearX;
+}
+
+function lineTextForLink(
+  link: PdfLinkAnnotation,
+  items: PdfPositionItem[],
+): string | undefined {
+  const lineItems = items
+    .filter(
+      (item) =>
+        item.page === link.page && item.y1 >= link.y0 && item.y0 <= link.y1,
+    )
+    .sort((a, b) => a.x0 - b.x0);
+  const text = lineItems
+    .map((item) => item.text.trim())
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text || undefined;
+}
+
+/**
+ * Attach PDF link annotations to the nearest matched source line. This keeps
+ * URLs as structured metadata instead of relying only on text reconstruction
+ * that appends URLs for parser compatibility.
+ */
+export function findSourceLinksForBboxes(
+  links: PdfLinkAnnotation[],
+  items: PdfPositionItem[],
+  bboxes: PositionTuple[],
+): SourceLinkMetadata[] {
+  if (links.length === 0 || bboxes.length === 0) return [];
+  const out: SourceLinkMetadata[] = [];
+  const seen = new Set<string>();
+  for (const link of links) {
+    const bbox = bboxes.find((candidate) =>
+      bboxIntersectsLink(candidate, link),
+    );
+    if (!bbox) continue;
+    const key = `${link.url}|${link.page}|${link.x0}|${link.y0}|${link.x1}|${link.y1}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      url: link.url,
+      text: lineTextForLink(link, items),
+      page: link.page,
+      bbox: [link.page, link.x0, link.y0, link.x1, link.y1],
+    });
+  }
+  return out;
+}
+
 /**
  * Returns a ranked list of search-needle candidates for a given bank
  * entry. The matcher tries them in order and stops on the first hit —
@@ -852,8 +917,9 @@ export function deriveSearchNeedles(
       break;
     }
     case "bullet":
+    case "paragraph":
     case "achievement": {
-      const description = pick("description");
+      const description = pick("description") || pick("text");
       if (description) {
         push(description);
         const words = description.split(/\s+/).filter(Boolean);
@@ -883,6 +949,65 @@ export function deriveSearchNeedles(
       push(pick("name"));
       push(pick("title"));
       break;
+  }
+  return out;
+}
+
+/**
+ * Header-only candidates for root components. These intentionally avoid long
+ * descriptions/highlights so root navigation can prefer the compact heading
+ * line while `sourceBbox` preserves the legacy broader match.
+ */
+export function deriveHeaderSearchNeedles(
+  category: string,
+  content: Record<string, unknown>,
+): string[] {
+  const pick = (key: string): string =>
+    typeof content[key] === "string" ? (content[key] as string) : "";
+  const out: string[] = [];
+  const push = (s: string) => {
+    const trimmed = s.trim();
+    if (trimmed && !out.includes(trimmed)) out.push(trimmed);
+  };
+
+  switch (category) {
+    case "experience": {
+      const title = pick("title");
+      const company = pick("company");
+      push([title, company].filter(Boolean).join(" "));
+      push([title, "at", company].filter(Boolean).join(" "));
+      if (title) push(title);
+      if (company) push(company);
+      break;
+    }
+    case "project": {
+      const name = pick("name") || pick("title");
+      if (name) push(name);
+      break;
+    }
+    case "education": {
+      const institution = pick("institution");
+      const degree = pick("degree");
+      const field = pick("field");
+      push([institution, degree, field].filter(Boolean).join(" "));
+      push([degree, field].filter(Boolean).join(" "));
+      if (institution) push(institution);
+      break;
+    }
+    case "certification": {
+      const name = pick("name");
+      const issuer = pick("issuer");
+      push([name, issuer].filter(Boolean).join(" "));
+      if (name) push(name);
+      break;
+    }
+    case "hackathon": {
+      const name = pick("name");
+      const project = pick("project");
+      push([name, project].filter(Boolean).join(" "));
+      if (name) push(name);
+      break;
+    }
   }
   return out;
 }

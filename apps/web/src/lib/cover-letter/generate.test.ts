@@ -28,6 +28,7 @@ function makeEmptyBank(): GroupedBankEntries {
     project: [],
     hackathon: [],
     education: [],
+    paragraph: [],
     bullet: [],
     achievement: [],
     certification: [],
@@ -59,6 +60,7 @@ function makePopulatedBank(): GroupedBankEntries {
         content: { name: "React" },
       }),
     ],
+    paragraph: [],
     project: [
       makeBankEntry({
         id: "proj-1",

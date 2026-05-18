@@ -6,6 +6,7 @@ export const DOCUMENT_TYPES = [
   "cover_letter",
   "reference_letter",
   "portfolio",
+  "career_notes",
   "certificate",
   "other",
 ] as const;
