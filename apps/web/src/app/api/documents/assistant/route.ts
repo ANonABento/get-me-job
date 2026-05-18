@@ -6,10 +6,8 @@ import {
   type AiGatePass,
 } from "@/lib/billing/ai-gate";
 import { rateLimiters, getClientIdentifier } from "@/lib/rate-limit";
-import {
-  isDocumentAssistantAction,
-  rewriteDocumentSelection,
-} from "@/lib/document-assistant";
+import { isDocumentAssistantAction } from "@/lib/document-assistant";
+import { rewriteDocumentSelection } from "@/lib/document-assistant.server";
 import { nowEpoch } from "@/lib/format/time";
 
 export const dynamic = "force-dynamic";

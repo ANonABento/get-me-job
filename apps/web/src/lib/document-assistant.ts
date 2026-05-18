@@ -1,6 +1,3 @@
-import { LLMClient } from "@/lib/llm/client";
-import type { LLMConfig } from "@/types";
-
 export const DOCUMENT_ASSISTANT_ACTIONS = [
   "rewrite",
   "make-concise",
@@ -255,33 +252,4 @@ ${documentContent}
 
 ${jobDescription ? `Job description:\n${jobDescription}\n` : ""}
 Return only the replacement text for the selected text. Do not include markdown, labels, quotes, or commentary.`;
-}
-
-export async function rewriteDocumentSelection(
-  options: {
-    action: DocumentAssistantAction;
-    selectedText: string;
-    documentContent: string;
-    jobDescription?: string;
-  },
-  llmConfig: LLMConfig,
-): Promise<string> {
-  const client = new LLMClient(llmConfig);
-  const result = await client.complete({
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are an expert job-search writing assistant. Rewrite only the selected document text and preserve the candidate's facts.",
-      },
-      {
-        role: "user",
-        content: buildDocumentRewritePrompt(options),
-      },
-    ],
-    temperature: 0.4,
-    maxTokens: 700,
-  });
-
-  return result.trim();
 }

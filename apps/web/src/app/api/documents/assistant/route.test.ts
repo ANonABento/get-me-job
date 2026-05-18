@@ -28,6 +28,9 @@ vi.mock("@/lib/rate-limit", () => ({
 
 vi.mock("@/lib/document-assistant", async (importActual) => ({
   ...(await importActual<typeof import("@/lib/document-assistant")>()),
+}));
+
+vi.mock("@/lib/document-assistant.server", () => ({
   rewriteDocumentSelection: mocks.rewriteDocumentSelection,
 }));
 

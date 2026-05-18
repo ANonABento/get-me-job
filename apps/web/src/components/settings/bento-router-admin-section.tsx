@@ -7,7 +7,7 @@ import {
   type BentoTaskAdminSummary,
   type BentoTaskPolicyPatch,
   type ProviderConfigSummary,
-} from "@anonabento/bento-router";
+} from "@anonabento/bento-router/admin";
 import { PageSection } from "@/components/ui/page-layout";
 import { BrainCircuit } from "lucide-react";
 

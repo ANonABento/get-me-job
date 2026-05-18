@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { parseJSONFromLLM } from "@/lib/llm/client";
+import { parseJSONFromLLM } from "@/lib/llm/json";
 import { detectGenericPhrases, genericPhrasePenalty } from "./prompt-quality";
 
 export const COVER_LETTER_CRITIQUE_AXES = [
@@ -128,9 +128,10 @@ export function applyGenericPhrasePenaltyToCritique(
     ...critique,
     scores,
     overall: Number(
-      ((scores.fit + scores.specificity + scores.hook + scores.ask) / 4).toFixed(
-        1,
-      ),
+      (
+        (scores.fit + scores.specificity + scores.hook + scores.ask) /
+        4
+      ).toFixed(1),
     ),
     rationale_per_axis: {
       ...critique.rationale_per_axis,
