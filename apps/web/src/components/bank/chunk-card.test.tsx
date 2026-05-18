@@ -292,6 +292,17 @@ describe("cleanContent", () => {
   });
 });
 
+describe("CATEGORY_FIELDS", () => {
+  it("exposes a generic optional URL field for every component type", () => {
+    for (const [category, fields] of Object.entries(CATEGORY_FIELDS)) {
+      expect(
+        fields.some((field) => field.key === "url"),
+        `${category} should include an optional url field`,
+      ).toBe(true);
+    }
+  });
+});
+
 describe("ChunkCard", () => {
   it("should render entry title and category badge", () => {
     const entry = makeBankEntry();

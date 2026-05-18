@@ -13,6 +13,13 @@ import {
 } from "lucide-react";
 import type { FieldDef } from "./chunk-card.types";
 
+const OPTIONAL_URL_FIELD: FieldDef = {
+  key: "url",
+  label: "URL",
+  type: "text",
+  placeholder: "https://...",
+};
+
 export const CATEGORY_CONFIG: Record<
   BankCategory,
   {
@@ -78,6 +85,7 @@ export const CATEGORY_FIELDS: Record<BankCategory, FieldDef[]> = {
       type: "text",
       placeholder: "e.g. Acme Corp",
     },
+    OPTIONAL_URL_FIELD,
     {
       key: "location",
       label: "Location",
@@ -154,6 +162,7 @@ export const CATEGORY_FIELDS: Record<BankCategory, FieldDef[]> = {
       type: "list",
       placeholder: "Dean's list\nResearch assistant",
     },
+    OPTIONAL_URL_FIELD,
   ],
   skill: [
     {
@@ -185,6 +194,7 @@ export const CATEGORY_FIELDS: Record<BankCategory, FieldDef[]> = {
         { value: "expert", label: "Expert" },
       ],
     },
+    OPTIONAL_URL_FIELD,
   ],
   project: [
     {
@@ -199,12 +209,7 @@ export const CATEGORY_FIELDS: Record<BankCategory, FieldDef[]> = {
       type: "textarea",
       placeholder: "What does this project do?",
     },
-    {
-      key: "url",
-      label: "URL",
-      type: "text",
-      placeholder: "https://github.com/...",
-    },
+    OPTIONAL_URL_FIELD,
     {
       key: "technologies",
       label: "Technologies (one per line)",
@@ -261,6 +266,7 @@ export const CATEGORY_FIELDS: Record<BankCategory, FieldDef[]> = {
       type: "text",
       placeholder: "https://...devpost.com",
     },
+    OPTIONAL_URL_FIELD,
     {
       key: "prizes",
       label: "Prizes (one per line)",
@@ -319,7 +325,7 @@ export const CATEGORY_FIELDS: Record<BankCategory, FieldDef[]> = {
       placeholder: "e.g. Amazon Web Services",
     },
     { key: "date", label: "Date", type: "text", placeholder: "e.g. 2023-03" },
-    { key: "url", label: "URL", type: "text", placeholder: "https://..." },
+    OPTIONAL_URL_FIELD,
   ],
   paragraph: [
     {
@@ -346,6 +352,7 @@ export const CATEGORY_FIELDS: Record<BankCategory, FieldDef[]> = {
       type: "text",
       placeholder: "e.g. professional",
     },
+    OPTIONAL_URL_FIELD,
     {
       key: "relatedSellingPoints",
       label: "Related Selling Points (one per line)",
@@ -360,6 +367,7 @@ export const CATEGORY_FIELDS: Record<BankCategory, FieldDef[]> = {
       type: "textarea",
       placeholder: "Resume bullet...",
     },
+    OPTIONAL_URL_FIELD,
   ],
   achievement: [
     {
@@ -368,6 +376,7 @@ export const CATEGORY_FIELDS: Record<BankCategory, FieldDef[]> = {
       type: "textarea",
       placeholder: "Describe the achievement...",
     },
+    OPTIONAL_URL_FIELD,
   ],
 };
 

@@ -42,6 +42,7 @@ import {
 } from "@/lib/parse/pdf-positions";
 import {
   listBankEntriesPaginated,
+  updateBankEntryForUser,
   updateBankEntryPositions,
 } from "@/lib/db/profile-bank";
 import { isLLMConfigured } from "@/lib/llm/is-configured";
@@ -66,6 +67,17 @@ export const dynamic = "force-dynamic";
  * common substrings rather than a strict equality.
  */
 const ENCRYPTION_HINTS = ["encrypt", "password", "permission denied"];
+
+function promoteFirstSourceLinkUrl(
+  content: Record<string, unknown>,
+  sourceLinks: Array<{ url?: string }>,
+): Record<string, unknown> | null {
+  if (typeof content.url === "string" && content.url.trim()) return null;
+  const url = sourceLinks.find(
+    (link) => typeof link.url === "string" && /^https?:\/\//i.test(link.url),
+  )?.url;
+  return url ? { ...content, url } : null;
+}
 
 function isEncryptedPdfError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
@@ -494,6 +506,19 @@ export async function POST(request: NextRequest) {
             positions.items,
             linkBboxes,
           );
+          const promotedContent = promoteFirstSourceLinkUrl(
+            entry.content,
+            sourceLinks,
+          );
+          if (promotedContent) {
+            updateBankEntryForUser(
+              entry.id,
+              authResult.userId,
+              promotedContent,
+              entry.confidenceScore,
+            );
+            entry.content = promotedContent;
+          }
           updateBankEntryPositions(entry.id, authResult.userId, {
             page: firstPage,
             bboxes,
