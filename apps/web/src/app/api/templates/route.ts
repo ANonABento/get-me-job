@@ -3,9 +3,9 @@
  * @route POST /api/templates
  * @route DELETE /api/templates
  * @route PATCH /api/templates
- * @description List templates (GET), create a template (POST), delete a template (DELETE), or rename a template (PATCH)
+ * @description List templates (GET), create a template (POST), delete a template (DELETE), or update template metadata (PATCH)
  * @auth Required
- * @request { name: string, content: string } (POST) | { id: string } (DELETE) | { id: string, name: string } (PATCH)
+ * @request { name: string, content: string } (POST) | { id: string } (DELETE) | { id: string, name?: string, description?: string | null } (PATCH)
  * @response TemplatesResponse from @/types/api
  */
 import { NextRequest } from "next/server";
@@ -14,7 +14,7 @@ import {
   getCustomTemplates,
   saveCustomTemplate,
   deleteCustomTemplate,
-  updateCustomTemplateName,
+  updateCustomTemplateMetadata,
 } from "@/lib/db/custom-templates";
 import { getDocument } from "@/lib/db/queries";
 import { TEMPLATES } from "@/lib/resume/templates";
@@ -29,10 +29,23 @@ import type { AnalyzedTemplate } from "@/lib/resume/template-analyzer";
 
 export const dynamic = "force-dynamic";
 
-const patchTemplateSchema = z.object({
-  id: z.string().min(1, "Template ID is required"),
-  name: z.string().min(1, "Template name is required").max(100),
-});
+const patchTemplateSchema = z
+  .object({
+    id: z.string().min(1, "Template ID is required"),
+    name: z
+      .string()
+      .trim()
+      .min(1, "Template name is required")
+      .max(100)
+      .optional(),
+    description: z.string().trim().max(300).nullable().optional(),
+  })
+  .refine(
+    (value) => value.name !== undefined || value.description !== undefined,
+    {
+      message: "Template name or description is required",
+    },
+  );
 
 const createTemplateSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
@@ -60,7 +73,7 @@ const createTemplateSchema = z.object({
   }),
   sourceDocumentId: z.string().optional(),
   sourceFilename: z.string().optional(),
-  sourceType: z.enum(["pdf", "docx"]).optional(),
+  sourceType: z.enum(["pdf", "docx", "tex"]).optional(),
 });
 
 export async function GET() {
@@ -80,11 +93,14 @@ export async function GET() {
     const custom = customTemplates.map((t) => ({
       id: t.id,
       name: t.name,
-      description: t.sourceType
-        ? `Imported from ${t.sourceType.toUpperCase()}`
-        : `Custom template${t.sourceDocumentId ? " (from uploaded resume)" : ""}`,
+      description:
+        t.description ??
+        (t.sourceType
+          ? `Imported from ${t.sourceType.toUpperCase()}`
+          : `Custom template${t.sourceDocumentId ? " (from uploaded resume)" : ""}`),
       type: "custom" as const,
       analyzedStyles: t.analyzedStyles,
+      customDescription: t.description,
       sourceFilename: t.sourceFilename,
       sourceType: t.sourceType,
       createdAt: t.createdAt,
@@ -175,8 +191,12 @@ export async function PATCH(request: NextRequest) {
       return validationErrorResponse(parseResult.error);
     }
 
-    const { id, name } = parseResult.data;
-    const updated = updateCustomTemplateName(id, name, authResult.userId);
+    const { id, name, description } = parseResult.data;
+    const updated = updateCustomTemplateMetadata(
+      id,
+      { name, description },
+      authResult.userId,
+    );
     if (!updated) {
       return ApiErrors.notFound("Template");
     }

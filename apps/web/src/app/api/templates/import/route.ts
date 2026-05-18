@@ -12,6 +12,7 @@ import { getClientIdentifier, rateLimiters } from "@/lib/rate-limit";
 import {
   extractTemplateFromFile,
   getTemplateSourceType,
+  type TemplateSourceType,
 } from "@/lib/templates/import";
 
 export const dynamic = "force-dynamic";
@@ -47,9 +48,12 @@ export async function POST(request: NextRequest) {
     const nameValue = formData.get("name");
     const persist = formData.get("persist") !== "false";
 
-    if (!(file instanceof File)) {
+    if (!isUploadedFile(file)) {
       return NextResponse.json(
-        { error: "A PDF or DOCX file is required.", code: "missing_file" },
+        {
+          error: "A PDF, DOCX, or LaTeX .tex file is required.",
+          code: "missing_file",
+        },
         { status: 400 },
       );
     }
@@ -68,7 +72,7 @@ export async function POST(request: NextRequest) {
     if (!sourceType || !(await hasExpectedSignature(file, sourceType))) {
       return NextResponse.json(
         {
-          error: "Upload a valid PDF or DOCX file.",
+          error: "Upload a valid PDF, DOCX, or LaTeX .tex file.",
           code: "unsupported_file_type",
         },
         { status: 400 },
@@ -99,6 +103,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         template: extracted.template,
         warnings: extracted.warnings,
+        confidence: extracted.confidence,
         sectionsFound: extracted.sectionsFound,
       });
     }
@@ -120,6 +125,7 @@ export async function POST(request: NextRequest) {
         analyzedStyles: saved.analyzedStyles,
       },
       warnings: extracted.warnings,
+      confidence: extracted.confidence,
       sectionsFound: extracted.sectionsFound,
     });
   } catch (error) {
@@ -137,11 +143,23 @@ export async function POST(request: NextRequest) {
 
 async function hasExpectedSignature(
   file: File,
-  sourceType: "pdf" | "docx",
+  sourceType: TemplateSourceType,
 ): Promise<boolean> {
+  if (sourceType === "tex") return true;
   const bytes = new Uint8Array(await file.slice(0, 4).arrayBuffer());
   if (sourceType === "pdf") {
     return bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44;
   }
   return bytes[0] === 0x50 && bytes[1] === 0x4b;
+}
+
+function isUploadedFile(value: FormDataEntryValue | null): value is File {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as File).name === "string" &&
+    typeof (value as File).size === "number" &&
+    typeof (value as File).arrayBuffer === "function" &&
+    typeof (value as File).slice === "function"
+  );
 }

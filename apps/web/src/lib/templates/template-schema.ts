@@ -43,7 +43,7 @@ export const importedTemplateSchema = z.object({
   source: z
     .object({
       filename: z.string(),
-      type: z.enum(["pdf", "docx"]),
+      type: z.enum(["pdf", "docx", "tex"]),
     })
     .optional(),
 });
@@ -57,7 +57,7 @@ export type ImportedTemplate = AnalyzedTemplate & {
   }>;
   source?: {
     filename: string;
-    type: "pdf" | "docx";
+    type: "pdf" | "docx" | "tex";
   };
 };
 

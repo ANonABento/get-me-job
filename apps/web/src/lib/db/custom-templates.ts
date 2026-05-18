@@ -3,13 +3,16 @@ import { generateId } from "@/lib/utils";
 import type { AnalyzedTemplate } from "@/lib/resume/template-analyzer";
 
 import { nowIso } from "@/lib/format/time";
+import type { TemplateSourceType } from "@/lib/templates/import";
+
 export interface CustomTemplate {
   id: string;
   userId: string;
   name: string;
+  description: string | null;
   sourceDocumentId: string | null;
   sourceFilename: string | null;
-  sourceType: "pdf" | "docx" | null;
+  sourceType: TemplateSourceType | null;
   analyzedStyles: AnalyzedTemplate;
   createdAt: string;
   updatedAt: string;
@@ -19,6 +22,7 @@ interface CustomTemplateRow {
   id: string;
   user_id: string;
   name: string;
+  description?: string | null;
   source_document_id: string | null;
   source_filename?: string | null;
   source_type?: string | null;
@@ -28,16 +32,17 @@ interface CustomTemplateRow {
 }
 
 function rowToCustomTemplate(row: CustomTemplateRow): CustomTemplate {
+  const sourceType = isTemplateSourceType(row.source_type)
+    ? row.source_type
+    : null;
   return {
     id: row.id,
     userId: row.user_id,
     name: row.name,
+    description: row.description ?? null,
     sourceDocumentId: row.source_document_id,
     sourceFilename: row.source_filename ?? null,
-    sourceType:
-      row.source_type === "pdf" || row.source_type === "docx"
-        ? row.source_type
-        : null,
+    sourceType,
     analyzedStyles: JSON.parse(row.analyzed_styles) as AnalyzedTemplate,
     createdAt: row.created_at,
     updatedAt: row.updated_at ?? row.created_at,
@@ -61,6 +66,11 @@ export function ensureCustomTemplatesSourceColumns(): void {
         "ALTER TABLE custom_templates ADD COLUMN source_type text",
       ).run();
     }
+    if (!columnNames.has("description")) {
+      db.prepare(
+        "ALTER TABLE custom_templates ADD COLUMN description text",
+      ).run();
+    }
     if (!columnNames.has("updated_at")) {
       db.prepare(
         "ALTER TABLE custom_templates ADD COLUMN updated_at text",
@@ -76,7 +86,11 @@ export function ensureCustomTemplatesSourceColumns(): void {
 
 interface CustomTemplateSource {
   filename: string;
-  type: "pdf" | "docx";
+  type: TemplateSourceType;
+}
+
+function isTemplateSourceType(value: unknown): value is TemplateSourceType {
+  return value === "pdf" || value === "docx" || value === "tex";
 }
 
 export function saveCustomTemplate(
@@ -85,14 +99,15 @@ export function saveCustomTemplate(
   sourceDocumentId: string | undefined,
   userId: string,
   source?: CustomTemplateSource,
+  description?: string | null,
 ): CustomTemplate {
   ensureCustomTemplatesSourceColumns();
   const id = generateId();
   const now = nowIso();
 
   const stmt = db.prepare(`
-    INSERT INTO custom_templates (id, user_id, name, source_document_id, source_filename, source_type, analyzed_styles, created_at, updated_at)
-    SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
+    INSERT INTO custom_templates (id, user_id, name, description, source_document_id, source_filename, source_type, analyzed_styles, created_at, updated_at)
+    SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     ${sourceDocumentId ? "WHERE EXISTS (SELECT 1 FROM documents WHERE id = ? AND user_id = ?)" : ""}
   `);
 
@@ -100,6 +115,7 @@ export function saveCustomTemplate(
     id,
     userId,
     name,
+    description?.trim() || null,
     sourceDocumentId || null,
     source?.filename ?? null,
     source?.type ?? null,
@@ -120,6 +136,7 @@ export function saveCustomTemplate(
     id,
     userId,
     name,
+    description: description?.trim() || null,
     sourceDocumentId: sourceDocumentId || null,
     sourceFilename: source?.filename ?? null,
     sourceType: source?.type ?? null,
@@ -132,7 +149,7 @@ export function saveCustomTemplate(
 export function getCustomTemplates(userId: string): CustomTemplate[] {
   ensureCustomTemplatesSourceColumns();
   const stmt = db.prepare(`
-    SELECT id, user_id, name, source_document_id, source_filename, source_type, analyzed_styles, created_at, updated_at
+    SELECT id, user_id, name, description, source_document_id, source_filename, source_type, analyzed_styles, created_at, updated_at
     FROM custom_templates
     WHERE user_id = ?
     ORDER BY created_at DESC
@@ -148,7 +165,7 @@ export function getCustomTemplate(
 ): CustomTemplate | null {
   ensureCustomTemplatesSourceColumns();
   const stmt = db.prepare(`
-    SELECT id, user_id, name, source_document_id, source_filename, source_type, analyzed_styles, created_at, updated_at
+    SELECT id, user_id, name, description, source_document_id, source_filename, source_type, analyzed_styles, created_at, updated_at
     FROM custom_templates
     WHERE id = ? AND user_id = ?
   `);
@@ -178,5 +195,37 @@ export function updateCustomTemplateName(
     "UPDATE custom_templates SET name = ?, updated_at = ? WHERE id = ? AND user_id = ?",
   );
   const result = stmt.run(name, nowIso(), id, userId);
+  return result.changes > 0;
+}
+
+export function updateCustomTemplateMetadata(
+  id: string,
+  metadata: { name?: string; description?: string | null },
+  userId: string,
+): boolean {
+  ensureCustomTemplatesSourceColumns();
+  const updates: string[] = [];
+  const values: Array<string | null> = [];
+
+  if (metadata.name !== undefined) {
+    updates.push("name = ?");
+    values.push(metadata.name);
+  }
+
+  if (metadata.description !== undefined) {
+    updates.push("description = ?");
+    values.push(metadata.description?.trim() || null);
+  }
+
+  if (updates.length === 0) return false;
+
+  updates.push("updated_at = ?");
+  values.push(nowIso());
+  values.push(id, userId);
+
+  const stmt = db.prepare(
+    `UPDATE custom_templates SET ${updates.join(", ")} WHERE id = ? AND user_id = ?`,
+  );
+  const result = stmt.run(...values);
   return result.changes > 0;
 }

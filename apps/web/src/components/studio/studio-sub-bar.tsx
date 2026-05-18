@@ -37,6 +37,7 @@ import {
   getCoverLetterTemplate,
 } from "@/lib/builder/cover-letter-document";
 import { getTemplate, TEMPLATES } from "@/lib/resume/template-data";
+import type { ResumeTemplate } from "@/lib/resume/template-types";
 import { cn } from "@/lib/utils";
 import { useA11yTranslations } from "@/lib/i18n/use-a11y-translations";
 import {
@@ -56,6 +57,7 @@ import {
   getStudioSaveStatusLabel,
   type StudioSaveStatus,
 } from "./save-status";
+import { CustomTemplateManagerDialog } from "./custom-template-manager";
 
 interface StudioSubBarProps {
   documentMode: DocumentMode;
@@ -73,7 +75,9 @@ interface StudioSubBarProps {
   editor: Editor | null;
 
   templateId: string;
+  customTemplates: ResumeTemplate[];
   onTemplateSelect: (templateId: string) => void;
+  onTemplatesChanged: () => void | Promise<void>;
 
   onTailorAi: () => void;
   onTailorManual: () => void;
@@ -116,7 +120,9 @@ export function StudioSubBar({
   onOpenVersionHistory,
   editor,
   templateId,
+  customTemplates,
   onTemplateSelect,
+  onTemplatesChanged,
   onTailorAi,
   exportMenuOpen,
   onExportMenuOpenChange,
@@ -138,6 +144,7 @@ export function StudioSubBar({
   const a11yT = useA11yTranslations();
 
   const [now, setNow] = useState(() => nowEpoch());
+  const [templateManagerOpen, setTemplateManagerOpen] = useState(false);
   useEffect(() => {
     const interval = window.setInterval(() => setNow(nowEpoch()), 5_000);
     return () => window.clearInterval(interval);
@@ -148,15 +155,18 @@ export function StudioSubBar({
 
   const templates = useMemo(
     () =>
-      documentMode === "cover_letter" ? COVER_LETTER_TEMPLATES : TEMPLATES,
-    [documentMode],
+      documentMode === "cover_letter"
+        ? COVER_LETTER_TEMPLATES
+        : [...TEMPLATES, ...customTemplates],
+    [customTemplates, documentMode],
   );
   const selectedTemplate = useMemo(
     () =>
       documentMode === "cover_letter"
         ? getCoverLetterTemplate(templateId)
-        : getTemplate(templateId),
-    [documentMode, templateId],
+        : (customTemplates.find((template) => template.id === templateId) ??
+          getTemplate(templateId)),
+    [customTemplates, documentMode, templateId],
   );
 
   const saveStatusLabel = getStudioSaveStatusLabel(saveStatus, now);
@@ -258,6 +268,7 @@ export function StudioSubBar({
             templates={templates}
             selectedTemplate={selectedTemplate}
             onSelect={onTemplateSelect}
+            onManageTemplates={() => setTemplateManagerOpen(true)}
           />
 
           <TailorSplit
@@ -292,6 +303,12 @@ export function StudioSubBar({
           <PanelRight className="h-5 w-5" />
         </button>
       </div>
+      <CustomTemplateManagerDialog
+        open={templateManagerOpen}
+        onOpenChange={setTemplateManagerOpen}
+        onTemplatesChanged={onTemplatesChanged}
+        onTemplateImported={onTemplateSelect}
+      />
     </TooltipProvider>
   );
 }
@@ -549,6 +566,7 @@ function TemplatePill({
   templates,
   selectedTemplate,
   onSelect,
+  onManageTemplates,
 }: {
   documentMode: DocumentMode;
   templateId: string;
@@ -556,6 +574,7 @@ function TemplatePill({
   templates: ReadonlyArray<{ id: string; name: string; description: string }>;
   selectedTemplate: { id: string; name: string };
   onSelect: (id: string) => void;
+  onManageTemplates: () => void;
 }) {
   const a11yT = useA11yTranslations();
   const [open, setOpen] = useState(false);
@@ -729,6 +748,21 @@ function TemplatePill({
                 </div>
               )}
             </div>
+            {documentMode !== "cover_letter" ? (
+              <div className="mt-2 border-t border-border/70 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    onManageTemplates();
+                  }}
+                  className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-sm text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Manage custom templates
+                </button>
+              </div>
+            ) : null}
           </div>
         </>
       )}
