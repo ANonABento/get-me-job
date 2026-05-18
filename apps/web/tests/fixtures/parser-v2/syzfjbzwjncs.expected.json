@@ -1,0 +1,162 @@
+{
+  "contact": {
+    "name": "Jake Ryan",
+    "phone": "123-456-7890",
+    "email": "jake@su.edu",
+    "linkedin": "linkedin.com/in/jake",
+    "github": "github.com/jake",
+    "sourceSpanIds": ["p1-l001", "p1-l002"]
+  },
+  "education": [
+    {
+      "institution": "Southwestern University",
+      "location": "Georgetown, TX",
+      "degree": "Bachelor of Arts",
+      "field": "Computer Science, Minor in Business",
+      "startDate": "Aug. 2018",
+      "endDate": "May 2021",
+      "sourceSpanIds": ["p1-l004", "p1-l005"]
+    },
+    {
+      "institution": "Blinn College",
+      "location": "Bryan, TX",
+      "degree": "Associate's",
+      "field": "Liberal Arts",
+      "startDate": "Aug. 2014",
+      "endDate": "May 2018",
+      "sourceSpanIds": ["p1-l006", "p1-l007"]
+    }
+  ],
+  "experiences": [
+    {
+      "title": "Undergraduate Research Assistant",
+      "company": "Texas A&M University",
+      "location": "College Station, TX",
+      "startDate": "June 2020",
+      "endDate": "Present",
+      "sourceSpanIds": ["p1-l009", "p1-l010"],
+      "highlights": [
+        {
+          "text": "Developed a REST API using FastAPI and PostgreSQL to store data from learning management systems",
+          "sourceSpanIds": ["p1-l011"]
+        },
+        {
+          "text": "Developed a full-stack web application using Flask, React, PostgreSQL and Docker to analyze GitHub data",
+          "sourceSpanIds": ["p1-l012"]
+        },
+        {
+          "text": "Explored ways to visualize GitHub collaboration in a classroom setting",
+          "sourceSpanIds": ["p1-l013"]
+        }
+      ]
+    },
+    {
+      "title": "Information Technology Support Specialist",
+      "company": "Southwestern University",
+      "location": "Georgetown, TX",
+      "startDate": "Sep. 2018",
+      "endDate": "Present",
+      "sourceSpanIds": ["p1-l014", "p1-l015"],
+      "highlights": [
+        {
+          "text": "Communicate with managers to set up campus computers used on campus",
+          "sourceSpanIds": ["p1-l016"]
+        },
+        {
+          "text": "Assess and troubleshoot computer problems brought by students, faculty and staff",
+          "sourceSpanIds": ["p1-l017"]
+        },
+        {
+          "text": "Maintain upkeep of computers, classroom equipment, and 200 printers across campus",
+          "sourceSpanIds": ["p1-l018"]
+        }
+      ]
+    },
+    {
+      "title": "Artificial Intelligence Research Assistant",
+      "company": "Southwestern University",
+      "location": "Georgetown, TX",
+      "startDate": "May 2019",
+      "endDate": "July 2019",
+      "sourceSpanIds": ["p1-l019", "p1-l020"],
+      "highlights": [
+        {
+          "text": "Explored methods to generate video game dungeons based off of The Legend of Zelda",
+          "sourceSpanIds": ["p1-l021"]
+        },
+        {
+          "text": "Developed a game in Java to test the generated dungeons",
+          "sourceSpanIds": ["p1-l022"]
+        },
+        {
+          "text": "Contributed 50K+ lines of code to an established codebase via Git",
+          "sourceSpanIds": ["p1-l023"]
+        },
+        {
+          "text": "Conducted a human subject study to determine which video game dungeon generation technique is enjoyable",
+          "sourceSpanIds": ["p1-l024"]
+        },
+        {
+          "text": "Wrote an 8-page paper and gave multiple presentations on-campus",
+          "sourceSpanIds": ["p1-l025"]
+        },
+        {
+          "text": "Presented virtually to the World Conference on Computational Intelligence",
+          "sourceSpanIds": ["p1-l026"]
+        }
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Gitlytics",
+      "technologies": ["Python", "Flask", "React", "PostgreSQL", "Docker"],
+      "startDate": "June 2020",
+      "endDate": "Present",
+      "sourceSpanIds": ["p1-l028"],
+      "highlights": [
+        {
+          "text": "Developed a full-stack web application using with Flask serving a REST API with React as the frontend",
+          "sourceSpanIds": ["p1-l029"]
+        },
+        {
+          "text": "Implemented GitHub OAuth to get data from user’s repositories",
+          "sourceSpanIds": ["p1-l030"]
+        },
+        {
+          "text": "Visualized GitHub data to show collaboration",
+          "sourceSpanIds": ["p1-l031"]
+        },
+        {
+          "text": "Used Celery and Redis for asynchronous tasks",
+          "sourceSpanIds": ["p1-l032"]
+        }
+      ]
+    },
+    {
+      "name": "Simple Paintball",
+      "technologies": ["Spigot API", "Java", "Maven", "TravisCI", "Git"],
+      "startDate": "May 2018",
+      "endDate": "May 2020",
+      "sourceSpanIds": ["p1-l033"],
+      "highlights": [
+        {
+          "text": "Developed a Minecraft server plugin to entertain kids during free time for a previous job",
+          "sourceSpanIds": ["p1-l034"]
+        },
+        {
+          "text": "Published plugin to websites gaining 2K+ downloads and an average 4.5/5-star review",
+          "sourceSpanIds": ["p1-l035"]
+        },
+        {
+          "text": "Implemented continuous delivery using TravisCI to build the plugin upon new a release",
+          "sourceSpanIds": ["p1-l036"]
+        },
+        {
+          "text": "Collaborated with Minecraft server administrators to suggest features and get feedback about the plugin",
+          "sourceSpanIds": ["p1-l037"]
+        }
+      ]
+    }
+  ]
+}
