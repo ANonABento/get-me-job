@@ -1,16 +1,10 @@
 "use client";
 
-import Image from "next/image";
-import { ArrowRight } from "lucide-react";
-import { DeepSection, HighlighterEm, MonoCap } from "./primitives";
+import { GitBranch, Key, Lock, Sparkles } from "lucide-react";
+import { DeepSection, MonoCap } from "./primitives";
 
-/* ───────────────── Logo strip — "Scrapes from" marquee ─────────────────
- *
- * Horizontal infinite-scroll band of job-board names. Sits under the
- * hero as instant "this works on the boards you actually use"
- * credibility. Marquee is implemented with a 50% translate over
- * duplicated content so the loop is seamless. CSS keyframes inline.
- */
+/* ───────────────── Logo strip — "Scrapes from" marquee ───────────────── */
+
 const SCRAPED_BOARDS = [
   { name: "LinkedIn", initial: "in" },
   { name: "WaterlooWorks", initial: "W" },
@@ -25,7 +19,6 @@ const SCRAPED_BOARDS = [
 ] as const;
 
 export function LogoStrip() {
-  // Duplicate the list so the marquee can loop cleanly at translate(-50%).
   const doubled = [...SCRAPED_BOARDS, ...SCRAPED_BOARDS];
   return (
     <section className="overflow-hidden border-y border-rule bg-page-2 py-7">
@@ -33,7 +26,6 @@ export function LogoStrip() {
         <span className="flex-shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3">
           Works where jobs live
         </span>
-        {/* Mask the edges so items fade in/out as they enter/leave. */}
         <div
           className="flex-1 overflow-hidden"
           style={{
@@ -62,8 +54,6 @@ export function LogoStrip() {
         </div>
       </div>
 
-      {/* Marquee animation. 38s loop; pauses on hover so users can read.
-          Respects prefers-reduced-motion. */}
       <style jsx>{`
         @keyframes logo-strip-scroll {
           from {
@@ -89,146 +79,86 @@ export function LogoStrip() {
   );
 }
 
-/* ───────────────── Problem compare — Before / After ─────────────────
+/* ───────────────── Why Slothing — 4-up proof grid ─────────────────
  *
- * The setup beat: "Job hunting wasn't supposed to need fifteen tabs."
- * Wide, app-like bridge from scattered job-search work into a Slothing
- * workspace. This intentionally sets up the product flow before the
- * feature deep dives.
+ * Replaces the old IntegrationsStrip. Honest pitch: open source, BYOK,
+ * grounded in your own data, normalized across boards.
  */
-const BEFORE_ROWS = [
-  ["Resume_v7_final.docx", "Where did the Figma bullet go?"],
-  ["Spreadsheet tracker", "Two roles are missing follow-up dates"],
-  ["Chat draft", "Cover letter tone does not match the resume"],
-  ["Workday form", "Typing the same answer again"],
+
+const PROOF_CELLS = [
+  {
+    icon: Lock,
+    label: "Grounded in your own data",
+    body: "Generated drafts only use components you actually saved. No invented projects, no hallucinated skills, every bullet traceable back to its source.",
+    chip: "No hallucinations",
+  },
+  {
+    icon: Key,
+    label: "Bring your own key",
+    body: "Use hosted Slothing, plug in OpenAI / Anthropic / OpenRouter / Ollama keys, or run local models. You decide where your data goes.",
+    chip: "BYOK · local-first",
+  },
+  {
+    icon: GitBranch,
+    label: "Open source by default",
+    body: "AGPL-3.0 with a cloud carve-out. Self-host the whole stack on your own machine if hosted isn't your style.",
+    chip: "AGPL-3.0",
+  },
+  {
+    icon: Sparkles,
+    label: "Normalized across every board",
+    body: "A Workday role and an Indeed role read the same in Slothing. Filters, salary, fit signals — all one schema, all comparable.",
+    chip: "One schema",
+  },
 ] as const;
 
-const AFTER_ROWS = [
-  ["Knowledge Bank", "Stories, projects, metrics, and saved answers"],
-  ["Review queue", "Imported jobs wait for a quick yes/no"],
-  ["Studio", "Tailored resume and cover letter share the same evidence"],
-  ["Interview prep", "Practice prompts use the role and your own stories"],
-] as const;
-
-export function ProblemCompare() {
+export function WhySlothing() {
   return (
-    <DeepSection alt className="border-b border-rule">
-      <div className="grid gap-10 lg:grid-cols-[0.66fr_1.34fr] lg:items-end">
-        <div className="max-w-[590px]">
-          <MonoCap>The shift</MonoCap>
-          <h2 className="mt-4 font-display text-section-h2 text-ink">
-            Turn scattered job-search work into{" "}
-            <HighlighterEm>one calm workspace</HighlighterEm>.
-          </h2>
-          <p className="mt-5 max-w-[54ch] text-lede text-ink-2">
-            Slothing keeps the moving parts connected: the role you saved, the
-            resume you tailored, the form answer you wrote, and the interview
-            story you need next.
+    <DeepSection id="why-slothing" alt>
+      <div className="rounded-2xl border border-rule bg-paper shadow-paper-card">
+        <div className="grid gap-8 border-b border-rule p-6 md:grid-cols-[0.66fr_1.34fr] md:p-10">
+          <div>
+            <MonoCap>Why Slothing</MonoCap>
+            <h2 className="mt-3 max-w-[20ch] font-display text-[clamp(34px,4vw,54px)] font-bold leading-none tracking-display text-ink">
+              Built so the job search finally works for you.
+            </h2>
+          </div>
+          <p className="max-w-[60ch] self-end text-lede text-ink-2">
+            Slothing is built for people who already feel overworked by their
+            own job hunt. That shapes every decision — what we ground in your
+            data, what we keep transparent, what we leave under your control.
           </p>
         </div>
 
-        <div className="relative">
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,0.86fr)_56px_minmax(0,1.14fr)]">
-            <WorkflowPanel
-              label="Before"
-              title="Pieces drift apart"
-              rows={BEFORE_ROWS}
-              muted
-            />
-
-            <div className="flex items-center justify-center text-ink-3">
-              <ArrowRight
-                className="hidden h-6 w-12 lg:block"
-                aria-hidden="true"
-              />
-              <ArrowRight
-                className="block h-6 w-12 rotate-90 lg:hidden"
-                aria-hidden="true"
-              />
+        <div className="grid divide-y divide-rule lg:grid-cols-2 lg:divide-x lg:divide-y-0 xl:grid-cols-4">
+          {PROOF_CELLS.map(({ icon: Icon, label, body, chip }) => (
+            <div key={label} className="p-6 md:p-8">
+              <div className="flex items-center justify-between">
+                <Icon className="h-5 w-5 text-brand" aria-hidden />
+                <span className="rounded-full bg-brand-soft px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-brand-dark">
+                  {chip}
+                </span>
+              </div>
+              <h3 className="mt-4 font-display text-[20px] font-bold leading-tight text-ink">
+                {label}
+              </h3>
+              <p className="mt-2 text-[14px] leading-6 text-ink-2">{body}</p>
             </div>
-
-            <WorkflowPanel
-              label="After"
-              title="The work stays linked"
-              rows={AFTER_ROWS}
-            />
-          </div>
-
-          <div className="pointer-events-none absolute -bottom-16 right-5 hidden h-44 w-36 lg:block">
-            <Image
-              src="/brand/sloths/slothing-mascot-hero.png"
-              alt=""
-              fill
-              className="object-contain object-bottom drop-shadow-[0_20px_30px_rgba(80,60,30,0.16)]"
-              sizes="144px"
-            />
-          </div>
+          ))}
         </div>
       </div>
     </DeepSection>
   );
 }
 
-function WorkflowPanel({
-  label,
-  title,
-  rows,
-  muted = false,
-}: {
-  label: string;
-  title: string;
-  rows: readonly (readonly [string, string])[];
-  muted?: boolean;
-}) {
-  return (
-    <article
-      className={`overflow-hidden rounded-xl border border-rule bg-paper shadow-paper-card ${
-        muted ? "opacity-85" : ""
-      }`}
-    >
-      <div className="flex items-center justify-between border-b border-rule px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span
-            className={`h-2 w-2 rounded-full ${muted ? "bg-ink-3/50" : "bg-brand"}`}
-            aria-hidden
-          />
-          <MonoCap>{label}</MonoCap>
-        </div>
-        {!muted ? (
-          <span className="rounded-sm bg-brand-soft px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-brand-dark">
-            synced
-          </span>
-        ) : null}
-      </div>
-      <div className="p-5">
-        <h3 className="font-display text-[24px] font-bold leading-tight text-ink">
-          {title}
-        </h3>
-        <div className="mt-5 divide-y divide-rule rounded-lg border border-rule bg-page">
-          {rows.map(([name, detail]) => (
-            <div
-              key={name}
-              className="grid gap-1 px-4 py-3 sm:grid-cols-[150px_1fr]"
-            >
-              <span className="text-[13px] font-semibold text-ink">{name}</span>
-              <span className="text-[13px] leading-5 text-ink-3">{detail}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </article>
-  );
-}
-
 /* ───────────────── Closer stats — 4 numbers in the closer ─────────────────
  *
  * Sits inside the existing <Closer/>, BUT can also be rendered standalone.
- * Numbers are honest placeholders; swap when we have real data.
  */
 const CLOSER_STATS = [
   { num: "BYOK", cap: "Bring your key" },
   { num: "AGPL", cap: "Open license" },
-  { num: "$0", cap: "Free forever (hosted free tier)" },
+  { num: "$0", cap: "Free to start" },
   { num: "100%", cap: "Self-hostable" },
 ] as const;
 

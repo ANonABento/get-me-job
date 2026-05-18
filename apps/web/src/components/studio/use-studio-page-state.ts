@@ -9,7 +9,11 @@ import {
   getTemplateForDocumentMode,
   TEMPLATES,
 } from "@/lib/resume/template-data";
-import type { TemplateStyles } from "@/lib/resume/template-data";
+import type {
+  ResumeTemplate,
+  TemplateStyles,
+} from "@/lib/resume/template-data";
+import { useCustomTemplates } from "@/lib/templates/use-custom-templates";
 import {
   DEFAULT_BUILDER_PANEL,
   createInitialSections,
@@ -139,12 +143,14 @@ interface StudioPageState {
     rangeInLetter: string,
     suggestion: string,
   ) => boolean;
+  customTemplates: ResumeTemplate[];
   isExporting: boolean;
   linkedOpportunityId: string;
   loading: boolean;
   manualVersionName: string;
   mobileView: BuilderPanel;
   previewVersionId: string | null;
+  refreshCustomTemplates: () => Promise<ResumeTemplate[]>;
   saveStatus: StudioSaveStatus;
   sections: SectionState[];
   selectedIds: Set<string>;
@@ -336,6 +342,8 @@ export function useStudioPageState(): StudioPageState {
   >({ resume: RESUME_DOCUMENT_ID, cover_letter: COVER_LETTER_DOCUMENT_ID });
   const [isExporting, setIsExporting] = useState(false);
   const showErrorToast = useErrorToast();
+  const { customTemplates, refresh: refreshCustomTemplates } =
+    useCustomTemplates();
   const lastPreviewErrorToastRef = useRef("");
   const lastActiveDocumentIdRef = useRef<string | null>(null);
   const lastCoverLetterEntryKeyRef = useRef<string | null>(null);
@@ -361,6 +369,18 @@ export function useStudioPageState(): StudioPageState {
       ),
     );
   }, []);
+
+  useEffect(() => {
+    const requestedMode = searchParams.get("mode");
+    if (requestedMode === "cover-letter" || requestedMode === "cover_letter") {
+      setDocumentMode("cover_letter");
+      return;
+    }
+
+    if (requestedMode === "resume") {
+      setDocumentMode("resume");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (extensionLoadStartedRef.current) return;
@@ -693,12 +713,21 @@ export function useStudioPageState(): StudioPageState {
       );
   }, [entries, selectedIds, visibleCategoryIds]);
 
+  const selectedResumeTemplate = useMemo<ResumeTemplate | undefined>(
+    () =>
+      documentMode === "resume"
+        ? (customTemplates.find((template) => template.id === templateId) ??
+          TEMPLATES.find((template) => template.id === templateId))
+        : undefined,
+    [customTemplates, documentMode, templateId],
+  );
+
   const selectedTemplate = useMemo(
     () =>
       documentMode === "cover_letter"
         ? getCoverLetterTemplate(templateId)
-        : TEMPLATES.find((template) => template.id === templateId),
-    [documentMode, templateId],
+        : selectedResumeTemplate,
+    [documentMode, selectedResumeTemplate, templateId],
   );
 
   const currentDraftState = useMemo<BuilderDraftState>(
@@ -851,6 +880,7 @@ export function useStudioPageState(): StudioPageState {
             const fallbackHtml = generateResumePreviewFallbackHTML(
               orderedEntries,
               templateId,
+              selectedResumeTemplate,
             );
             contentRef.current = undefined;
             setHtml(fallbackHtml);
@@ -870,6 +900,7 @@ export function useStudioPageState(): StudioPageState {
             const fallbackHtml = generateResumePreviewFallbackHTML(
               orderedEntries,
               templateId,
+              selectedResumeTemplate,
             );
             lastPreviewErrorToastRef.current = "";
             contentRef.current = undefined;
@@ -911,6 +942,7 @@ export function useStudioPageState(): StudioPageState {
     activeDocument.source,
     orderedEntries,
     previewVersionId,
+    selectedResumeTemplate,
     showErrorToast,
     templateId,
     visibleCategoryIds,
@@ -1372,6 +1404,7 @@ export function useStudioPageState(): StudioPageState {
     generating,
     content,
     coverLetterCritique,
+    customTemplates,
     handleContentChange,
     pageSettings,
     handlePageSettingsChange,
@@ -1401,6 +1434,7 @@ export function useStudioPageState(): StudioPageState {
     manualVersionName,
     mobileView,
     previewVersionId,
+    refreshCustomTemplates,
     saveStatus,
     sections,
     selectedIds,

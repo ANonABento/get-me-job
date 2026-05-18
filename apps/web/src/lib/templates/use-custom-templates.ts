@@ -7,10 +7,14 @@ interface TemplateApiItem {
   id: string;
   name: string;
   description?: string;
+  customDescription?: string | null;
   type: "built-in" | "custom";
   analyzedStyles?: {
     styles: ResumeTemplate["styles"];
   };
+  sourceFilename?: string | null;
+  sourceType?: string | null;
+  updatedAt?: string;
 }
 
 interface TemplatesApiResponse {
@@ -19,6 +23,11 @@ interface TemplatesApiResponse {
 
 let cachedCustomTemplates: ResumeTemplate[] | null = null;
 let inflightRequest: Promise<ResumeTemplate[]> | null = null;
+
+export function clearCustomTemplateCache() {
+  cachedCustomTemplates = null;
+  inflightRequest = null;
+}
 
 async function fetchCustomTemplates(): Promise<ResumeTemplate[]> {
   const response = await fetch("/api/templates");

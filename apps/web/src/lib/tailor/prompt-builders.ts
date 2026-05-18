@@ -1,5 +1,7 @@
 import type { BankEntry, ContactInfo, GroupedBankEntries } from "@/types";
 import type { TailoredResume } from "@/lib/resume/generator";
+import { getAtsStrictnessGuidance } from "./ats-strictness";
+import type { TailorSettings } from "./settings";
 
 export interface TailoredResumePromptInput {
   bankEntries: GroupedBankEntries;
@@ -8,6 +10,7 @@ export interface TailoredResumePromptInput {
   jobTitle: string;
   company: string;
   jobDescription: string;
+  settings?: TailorSettings;
 }
 
 export interface TailorAutofixPromptInput {
@@ -83,6 +86,9 @@ NON-OVERRIDABLE SAFETY RULES:
 
 STYLE AND PRIORITIZATION GUIDANCE:
 ${promptVariantContent}
+
+ATS FORMATTING GUIDANCE:
+${getAtsStrictnessGuidance(input.settings?.atsStrictness ?? "balanced")}
 
 Return ONLY a JSON object:
 {

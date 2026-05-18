@@ -106,6 +106,132 @@ export const BLOG_POSTS = [
       "Deploy Slothing your way and keep control over how your job-search assistant runs.",
     ctaHref: "/pricing",
   },
+  {
+    slug: "ats-keywords-strategy",
+    title: "How to build an ATS-friendly keyword strategy for each job",
+    description:
+      "A practical method for aligning your resume keywords to a job description without gaming your language.",
+    publishedDate: "2026-05-17",
+    readMinutes: 6,
+    audience: "job applicants",
+    sections: [
+      {
+        heading: "Start with role language",
+        body: "Before editing your resume, list the top five outcomes in the target job post and map each to one line in your experience section.",
+        bullets: [
+          "Capture outcomes the recruiter can measure",
+          "Use exact terminology for role seniority and scope",
+          "Preserve chronology and dates in the same format",
+        ],
+      },
+      {
+        heading: "Avoid keyword stuffing",
+        body: "Keywords only help when they reflect real work. Overstuffing produces repetitive text and can hurt readability and ATS scoring consistency.",
+        bullets: [
+          "Use each relevant term where it actually belongs in your story",
+          "Favor role verbs over buzzwords",
+          "Keep section titles predictable for parsers",
+        ],
+      },
+      {
+        heading: "Prove match with examples",
+        body: "For every keyword group, add one concrete example with a date and measurable outcome so your resume is both parseable and persuasive.",
+        bullets: [
+          "Quantify the result, even with approximations",
+          "Tie skills to outcomes from real projects",
+          "Keep examples concise and scan-friendly",
+        ],
+      },
+    ],
+    ctaHeadline: "Score your resume before you apply",
+    ctaText:
+      "Feed your draft into Slothing ATS Scanner and review recommendations before submitting.",
+    ctaHref: "/ats-scanner",
+  },
+  {
+    slug: "job-search-week-plan",
+    title: "A weekly job-search plan that prevents burnout",
+    description:
+      "Use a fixed weekly rhythm for tracking applications, follow-ups, and interview prep without burning out.",
+    publishedDate: "2026-05-18",
+    readMinutes: 5,
+    audience: "active job hunters",
+    sections: [
+      {
+        heading: "Monday: shortlist and prioritize",
+        body: "Pick 8–10 target roles with high confidence and score each one against your readiness before week two.",
+        bullets: [
+          "Use one sheet of criteria per role",
+          "Drop low-fit roles early",
+          "Set realistic daily application targets",
+        ],
+      },
+      {
+        heading: "Tue/Wed: tailor and apply",
+        body: "Apply your resume and cover letter edits in batches so each application gets real personalization, not copy-paste noise.",
+        bullets: [
+          "Reserve writing time for resume variants first",
+          "Use tracking notes for each role",
+          "Follow up with one meaningful detail per role",
+        ],
+      },
+      {
+        heading: "Thu/Fri: follow up and reflect",
+        body: "Review your pipeline, adjust for low conversion stages, and keep your data tidy before the next weekly cycle.",
+        bullets: [
+          "Move applications through your opportunity stages daily",
+          "Track response timing and notes",
+          "Plan the next week's 2–3 high-priority improvements",
+        ],
+      },
+    ],
+    ctaHeadline: "Need a cleaner routine?",
+    ctaText:
+      "Use Slothing to keep job opportunities, notes, and follow-ups in one place with no extra tab juggling.",
+    ctaHref: "/",
+  },
+  {
+    slug: "cover-letter-storyline",
+    title: "Write a cover-letter storyline that mirrors your resume",
+    description:
+      "Learn how to frame your cover letter as a short, role-specific narrative your recruiter will actually read.",
+    publishedDate: "2026-05-19",
+    readMinutes: 6,
+    audience: "job seekers",
+    sections: [
+      {
+        heading: "Anchor to the job posting",
+        body: "Treat each cover letter as a response to that posting, not a general self-introduction.",
+        bullets: [
+          "Start with the role problem the team is hiring for",
+          "Call out one direct match from your past experience",
+          "Close with a next-step oriented statement",
+        ],
+      },
+      {
+        heading: "Use one concrete proof point",
+        body: "Every paragraph should point to one measurable result from your history, not abstract claims.",
+        bullets: [
+          "Prefer outcomes over responsibility lists",
+          "Quantify with scope, team size, and time frame",
+          "Keep writing tight and first-person where appropriate",
+        ],
+      },
+      {
+        heading: "Keep the copy easy to skim",
+        body: "A recruiter should understand your relevance in under 45 seconds, so favor short paragraphs and clear transitions.",
+        bullets: [
+          "Use one sentence to set context",
+          "Use one sentence to prove fit",
+          "Use one sentence to propose next steps",
+        ],
+      },
+    ],
+    ctaHeadline: "Need faster drafts?",
+    ctaText:
+      "Generate cover letter prompts in the document studio and keep the tone aligned with each role.",
+    ctaHref: "/studio",
+  },
 ] as const satisfies ReadonlyArray<BlogPost>;
 
 export function getBlogPostBySlug(slug: string) {

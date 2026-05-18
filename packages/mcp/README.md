@@ -20,26 +20,29 @@ Or wire it into an MCP host config (see below) and let the host launch it.
 
 ## Tools
 
-| Tool                     | What it does                                                                                       | Underlying route                                |
-| ------------------------ | -------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `get_profile`            | Fetch the user's profile + pre-computed auto-fill values                                           | `GET /api/extension/profile`                    |
-| `list_opportunities`     | List tracked opportunities, optionally filtered by status                                          | `GET /api/extension/opportunities`              |
-| `get_opportunity_detail` | Fetch a single opportunity by id                                                                   | `GET /api/extension/opportunities/[id]`         |
-| `search_answer_bank`     | Find similar previously-saved answers for a given question (returns up to 5 ranked matches)        | `POST /api/extension/learned-answers/search`    |
-| `save_answer`            | Persist a question/answer pair to the user's answer bank (updates existing entry on normalized-Q)  | `POST /api/extension/learned-answers`           |
+| Tool                     | What it does                                                                                      | Underlying route                                 |
+| ------------------------ | ------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `get_profile`            | Fetch the user's profile + pre-computed auto-fill values                                          | `GET /api/extension/profile`                     |
+| `list_opportunities`     | List tracked opportunities, optionally filtered by status                                         | `GET /api/extension/opportunities`               |
+| `get_opportunity_detail` | Fetch a single opportunity by id                                                                  | `GET /api/extension/opportunities/[id]`          |
+| `search_answer_bank`     | Find similar previously-saved answers for a given question (returns up to 5 ranked matches)       | `POST /api/extension/learned-answers/search`     |
+| `save_answer`            | Persist a question/answer pair to the user's answer bank (updates existing entry on normalized-Q) | `POST /api/extension/learned-answers`            |
+| `slothing_push_job`      | Create a pending/applied opportunity from a structured scraped or agent-collected job payload     | `POST /api/opportunities/from-extension`         |
+| `slothing_update_status` | Update a tracked opportunity's status                                                             | `PATCH /api/extension/opportunities/[id]/status` |
+| `slothing_scrape_url`    | Scrape a supported job-board URL into a structured opportunity preview without saving it          | `POST /api/extension/opportunities/scrape`       |
 
-All five tools require a valid `X-Extension-Token`. The server surfaces auth
+All tools require a valid `X-Extension-Token`. The server surfaces auth
 failures back to the MCP client as standard tool errors (`isError: true`)
 with a clear message telling the user to re-mint the token.
 
 ## Environment
 
-| Var                          | Required | Description                                                                |
-| ---------------------------- | -------- | -------------------------------------------------------------------------- |
-| `SLOTHING_TOKEN`             | yes      | Extension token minted via `POST /api/extension/auth` on your Slothing app |
-| `SLOTHING_API_URL`           | yes      | Base URL of the Slothing web app (e.g. `http://localhost:3000`)            |
-| `SLOTHING_EXTENSION_TOKEN`   | no       | Legacy alias for `SLOTHING_TOKEN`                                          |
-| `SLOTHING_BASE_URL`          | no       | Legacy alias for `SLOTHING_API_URL`                                        |
+| Var                        | Required | Description                                                                |
+| -------------------------- | -------- | -------------------------------------------------------------------------- |
+| `SLOTHING_TOKEN`           | yes      | Extension token minted via `POST /api/extension/auth` on your Slothing app |
+| `SLOTHING_API_URL`         | yes      | Base URL of the Slothing web app (e.g. `http://localhost:3000`)            |
+| `SLOTHING_EXTENSION_TOKEN` | no       | Legacy alias for `SLOTHING_TOKEN`                                          |
+| `SLOTHING_BASE_URL`        | no       | Legacy alias for `SLOTHING_API_URL`                                        |
 
 Minting a token: sign in to your local Slothing instance, then `POST` to
 `/api/extension/auth` with your authenticated session — the same flow the
@@ -58,14 +61,14 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`
       "args": ["dlx", "@slothing/mcp"],
       "env": {
         "SLOTHING_TOKEN": "paste-your-extension-token-here",
-        "SLOTHING_API_URL": "http://localhost:3000"
-      }
-    }
-  }
+        "SLOTHING_API_URL": "http://localhost:3000",
+      },
+    },
+  },
 }
 ```
 
-Restart Claude Desktop and the five tools will appear under the Slothing
+Restart Claude Desktop and the Slothing tools will appear under the Slothing
 server in the tool list.
 
 ## Cursor
@@ -80,10 +83,10 @@ Add to `~/.cursor/mcp.json` (global) or `<repo>/.cursor/mcp.json` (project):
       "args": ["dlx", "@slothing/mcp"],
       "env": {
         "SLOTHING_TOKEN": "paste-your-extension-token-here",
-        "SLOTHING_API_URL": "http://localhost:3000"
-      }
-    }
-  }
+        "SLOTHING_API_URL": "http://localhost:3000",
+      },
+    },
+  },
 }
 ```
 
@@ -99,10 +102,10 @@ Add to `<repo>/.mcp.json`:
       "args": ["dlx", "@slothing/mcp"],
       "env": {
         "SLOTHING_TOKEN": "paste-your-extension-token-here",
-        "SLOTHING_API_URL": "http://localhost:3000"
-      }
-    }
-  }
+        "SLOTHING_API_URL": "http://localhost:3000",
+      },
+    },
+  },
 }
 ```
 
@@ -116,10 +119,10 @@ into a tool error result of the form:
   "content": [
     {
       "type": "text",
-      "text": "Slothing rejected the extension token (401). Set SLOTHING_TOKEN to a valid token minted via POST /api/extension/auth on your Slothing instance."
-    }
+      "text": "Slothing rejected the extension token (401). Set SLOTHING_TOKEN to a valid token minted via POST /api/extension/auth on your Slothing instance.",
+    },
   ],
-  "isError": true
+  "isError": true,
 }
 ```
 

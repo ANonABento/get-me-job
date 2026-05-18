@@ -1,35 +1,31 @@
 "use client";
 
-import { Suspense, useCallback, useMemo } from "react";
+import { Suspense, useCallback, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Mail, DollarSign, FileText, MessageSquareReply } from "lucide-react";
+import { Mail, DollarSign, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PagePanel, PagePanelHeader } from "@/components/ui/page-layout";
-import { OnboardingEmptyState } from "@/components/ui/empty-states";
+import { PagePanel } from "@/components/ui/page-layout";
 import { EmailTemplatesPane } from "./email-templates-pane";
 import { SalaryResearchPane } from "./salary-research-pane";
 
-export type ToolkitTabId = "email" | "salary" | "cover-letter" | "recruiter";
+export type ToolkitTabId = "email" | "salary" | "cover-letter";
 
 const TAB_IDS: readonly ToolkitTabId[] = [
   "email",
   "salary",
   "cover-letter",
-  "recruiter",
 ] as const;
 
 const TAB_LABELS: Record<ToolkitTabId, string> = {
   email: "Email Templates",
   salary: "Salary",
   "cover-letter": "Cover Letter",
-  recruiter: "Recruiter Rewriter",
 };
 
 const TAB_ICONS: Record<ToolkitTabId, typeof Mail> = {
   email: Mail,
   salary: DollarSign,
   "cover-letter": FileText,
-  recruiter: MessageSquareReply,
 };
 
 function normalizeTab(value: string | null | undefined): ToolkitTabId {
@@ -51,8 +47,19 @@ function ToolkitTabsInner() {
     [searchParams],
   );
 
+  useEffect(() => {
+    if (activeTab === "cover-letter") {
+      router.replace("/studio?mode=cover-letter", { scroll: false });
+    }
+  }, [activeTab, router]);
+
   const setTab = useCallback(
     (next: ToolkitTabId) => {
+      if (next === "cover-letter") {
+        router.push("/studio?mode=cover-letter");
+        return;
+      }
+
       const params = new URLSearchParams(searchParams?.toString() ?? "");
       params.set("tab", next);
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
@@ -105,54 +112,8 @@ function ToolkitTabsInner() {
       >
         {activeTab === "email" && <EmailTemplatesPane />}
         {activeTab === "salary" && <SalaryResearchPane />}
-        {activeTab === "cover-letter" && <ComingSoonPane id="cover-letter" />}
-        {activeTab === "recruiter" && <ComingSoonPane id="recruiter" />}
       </div>
     </div>
-  );
-}
-
-function ComingSoonPane({ id }: { id: ToolkitTabId }) {
-  const Icon = TAB_ICONS[id];
-  const label = TAB_LABELS[id];
-  const description =
-    id === "cover-letter"
-      ? "Cover letter editing already lives in Studio. A shortcut from here is on the way — for now, head to Studio to write or tailor letters."
-      : "Drop a recruiter's note in and we'll rewrite your reply in your voice. Wiring this up in the next wave.";
-
-  return (
-    <PagePanel>
-      <PagePanelHeader title={label} icon={Icon} className="mb-4" />
-      <OnboardingEmptyState
-        icon={Icon}
-        illustrationName={
-          id === "cover-letter" ? "studio-zero" : "toolkit-recruiter-empty"
-        }
-        title="Coming soon"
-        description={description}
-        steps={[
-          {
-            icon: Icon,
-            label: "Bring the draft",
-            description:
-              id === "cover-letter"
-                ? "Start from Studio's existing letter workflow."
-                : "Paste the recruiter note you need to answer.",
-          },
-          {
-            icon: MessageSquareReply,
-            label: "Match your voice",
-            description: "Reuse saved answers and profile details.",
-          },
-          {
-            icon: FileText,
-            label: "Send clean copy",
-            description: "Review the final text before it leaves Slothing.",
-          },
-        ]}
-        className="min-h-[420px]"
-      />
-    </PagePanel>
   );
 }
 

@@ -17,6 +17,37 @@ describe("EmptyIllustration", () => {
     expect(img.src).toContain("/illustrations/empty/components-zero.svg");
   });
 
+  it("tries raster fallbacks before falling back to the icon disc", () => {
+    const { container } = render(
+      <EmptyIllustration
+        name="components-zero"
+        alt="Components"
+        icon={Upload}
+      />,
+    );
+
+    let img = screen.getByAltText("Components") as HTMLImageElement;
+    expect(img.src).toContain("/illustrations/empty/components-zero.svg");
+
+    fireEvent.error(img);
+    img = screen.getByAltText("Components") as HTMLImageElement;
+    expect(img.src).toContain("/illustrations/empty/components-zero.webp");
+
+    fireEvent.error(img);
+    img = screen.getByAltText("Components") as HTMLImageElement;
+    expect(img.src).toContain("/illustrations/empty/components-zero.png");
+
+    fireEvent.error(img);
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector("svg")).not.toBeNull();
+  });
+
+  it("allows an explicit supported extension", () => {
+    render(<EmptyIllustration name="components-zero.webp" alt="Components" />);
+    const img = screen.getByAltText("Components") as HTMLImageElement;
+    expect(img.src).toContain("/illustrations/empty/components-zero.webp");
+  });
+
   it("falls back to the icon disc when name is omitted", () => {
     const { container } = render(<EmptyIllustration icon={Upload} />);
     expect(container.querySelector("img")).toBeNull();

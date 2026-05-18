@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireCronAuth } from "@/lib/cron-auth";
+import { recordCronRun } from "@/lib/db/cron-runs";
 import { nowEpoch, nowIso, parseToDate, toIso } from "@/lib/format/time";
 import { listGoogleConnectedUserIds } from "@/lib/google/client";
 import { searchInterviewEvents } from "@/lib/google/calendar";
@@ -47,6 +48,7 @@ export async function GET(request: NextRequest) {
   if (authError) return authError;
 
   const startedAt = nowEpoch();
+  const startedIso = nowIso();
   const summary: CalendarSyncSummary = {
     ok: true,
     cron: "google.calendar-sync",
@@ -178,5 +180,12 @@ export async function GET(request: NextRequest) {
   }
 
   summary.durationMs = nowEpoch() - startedAt;
+  recordCronRun({
+    cron: "google.calendar-sync",
+    status: summary.errors === 0 ? "success" : "failure",
+    startedAt: startedIso,
+    durationMs: summary.durationMs,
+    summary: { ...summary },
+  });
   return NextResponse.json(summary);
 }

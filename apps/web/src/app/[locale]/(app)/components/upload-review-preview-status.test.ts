@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getUploadReviewPreviewStatus } from "./upload-review-preview-status";
 
 describe("getUploadReviewPreviewStatus", () => {
-  it("uses unsupported-source copy for TXT uploads", () => {
+  it("uses stored text-preview copy for TXT uploads", () => {
     const status = getUploadReviewPreviewStatus({
       filename: "riley-resume.txt",
       mimeType: "text/plain",
@@ -10,12 +10,12 @@ describe("getUploadReviewPreviewStatus", () => {
 
     expect(status.kind).toBe("txt");
     expect(status.message).toBe(
-      "Source preview is not available for TXT uploads yet. Parsed components are still editable.",
+      "Text preview is loaded from the stored TXT extraction. Layout highlights are unavailable, but parsed components are editable.",
     );
     expect(status.message).not.toMatch(/24h|24 hour|cache/i);
   });
 
-  it("uses unsupported-source copy for DOCX uploads", () => {
+  it("uses stored text-preview copy for DOCX uploads", () => {
     const status = getUploadReviewPreviewStatus({
       filename: "resume.docx",
       mimeType:
@@ -24,7 +24,7 @@ describe("getUploadReviewPreviewStatus", () => {
 
     expect(status.kind).toBe("docx");
     expect(status.message).toBe(
-      "Source preview is not available for DOCX uploads yet. Parsed components are still editable.",
+      "Text preview is loaded from the stored DOCX extraction. Layout highlights are unavailable, but parsed components are editable.",
     );
   });
 

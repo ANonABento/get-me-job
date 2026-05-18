@@ -2,11 +2,8 @@ import type { MetadataRoute } from "next";
 import { locales } from "@/i18n";
 import { nowDate } from "@/lib/format/time";
 import { getMetadataBase } from "@/lib/seo";
+import { getBlogPostUrls } from "@/app/[locale]/(marketing)/blog/posts";
 
-const BLOG_SLUGS = [
-  "what-is-ats-optimization",
-  "self-hosted-job-search",
-] as const;
 const VS_SLUGS = ["teal", "huntr", "simplify"] as const;
 
 const PUBLIC_ROUTES = [
@@ -30,8 +27,8 @@ const VS_ROUTES = VS_SLUGS.map((slug) => ({
   changeFrequency: "monthly" as const,
 }));
 
-const BLOG_ROUTES = BLOG_SLUGS.map((slug) => ({
-  path: `/blog/${slug}`,
+const BLOG_ROUTES = getBlogPostUrls().map((post) => ({
+  path: `/blog/${post.slug}`,
   priority: 0.6,
   changeFrequency: "monthly" as const,
 }));

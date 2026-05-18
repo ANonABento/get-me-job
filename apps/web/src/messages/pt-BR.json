@@ -833,7 +833,11 @@
           "title": "Revisar componentes detectados do documento",
           "description": "{filename} foi dividido em {count, plural, one {# componente editável} other {# componentes editáveis}}. Salve as correções conforme avança.",
           "keepEditing": "Continuar editando depois",
-          "done": "Concluído"
+          "done": "Concluído",
+          "discardImport": "Descartar importação",
+          "discardConfirmTitle": "Descartar {count, plural, one {# componente importado} other {# componentes importados}}?",
+          "discardConfirmDescription": "Isto remove {count, plural, one {o componente} other {os componentes}} que acabaram de ser importados de {filename}. Você pode reenviar o arquivo depois.",
+          "discardConfirm": "Descartar"
         },
         "moveBullets": {
           "title": "Mover bullets selecionados",
@@ -1079,6 +1083,7 @@
     "uploadFile": "Carregar arquivo (Ctrl+U)",
     "failedToLoadDocuments": "Falha ao carregar documentos",
     "expand": "Expandir",
+    "collapse": "Recolher",
     "selectAllVisibleComponents": "Selecione todos os componentes visíveis",
     "noComponentsDetected": "Nenhum componente detectado",
     "noComponentsLeft": "Nenhum componente restante",

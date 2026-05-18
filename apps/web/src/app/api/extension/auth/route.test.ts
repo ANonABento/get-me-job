@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   prepare: vi.fn(),
   nowEpoch: vi.fn(),
   ensureExtensionSessionsColumns: vi.fn(),
+  trackActivationEvent: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -37,6 +38,10 @@ vi.mock("@/lib/db/extension-sessions", async (importOriginal) => {
     ensureExtensionSessionsColumns: mocks.ensureExtensionSessionsColumns,
   };
 });
+
+vi.mock("@/lib/db/product-analytics", () => ({
+  trackActivationEvent: mocks.trackActivationEvent,
+}));
 
 import { POST } from "./route";
 

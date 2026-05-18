@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  EXTENSION_STORES,
   detectBrowserFromUserAgent,
+  getExtensionLaunchCopy,
+  getExtensionLaunchState,
   getExtensionStoresForBrowser,
 } from "./install";
 
@@ -28,29 +31,36 @@ describe("detectBrowserFromUserAgent", () => {
   });
 });
 
+describe("extension launch state", () => {
+  it("defaults to local install when no marketplace URL is configured", () => {
+    expect(getExtensionLaunchState({})).toBe("local");
+    expect(getExtensionLaunchCopy("local").description).toMatch(
+      /Store listings are not live/i,
+    );
+  });
+
+  it("allows a launch-state feature flag to override URL inference", () => {
+    expect(
+      getExtensionLaunchState({
+        NEXT_PUBLIC_EXTENSION_LAUNCH_STATE: "store_review",
+        NEXT_PUBLIC_CHROME_EXTENSION_URL: "https://example.com/chrome",
+      }),
+    ).toBe("store_review");
+  });
+});
+
 describe("getExtensionStoresForBrowser", () => {
-  it("orders the detected browser first", () => {
-    expect(getExtensionStoresForBrowser("firefox")[0]?.key).toBe("firefox");
+  it("hides unpublished store listings", () => {
+    expect(EXTENSION_STORES).toEqual([]);
+    expect(getExtensionStoresForBrowser("firefox")).toEqual([]);
   });
 
-  it("keeps Safari disabled", () => {
-    const [safari] = getExtensionStoresForBrowser("safari");
-
-    expect(safari?.key).toBe("safari");
-    expect(safari?.disabled).toBe(true);
-    expect(safari?.url).toBeNull();
-  });
-
-  it("does not expose placeholder marketplace URLs as install links", () => {
+  it("does not expose disabled marketplace URLs as install links", () => {
     const stores = getExtensionStoresForBrowser("unknown");
 
-    expect(stores).toHaveLength(4);
     for (const store of stores) {
-      if (store.url) {
-        expect(store.url).not.toContain("placeholder");
-      } else {
-        expect(store.disabled).toBe(true);
-      }
+      expect(store.url).toBeTruthy();
+      expect(store.disabled).not.toBe(true);
     }
   });
 });

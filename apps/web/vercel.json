@@ -7,7 +7,6 @@
     { "path": "/api/cron/follow-ups", "schedule": "0 9 * * *" },
     { "path": "/api/cron/gmail/status-detect", "schedule": "0 9 * * *" },
     { "path": "/api/cron/digest/daily", "schedule": "0 8 * * *" },
-    { "path": "/api/cron/digest/weekly", "schedule": "0 9 * * 1" },
     { "path": "/api/cron/cleanup", "schedule": "0 3 * * *" }
   ]
 }

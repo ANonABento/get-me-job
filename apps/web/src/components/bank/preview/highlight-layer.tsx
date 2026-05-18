@@ -55,6 +55,11 @@ const CATEGORY_PALETTE: Record<
     idleFill: "rgba(20, 184, 166, 0.08)",
     outline: "rgb(20, 184, 166)",
   },
+  paragraph: {
+    fill: "rgba(34, 197, 94, 0.28)",
+    idleFill: "rgba(34, 197, 94, 0.08)",
+    outline: "rgb(34, 197, 94)",
+  },
   skill: {
     fill: "rgba(14, 165, 233, 0.32)",
     idleFill: "rgba(14, 165, 233, 0.07)",

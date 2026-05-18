@@ -67,6 +67,12 @@ vi.mock("@/components/settings/ai-task-routing-section", () => ({
   ),
 }));
 
+vi.mock("@/components/settings/bento-router-admin-section", () => ({
+  SlothingBentoRouterAdminSection: () => (
+    <section data-testid="bento-router-admin-section" />
+  ),
+}));
+
 vi.mock("@/components/settings/prompt-variants-section", () => ({
   PromptVariantsSection: () => (
     <section data-testid="prompt-variants-section" />
@@ -192,6 +198,9 @@ describe("SettingsPage", () => {
       "OpenAI Configuration",
     );
     expect(screen.getByTestId("what-ai-powers")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("bento-router-admin-section"),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("ai-task-routing-section")).toHaveTextContent(
       "AI task routing true",
     );

@@ -742,7 +742,8 @@ function InterviewRailCard({ job }: { job?: RecentJob }) {
               className="font-mono text-[10.5px]"
               style={{ color: "var(--brand-dark)" }}
             >
-              <Calendar className="mr-1 inline-block h-3 w-3" /> coming soon
+              <Calendar className="mr-1 inline-block h-3 w-3" /> Status:{" "}
+              {job.status}
             </p>
           </div>
           <Link

@@ -1644,7 +1644,11 @@ export function BankComponentsTab({
               />
               <DriveFilePicker
                 onSelect={handleDriveSelect}
-                accept={["application/pdf", "text/plain"]}
+                accept={[
+                  "application/pdf",
+                  "text/plain",
+                  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ]}
                 trigger={
                   <Button variant="outline" size="sm" disabled={driveImporting}>
                     {driveImporting ? (
@@ -1766,6 +1770,7 @@ export function BankComponentsTab({
                       onAttachBullet={handleReviewAttachBullet}
                       documentId={uploadReview.documentId}
                       documentFilename={uploadReview.filename}
+                      documentMimeType={uploadReview.mimeType}
                     />
                   ) : null}
                 </div>
@@ -2756,6 +2761,91 @@ function getNewParsedChildren(
   });
 }
 
+function TextDocumentPreview({
+  documentId,
+  filename,
+}: {
+  documentId: string;
+  filename: string;
+}) {
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadTextPreview() {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(
+          `/api/bank/documents/${encodeURIComponent(documentId)}/text`,
+        );
+        const data = (await response.json().catch(() => null)) as {
+          document?: { extractedText?: string };
+          error?: string;
+        } | null;
+        if (!response.ok) {
+          throw new Error(data?.error ?? "Text preview not available");
+        }
+        if (!cancelled) setText(data?.document?.extractedText ?? "");
+      } catch (previewError) {
+        if (!cancelled) {
+          setError(
+            previewError instanceof Error
+              ? previewError.message
+              : "Text preview not available",
+          );
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void loadTextPreview();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [documentId]);
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="border-b px-4 py-3">
+        <div className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-muted-foreground" />
+          <span className="min-w-0 truncate font-display text-sm font-semibold tracking-tight">
+            {filename}
+          </span>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Text preview from stored extraction. Layout and highlights are not
+          available for this file type.
+        </p>
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto p-4">
+        {loading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading text preview
+          </div>
+        ) : error ? (
+          <ErrorState
+            title="Preview unavailable"
+            message={error}
+            variant="inline"
+          />
+        ) : (
+          <pre className="whitespace-pre-wrap break-words font-body text-sm leading-6 text-foreground">
+            {text}
+          </pre>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function UploadReviewEntries({
   entries,
   existingEntries,
@@ -2766,6 +2856,7 @@ function UploadReviewEntries({
   onAttachBullet,
   documentId,
   documentFilename,
+  documentMimeType,
 }: {
   entries: BankEntry[];
   existingEntries: BankEntry[];
@@ -2783,6 +2874,7 @@ function UploadReviewEntries({
   onAttachBullet: (bullet: BankEntry, parent: BankEntry) => void;
   documentId?: string;
   documentFilename?: string;
+  documentMimeType?: string;
 }) {
   const a11yT = useA11yTranslations();
 
@@ -2832,9 +2924,14 @@ function UploadReviewEntries({
   // duplicate (P1.2), the warning panel is dismissed for that parsed entry
   // until the modal is re-opened.
   const [keepBothIds, setKeepBothIds] = useState<Set<string>>(new Set());
+  const previewStatus = getUploadReviewPreviewStatus({
+    filename: documentFilename,
+    mimeType: documentMimeType,
+  });
+
   // PF.4 — left-panel tabs. Document tab is the default so users start with
-  // visual context for what was extracted; falls back to "components" if no
-  // PDF document is available for preview (manual entry, non-PDF import).
+  // source context for what was extracted; PDF renders pages and non-PDF
+  // imports render stored extracted text.
   const documentTabAvailable = Boolean(documentId);
 
   // PF.5 — highlight data fed to the PDF preview. Bboxes come from the
@@ -3152,14 +3249,21 @@ function UploadReviewEntries({
           list, capped to 40vh so the review pane below stays visible. */}
       {documentTabAvailable && documentId ? (
         <div className="flex min-h-0 flex-col border-r bg-background max-lg:max-h-[40vh] max-lg:border-b">
-          <PdfPreview
-            documentId={documentId}
-            filename={documentFilename ?? "document.pdf"}
-            highlights={previewHighlights}
-            selectedEntryId={selectedId}
-            onSelectEntry={setSelectedId}
-            onRegisterNavigator={registerPdfNavigator}
-          />
+          {previewStatus.kind === "pdf" ? (
+            <PdfPreview
+              documentId={documentId}
+              filename={documentFilename ?? "document.pdf"}
+              highlights={previewHighlights}
+              selectedEntryId={selectedId}
+              onSelectEntry={setSelectedId}
+              onRegisterNavigator={registerPdfNavigator}
+            />
+          ) : (
+            <TextDocumentPreview
+              documentId={documentId}
+              filename={documentFilename ?? "source document"}
+            />
+          )}
         </div>
       ) : null}
       <section className="min-h-0 overflow-y-auto bg-background px-5 py-4">
@@ -3173,7 +3277,7 @@ function UploadReviewEntries({
                 <h3 className="mt-1 font-display text-lg font-semibold tracking-tight">
                   {getEntryLabel(selectedEntry)}
                 </h3>
-                {documentTabAvailable &&
+                {previewStatus.kind === "pdf" &&
                 getReviewPreviewBboxes(
                   selectedEntry,
                   isReviewRootEntry(selectedEntry),

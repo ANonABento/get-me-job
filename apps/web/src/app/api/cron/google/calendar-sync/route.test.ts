@@ -18,6 +18,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/cron-auth", () => ({
   requireCronAuth: vi.fn(async () => null),
 }));
+vi.mock("@/lib/db/cron-runs", () => ({
+  recordCronRun: vi.fn(),
+}));
 vi.mock("@/lib/google/client", () => ({
   listGoogleConnectedUserIds: mocks.listGoogleConnectedUserIds,
 }));

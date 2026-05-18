@@ -833,7 +833,11 @@
           "title": "Examiner les composants détectés du document",
           "description": "{filename} a été divisé en {count, plural, one {# composant modifiable} other {# composants modifiables}}. Enregistrez les corrections au fil de l’eau.",
           "keepEditing": "Continuer la modification plus tard",
-          "done": "Terminé"
+          "done": "Terminé",
+          "discardImport": "Annuler l’import",
+          "discardConfirmTitle": "Annuler {count, plural, one {# composant importé} other {# composants importés}} ?",
+          "discardConfirmDescription": "Cela supprime {count, plural, one {le composant} other {les composants}} qui {count, plural, one {vient} other {viennent}} d’être importé(s) depuis {filename}. Vous pouvez recharger le fichier plus tard.",
+          "discardConfirm": "Annuler"
         },
         "moveBullets": {
           "title": "Déplacer les puces sélectionnées",
@@ -1079,6 +1083,7 @@
     "uploadFile": "Télécharger le fichier (Ctrl+U)",
     "failedToLoadDocuments": "Échec du chargement des documents",
     "expand": "Développer",
+    "collapse": "Réduire",
     "selectAllVisibleComponents": "Sélectionnez tous les composants visibles",
     "noComponentsDetected": "Aucun composant détecté",
     "noComponentsLeft": "Il ne reste plus aucun composant",

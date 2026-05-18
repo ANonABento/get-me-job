@@ -14,6 +14,7 @@ import {
   EXTENSION_TOKEN_TTL_LOCALSTORAGE_MS,
   EXTENSION_TOKEN_TTL_RUNTIME_MS,
 } from "@/lib/db/extension-sessions";
+import { trackActivationEvent } from "@/lib/db/product-analytics";
 import { randomUUID } from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +59,16 @@ export async function POST(request: NextRequest) {
       userAgent || null,
       toIso(expiresAt),
     );
+    try {
+      trackActivationEvent({
+        event: "extension_connected",
+        userId,
+        source: "api/extension/auth",
+        metadata: { transport: transport ?? "runtime" },
+      });
+    } catch (analyticsError) {
+      console.error("Extension analytics failed:", analyticsError);
+    }
 
     return NextResponse.json({
       token,

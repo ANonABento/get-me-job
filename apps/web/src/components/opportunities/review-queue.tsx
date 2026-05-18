@@ -5,12 +5,12 @@ import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useFormatter } from "next-intl";
 import { AnimatePresence, motion, type PanInfo } from "framer-motion";
-import { Check, ExternalLink, MapPin, Settings, X } from "lucide-react";
+import { Check, ExternalLink, Inbox, MapPin, Settings, X } from "lucide-react";
 import { ExtensionInstallButtons } from "@/components/marketing/extension-install-buttons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/opportunities/status-pill";
-import { StandardEmptyState } from "@/components/ui/page-layout";
+import { OnboardingEmptyState } from "@/components/ui/empty-states";
 import { cn } from "@/lib/utils";
 import type { Opportunity } from "@/types/opportunity";
 
@@ -143,12 +143,30 @@ export function OpportunityReviewQueue({
     return (
       <div className="mx-auto flex min-h-[70vh] w-full max-w-xl items-center justify-center px-5">
         <h1 className="sr-only">Review Queue</h1>
-        <StandardEmptyState
-          icon={Check}
+        <OnboardingEmptyState
+          icon={Inbox}
+          illustrationName="opportunities-review-empty"
           title={a11yT("queueCleared")}
           description="New pending opportunities will appear here when Slothing finds roles that need review."
+          steps={[
+            {
+              icon: ExternalLink,
+              label: "Open a job",
+              description: "Visit roles from a job board or company site.",
+            },
+            {
+              icon: Inbox,
+              label: "Review here",
+              description: "New captures land in this queue first.",
+            },
+            {
+              icon: Check,
+              label: "Save or dismiss",
+              description: "Keep the roles worth tracking.",
+            },
+          ]}
           className="w-full"
-          action={
+          primaryAction={
             <div className="flex flex-col items-center gap-3">
               <Button asChild>
                 <Link href="/extension">

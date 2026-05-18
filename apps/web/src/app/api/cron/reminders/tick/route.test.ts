@@ -13,6 +13,10 @@ vi.mock("@/lib/reminders/fire-due", () => ({
   fireDueReminders: mocks.fireDueReminders,
 }));
 
+vi.mock("@/lib/db/cron-runs", () => ({
+  recordCronRun: vi.fn(),
+}));
+
 import { GET } from "./route";
 import { requireCronAuth } from "@/lib/cron-auth";
 import {

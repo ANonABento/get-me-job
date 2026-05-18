@@ -16,6 +16,10 @@ vi.mock("@/lib/digest/daily", () => ({
   })),
 }));
 
+vi.mock("@/lib/db/cron-runs", () => ({
+  recordCronRun: vi.fn(),
+}));
+
 import { GET } from "./route";
 import { requireCronAuth } from "@/lib/cron-auth";
 import {

@@ -45,7 +45,7 @@ export function getUploadReviewPreviewStatus(input: {
   if (kind === "txt" || kind === "docx") {
     return {
       kind,
-      message: `Source preview is not available for ${kind.toUpperCase()} uploads yet. Parsed components are still editable.`,
+      message: `Text preview is loaded from the stored ${kind.toUpperCase()} extraction. Layout highlights are unavailable, but parsed components are editable.`,
     };
   }
 

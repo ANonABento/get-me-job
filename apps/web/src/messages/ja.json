@@ -833,7 +833,11 @@
           "title": "検出されたドキュメント要素を確認",
           "description": "{filename} は {count, plural, one {# 個の編集可能な要素} other {# 個の編集可能な要素}} に分割されました。修正しながら保存してください。",
           "keepEditing": "後で編集を続ける",
-          "done": "完了"
+          "done": "完了",
+          "discardImport": "インポートを破棄",
+          "discardConfirmTitle": "{count, plural, one {# 件のインポート済みコンポーネント} other {# 件のインポート済みコンポーネント}}を破棄しますか？",
+          "discardConfirmDescription": "{filename} からインポートされた{count, plural, one {コンポーネント} other {コンポーネント}}を削除します。後でファイルを再アップロードできます。",
+          "discardConfirm": "破棄"
         },
         "moveBullets": {
           "title": "選択した箇条書きを移動",
@@ -1079,6 +1083,7 @@
     "uploadFile": "ファイルのアップロード (Ctrl+U)",
     "failedToLoadDocuments": "ドキュメントのロードに失敗しました",
     "expand": "拡大する",
+    "collapse": "折りたたむ",
     "selectAllVisibleComponents": "表示されているコンポーネントをすべて選択します",
     "noComponentsDetected": "コンポーネントが検出されませんでした",
     "noComponentsLeft": "コンポーネントが残っていない",

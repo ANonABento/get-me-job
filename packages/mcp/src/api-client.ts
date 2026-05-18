@@ -30,8 +30,12 @@ export class ApiError extends Error {
 
 export interface ApiClient {
   request<T>(path: string, init?: RequestInit): Promise<T>;
-  get<T>(path: string, query?: Record<string, string | number | undefined>): Promise<T>;
+  get<T>(
+    path: string,
+    query?: Record<string, string | number | undefined>,
+  ): Promise<T>;
   post<T>(path: string, body: unknown): Promise<T>;
+  patch<T>(path: string, body: unknown): Promise<T>;
 }
 
 /**
@@ -69,7 +73,8 @@ export function createApiClient(config: ApiClientConfig): ApiClient {
     }
 
     if (!response.ok) {
-      const message = extractMessage(parsed) ?? response.statusText ?? "Request failed";
+      const message =
+        extractMessage(parsed) ?? response.statusText ?? "Request failed";
       throw new ApiError(
         `Slothing API ${response.status} ${message}`,
         response.status,
@@ -103,7 +108,14 @@ export function createApiClient(config: ApiClientConfig): ApiClient {
     });
   }
 
-  return { request, get, post };
+  async function patch<T>(path: string, body: unknown): Promise<T> {
+    return request<T>(path, {
+      method: "PATCH",
+      body: JSON.stringify(body ?? {}),
+    });
+  }
+
+  return { request, get, post, patch };
 }
 
 function extractMessage(parsed: unknown): string | undefined {

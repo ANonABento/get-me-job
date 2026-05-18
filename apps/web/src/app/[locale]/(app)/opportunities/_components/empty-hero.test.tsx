@@ -17,9 +17,14 @@ describe("OpportunitiesEmptyHero", () => {
         "Save a role to start tracking applications, deadlines, and tailored documents.",
       ),
     ).toBeInTheDocument();
+    expect(screen.getByRole("presentation")).toHaveAttribute(
+      "src",
+      "/illustrations/empty/opportunities-zero.svg",
+    );
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
 
-    fireEvent.click(screen.getByRole("button", { name: /add opportunity/i }));
-    fireEvent.click(screen.getByRole("button", { name: /import from csv/i }));
+    fireEvent.click(screen.getByRole("button", { name: /manually add/i }));
+    fireEvent.click(screen.getByRole("button", { name: /import job/i }));
 
     expect(onAdd).toHaveBeenCalledTimes(1);
     expect(onImport).toHaveBeenCalledTimes(1);

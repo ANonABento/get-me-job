@@ -1,12 +1,16 @@
-# Template Upload Spec (FUTURE - not implemented yet)
+# Template Upload Spec
 
 ## Goal
 
 Let users add custom document templates and choose them from the same Studio template picker used for system templates.
 
+**Status:** Baseline implemented. Users can import HTML, Markdown, DOCX, or PDF
+templates, select them in Studio, edit display metadata, and delete them from
+the custom template manager. Tags and public sharing remain out of scope.
+
 ## Supported Uploads
 
-- User uploads a custom template as HTML, Markdown, or DOCX.
+- User uploads a custom template as HTML, Markdown, DOCX, or PDF.
 - Uploaded templates are normalized into the internal render format.
 - Invalid or unsafe markup is rejected before storage.
 
@@ -19,7 +23,7 @@ Let users add custom document templates and choose them from the same Studio tem
 
 ## Management
 
-- Users can rename, edit, and delete their own templates.
+- Users can rename, describe, and delete their own templates.
 - System templates remain read-only.
 - Deleting a template should not break existing documents; affected documents fall back to a safe system template.
 

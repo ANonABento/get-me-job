@@ -5,8 +5,13 @@ vi.mock("@/lib/cron-auth", () => ({
   requireCronAuth: vi.fn(async () => null),
 }));
 
+vi.mock("@/lib/db/cron-runs", () => ({
+  recordCronRun: vi.fn(),
+}));
+
 import { GET } from "./route";
 import { requireCronAuth } from "@/lib/cron-auth";
+import { recordCronRun } from "@/lib/db/cron-runs";
 import {
   expectRouteResponseContract,
   getRequest,
@@ -17,9 +22,10 @@ import {
 describe("/api/cron/digest/weekly route contract", () => {
   beforeEach(() => {
     vi.mocked(requireCronAuth).mockResolvedValue(null);
+    vi.mocked(recordCronRun).mockClear();
   });
 
-  it("returns the weekly digest stub when auth passes", async () => {
+  it("returns an intentional disabled response when auth passes", async () => {
     const response = await invokeRouteHandler(
       GET,
       getRequest("http://localhost/api/cron/digest/weekly"),
@@ -27,11 +33,18 @@ describe("/api/cron/digest/weekly route contract", () => {
     );
 
     await expectRouteResponseContract(response.clone());
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
-      ok: true,
+    expect(response.status).toBe(410);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
       cron: "digest.weekly",
+      disabled: true,
     });
+    expect(recordCronRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cron: "digest.weekly",
+        status: "disabled",
+      }),
+    );
   });
 
   it("propagates cron auth failures", async () => {

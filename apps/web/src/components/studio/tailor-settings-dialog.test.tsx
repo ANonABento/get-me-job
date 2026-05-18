@@ -77,6 +77,12 @@ describe("TailorSettingsDialog", () => {
       screen.getByLabelText("Maximum number of projects"),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("ATS strictness")).toBeInTheDocument();
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Shapes AI prompt guidance and deterministic manual output/i,
+      ),
+    ).toBeInTheDocument();
     expect(
       screen.getByLabelText("Drop bullets shorter than (characters)"),
     ).toBeInTheDocument();

@@ -144,10 +144,16 @@ function GoogleConnectButtonWithSession({
 export function GoogleConnectButton(props: GoogleConnectButtonProps) {
   if (!isNextAuthConfiguredOnClient()) {
     return (
-      <Button variant="outline" disabled className="gap-2">
-        <GoogleIcon className="h-4 w-4" />
-        Coming soon - Google integration
-      </Button>
+      <div className="space-y-2">
+        <Button variant="outline" disabled className="gap-2">
+          <GoogleIcon className="h-4 w-4" />
+          Google setup required
+        </Button>
+        <p className="max-w-md text-xs leading-5 text-muted-foreground">
+          Add Google OAuth credentials and set NEXT_PUBLIC_NEXTAUTH_ENABLED=true
+          to enable Calendar, Gmail, Drive, Docs, Sheets, and Contacts.
+        </p>
+      </div>
     );
   }
 

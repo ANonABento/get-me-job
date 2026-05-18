@@ -222,6 +222,18 @@ describe("PricingPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("renders the launch waitlist form", async () => {
+    await renderPricingPage();
+
+    expect(
+      screen.getByRole("heading", { name: "Want launch updates?" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Join waitlist/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Email")).toBeInTheDocument();
+  });
+
   it("aligns refund answer with billing terms", async () => {
     await renderPricingPage();
 

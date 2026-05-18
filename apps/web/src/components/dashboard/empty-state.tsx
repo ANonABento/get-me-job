@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Upload, FileText, ArrowRight } from "lucide-react";
+import {
+  ArrowRight,
+  Briefcase,
+  FileText,
+  Sparkles,
+  Upload,
+} from "lucide-react";
+import { OnboardingEmptyState } from "@/components/ui/empty-states";
+import { Button } from "@/components/ui/button";
 
 interface EmptyStateProps {
   variant: "no-resume" | "no-resumes-built";
@@ -10,45 +18,73 @@ interface EmptyStateProps {
 export function EmptyState({ variant }: EmptyStateProps) {
   if (variant === "no-resume") {
     return (
-      <div className="rounded-2xl border-2 border-dashed bg-card p-8 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl gradient-bg text-primary-foreground shadow-elevated">
-          <Upload className="h-8 w-8" />
-        </div>
-        <h3 className="text-xl font-bold">Get started: upload your resume</h3>
-        <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-          Upload your existing resume and we&apos;ll extract your professional
-          info automatically. Then you can tailor it for every job application.
-        </p>
-        <Link
-          href="/components"
-          className="mt-6 inline-flex items-center gap-2 rounded-xl gradient-bg px-6 py-3 font-medium text-primary-foreground shadow-elevated hover:opacity-90 transition-opacity"
-        >
-          <Upload className="h-4 w-4" />
-          Upload Resume
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-      </div>
+      <OnboardingEmptyState
+        title="Get started: upload your resume"
+        description="Upload your existing resume and we'll extract reusable proof points automatically. Then Studio can tailor them for every application."
+        illustrationName="dashboard-fresh"
+        icon={Upload}
+        steps={[
+          {
+            icon: Upload,
+            label: "Add source",
+            description: "Upload a resume or paste your strongest bullets.",
+          },
+          {
+            icon: Sparkles,
+            label: "Extract components",
+            description: "Slothing turns raw history into reusable cards.",
+          },
+          {
+            icon: Briefcase,
+            label: "Tailor roles",
+            description: "Use the library to build focused applications.",
+          },
+        ]}
+        primaryAction={
+          <Button asChild>
+            <Link href="/components">
+              <Upload className="mr-2 h-4 w-4" />
+              Upload Resume
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        }
+      />
     );
   }
 
   return (
-    <div className="rounded-2xl border-2 border-dashed bg-card p-8 text-center">
-      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-        <FileText className="h-8 w-8" />
-      </div>
-      <h3 className="text-xl font-bold">Build your first resume</h3>
-      <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-        Add a job description and we&apos;ll generate a tailored resume that
-        highlights your most relevant experience.
-      </p>
-      <Link
-        href="/opportunities"
-        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary/10 px-6 py-3 font-medium text-primary hover:bg-primary/20 transition-colors"
-      >
-        <FileText className="h-4 w-4" />
-        Build your first resume
-        <ArrowRight className="h-4 w-4" />
-      </Link>
-    </div>
+    <OnboardingEmptyState
+      title="Build your first resume"
+      description="Add a job description and we'll assemble a tailored resume that highlights your most relevant experience."
+      illustrationName="studio-zero"
+      icon={FileText}
+      steps={[
+        {
+          icon: Briefcase,
+          label: "Choose a role",
+          description: "Start from a saved opportunity or paste a posting.",
+        },
+        {
+          icon: Sparkles,
+          label: "Match proof",
+          description: "Studio pulls the components that fit best.",
+        },
+        {
+          icon: FileText,
+          label: "Export",
+          description: "Review the draft and send the finished document.",
+        },
+      ]}
+      primaryAction={
+        <Button asChild>
+          <Link href="/opportunities">
+            <FileText className="mr-2 h-4 w-4" />
+            Build your first resume
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
+      }
+    />
   );
 }

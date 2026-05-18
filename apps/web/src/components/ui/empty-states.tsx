@@ -1,19 +1,46 @@
 "use client";
 
 import type { ElementType, ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertCircle, Filter, Lock, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const EMPTY_ILLUSTRATION_FORMATS = ["svg", "webp", "png"] as const;
+
+function getIllustrationSources(name?: string): string[] {
+  if (!name) return [];
+
+  const cleanName = name
+    .replace(/^\/?illustrations\/empty\//, "")
+    .replace(/^\/+/, "");
+  const extensionMatch = cleanName.match(/\.(svg|webp|png)$/i);
+  const basename = extensionMatch
+    ? cleanName.slice(0, -extensionMatch[0].length)
+    : cleanName;
+
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(basename)) return [];
+
+  if (extensionMatch) {
+    return [
+      `/illustrations/empty/${basename}.${extensionMatch[1].toLowerCase()}`,
+    ];
+  }
+
+  return EMPTY_ILLUSTRATION_FORMATS.map(
+    (format) => `/illustrations/empty/${basename}.${format}`,
+  );
+}
+
 /**
- * Renders an illustration from `/public/illustrations/empty/<name>.svg`.
+ * Renders an illustration from `/public/illustrations/empty/<name>`.
  *
- * If the asset 404s or `name` is omitted, falls back to the provided lucide
- * `icon` rendered inside a primary-tinted disc the same size as the
- * illustration slot. This lets us ship empty-state copy before art lands.
+ * If the asset is missing or `name` is omitted, falls back to the provided
+ * lucide `icon` rendered inside a primary-tinted disc the same size as the
+ * illustration slot. SVG is preferred, with WebP/PNG as clean fallbacks for
+ * future generated raster assets.
  */
 interface EmptyIllustrationProps {
-  /** Filename (no extension) under /public/illustrations/empty/. */
+  /** Filename under /public/illustrations/empty/. Extension optional. */
   name?: string;
   /** Lucide icon used as the fallback. */
   icon?: ElementType;
@@ -28,18 +55,24 @@ export function EmptyIllustration({
   alt = "",
   className,
 }: EmptyIllustrationProps) {
-  const [errored, setErrored] = useState(false);
-  const showImage = Boolean(name) && !errored;
+  const [sourceIndex, setSourceIndex] = useState(0);
+  const sources = getIllustrationSources(name);
+  const src = sources[sourceIndex];
 
-  if (showImage) {
+  useEffect(() => {
+    setSourceIndex(0);
+  }, [name]);
+
+  if (src) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={`/illustrations/empty/${name}.svg`}
+        key={src}
+        src={src}
         alt={alt}
         loading="lazy"
         decoding="async"
-        onError={() => setErrored(true)}
+        onError={() => setSourceIndex((index) => index + 1)}
         className={cn(
           "h-44 w-44 select-none object-contain sm:h-56 sm:w-56",
           className,

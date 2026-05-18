@@ -4,6 +4,7 @@ import { Settings } from "lucide-react";
 import { SettingsSkeleton } from "@/components/skeletons/settings-skeleton";
 import { BillingSection } from "@/components/settings/billing-section";
 import { AiTaskRoutingSection } from "@/components/settings/ai-task-routing-section";
+import { SlothingBentoRouterAdminSection } from "@/components/settings/bento-router-admin-section";
 import { ByokExplainer } from "@/components/settings/byok-explainer";
 import { DangerZoneSection } from "@/components/settings/danger-zone-section";
 import { DataManagement } from "@/components/settings/data-management";
@@ -166,6 +167,7 @@ export default function SettingsPage() {
               <h2 id={`${SECTION_IDS.aiTasks}-h`} className="sr-only">
                 AI tasks
               </h2>
+              <SlothingBentoRouterAdminSection />
               <AiTaskRoutingSection hasProvider={hasProvider} />
             </section>
 

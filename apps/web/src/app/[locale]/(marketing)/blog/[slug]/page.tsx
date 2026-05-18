@@ -1,8 +1,9 @@
 import { headers } from "next/headers";
 import { CalendarDays, ChevronLeft, Clock3, Sparkles } from "lucide-react";
 import { notFound } from "next/navigation";
+
 import { CSP_NONCE_HEADER } from "@/lib/security/headers";
-import { getAlternateLanguages } from "@/lib/seo";
+import { getAlternateLanguages, getMetadataBase } from "@/lib/seo";
 import { formatDateAbsolute } from "@/lib/format/time";
 import { Link as LocalizedLink } from "@/i18n/navigation";
 import {
@@ -35,6 +36,41 @@ export function generateMetadata({
     alternates: {
       canonical: `/blog/${post.slug}`,
       languages: getAlternateLanguages(`/blog/${post.slug}`),
+    },
+  };
+}
+
+function buildBlogPostingJsonLd(
+  post: {
+    title: string;
+    description: string;
+    publishedDate: string;
+    slug: string;
+    audience: string;
+    readMinutes: number;
+  },
+  locale: string,
+) {
+  const base = getMetadataBase();
+  const url = new URL(`/${locale}/blog/${post.slug}`, base).toString();
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.description,
+    datePublished: post.publishedDate,
+    inLanguage: locale,
+    keywords: `ATS optimization, ${post.audience}, job search`,
+    wordCount: post.readMinutes * 180,
+    url,
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": url,
+    },
+    about: {
+      "@type": "Thing",
+      name: post.audience,
     },
   };
 }
@@ -126,19 +162,7 @@ export default function BlogPostPage({
         type="application/ld+json"
         suppressHydrationWarning
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BlogPosting",
-            headline: post.title,
-            description: post.description,
-            datePublished: post.publishedDate,
-            inLanguage: params.locale,
-            keywords: `ATS optimization, ${post.audience}, job search`,
-            mainEntityOfPage: {
-              "@type": "WebPage",
-              "@id": `/${params.locale}/blog/${post.slug}`,
-            },
-          }),
+          __html: JSON.stringify(buildBlogPostingJsonLd(post, params.locale)),
         }}
       />
     </main>
