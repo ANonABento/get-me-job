@@ -143,6 +143,14 @@ describe("classifyDocumentByContent", () => {
     ).toBe("career_notes");
   });
 
+  it("detects career notes with explicit skills and project bullets when resume contact is absent", () => {
+    expect(
+      classifyDocumentByContent(
+        "Career notes\nSkills: React, facilitation\n- Improved onboarding completion by 18%\n- Built Project Atlas for support teams\n- Mentored two interns on testing habits",
+      ),
+    ).toBe("career_notes");
+  });
+
   it("keeps a strong resume as resume even when it mentions a portfolio", () => {
     expect(
       classifyDocumentByContent(
