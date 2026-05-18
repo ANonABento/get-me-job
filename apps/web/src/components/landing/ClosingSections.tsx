@@ -385,8 +385,8 @@ export function Closer() {
             </div>
 
             <Image
-              src="/brand/sloths/slothing-mascot-hero.png"
-              alt="Slothing mascot holding a resume folder"
+              src="/brand/sloths/slothing-mascot-closer.png"
+              alt="Slothing mascot seated with a closed resume folder"
               fill
               className="object-contain object-bottom drop-shadow-[0_32px_42px_rgba(0,0,0,0.34)]"
               sizes="(max-width: 768px) 70vw, 420px"
