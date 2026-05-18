@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
             pendingCount,
             appliedCount,
           ),
-          link: "/opportunities",
+          link: appliedCount > 0 ? "/opportunities" : "/opportunities/review",
         },
         authResult.userId,
       );

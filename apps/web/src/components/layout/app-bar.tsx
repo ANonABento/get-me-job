@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import { Bell, ChevronUp, Moon, Search, Sun } from "lucide-react";
+import { ChevronUp, Moon, Search, Sun } from "lucide-react";
 import { useCommandPalette } from "@/components/command-palette/use-command-palette";
 import { LocaleSwitcherCompact } from "@/components/i18n/locale-switcher";
+import { NotificationCenter } from "@/components/notifications/notification-center";
 import { useTheme } from "@/components/theme-provider";
 import { useRegisterShortcuts } from "@/components/keyboard-shortcuts";
 import {
@@ -142,33 +143,7 @@ export function AppBar({ className }: AppBarProps) {
 
         <LocaleSwitcherCompact className="[&_button]:h-9" />
 
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="relative grid h-9 w-9 place-items-center transition-colors"
-          style={{
-            color: "var(--ink-2)",
-            border: "1px solid transparent",
-            borderRadius: "var(--r-md)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "var(--rule)";
-            e.currentTarget.style.backgroundColor = "var(--paper)";
-            e.currentTarget.style.color = "var(--ink)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "transparent";
-            e.currentTarget.style.backgroundColor = "transparent";
-            e.currentTarget.style.color = "var(--ink-2)";
-          }}
-        >
-          <Bell className="h-4 w-4" aria-hidden="true" />
-          <span
-            aria-hidden="true"
-            className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full"
-            style={{ backgroundColor: "var(--brand)" }}
-          />
-        </button>
+        <NotificationCenter variant="appbar" />
 
         {/* Profile chip removed — the sidebar's bottom-nav profile row
             is the single source of truth. It persists even when the

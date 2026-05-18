@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type KeyboardEvent } from "react";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import {
   Bell,
@@ -14,7 +14,7 @@ import {
   Clock,
   Info,
 } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Notification, NotificationType } from "@/lib/db/notifications";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useErrorToast } from "@/hooks/use-error-toast";
@@ -64,49 +64,164 @@ function formatSuggestionConfidence(confidence?: number | null): string | null {
   return `${Math.round(confidence * 100)}% confidence`;
 }
 
+type NotificationGroupId = "needs_review" | "due_soon" | "updated" | "system";
+
+interface NotificationGroup {
+  id: NotificationGroupId;
+  title: string;
+  notifications: Notification[];
+}
+
+const groupLabels: Record<NotificationGroupId, string> = {
+  needs_review: "Needs review",
+  due_soon: "Due soon / overdue",
+  updated: "Updated automatically",
+  system: "System",
+};
+
+const groupOrder: NotificationGroupId[] = [
+  "needs_review",
+  "due_soon",
+  "updated",
+  "system",
+];
+
+function notificationSearchText(notification: Notification): string {
+  return `${notification.title} ${notification.message ?? ""} ${
+    notification.link ?? ""
+  }`.toLowerCase();
+}
+
+function getNotificationGroup(notification: Notification): NotificationGroupId {
+  const searchText = notificationSearchText(notification);
+
+  if (
+    notification.type === "system" ||
+    /\b(disconnected|failed|missing|quota|billing|api key|sync)\b/.test(
+      searchText,
+    )
+  ) {
+    return "system";
+  }
+
+  if (
+    notification.suggestedStatusUpdate?.state === "pending" ||
+    searchText.includes("waiting for review") ||
+    searchText.includes("ready to review") ||
+    searchText.includes("/opportunities/review")
+  ) {
+    return "needs_review";
+  }
+
+  if (
+    notification.type === "reminder_due" ||
+    notification.type === "reminder_overdue" ||
+    notification.type === "job_deadline"
+  ) {
+    return "due_soon";
+  }
+
+  return "updated";
+}
+
+function groupNotifications(
+  notifications: Notification[],
+): NotificationGroup[] {
+  const grouped = new Map<NotificationGroupId, Notification[]>(
+    groupOrder.map((id) => [id, []]),
+  );
+
+  for (const notification of notifications) {
+    grouped.get(getNotificationGroup(notification))?.push(notification);
+  }
+
+  return groupOrder.flatMap((id) => {
+    const groupItems = grouped.get(id) ?? [];
+    return groupItems.length > 0
+      ? [{ id, title: groupLabels[id], notifications: groupItems }]
+      : [];
+  });
+}
+
+function getActionLabel(notification: Notification): string {
+  const searchText = notificationSearchText(notification);
+
+  if (notification.suggestedStatusUpdate?.state === "pending") {
+    return "Open opportunity";
+  }
+
+  if (
+    searchText.includes("waiting for review") ||
+    searchText.includes("ready to review") ||
+    searchText.includes("/opportunities/review")
+  ) {
+    return "Review queue";
+  }
+
+  if (
+    notification.type === "reminder_due" ||
+    notification.type === "reminder_overdue" ||
+    notification.type === "job_deadline"
+  ) {
+    return "Open opportunity";
+  }
+
+  if (notification.type === "system") {
+    return "Open settings";
+  }
+
+  return "Open opportunities";
+}
+
 interface NotificationCenterProps {
   collapsed?: boolean;
+  variant?: "sidebar" | "appbar";
 }
 
 export function NotificationCenter({
   collapsed = false,
+  variant = "sidebar",
 }: NotificationCenterProps) {
   const a11yT = useA11yTranslations();
+  const router = useRouter();
 
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [hasFetchedNotifications, setHasFetchedNotifications] = useState(false);
   const showErrorToast = useErrorToast();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
-  const fetchNotifications = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/notifications?limit=20");
-      const data = await res.json();
-      setNotifications(data.notifications || []);
-      setUnreadCount(data.unreadCount || 0);
-    } catch (error) {
-      showErrorToast(error, {
-        title: "Could not load notifications",
-        fallbackDescription: "Please try opening notifications again.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [showErrorToast]);
+  const fetchNotifications = useCallback(
+    async (showLoading = true) => {
+      try {
+        if (showLoading) {
+          setLoading(true);
+        }
+        const res = await fetch("/api/notifications?limit=20");
+        const data = await res.json();
+        setNotifications(data.notifications || []);
+        setUnreadCount(data.unreadCount || 0);
+      } catch (error) {
+        showErrorToast(error, {
+          title: "Could not load notifications",
+          fallbackDescription: "Please try opening notifications again.",
+        });
+      } finally {
+        setHasFetchedNotifications(true);
+        if (showLoading) {
+          setLoading(false);
+        }
+      }
+    },
+    [showErrorToast],
+  );
 
-  // Fetch notifications on mount and when opening
+  // Warm the panel data on mount without changing closed-panel layout.
   useEffect(() => {
-    fetchNotifications();
+    fetchNotifications(false);
   }, [fetchNotifications]);
-
-  useEffect(() => {
-    if (isOpen) {
-      fetchNotifications();
-    }
-  }, [isOpen, fetchNotifications]);
 
   // Poll for new notifications every 30 seconds
   useEffect(() => {
@@ -203,7 +318,9 @@ export function NotificationCenter({
         throw new Error("Undo failed");
       }
 
-      await handleMarkRead(notification.id);
+      if (!notification.read) {
+        await handleMarkRead(notification.id);
+      }
       setNotifications((prev) => prev.filter((n) => n.id !== notification.id));
     } catch (error) {
       showErrorToast(error, {
@@ -279,29 +396,95 @@ export function NotificationCenter({
     }
   };
 
+  const handleToggleOpen = () => {
+    const nextOpen = !isOpen;
+
+    if (nextOpen) {
+      const needsInitialBody = !hasFetchedNotifications;
+      if (needsInitialBody) {
+        setLoading(true);
+      }
+      void fetchNotifications(needsInitialBody);
+    }
+
+    setIsOpen(nextOpen);
+  };
+
+  const handleOpenNotification = (notification: Notification) => {
+    if (!notification.link) return;
+
+    if (!notification.read) {
+      void handleMarkRead(notification.id);
+    }
+    setIsOpen(false);
+    router.push(notification.link);
+  };
+
+  const handleNotificationKeyDown = (
+    event: KeyboardEvent<HTMLDivElement>,
+    notification: Notification,
+  ) => {
+    if (!notification.link) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+
+    event.preventDefault();
+    handleOpenNotification(notification);
+  };
+
+  const groups = groupNotifications(notifications);
+  const unreadLabel = unreadCount === 1 ? "1 unread" : `${unreadCount} unread`;
+  const cappedUnreadCount = unreadCount > 99 ? "99+" : unreadCount;
+
   return (
     <div className="relative">
       {/* Bell button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        type="button"
+        onClick={handleToggleOpen}
         className={cn(
-          "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200",
-          collapsed && "justify-center px-2",
+          variant === "appbar"
+            ? "relative grid h-9 w-9 place-items-center transition-colors hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            : "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200",
+          variant === "sidebar" && collapsed && "justify-center px-2",
         )}
+        style={
+          variant === "appbar"
+            ? {
+                color: "var(--ink-2)",
+                border: "1px solid transparent",
+                borderRadius: "var(--r-md)",
+              }
+            : undefined
+        }
         aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
+        aria-expanded={isOpen}
+        aria-haspopup="dialog"
       >
         <div className="relative">
-          <Bell className="h-5 w-5 shrink-0" />
+          <Bell
+            className={cn(
+              "shrink-0",
+              variant === "appbar" ? "h-4 w-4" : "h-5 w-5",
+            )}
+            aria-hidden="true"
+          />
           {unreadCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
-              {unreadCount > 99 ? "99+" : unreadCount}
+            <span
+              className={cn(
+                "absolute flex items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground",
+                variant === "appbar"
+                  ? "-right-2 -top-2 h-4 min-w-[1rem]"
+                  : "-right-1.5 -top-1.5 h-4 min-w-[1rem]",
+              )}
+            >
+              {cappedUnreadCount}
             </span>
           )}
         </div>
-        {!collapsed && <span>Notifications</span>}
+        {variant === "sidebar" && !collapsed && <span>Notifications</span>}
 
         {/* Tooltip for collapsed state */}
-        {collapsed && (
+        {variant === "sidebar" && collapsed && (
           <div className="absolute left-full ml-2 hidden group-hover:flex items-center z-50">
             <div className="bg-popover text-popover-foreground text-sm font-medium px-3 py-1.5 rounded-lg shadow-lg border whitespace-nowrap">
               Notifications {unreadCount > 0 && `(${unreadCount})`}
@@ -324,19 +507,31 @@ export function NotificationCenter({
             role="dialog"
             aria-label={a11yT("notifications")}
             className={cn(
-              "absolute z-50 w-80 max-h-[70vh] flex flex-col bg-card border rounded-xl shadow-xl",
-              collapsed
-                ? "left-full ml-3 bottom-0 mb-0"
-                : "left-0 bottom-full mb-2",
+              "absolute z-50 flex max-h-[min(70vh,560px)] w-[min(calc(100vw_-_2rem),420px)] flex-col overflow-hidden rounded-xl border bg-card shadow-xl",
+              variant === "appbar"
+                ? "right-0 top-full mt-2"
+                : collapsed
+                  ? "left-full ml-3 bottom-0 mb-0"
+                  : "left-0 bottom-full mb-2",
             )}
-            style={collapsed ? { transform: "translateY(50%)" } : undefined}
+            style={
+              variant === "sidebar" && collapsed
+                ? { transform: "translateY(50%)" }
+                : undefined
+            }
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="font-semibold">Notifications</h3>
-              <div className="flex items-center gap-1">
+            <div className="flex items-start justify-between gap-3 border-b p-4">
+              <div>
+                <h3 className="font-semibold leading-none">Notifications</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {unreadLabel}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
                 {unreadCount > 0 && (
                   <button
+                    type="button"
                     onClick={handleMarkAllRead}
                     className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
                     title={a11yT("markAllAsRead")}
@@ -347,6 +542,7 @@ export function NotificationCenter({
                 )}
                 {notifications.some((n) => n.read) && (
                   <button
+                    type="button"
                     onClick={handleDeleteRead}
                     className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
                     title={a11yT("deleteReadNotifications")}
@@ -356,6 +552,7 @@ export function NotificationCenter({
                   </button>
                 )}
                 <button
+                  type="button"
                   onClick={() => setIsOpen(false)}
                   className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
                   aria-label={a11yT("closeNotifications")}
@@ -366,184 +563,225 @@ export function NotificationCenter({
             </div>
 
             {/* Notifications list */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="min-h-[188px] flex-1 overflow-y-auto">
               {loading && notifications.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground">
-                  Loading...
+                <div
+                  className="min-h-[188px] space-y-3 p-4"
+                  aria-label="Loading notifications"
+                >
+                  <div className="h-4 w-32 rounded bg-muted" />
+                  <div className="space-y-2">
+                    <div className="h-14 rounded-lg bg-muted/70" />
+                    <div className="h-14 rounded-lg bg-muted/50" />
+                    <div className="h-14 rounded-lg bg-muted/40" />
+                  </div>
                 </div>
               ) : notifications.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground">
-                  <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No notifications</p>
+                <div className="flex min-h-[188px] flex-col items-center justify-center p-8 text-center text-muted-foreground">
+                  <Bell
+                    className="mx-auto mb-3 h-8 w-8 opacity-50"
+                    aria-hidden="true"
+                  />
+                  <p className="font-medium text-foreground">
+                    No action needed
+                  </p>
+                  <p className="mt-1 text-sm">
+                    Deadlines, imports, and status suggestions will appear here.
+                  </p>
                 </div>
               ) : (
                 <div className="divide-y">
-                  {notifications.map((notification) => {
-                    const Icon = typeIcons[notification.type] || Bell;
-                    const colorClass =
-                      typeColors[notification.type] || "text-muted-foreground";
-                    const undoAction = getUndoAction(notification);
-                    const suggestion = notification.suggestedStatusUpdate;
-                    const suggestionConfidence = formatSuggestionConfidence(
-                      suggestion?.confidence,
-                    );
+                  {groups.map((group) => (
+                    <section key={group.id} aria-labelledby={group.id}>
+                      <div className="sticky top-0 z-10 border-b bg-card/95 px-4 py-2 backdrop-blur">
+                        <h4
+                          id={group.id}
+                          className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+                        >
+                          {group.title}
+                        </h4>
+                      </div>
+                      <div className="divide-y">
+                        {group.notifications.map((notification) => {
+                          const Icon = typeIcons[notification.type] || Bell;
+                          const colorClass =
+                            typeColors[notification.type] ||
+                            "text-muted-foreground";
+                          const undoAction = getUndoAction(notification);
+                          const suggestion = notification.suggestedStatusUpdate;
+                          const suggestionConfidence =
+                            formatSuggestionConfidence(suggestion?.confidence);
+                          const canOpen = Boolean(notification.link);
 
-                    const content = (
-                      <div
-                        className={cn(
-                          "p-3 hover:bg-muted/50 transition-colors",
-                          !notification.read && "bg-muted/30",
-                        )}
-                      >
-                        <div className="flex gap-3">
-                          <div className={cn("shrink-0 mt-0.5", colorClass)}>
-                            <Icon className="h-5 w-5" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2">
-                              <p
-                                className={cn(
-                                  "text-sm",
-                                  !notification.read && "font-medium",
-                                )}
-                              >
-                                {notification.title}
-                              </p>
-                              <div className="flex items-center gap-1 shrink-0">
-                                {!notification.read && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      handleMarkRead(notification.id);
-                                    }}
-                                    className="p-1 text-muted-foreground hover:text-foreground rounded hover:bg-muted transition-colors"
-                                    title={a11yT("markAsRead")}
-                                    aria-label={a11yT("markAsRead")}
-                                  >
-                                    <Check className="h-3.5 w-3.5" />
-                                  </button>
-                                )}
-                                <button
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    void handleDelete(notification.id);
-                                  }}
-                                  className="p-1 text-muted-foreground hover:text-destructive rounded hover:bg-muted transition-colors"
-                                  title={a11yT("delete")}
-                                  aria-label={a11yT("deleteNotification")}
+                          return (
+                            <div
+                              key={notification.id}
+                              role={canOpen ? "link" : undefined}
+                              tabIndex={canOpen ? 0 : undefined}
+                              onClick={() =>
+                                handleOpenNotification(notification)
+                              }
+                              onKeyDown={(event) =>
+                                handleNotificationKeyDown(event, notification)
+                              }
+                              className={cn(
+                                "p-3 transition-colors",
+                                canOpen && "cursor-pointer hover:bg-muted/50",
+                                !notification.read && "bg-muted/30",
+                              )}
+                            >
+                              <div className="flex gap-3">
+                                <div
+                                  className={cn("mt-0.5 shrink-0", colorClass)}
                                 >
-                                  <X className="h-3.5 w-3.5" />
-                                </button>
+                                  <Icon
+                                    className="h-5 w-5"
+                                    aria-hidden="true"
+                                  />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <p
+                                      className={cn(
+                                        "text-sm leading-5",
+                                        !notification.read && "font-medium",
+                                      )}
+                                    >
+                                      {notification.title}
+                                    </p>
+                                    <div className="flex shrink-0 items-center gap-1">
+                                      {!notification.read && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            handleMarkRead(notification.id);
+                                          }}
+                                          className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                          title={a11yT("markAsRead")}
+                                          aria-label={a11yT("markAsRead")}
+                                        >
+                                          <Check className="h-3.5 w-3.5" />
+                                        </button>
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          void handleDelete(notification.id);
+                                        }}
+                                        className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-destructive"
+                                        title={a11yT("delete")}
+                                        aria-label={a11yT("deleteNotification")}
+                                      >
+                                        <X className="h-3.5 w-3.5" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  {notification.message && (
+                                    <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">
+                                      {notification.message}
+                                    </p>
+                                  )}
+                                  {suggestion && (
+                                    <div className="mt-2 space-y-1 rounded-md border bg-background/60 p-2 text-xs text-muted-foreground">
+                                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                        {suggestionConfidence && (
+                                          <span>{suggestionConfidence}</span>
+                                        )}
+                                        {suggestion.reason && (
+                                          <span>{suggestion.reason}</span>
+                                        )}
+                                      </div>
+                                      {suggestion.evidence
+                                        ?.slice(0, 2)
+                                        .map((item, index) => (
+                                          <p
+                                            key={index}
+                                            className="line-clamp-1 italic"
+                                          >
+                                            {item}
+                                          </p>
+                                        ))}
+                                      {suggestion.state === "pending" && (
+                                        <div className="flex items-center gap-2 pt-1">
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              void handleSuggestedStatusAction(
+                                                notification,
+                                                "acceptSuggestedStatus",
+                                              );
+                                            }}
+                                            className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                                          >
+                                            <Check className="h-3 w-3" />
+                                            Accept
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              void handleSuggestedStatusAction(
+                                                notification,
+                                                "dismissSuggestedStatus",
+                                              );
+                                            }}
+                                            className="inline-flex items-center gap-1 rounded-md border px-2 py-1 font-medium text-foreground transition-colors hover:bg-muted"
+                                          >
+                                            <X className="h-3 w-3" />
+                                            Dismiss
+                                          </button>
+                                        </div>
+                                      )}
+                                      {suggestion.state !== "pending" && (
+                                        <p className="font-medium capitalize">
+                                          {suggestion.state}
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
+                                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+                                    <p className="text-xs text-muted-foreground">
+                                      {formatRelativeTime(
+                                        notification.createdAt,
+                                      )}
+                                    </p>
+                                    {canOpen && (
+                                      <span
+                                        className="text-xs font-medium text-primary"
+                                        aria-hidden="true"
+                                      >
+                                        {getActionLabel(notification)}
+                                      </span>
+                                    )}
+                                    {undoAction && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          void handleUndoStatus(notification);
+                                        }}
+                                        className="text-xs font-medium text-primary hover:underline"
+                                      >
+                                        Undo
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                            {notification.message && (
-                              <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
-                                {notification.message}
-                              </p>
-                            )}
-                            {suggestion && (
-                              <div className="mt-2 space-y-1 rounded-md border bg-background/60 p-2 text-xs text-muted-foreground">
-                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                  {suggestionConfidence && (
-                                    <span>{suggestionConfidence}</span>
-                                  )}
-                                  {suggestion.reason && (
-                                    <span>{suggestion.reason}</span>
-                                  )}
-                                </div>
-                                {suggestion.evidence
-                                  ?.slice(0, 2)
-                                  .map((item, index) => (
-                                    <p
-                                      key={index}
-                                      className="line-clamp-1 italic"
-                                    >
-                                      {item}
-                                    </p>
-                                  ))}
-                                {suggestion.state === "pending" && (
-                                  <div className="flex items-center gap-2 pt-1">
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        void handleSuggestedStatusAction(
-                                          notification,
-                                          "acceptSuggestedStatus",
-                                        );
-                                      }}
-                                      className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                                    >
-                                      <Check className="h-3 w-3" />
-                                      Accept
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        void handleSuggestedStatusAction(
-                                          notification,
-                                          "dismissSuggestedStatus",
-                                        );
-                                      }}
-                                      className="inline-flex items-center gap-1 rounded-md border px-2 py-1 font-medium text-foreground transition-colors hover:bg-muted"
-                                    >
-                                      <X className="h-3 w-3" />
-                                      Dismiss
-                                    </button>
-                                  </div>
-                                )}
-                                {suggestion.state !== "pending" && (
-                                  <p className="font-medium capitalize">
-                                    {suggestion.state}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {formatRelativeTime(notification.createdAt)}
-                            </p>
-                            {undoAction && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  void handleUndoStatus(notification);
-                                }}
-                                className="mt-2 text-xs font-medium text-primary hover:underline"
-                              >
-                                Undo
-                              </button>
-                            )}
-                          </div>
-                        </div>
+                          );
+                        })}
                       </div>
-                    );
-
-                    if (notification.link && !undoAction) {
-                      return (
-                        <Link
-                          key={notification.id}
-                          href={notification.link}
-                          onClick={() => {
-                            if (!notification.read) {
-                              handleMarkRead(notification.id);
-                            }
-                            setIsOpen(false);
-                          }}
-                        >
-                          {content}
-                        </Link>
-                      );
-                    }
-
-                    return <div key={notification.id}>{content}</div>;
-                  })}
+                    </section>
+                  ))}
                 </div>
               )}
             </div>
