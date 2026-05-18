@@ -23,6 +23,10 @@ interface BankEntryRow {
   source_order?: number | null;
   source_header_bbox?: string | null;
   source_links?: string | null;
+  source_artifact_id?: string | null;
+  source_parse_run_id?: string | null;
+  source_span_ids?: string | null;
+  source_quality?: string | null;
   match_method?: string | null;
   confidence_score: number;
   created_at: string;
@@ -90,10 +94,41 @@ function parseSourceLinksJson(
   }
 }
 
+function parseStringArrayJson(
+  value: string | null | undefined,
+): string[] | undefined {
+  if (!value) return undefined;
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!Array.isArray(parsed)) return undefined;
+    const strings = parsed.filter(
+      (item): item is string => typeof item === "string" && item.length > 0,
+    );
+    return strings.length > 0 ? strings : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function sourceQualityValue(
+  value: string | null | undefined,
+): BankEntry["sourceQuality"] | undefined {
+  if (
+    value === "exact" ||
+    value === "partial" ||
+    value === "fuzzy" ||
+    value === "missing"
+  ) {
+    return value;
+  }
+  return undefined;
+}
+
 function rowToEntry(row: BankEntryRow): BankEntry {
   const sourceBbox = parseBboxJson(row.source_bbox);
   const sourceHeaderBbox = parseBboxJson(row.source_header_bbox);
   const sourceLinks = parseSourceLinksJson(row.source_links);
+  const sourceSpanIds = parseStringArrayJson(row.source_span_ids);
   return {
     id: row.id,
     userId: row.user_id,
@@ -105,6 +140,10 @@ function rowToEntry(row: BankEntryRow): BankEntry {
     sourceOrder: row.source_order ?? undefined,
     sourceHeaderBbox,
     sourceLinks,
+    sourceArtifactId: row.source_artifact_id ?? undefined,
+    sourceParseRunId: row.source_parse_run_id ?? undefined,
+    sourceSpanIds,
+    sourceQuality: sourceQualityValue(row.source_quality),
     matchMethod: row.match_method ?? undefined,
     confidenceScore: row.confidence_score,
     createdAt: row.created_at,
@@ -168,6 +207,10 @@ export function ensureProfileBankHierarchySchema(): void {
     "ALTER TABLE profile_bank ADD COLUMN source_order INTEGER",
     "ALTER TABLE profile_bank ADD COLUMN source_header_bbox TEXT",
     "ALTER TABLE profile_bank ADD COLUMN source_links TEXT",
+    "ALTER TABLE profile_bank ADD COLUMN source_artifact_id TEXT",
+    "ALTER TABLE profile_bank ADD COLUMN source_parse_run_id TEXT",
+    "ALTER TABLE profile_bank ADD COLUMN source_span_ids TEXT",
+    "ALTER TABLE profile_bank ADD COLUMN source_quality TEXT",
     // Preview-match cascade P2.2 — records which tier of the cascade
     // resolved this entry's position. `null` for legacy rows + entries
     // with no PDF source; `"fuzzy"` for any free-tier deterministic
@@ -176,6 +219,8 @@ export function ensureProfileBankHierarchySchema(): void {
     "ALTER TABLE profile_bank ADD COLUMN match_method TEXT",
     "CREATE INDEX IF NOT EXISTS idx_profile_bank_parent ON profile_bank(user_id, parent_id)",
     "CREATE INDEX IF NOT EXISTS idx_profile_bank_component_type ON profile_bank(user_id, component_type)",
+    "CREATE INDEX IF NOT EXISTS idx_profile_bank_parse_run ON profile_bank(user_id, source_parse_run_id)",
+    "CREATE INDEX IF NOT EXISTS idx_profile_bank_artifact ON profile_bank(user_id, source_artifact_id)",
   ];
 
   for (const statement of statements) {
@@ -199,9 +244,16 @@ export interface InsertBankEntry {
   componentType?: string;
   componentOrder?: number;
   sourceSection?: string;
+  sourcePage?: number;
+  sourceBbox?: SourceBbox[];
   sourceOrder?: number;
   sourceHeaderBbox?: SourceBbox[];
   sourceLinks?: SourceLinkMetadata[];
+  sourceArtifactId?: string;
+  sourceParseRunId?: string;
+  sourceSpanIds?: string[];
+  sourceQuality?: BankEntry["sourceQuality"];
+  matchMethod?: string;
   confidenceScore?: number;
 }
 
@@ -257,10 +309,12 @@ export function insertBankEntry(
     INSERT INTO profile_bank (
       id, user_id, category, content, source_document_id,
       parent_id, component_type, component_order, source_section,
-      source_order, source_header_bbox, source_links,
+      source_page, source_bbox, source_order, source_header_bbox, source_links,
+      source_artifact_id, source_parse_run_id, source_span_ids, source_quality,
+      match_method,
       confidence_score
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
   ).run(
     id,
@@ -272,9 +326,16 @@ export function insertBankEntry(
     entryComponentType(entry),
     entryComponentOrder(entry),
     entrySourceSection(entry),
+    entry.sourcePage ?? null,
+    serializeJsonMetadata(entry.sourceBbox),
     entrySourceOrder(entry),
     serializeJsonMetadata(entry.sourceHeaderBbox),
     serializeJsonMetadata(entry.sourceLinks),
+    entry.sourceArtifactId ?? null,
+    entry.sourceParseRunId ?? null,
+    entry.sourceSpanIds ? JSON.stringify(entry.sourceSpanIds) : null,
+    entry.sourceQuality ?? null,
+    entry.matchMethod ?? null,
     entry.confidenceScore ?? 0.8,
   );
   return id;

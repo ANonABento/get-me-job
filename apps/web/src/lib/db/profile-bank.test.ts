@@ -69,6 +69,13 @@ describe("Profile Bank DB Functions", () => {
         null,
         null,
         null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
         0.9,
       );
     });
@@ -94,6 +101,13 @@ describe("Profile Bank DB Functions", () => {
         null,
         "skill",
         0,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
         null,
         null,
         null,
@@ -139,6 +153,13 @@ describe("Profile Bank DB Functions", () => {
         null,
         null,
         null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
         0.8,
       );
     });
@@ -175,6 +196,8 @@ describe("Profile Bank DB Functions", () => {
         "project",
         0,
         null,
+        null,
+        null,
         7,
         JSON.stringify([[1, 72, 120, 180, 132]]),
         JSON.stringify([
@@ -185,6 +208,55 @@ describe("Profile Bank DB Functions", () => {
             bbox: [1, 180, 120, 220, 132],
           },
         ]),
+        null,
+        null,
+        null,
+        null,
+        null,
+        0.8,
+      );
+    });
+
+    it("persists parser-v2 source refs as first-class columns", () => {
+      const mockRun = vi.fn();
+      (db.prepare as Mock).mockReturnValue({ run: mockRun });
+
+      insertBankEntry(
+        {
+          category: "education",
+          content: { institution: "Southwestern University" },
+          sourceDocumentId: "doc-1",
+          sourcePage: 1,
+          sourceBbox: [[1, 10, 20, 200, 34]],
+          sourceArtifactId: "artifact-1",
+          sourceParseRunId: "run-1",
+          sourceSpanIds: ["p1-l004"],
+          sourceQuality: "exact",
+          matchMethod: "parser-v2",
+        },
+        TEST_USER_ID,
+      );
+
+      expect(mockRun).toHaveBeenCalledWith(
+        "test-id",
+        TEST_USER_ID,
+        "education",
+        JSON.stringify({ institution: "Southwestern University" }),
+        "doc-1",
+        null,
+        "education",
+        0,
+        null,
+        1,
+        JSON.stringify([[1, 10, 20, 200, 34]]),
+        null,
+        null,
+        null,
+        "artifact-1",
+        "run-1",
+        JSON.stringify(["p1-l004"]),
+        "exact",
+        "parser-v2",
         0.8,
       );
     });

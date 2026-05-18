@@ -779,5 +779,9 @@ Next implementation slices:
 7. Add explicit document extraction route that reads stored document files and
    persists parser-v2 source artifacts without changing legacy upload/parse
    side effects. Done in the extraction-route slice.
-8. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+8. Add parser-v2 bank import commit route that writes reviewed parse-run
+   components to `profile_bank` with `artifactId`, `parseRunId`,
+   `sourceSpanIds`, source quality, and denormalized bboxes. Done in the
+   bank-import commit slice.
+9. Keep `/api/upload` and `/api/parse` route migration out until persistence is
    reviewed separately.

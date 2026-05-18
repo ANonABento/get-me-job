@@ -695,6 +695,11 @@ export const profileBank = sqliteTable(
     sourceOrder: integer("source_order"),
     sourceHeaderBbox: text("source_header_bbox"),
     sourceLinks: text("source_links"),
+    sourceArtifactId: text("source_artifact_id"),
+    sourceParseRunId: text("source_parse_run_id"),
+    sourceSpanIds: text("source_span_ids"),
+    sourceQuality: text("source_quality"),
+    matchMethod: text("match_method"),
     confidenceScore: real("confidence_score").default(0.8),
     createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
   },
@@ -710,6 +715,11 @@ export const profileBank = sqliteTable(
       table.userId,
       table.componentType,
     ),
+    index("idx_profile_bank_parse_run").on(
+      table.userId,
+      table.sourceParseRunId,
+    ),
+    index("idx_profile_bank_artifact").on(table.userId, table.sourceArtifactId),
   ],
 );
 

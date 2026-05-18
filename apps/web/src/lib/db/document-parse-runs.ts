@@ -181,6 +181,20 @@ export function getDocumentParseRun(
   return row ? mapParseRunRow(row) : null;
 }
 
+export function getDocumentParseRunById(
+  id: string,
+  userId: string,
+): DocumentParseRun | null {
+  ensureDocumentParseRunsSchema();
+  const row = db
+    .prepare(
+      `SELECT * FROM document_parse_runs
+       WHERE id = ? AND user_id = ?`,
+    )
+    .get(id, userId) as DocumentParseRunRow | undefined;
+  return row ? mapParseRunRow(row) : null;
+}
+
 export function listDocumentParseRuns(
   documentId: string,
   userId: string,

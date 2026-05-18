@@ -14,6 +14,7 @@ vi.mock("@/lib/utils", () => ({
 import db from "./legacy";
 import {
   getDocumentParseRun,
+  getDocumentParseRunById,
   listDocumentParseRuns,
   saveDocumentParseRun,
 } from "./document-parse-runs";
@@ -135,6 +136,18 @@ describe("document parse run db helpers", () => {
       structured,
     });
     expect(get).toHaveBeenLastCalledWith("run-1", "doc-1", "user-1");
+  });
+
+  it("loads a parse run by id scoped to user", () => {
+    const get = vi.fn().mockReturnValue(parseRunRow());
+    (db.prepare as Mock).mockReturnValue({ run: vi.fn(), get });
+
+    expect(getDocumentParseRunById("run-1", "user-1")).toMatchObject({
+      id: "run-1",
+      documentId: "doc-1",
+      artifactId: "artifact-1",
+    });
+    expect(get).toHaveBeenLastCalledWith("run-1", "user-1");
   });
 
   it("lists parse runs newest first", () => {

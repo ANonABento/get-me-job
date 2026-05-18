@@ -189,6 +189,14 @@ export interface BankEntry {
    */
   sourceLinks?: SourceLinkMetadata[];
   /**
+   * Parser-v2 provenance. These fields point to the persisted source artifact
+   * and parse run that produced the entry, plus the cited line/token ids.
+   */
+  sourceArtifactId?: string;
+  sourceParseRunId?: string;
+  sourceSpanIds?: string[];
+  sourceQuality?: "exact" | "partial" | "fuzzy" | "missing";
+  /**
    * Preview-match cascade P2.2 — which tier resolved this entry's
    * position. `"fuzzy"` for the free-tier deterministic matcher; future
    * values `"embedding"`, `"llm-citation"`, `"document-ai"` for the
