@@ -8,9 +8,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import {
-  gateAiFeature,
+  gateOptionalAiFeature,
   isAiGateResponse,
-  type AiGatePass,
+  type OptionalAiGatePass,
 } from "@/lib/billing/ai-gate";
 import { LLMClient } from "@/lib/llm/client";
 import { interviewAnswerSchema } from "@/lib/constants";
@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
-  let aiGate: AiGatePass | null = null;
+  let aiGate: OptionalAiGatePass | null = null;
 
   try {
     const rawData = await request.json();
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
 
-    const gate = gateAiFeature(
+    const gate = gateOptionalAiFeature(
       authResult.userId,
       "interview_turn",
       `answer:${jobId ?? "general"}`,
@@ -56,27 +56,39 @@ export async function POST(request: NextRequest) {
     aiGate = gate;
 
     let feedback = "";
+    let usedLLM = false;
+    let fallbackReason: "provider_not_configured" | "llm_error" | null =
+      gate.llmConfig ? null : "provider_not_configured";
 
     if (gate.llmConfig) {
-      const client = new LLMClient(gate.llmConfig);
+      try {
+        const client = new LLMClient(gate.llmConfig);
 
-      const response = await client.complete({
-        messages: [
-          {
-            role: "user",
-            content: buildInterviewAnswerFeedbackPrompt({
-              job,
-              category,
-              answer,
-            }),
-          },
-        ],
-        temperature: 0.7,
-        maxTokens: 300,
-      });
+        const response = await client.complete({
+          messages: [
+            {
+              role: "user",
+              content: buildInterviewAnswerFeedbackPrompt({
+                job,
+                category,
+                answer,
+              }),
+            },
+          ],
+          temperature: 0.7,
+          maxTokens: 300,
+        });
 
-      feedback = response.trim();
-    } else {
+        feedback = response.trim();
+        usedLLM = true;
+      } catch (llmError) {
+        aiGate?.refund();
+        fallbackReason = "llm_error";
+        console.error("Interview answer LLM feedback failed:", llmError);
+      }
+    }
+
+    if (!feedback) {
       // Basic feedback without LLM
       const wordCount = answer.split(/\s+/).length;
       if (wordCount < 20) {
@@ -91,7 +103,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ feedback });
+    return NextResponse.json({
+      feedback,
+      usedLLM,
+      fallbackUsed: !usedLLM,
+      fallbackReason: usedLLM ? null : fallbackReason,
+    });
   } catch (error) {
     aiGate?.refund();
     console.error("Answer feedback error:", error);

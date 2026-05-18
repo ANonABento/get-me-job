@@ -20,6 +20,10 @@ vi.mock("@/lib/auth", () =>
 
 import { GET } from "./route";
 import {
+  enhanceLearningPathsWithLLM,
+  generateLearningPaths,
+} from "@/lib/learning/skill-paths";
+import {
   expectRouteResponseContract,
   getRequest,
   invalidJsonRequest,
@@ -64,5 +68,43 @@ describe("/api/learning/paths route contract", () => {
     await expect(response.json()).resolves.toMatchObject({
       error: expect.any(String),
     });
+  });
+
+  it("returns base paths when enhancement is requested without a provider", async () => {
+    setAuthSuccess();
+    vi.mocked(generateLearningPaths).mockReturnValueOnce({
+      paths: [
+        {
+          skill: "TypeScript",
+          priority: "high",
+          currentLevel: "beginner",
+          targetLevel: "advanced",
+          estimatedWeeks: 6,
+          jobsRequiring: 2,
+          resources: [],
+          milestones: [],
+        },
+      ],
+      totalEstimatedWeeks: 6,
+      quickWins: [],
+      strategicSkills: ["TypeScript"],
+      insights: [],
+    });
+
+    const response = await invokeRouteHandler(
+      GET,
+      getRequest("http://localhost/api/learning/paths?enhance=true", {
+        "x-extension-token": "test-token",
+      }),
+      routeContext(),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      usedLLM: false,
+      fallbackUsed: true,
+      fallbackReason: "provider_not_configured",
+    });
+    expect(enhanceLearningPathsWithLLM).not.toHaveBeenCalled();
   });
 });

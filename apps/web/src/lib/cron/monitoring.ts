@@ -1,4 +1,5 @@
 import type { CronRun } from "@/lib/db/cron-runs";
+import { nowEpoch, toIso } from "@/lib/format/time";
 
 export type CronHealthStatus = "ok" | "failing" | "stale" | "missing";
 
@@ -51,7 +52,7 @@ export const CRON_MONITOR_TARGETS: CronMonitorTarget[] = [
 
 export function summarizeCronHealth(
   runs: CronRun[],
-  nowMs: number = Date.now(),
+  nowMs: number = nowEpoch(),
 ): CronHealthSummary {
   const latestByCron = new Map<string, CronRun>();
 
@@ -107,7 +108,7 @@ export function summarizeCronHealth(
 
   return {
     ok: targets.every((target) => target.status === "ok"),
-    checkedAt: new Date(nowMs).toISOString(),
+    checkedAt: toIso(nowMs),
     targets,
   };
 }

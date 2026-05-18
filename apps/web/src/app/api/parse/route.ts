@@ -159,19 +159,20 @@ export async function POST(request: NextRequest) {
       log.debug("parse", "LLM config loaded", {
         provider: gate.llmConfig?.provider ?? "none",
       });
+      const creditSource = gate.source === "fallback" ? "none" : gate.source;
 
       const result = await parseResumeText(
         doc.extractedText,
         "ai",
         gate.llmConfig,
-        gate.source,
+        creditSource,
       );
       parsingResult = result.llmFallback
         ? { ...result, creditsUsed: 0, creditSource: "none" }
         : {
             ...result,
             creditsUsed: gate.source === "credits" ? CREDIT_COSTS.tailor : 0,
-            creditSource: gate.source,
+            creditSource,
           };
       if (result.llmFallback) {
         aiGate.refund();

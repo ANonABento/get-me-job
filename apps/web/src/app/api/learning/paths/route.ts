@@ -8,9 +8,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getProfile } from "@/lib/db";
 import { getJobs } from "@/lib/db/jobs";
 import {
-  gateAiFeature,
+  gateOptionalAiFeature,
   isAiGateResponse,
-  type AiGatePass,
+  type OptionalAiGatePass,
 } from "@/lib/billing/ai-gate";
 import {
   generateLearningPaths,
@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
-  let aiGate: AiGatePass | null = null;
+  let aiGate: OptionalAiGatePass | null = null;
 
   try {
     const { searchParams } = new URL(request.url);
@@ -50,23 +50,43 @@ export async function GET(request: NextRequest) {
     }
 
     let result = generateLearningPaths(profile, jobs, limit);
+    let usedLLM = false;
+    let fallbackReason: "provider_not_configured" | "llm_error" | null = null;
 
     // Optionally enhance with LLM for better resource suggestions
     if (enhance && result.paths.length > 0) {
-      const gate = gateAiFeature(
+      const gate = gateOptionalAiFeature(
         authResult.userId,
         "document_assistant",
         `learning:${limit}`,
       );
       if (isAiGateResponse(gate)) return gate;
       aiGate = gate;
-      result = {
-        ...result,
-        paths: await enhanceLearningPathsWithLLM(result.paths, gate.llmConfig),
-      };
+      fallbackReason = gate.llmConfig ? null : "provider_not_configured";
+      if (gate.llmConfig) {
+        try {
+          result = {
+            ...result,
+            paths: await enhanceLearningPathsWithLLM(
+              result.paths,
+              gate.llmConfig,
+            ),
+          };
+          usedLLM = true;
+        } catch (llmError) {
+          aiGate?.refund();
+          fallbackReason = "llm_error";
+          console.error("Learning path enhancement failed:", llmError);
+        }
+      }
     }
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      usedLLM,
+      fallbackUsed: enhance && !usedLLM,
+      fallbackReason: enhance && !usedLLM ? fallbackReason : null,
+    });
   } catch (error) {
     aiGate?.refund();
     console.error("Learning paths error:", error);

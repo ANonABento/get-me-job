@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   createJob: vi.fn(),
   listJobsPaginated: vi.fn(),
   safeTrackActivity: vi.fn(),
+  trackActivationEvent: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -37,6 +38,10 @@ vi.mock("@/lib/db", () => ({
 
 vi.mock("@/lib/streak/track", () => ({
   safeTrackActivity: mocks.safeTrackActivity,
+}));
+
+vi.mock("@/lib/db/product-analytics", () => ({
+  trackActivationEvent: mocks.trackActivationEvent,
 }));
 
 import { GET, POST } from "./route";
@@ -208,5 +213,39 @@ describe("opportunities route", () => {
     expect(body.error).toBeDefined();
     expect(body.error.fieldErrors).toBeDefined();
     expect(mocks.createJob).not.toHaveBeenCalled();
+  });
+
+  it("uses basic keyword extraction for legacy job bodies without a provider", async () => {
+    const job = {
+      id: "job-1",
+      title: "Frontend Engineer",
+      company: "Acme",
+      description: "Build React and TypeScript interfaces.",
+      status: "saved",
+      createdAt: "2026-04-29T12:00:00.000Z",
+    };
+    mocks.createJob.mockReturnValueOnce(job);
+
+    const response = await POST(
+      jsonRequest({
+        title: "Frontend Engineer",
+        company: "Acme",
+        description: "Build React and TypeScript interfaces.",
+        status: "saved",
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(mocks.createJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        keywords: expect.arrayContaining(["react", "typescript"]),
+      }),
+      "user-1",
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      usedLLM: false,
+      fallbackUsed: true,
+      fallbackReason: "provider_not_configured",
+    });
   });
 });

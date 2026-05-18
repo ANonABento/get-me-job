@@ -3,6 +3,7 @@
 import { Settings } from "lucide-react";
 import { SettingsSkeleton } from "@/components/skeletons/settings-skeleton";
 import { BillingSection } from "@/components/settings/billing-section";
+import { AiTaskRoutingSection } from "@/components/settings/ai-task-routing-section";
 import { ByokExplainer } from "@/components/settings/byok-explainer";
 import { DangerZoneSection } from "@/components/settings/danger-zone-section";
 import { DataManagement } from "@/components/settings/data-management";
@@ -40,6 +41,7 @@ const SECTION_IDS = {
   integrations: "integrations",
   aiKeys: "ai-keys",
   data: "data",
+  aiTasks: "ai-tasks",
   plan: "plan-usage",
   danger: "danger",
 } as const;
@@ -49,6 +51,7 @@ const NAV_ITEMS: ReadonlyArray<SettingsNavItem> = [
   { id: SECTION_IDS.appearance, label: "Appearance" },
   { id: SECTION_IDS.integrations, label: "Integrations" },
   { id: SECTION_IDS.aiKeys, label: "AI keys" },
+  { id: SECTION_IDS.aiTasks, label: "AI tasks" },
   { id: SECTION_IDS.data, label: "Data" },
   { id: SECTION_IDS.plan, label: "Plan & usage" },
   { id: SECTION_IDS.danger, label: "Danger zone", destructive: true },
@@ -61,6 +64,9 @@ export default function SettingsPage() {
   const selectedProvider = PROVIDERS.find(
     (provider) => provider.value === llmSettings.config.provider,
   );
+  const hasProvider =
+    selectedProvider?.requiresKey === false ||
+    Boolean(llmSettings.config.apiKey?.trim());
 
   if (llmSettings.loading) {
     return <SettingsSkeleton />;
@@ -150,6 +156,17 @@ export default function SettingsPage() {
               <PromptVariantsSection />
               <HelpCards />
               <EvalHealthSection />
+            </section>
+
+            <section
+              id={SECTION_IDS.aiTasks}
+              aria-labelledby={`${SECTION_IDS.aiTasks}-h`}
+              className="scroll-mt-24 space-y-4"
+            >
+              <h2 id={`${SECTION_IDS.aiTasks}-h`} className="sr-only">
+                AI tasks
+              </h2>
+              <AiTaskRoutingSection hasProvider={hasProvider} />
             </section>
 
             <section

@@ -10,9 +10,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import { getProfile } from "@/lib/db";
 import {
-  gateAiFeature,
+  gateOptionalAiFeature,
   isAiGateResponse,
-  type AiGatePass,
+  type OptionalAiGatePass,
 } from "@/lib/billing/ai-gate";
 import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
 import {
@@ -42,7 +42,7 @@ interface InterviewQuestion {
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
-  let aiGate: AiGatePass | null = null;
+  let aiGate: OptionalAiGatePass | null = null;
 
   // Rate limit LLM operations - 10 per minute per user
   const userId = await getCurrentUserId();
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     const { jobId, difficulty, category, questionCount } = parseResult.data;
 
     const profile = getProfile(authResult.userId);
-    const gate = gateAiFeature(
+    const gate = gateOptionalAiFeature(
       authResult.userId,
       "interview_turn",
       `start:${jobId ?? category}`,
@@ -89,6 +89,9 @@ export async function POST(request: NextRequest) {
     aiGate = gate;
 
     let questions: InterviewQuestion[];
+    let usedLLM = false;
+    let fallbackReason: "provider_not_configured" | "llm_error" | null =
+      gate.llmConfig ? null : "provider_not_configured";
 
     if (!jobId) {
       questions = await getGenericQuestions({
@@ -97,7 +100,14 @@ export async function POST(request: NextRequest) {
         questionCount,
         llmConfig: gate.llmConfig,
       });
-      return NextResponse.json({ questions, difficulty });
+      usedLLM = gate.llmConfig !== null;
+      return NextResponse.json({
+        questions,
+        difficulty,
+        usedLLM,
+        fallbackUsed: !usedLLM,
+        fallbackReason: usedLLM ? null : fallbackReason,
+      });
     }
 
     const job = getJob(jobId, authResult.userId);
@@ -106,40 +116,48 @@ export async function POST(request: NextRequest) {
     }
 
     if (gate.llmConfig) {
-      const client = new LLMClient(gate.llmConfig);
-
-      const response = await client.complete({
-        messages: [
-          {
-            role: "user",
-            content: buildJobInterviewQuestionsPrompt({
-              job,
-              profile,
-              difficulty: difficulty as InterviewDifficulty,
-              questionCount,
-            }),
-          },
-        ],
-        temperature: 0.7,
-        maxTokens: 2000,
-      });
-
       try {
+        const client = new LLMClient(gate.llmConfig);
+
+        const response = await client.complete({
+          messages: [
+            {
+              role: "user",
+              content: buildJobInterviewQuestionsPrompt({
+                job,
+                profile,
+                difficulty: difficulty as InterviewDifficulty,
+                questionCount,
+              }),
+            },
+          ],
+          temperature: 0.7,
+          maxTokens: 2000,
+        });
+
         questions = normalizeQuestions(
           parseJSONFromLLM<InterviewQuestion[]>(response),
           questionCount,
           difficulty,
         );
-      } catch (parseError) {
-        console.error("Failed to parse LLM response:", parseError);
-        // Fall back to default questions if parsing fails
+        usedLLM = true;
+      } catch (llmError) {
+        aiGate?.refund();
+        fallbackReason = "llm_error";
+        console.error("Failed to generate LLM questions:", llmError);
         questions = getDefaultQuestions(job, difficulty, questionCount);
       }
     } else {
       questions = getDefaultQuestions(job, difficulty, questionCount);
     }
 
-    return NextResponse.json({ questions, difficulty });
+    return NextResponse.json({
+      questions,
+      difficulty,
+      usedLLM,
+      fallbackUsed: !usedLLM,
+      fallbackReason: usedLLM ? null : fallbackReason,
+    });
   } catch (error) {
     aiGate?.refund();
     console.error("Start interview error:", error);
@@ -159,8 +177,11 @@ async function getGenericQuestions({
   category: SessionQuestionCategory;
   difficulty: InterviewDifficulty;
   questionCount: number;
-  llmConfig: LLMConfig;
+  llmConfig: LLMConfig | null;
 }): Promise<InterviewQuestion[]> {
+  if (!llmConfig) {
+    return getGenericDefaultQuestions(category, difficulty, questionCount);
+  }
   const client = new LLMClient(llmConfig);
   try {
     const response = await client.complete({
@@ -222,10 +243,11 @@ function normalizeQuestions(
 }
 
 function getDefaultQuestions(
-  job: { title: string; company: string; keywords: string[] },
+  job: { title: string; company: string; keywords?: string[] },
   difficulty: InterviewDifficulty = "mid",
   questionCount = 5,
 ): InterviewQuestion[] {
+  const keywords = job.keywords ?? [];
   const baseQuestions: Record<InterviewDifficulty, InterviewQuestion[]> = {
     entry: [
       {
@@ -251,7 +273,7 @@ function getDefaultQuestions(
         difficulty: "entry",
       },
       {
-        question: `What do you know about ${job.keywords.slice(0, 3).join(", ")}?`,
+        question: `What do you know about ${keywords.slice(0, 3).join(", ")}?`,
         category: "technical",
         suggestedAnswer:
           "Demonstrate basic understanding and eagerness to learn more.",
@@ -291,7 +313,7 @@ function getDefaultQuestions(
         difficulty: "mid",
       },
       {
-        question: `Explain your experience with ${job.keywords.slice(0, 3).join(", ")}.`,
+        question: `Explain your experience with ${keywords.slice(0, 3).join(", ")}.`,
         category: "technical",
         suggestedAnswer:
           "Give specific examples of projects and measurable outcomes.",

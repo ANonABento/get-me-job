@@ -84,4 +84,27 @@ describe("/api/opportunities/[id]/cover-letter route contract", () => {
 
     await expectRouteResponseContract(response);
   });
+
+  it("returns a basic cover letter when no provider is configured", async () => {
+    setAuthSuccess();
+
+    const response = await invokeRouteHandler(
+      POST,
+      jsonRequest(
+        "http://localhost/api/opportunities/item-1/cover-letter",
+        representativeBody(),
+        "POST",
+        { "x-extension-token": "test-token" },
+      ),
+      routeContext(),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      usedLLM: false,
+      fallbackUsed: true,
+      fallbackReason: "provider_not_configured",
+    });
+  });
 });

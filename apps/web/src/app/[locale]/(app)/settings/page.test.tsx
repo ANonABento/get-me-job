@@ -59,6 +59,14 @@ vi.mock("@/components/settings/what-ai-powers", () => ({
   WhatAiPowers: () => <section data-testid="what-ai-powers" />,
 }));
 
+vi.mock("@/components/settings/ai-task-routing-section", () => ({
+  AiTaskRoutingSection: ({ hasProvider }: { hasProvider: boolean }) => (
+    <section data-testid="ai-task-routing-section">
+      AI task routing {String(hasProvider)}
+    </section>
+  ),
+}));
+
 vi.mock("@/components/settings/prompt-variants-section", () => ({
   PromptVariantsSection: () => (
     <section data-testid="prompt-variants-section" />
@@ -184,6 +192,9 @@ describe("SettingsPage", () => {
       "OpenAI Configuration",
     );
     expect(screen.getByTestId("what-ai-powers")).toBeInTheDocument();
+    expect(screen.getByTestId("ai-task-routing-section")).toHaveTextContent(
+      "AI task routing true",
+    );
     expect(screen.getByTestId("prompt-variants-section")).toBeInTheDocument();
     expect(screen.getByTestId("help-cards")).toBeInTheDocument();
     expect(screen.getByTestId("eval-health-section")).toBeInTheDocument();
@@ -211,6 +222,7 @@ describe("SettingsPage", () => {
       "Appearance",
       "Integrations",
       "AI keys",
+      "AI tasks",
       "Data",
       "Plan & usage",
       "Danger zone",
@@ -227,6 +239,7 @@ describe("SettingsPage", () => {
       "#appearance",
       "#integrations",
       "#ai-keys",
+      "#ai-tasks",
       "#data",
       "#plan-usage",
       "#danger",

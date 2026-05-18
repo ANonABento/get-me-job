@@ -7,9 +7,9 @@
  */
 import { NextRequest } from "next/server";
 import {
-  gateAiFeature,
+  gateOptionalAiFeature,
   isAiGateResponse,
-  type AiGatePass,
+  type OptionalAiGatePass,
 } from "@/lib/billing/ai-gate";
 import { LLMClient } from "@/lib/llm/client";
 import { analyzeTemplateWithLLM } from "@/lib/resume/template-analyzer";
@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
-  let aiGate: AiGatePass | null = null;
+  let aiGate: OptionalAiGatePass | null = null;
 
   try {
     const body = await request.json();
@@ -34,20 +34,23 @@ export async function POST(request: NextRequest) {
       return ApiErrors.badRequest("Resume text is too short to analyze");
     }
 
-    const gate = gateAiFeature(
+    const gate = gateOptionalAiFeature(
       authResult.userId,
       "document_assistant",
       "template-analyze",
     );
     if (isAiGateResponse(gate)) return gate;
     aiGate = gate;
-    const llmClient = new LLMClient(gate.llmConfig);
+    const llmClient = gate.llmConfig ? new LLMClient(gate.llmConfig) : null;
 
     const analyzed = await analyzeTemplateWithLLM(body.text, llmClient);
+    const usedLLM = llmClient !== null;
 
     return successResponse({
       analyzed,
-      usedLLM: llmClient !== null,
+      usedLLM,
+      fallbackUsed: !usedLLM,
+      fallbackReason: usedLLM ? null : "provider_not_configured",
     });
   } catch (error) {
     aiGate?.refund();

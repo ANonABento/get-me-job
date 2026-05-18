@@ -81,4 +81,32 @@ describe("/api/interview/followup route contract", () => {
 
     await expectRouteResponseContract(response);
   });
+
+  it("returns a basic follow-up when no provider is configured", async () => {
+    setAuthSuccess();
+
+    const response = await invokeRouteHandler(
+      POST,
+      jsonRequest(
+        "http://localhost/api/interview/followup",
+        {
+          jobId: "job-1",
+          originalQuestion: "Tell me about a challenge.",
+          userAnswer:
+            "I handled a difficult deadline by breaking the work into smaller milestones and communicating progress daily.",
+          questionCategory: "behavioral",
+        },
+        "POST",
+      ),
+      routeContext(),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      usedLLM: false,
+      fallbackUsed: true,
+      fallbackReason: "provider_not_configured",
+    });
+  });
 });

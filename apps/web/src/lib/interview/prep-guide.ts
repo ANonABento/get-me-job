@@ -112,38 +112,34 @@ Focus on practical, actionable preparation advice.`,
     maxTokens: 2000,
   });
 
-  try {
-    const generated = parseJSONFromLLM<{
-      summary: string;
-      keyTopics: string[];
-      yourStrengths: string[];
-      potentialGaps: string[];
-      talkingPoints: string[];
-      questions: Array<{
-        question: string;
-        category: "behavioral" | "technical" | "situational" | "company";
-        tips: string[];
-      }>;
-    }>(response);
+  const generated = parseJSONFromLLM<{
+    summary: string;
+    keyTopics: string[];
+    yourStrengths: string[];
+    potentialGaps: string[];
+    talkingPoints: string[];
+    questions: Array<{
+      question: string;
+      category: "behavioral" | "technical" | "situational" | "company";
+      tips: string[];
+    }>;
+  }>(response);
 
-    return {
-      jobTitle: job.title,
-      company: job.company,
-      summary: generated.summary,
-      checklist: generateChecklist(job, companyResearch),
-      questions: generated.questions.map((q, i) => ({
-        ...q,
-        completed: false,
-      })) as PrepQuestion[],
-      keyTopics: generated.keyTopics,
-      yourStrengths: generated.yourStrengths,
-      potentialGaps: generated.potentialGaps,
-      talkingPoints: generated.talkingPoints,
-      createdAt,
-    };
-  } catch {
-    return generateBasicPrepGuide(job, profile, companyResearch, createdAt);
-  }
+  return {
+    jobTitle: job.title,
+    company: job.company,
+    summary: generated.summary,
+    checklist: generateChecklist(job, companyResearch),
+    questions: generated.questions.map((q) => ({
+      ...q,
+      completed: false,
+    })) as PrepQuestion[],
+    keyTopics: generated.keyTopics,
+    yourStrengths: generated.yourStrengths,
+    potentialGaps: generated.potentialGaps,
+    talkingPoints: generated.talkingPoints,
+    createdAt,
+  };
 }
 
 function generateBasicPrepGuide(

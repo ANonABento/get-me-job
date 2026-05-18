@@ -375,24 +375,20 @@ Return JSON:
     maxTokens: 1500,
   });
 
-  try {
-    const enhanced = parseJSONFromLLM<{
-      resources: Record<string, LearningResource[]>;
-    }>(response);
+  const enhanced = parseJSONFromLLM<{
+    resources: Record<string, LearningResource[]>;
+  }>(response);
 
-    return paths.map((path) => {
-      const llmResources =
-        enhanced.resources[path.skill] ||
-        enhanced.resources[path.skill.toLowerCase()];
-      if (llmResources && llmResources.length > 0) {
-        return {
-          ...path,
-          resources: llmResources,
-        };
-      }
-      return path;
-    });
-  } catch {
-    return paths;
-  }
+  return paths.map((path) => {
+    const llmResources =
+      enhanced.resources[path.skill] ||
+      enhanced.resources[path.skill.toLowerCase()];
+    if (llmResources && llmResources.length > 0) {
+      return {
+        ...path,
+        resources: llmResources,
+      };
+    }
+    return path;
+  });
 }

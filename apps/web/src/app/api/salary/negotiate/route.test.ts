@@ -83,4 +83,33 @@ describe("/api/salary/negotiate route contract", () => {
 
     await expectRouteResponseContract(response);
   });
+
+  it("returns the deterministic script when no provider is configured", async () => {
+    setAuthSuccess();
+
+    const response = await invokeRouteHandler(
+      POST,
+      jsonRequest(
+        "http://localhost/api/salary/negotiate",
+        {
+          company: "Northstar Labs",
+          role: "Frontend Engineer",
+          currentOffer: 100000,
+          targetSalary: 112000,
+          marketMedian: 108000,
+          marketMax: 125000,
+        },
+        "POST",
+      ),
+      routeContext(),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      source: "template",
+      usedLLM: false,
+      fallbackUsed: true,
+      fallbackReason: "provider_not_configured",
+    });
+  });
 });

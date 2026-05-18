@@ -8,9 +8,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import { getProfile } from "@/lib/db";
 import {
-  gateAiFeature,
+  gateOptionalAiFeature,
   isAiGateResponse,
-  type AiGatePass,
+  type OptionalAiGatePass,
 } from "@/lib/billing/ai-gate";
 import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
 import { requireAuth, isAuthError } from "@/lib/auth";
@@ -40,7 +40,7 @@ export async function POST(
 ) {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
-  let aiGate: AiGatePass | null = null;
+  let aiGate: OptionalAiGatePass | null = null;
 
   try {
     const job = getJob(params.id, authResult.userId);
@@ -59,18 +59,26 @@ export async function POST(
       );
     }
 
-    const gate = gateAiFeature(authResult.userId, "cover_letter", params.id);
+    const gate = gateOptionalAiFeature(
+      authResult.userId,
+      "cover_letter",
+      params.id,
+    );
     if (isAiGateResponse(gate)) return gate;
     aiGate = gate;
 
     let coverLetter: string;
     let highlights: string[] = [];
     let selfCheck: CoverLetterResponse["selfCheck"] | undefined;
+    let usedLLM = false;
+    let fallbackReason: "provider_not_configured" | "llm_error" | null =
+      gate.llmConfig ? null : "provider_not_configured";
 
     if (gate.llmConfig) {
-      const client = new LLMClient(gate.llmConfig);
+      try {
+        const client = new LLMClient(gate.llmConfig);
 
-      const profileSummary = `
+        const profileSummary = `
 Name: ${profile.contact.name}
 Email: ${profile.contact.email || "N/A"}
 Phone: ${profile.contact.phone || "N/A"}
@@ -82,59 +90,78 @@ ${profile.experiences.map((e) => `- ${e.title} at ${e.company}: ${e.description}
 Skills: ${profile.skills.map((s) => s.name).join(", ")}
       `.trim();
 
-      const response = await client.complete({
-        messages: [
-          {
-            role: "user",
-            content: buildOpportunityCoverLetterJsonPrompt({
-              profileSummary,
-              job,
-            }),
-          },
-        ],
-        temperature: 0.7,
-        maxTokens: 2000,
-      });
+        const response = await client.complete({
+          messages: [
+            {
+              role: "user",
+              content: buildOpportunityCoverLetterJsonPrompt({
+                profileSummary,
+                job,
+              }),
+            },
+          ],
+          temperature: 0.7,
+          maxTokens: 2000,
+        });
 
-      try {
-        const parsed = parseJSONFromLLM<CoverLetterResponse>(response);
-        coverLetter =
-          parsed.coverLetter || generateBasicCoverLetter(profile, job);
-        highlights = parsed.highlights || [];
-        selfCheck = parsed.selfCheck
-          ? {
-              ...parsed.selfCheck,
-              genericPhrases: mergeGenericPhraseMatches(
-                parsed.selfCheck.genericPhrases,
-                detectGenericPhrases(coverLetter),
-              ),
-            }
-          : {
-              evidencePoint: "",
-              matchedRequirement: "",
-              unsupportedCompanyFacts: [],
-              genericPhrases: detectGenericPhrases(coverLetter),
-              hasClearCTA: false,
-            };
-      } catch {
-        coverLetter = response; // Use raw response if JSON parsing fails
-        selfCheck = {
-          evidencePoint: "",
-          matchedRequirement: "",
-          unsupportedCompanyFacts: [],
-          genericPhrases: detectGenericPhrases(coverLetter),
-          hasClearCTA: false,
-        };
+        try {
+          const parsed = parseJSONFromLLM<CoverLetterResponse>(response);
+          coverLetter =
+            parsed.coverLetter || generateBasicCoverLetter(profile, job);
+          highlights = parsed.highlights || [];
+          selfCheck = parsed.selfCheck
+            ? {
+                ...parsed.selfCheck,
+                genericPhrases: mergeGenericPhraseMatches(
+                  parsed.selfCheck.genericPhrases,
+                  detectGenericPhrases(coverLetter),
+                ),
+              }
+            : {
+                evidencePoint: "",
+                matchedRequirement: "",
+                unsupportedCompanyFacts: [],
+                genericPhrases: detectGenericPhrases(coverLetter),
+                hasClearCTA: false,
+              };
+        } catch {
+          coverLetter = response; // Use raw response if JSON parsing fails
+          selfCheck = {
+            evidencePoint: "",
+            matchedRequirement: "",
+            unsupportedCompanyFacts: [],
+            genericPhrases: detectGenericPhrases(coverLetter),
+            hasClearCTA: false,
+          };
+        }
+        usedLLM = true;
+      } catch (llmError) {
+        aiGate?.refund();
+        fallbackReason = "llm_error";
+        console.error("Cover letter LLM generation failed:", llmError);
+        coverLetter = generateBasicCoverLetter(profile, job);
       }
     } else {
       // Generate basic cover letter without LLM
       coverLetter = generateBasicCoverLetter(profile, job);
+      const topSkillNames = profile.skills
+        .slice(0, 3)
+        .map((skill) => (typeof skill === "string" ? skill : skill.name))
+        .filter(Boolean);
       highlights = [
-        `Experience as ${profile.experiences[0]?.title || "professional"}`,
-        `Skills in ${profile.skills
-          .slice(0, 3)
-          .map((s) => s.name)
-          .join(", ")}`,
+        `Experience as ${profile.experiences?.[0]?.title || "professional"}`,
+        `Skills in ${topSkillNames.join(", ")}`,
+        "Motivated to contribute to the team",
+      ];
+    }
+    if (highlights.length === 0) {
+      const topSkillNames = profile.skills
+        .slice(0, 3)
+        .map((skill) => (typeof skill === "string" ? skill : skill.name))
+        .filter(Boolean);
+      highlights = [
+        `Experience as ${profile.experiences?.[0]?.title || "professional"}`,
+        `Skills in ${topSkillNames.join(", ")}`,
         "Motivated to contribute to the team",
       ];
     }
@@ -144,7 +171,9 @@ Skills: ${profile.skills.map((s) => s.name).join(", ")}
       coverLetter,
       highlights,
       ...(selfCheck ? { selfCheck } : {}),
-      usedLLM: true,
+      usedLLM,
+      fallbackUsed: !usedLLM,
+      fallbackReason: usedLLM ? null : fallbackReason,
     });
   } catch (error) {
     aiGate?.refund();
@@ -158,16 +187,20 @@ Skills: ${profile.skills.map((s) => s.name).join(", ")}
 
 function generateBasicCoverLetter(
   profile: {
-    contact: { name?: string; email?: string };
+    contact?: { name?: string; email?: string };
+    name?: string;
     summary?: string;
-    experiences: { title: string; company: string }[];
-    skills: { name: string }[];
+    experiences?: { title: string; company: string }[];
+    skills: Array<{ name: string } | string>;
   },
   job: { title: string; company: string; description: string },
 ): string {
-  const name = profile.contact.name || "Applicant";
-  const recentRole = profile.experiences[0];
-  const topSkills = profile.skills.slice(0, 5).map((s) => s.name);
+  const name = profile.contact?.name || profile.name || "Applicant";
+  const recentRole = profile.experiences?.[0];
+  const topSkills = profile.skills
+    .slice(0, 5)
+    .map((skill) => (typeof skill === "string" ? skill : skill.name))
+    .filter(Boolean);
 
   return `Dear Hiring Manager,
 

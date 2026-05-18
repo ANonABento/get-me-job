@@ -85,4 +85,30 @@ describe("/api/interview/start route contract", () => {
 
     await expectRouteResponseContract(response);
   });
+
+  it("returns default questions when no provider is configured", async () => {
+    setAuthSuccess();
+
+    const response = await invokeRouteHandler(
+      POST,
+      jsonRequest(
+        "http://localhost/api/interview/start",
+        {
+          jobId: "job-1",
+          difficulty: "mid",
+          category: "behavioral",
+          questionCount: 3,
+        },
+        "POST",
+      ),
+      routeContext(),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      usedLLM: false,
+      fallbackUsed: true,
+      fallbackReason: "provider_not_configured",
+    });
+  });
 });
