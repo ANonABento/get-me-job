@@ -783,5 +783,7 @@ Next implementation slices:
    components to `profile_bank` with `artifactId`, `parseRunId`,
    `sourceSpanIds`, source quality, and denormalized bboxes. Done in the
    bank-import commit slice.
-9. Keep `/api/upload` and `/api/parse` route migration out until persistence is
-   reviewed separately.
+9. Add parser-v2 source-map and stored PDF preview APIs for review UI wiring.
+   Done in the source-map/preview API slice.
+10. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+    reviewed separately.
