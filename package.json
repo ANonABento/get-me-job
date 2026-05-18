@@ -8,6 +8,7 @@
     "build": "turbo run build",
     "start": "pnpm --filter @slothing/web start",
     "lint": "turbo run lint",
+    "check:skipped-tests": "node scripts/check-skipped-tests.mjs",
     "lint-staged": "lint-staged",
     "codex:terminal-probe": "pnpm --filter @slothing/web codex:terminal-probe",
     "pre-commit": "pnpm lint-staged && pnpm type-check",

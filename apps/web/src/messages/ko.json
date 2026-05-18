@@ -334,6 +334,7 @@
     "list": "리스트",
     "kanban": "Kanban",
     "addOpportunity": "기회 추가",
+    "importJob": "채용 공고 가져오기",
     "filters": {
       "panel": "필터",
       "type": "유형",

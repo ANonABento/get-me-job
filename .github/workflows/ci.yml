@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       app: ${{ steps.filter.outputs.app }}
+      extension: ${{ steps.filter.outputs.extension }}
 
     steps:
       - name: Checkout repository
@@ -36,6 +37,14 @@ jobs:
               - 'package.json'
               - 'turbo.json'
               - 'tsconfig.base.json'
+            extension:
+              - '.github/workflows/*.yml'
+              - '.github/workflows/*.yaml'
+              - 'apps/extension/**'
+              - 'packages/shared/**'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'package.json'
 
   quality-gates:
     name: ${{ matrix.name }}
@@ -50,6 +59,8 @@ jobs:
             command: pnpm run type-check
           - name: Translation drift
             command: pnpm --filter @slothing/web check:translations:preflight
+          - name: Skipped-test audit
+            command: pnpm run check:skipped-tests
           - name: Test
             command: pnpm run test:run
           - name: Lint
@@ -126,6 +137,83 @@ jobs:
         env:
           CI: 'true'
 
+  e2e-non-smoke:
+    name: E2E non-smoke shard
+    runs-on: ubuntu-latest
+    needs: changes
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.app == 'true'
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @slothing/web exec playwright install --with-deps chromium
+
+      - name: Run non-smoke app e2e shard
+        run: pnpm --filter @slothing/web exec playwright test e2e/navigation.spec.ts e2e/public-pricing.spec.ts --project=chromium
+        env:
+          CI: 'true'
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-non-smoke
+          path: playwright-report/
+          retention-days: 7
+
+  extension-integration-smoke:
+    name: Extension integration smoke
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.extension == 'true'
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/extension
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        working-directory: .
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium browser
+        run: pnpm exec playwright install chromium --with-deps
+
+      - name: Build extension
+        run: pnpm run build
+
+      - name: Run extension autofill smoke
+        run: xvfb-run --auto-servernum -- pnpm exec playwright test tests/e2e/autofill.spec.ts --project=chromium
+        env:
+          CI: 'true'
+
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: failure()
@@ -137,7 +225,14 @@ jobs:
   ci-result:
     name: CI Result
     runs-on: ubuntu-latest
-    needs: [changes, quality-gates, e2e-smoke]
+    needs:
+      [
+        changes,
+        quality-gates,
+        e2e-smoke,
+        e2e-non-smoke,
+        extension-integration-smoke,
+      ]
     if: always()
 
     steps:
@@ -152,5 +247,13 @@ jobs:
           fi
 
           if [[ "${{ needs.e2e-smoke.result }}" == "failure" || "${{ needs.e2e-smoke.result }}" == "cancelled" ]]; then
+            exit 1
+          fi
+
+          if [[ "${{ needs.e2e-non-smoke.result }}" == "failure" || "${{ needs.e2e-non-smoke.result }}" == "cancelled" ]]; then
+            exit 1
+          fi
+
+          if [[ "${{ needs.extension-integration-smoke.result }}" == "failure" || "${{ needs.extension-integration-smoke.result }}" == "cancelled" ]]; then
             exit 1
           fi

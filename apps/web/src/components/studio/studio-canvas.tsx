@@ -1,7 +1,9 @@
 "use client";
 
-import { type ReactNode, useMemo } from "react";
-import { FileCode, FileText } from "lucide-react";
+import { type ReactNode, useMemo, useState } from "react";
+import { Check, Copy, Download, FileCode, FileText } from "lucide-react";
+import { htmlToLatexPreview } from "@/lib/export/html-to-latex";
+import { formatAbsolute, nowIso } from "@/lib/format/time";
 import { cn } from "@/lib/utils";
 import type { TipTapJSONContent } from "@/lib/editor/types";
 
@@ -12,6 +14,8 @@ interface StudioCanvasProps {
   onModeChange: (mode: CanvasMode) => void;
   content?: TipTapJSONContent;
   html?: string;
+  templateName?: string;
+  documentName?: string;
   children: ReactNode;
 }
 
@@ -20,6 +24,8 @@ export function StudioCanvas({
   onModeChange,
   content,
   html,
+  templateName = "Current template",
+  documentName = "document",
   children,
 }: StudioCanvasProps) {
   const { words, pages } = useMemo(
@@ -77,7 +83,16 @@ export function StudioCanvas({
       </div>
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
-        {mode === "latex" ? <LatexStub /> : children}
+        {mode === "latex" ? (
+          <LatexSourcePanel
+            html={html}
+            templateName={templateName}
+            documentName={documentName}
+            onBack={() => onModeChange("wysiwyg")}
+          />
+        ) : (
+          children
+        )}
       </div>
 
       <div
@@ -130,39 +145,113 @@ function CanvasModeTab({
   );
 }
 
-function LatexStub() {
+function LatexSourcePanel({
+  html,
+  templateName,
+  documentName,
+  onBack,
+}: {
+  html?: string;
+  templateName: string;
+  documentName: string;
+  onBack: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const preview = useMemo(
+    () =>
+      htmlToLatexPreview(html || "<p></p>", {
+        title: documentName || "Resume",
+      }),
+    [documentName, html],
+  );
+  const timestamp = formatAbsolute(nowIso(), { includeTime: true });
+
+  async function copySource() {
+    await navigator.clipboard.writeText(preview.tex);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
+  }
+
+  function downloadSource() {
+    const blob = new Blob([preview.tex], { type: "text/x-tex;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${safeFilename(documentName)}.tex`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div
-      className="flex h-full items-center justify-center px-8 py-12"
+      className="flex h-full min-h-0 flex-col"
       style={{ backgroundColor: "var(--bg-2)" }}
     >
       <div
-        className="max-w-md rounded-md border border-rule bg-paper p-6 text-center shadow-paper-card"
+        className="flex items-center gap-2 border-b border-rule px-3 py-2"
         style={{
           backgroundColor: "var(--paper)",
           borderColor: "var(--rule)",
         }}
       >
-        <FileCode
-          className="mx-auto mb-3 h-8 w-8"
-          style={{ color: "var(--brand)" }}
-          aria-hidden
-        />
-        <h2 className="font-display text-base font-semibold tracking-tight">
-          LaTeX source view
-        </h2>
-        <p
-          className="mt-2 text-[13px] leading-relaxed"
-          style={{ color: "var(--ink-3)" }}
+        <button
+          type="button"
+          className="inline-flex h-8 items-center gap-1 rounded-sm border border-rule px-2 text-[12px] font-medium"
+          onClick={copySource}
         >
-          Raw <code className="font-mono text-[12px]">.tex</code> source for
-          Overleaf is on the roadmap. Switch back to{" "}
-          <strong style={{ color: "var(--ink-2)" }}>Visual</strong> to keep
-          editing.
-        </p>
+          {copied ? (
+            <Check className="h-3.5 w-3.5" />
+          ) : (
+            <Copy className="h-3.5 w-3.5" />
+          )}
+          {copied ? "Copied" : "Copy .tex"}
+        </button>
+        <button
+          type="button"
+          className="inline-flex h-8 items-center gap-1 rounded-sm border border-rule px-2 text-[12px] font-medium"
+          onClick={downloadSource}
+        >
+          <Download className="h-3.5 w-3.5" />
+          Download .tex
+        </button>
+        <button
+          type="button"
+          className="ml-auto inline-flex h-8 items-center gap-1 rounded-sm border border-rule px-2 text-[12px] font-medium"
+          onClick={onBack}
+        >
+          <FileText className="h-3.5 w-3.5" />
+          Switch back to Visual
+        </button>
       </div>
+
+      <div
+        className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-rule px-3 py-2 font-mono text-[10px] uppercase"
+        style={{ color: "var(--ink-3)", borderColor: "var(--rule)" }}
+      >
+        <span>Template: {templateName}</span>
+        <span>Generated: {timestamp}</span>
+        {preview.warnings.length > 0 && (
+          <span className="text-amber-700">
+            Warning: {preview.warnings.join(" ")}
+          </span>
+        )}
+      </div>
+
+      <pre
+        className="m-0 min-h-0 flex-1 overflow-auto p-4 font-mono text-[12px] leading-relaxed"
+        style={{ color: "var(--ink)", backgroundColor: "var(--bg-2)" }}
+      >
+        <code>{preview.tex}</code>
+      </pre>
     </div>
   );
+}
+
+function safeFilename(input: string): string {
+  const cleaned = input.replace(/[^a-z0-9-_ ]/gi, "").trim();
+  return cleaned || "document";
 }
 
 function deriveStats({

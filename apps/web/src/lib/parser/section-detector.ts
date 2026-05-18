@@ -162,7 +162,8 @@ function detectByHeaders(text: string): Section[] {
         if (
           !matchedKnownHeader &&
           matches.length > 0 &&
-          isCapsHeaderCandidate(cleaned)
+          isCapsHeaderCandidate(cleaned) &&
+          !GPA_PATTERN.test(trimmed)
         ) {
           matches.push({
             type: "unknown",
@@ -200,7 +201,7 @@ function detectByCapsHeaders(text: string, lines: string[]): Section[] {
     const cleaned = cleanHeaderCandidate(trimmed);
 
     // ALL CAPS line that's short enough to be a header
-    if (isCapsHeaderCandidate(cleaned)) {
+    if (isCapsHeaderCandidate(cleaned) && !GPA_PATTERN.test(trimmed)) {
       const sectionType = inferSectionTypeFromContent(lines, i);
       if (sectionType) {
         matches.push({

@@ -30,6 +30,10 @@ export function messageForStatus(status: number): string {
   return "Something went wrong. Please try again.";
 }
 
+export function retryExhaustedMessage(): string {
+  return "Slothing is still not responding after retrying. Try again in a minute.";
+}
+
 /**
  * Best-effort mapping of an unknown thrown value to a human-friendly
  * message. Recognises the specific phrases the api-client throws today
@@ -60,6 +64,11 @@ export function messageForError(err: unknown): string {
   if (match) {
     const code = Number(match[1]);
     if (Number.isFinite(code)) return messageForStatus(code);
+  }
+
+  const retryMatch = raw.match(/Request still failing after retry:\s*(\d{3})/);
+  if (retryMatch) {
+    return retryExhaustedMessage();
   }
 
   // Browser fetch failures bubble up as "Failed to fetch".

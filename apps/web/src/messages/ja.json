@@ -334,6 +334,7 @@
     "list": "リスト",
     "kanban": "Kanban",
     "addOpportunity": "機会を追加",
+    "importJob": "求人をインポート",
     "filters": {
       "panel": "フィルター",
       "type": "種類",

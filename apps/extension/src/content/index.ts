@@ -23,6 +23,8 @@ import type {
   ExtensionProfile,
   ScrapedJob,
   DetectedField,
+  DetectedUploadField,
+  ExtensionResumeSummary,
   ExtensionSettings,
   PageSurfaceContext,
   SimilarAnswer,
@@ -48,6 +50,7 @@ const fieldDetector = new FieldDetector();
 let autoFillEngine: AutoFillEngine | null = null;
 let cachedProfile: ExtensionProfile | null = null;
 let detectedFields: DetectedField[] = [];
+let detectedUploadFields: DetectedUploadField[] = [];
 const detectedFieldsByForm = new WeakMap<HTMLFormElement, DetectedField[]>();
 const autofilledForms = new WeakSet<HTMLFormElement>();
 let scrapedJob: ScrapedJob | null = null;
@@ -95,14 +98,23 @@ observer.observe(document.body, { childList: true, subtree: true });
 async function scanPage() {
   // Detect forms
   const forms = document.querySelectorAll("form");
+  let nextDetectedFields: DetectedField[] = [];
+  let nextDetectedUploads: DetectedUploadField[] = [];
   for (const form of forms) {
     const fields = fieldDetector.detectFields(form);
+    const uploads = fieldDetector.detectUploadFields(form);
     if (fields.length > 0) {
       detectedFieldsByForm.set(form, fields);
-      detectedFields = fields;
+      nextDetectedFields = fields;
       console.log("[Slothing] Detected fields:", fields.length);
     }
+    if (uploads.length > 0) {
+      nextDetectedUploads = uploads;
+      console.log("[Slothing] Detected document uploads:", uploads.length);
+    }
   }
+  detectedFields = nextDetectedFields;
+  detectedUploadFields = nextDetectedUploads;
 
   // P2/#35 — decorate long essay textareas with the inline answer-bank
   // popover. This runs in addition to the field detector above because the
@@ -211,7 +223,9 @@ async function handleMessage(message: { type: string; payload?: unknown }) {
       return { success: scrapedJob !== null, scrapedJob };
 
     case "TRIGGER_FILL":
-      return handleFillForm();
+      return handleFillForm(
+        (message.payload as { overwriteExisting?: boolean } | undefined) ?? {},
+      );
 
     case "TRIGGER_IMPORT":
       if (scrapedJob) {
@@ -306,6 +320,12 @@ async function getSurfaceContext(): Promise<PageSurfaceContext> {
     page: {
       hasApplicationForm: detectedFields.length > 0,
       detectedFieldCount: detectedFields.length,
+      detectedUploadCount: detectedUploadFields.length,
+      documentUploads: detectedUploadFields.map((field) => ({
+        kind: field.kind,
+        label: field.label,
+        accept: field.accept,
+      })),
       job: scrapedJob,
     },
     workspace: sidebar,
@@ -618,7 +638,7 @@ async function runWwBulkScrape(opts: {
   };
 }
 
-async function handleFillForm() {
+async function handleFillForm(options: { overwriteExisting?: boolean } = {}) {
   if (detectedFields.length === 0) {
     return { success: false, error: "No fields detected" };
   }
@@ -650,6 +670,7 @@ async function handleFillForm() {
   // edits-after-fill flow back into the per-domain field mapping (#33).
   const result = await autoFillEngine.fillForm(detectedFields, {
     minimumConfidence,
+    overwriteExisting: options.overwriteExisting,
     onFilled: ({ field, value }) => {
       correctionsTracker.track(field, value);
     },
@@ -733,9 +754,12 @@ async function getExtensionSettings(): Promise<ExtensionSettings> {
 
 async function updateSidebar() {
   const profile = await loadProfileForSidebar();
+  const latestResume = await loadLatestResumeForSidebar();
   await sidebarController.update({
     scrapedJob,
     detectedFieldCount: detectedFields.length,
+    detectedUploadCount: detectedUploadFields.length,
+    latestResume,
     profile,
     onTailor: async () => {
       if (!scrapedJob) throw new Error("No job detected");
@@ -764,7 +788,7 @@ async function updateSidebar() {
         throw new Error(response.error || "Failed to save job");
       }
     },
-    onAutoFill: async () => {
+    onAutoFill: async (options) => {
       // P3 / #36 #37 — Workday / Greenhouse get the multi-step pipeline so
       // subsequent steps in the application are filled automatically. Other
       // sites fall through to the single-page `handleFillForm` path.
@@ -775,18 +799,35 @@ async function updateSidebar() {
           // The controller's confirm() returns false when there were no
           // fillable fields detected on the current page. Fall back to the
           // single-page path so users still get a meaningful error.
-          const response = await handleFillForm();
+          const response = await handleFillForm(options);
           if (!response.success) {
             throw new Error(response.error || "Failed to auto-fill form");
           }
+          return response.data;
         }
         return;
       }
 
-      const response = await handleFillForm();
+      const response = await handleFillForm(options);
       if (!response.success) {
         throw new Error(response.error || "Failed to auto-fill form");
       }
+      return response.data;
+    },
+    onOpenLatestResume: async () => {
+      const auth = await sendMessage<{ apiBaseUrl: string }>(
+        Messages.getAuthStatus(),
+      );
+      const base =
+        (auth.success && auth.data?.apiBaseUrl) || DEFAULT_API_BASE_URL;
+      const resumeParam = latestResume
+        ? `?from=extension&tailorId=${encodeURIComponent(latestResume.id)}`
+        : "";
+      window.open(
+        `${base.replace(/\/$/, "")}/en/studio${resumeParam}`,
+        "_blank",
+        "noopener,noreferrer",
+      );
     },
     onSearchAnswers: async (query) => {
       const response = await sendMessage<SimilarAnswer[]>(
@@ -814,6 +855,19 @@ async function updateSidebar() {
       void openCoverLetterStudio(seedText);
     },
   });
+}
+
+async function loadLatestResumeForSidebar(): Promise<ExtensionResumeSummary | null> {
+  if (detectedUploadFields.length === 0) return null;
+  try {
+    const response = await sendMessage<ExtensionResumeSummary[]>(
+      Messages.listResumes(),
+    );
+    if (!response.success) return null;
+    return response.data?.[0] ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /**

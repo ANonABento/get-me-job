@@ -81,6 +81,20 @@ export interface DetectedField {
   placeholder?: string;
 }
 
+export type DocumentUploadKind =
+  | "resume"
+  | "coverLetter"
+  | "portfolio"
+  | "transcript"
+  | "unknown";
+
+export interface DetectedUploadField {
+  element: HTMLInputElement;
+  kind: DocumentUploadKind;
+  label?: string;
+  accept?: string;
+}
+
 export interface FieldSignals {
   name: string;
   id: string;
@@ -148,6 +162,12 @@ export interface PageSurfaceContext {
   page: {
     hasApplicationForm: boolean;
     detectedFieldCount: number;
+    detectedUploadCount: number;
+    documentUploads: Array<{
+      kind: DocumentUploadKind;
+      label?: string;
+      accept?: string;
+    }>;
     job: ScrapedJob | null;
   };
   workspace: {

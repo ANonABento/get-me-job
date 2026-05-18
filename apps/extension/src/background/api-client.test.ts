@@ -3,11 +3,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   getStorage: vi.fn(),
   setStorage: vi.fn(),
+  clearSessionAuthCache: vi.fn(),
+  markAuthSeen: vi.fn(),
 }));
 
 vi.mock("./storage", () => ({
   getStorage: mocks.getStorage,
   setStorage: mocks.setStorage,
+  clearSessionAuthCache: mocks.clearSessionAuthCache,
+  markAuthSeen: mocks.markAuthSeen,
 }));
 
 import { SlothingAPIClient } from "./api-client";
@@ -202,11 +206,76 @@ describe("SlothingAPIClient.listResumes (#34)", () => {
   });
 
   it("throws when the request fails with a non-2xx response", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ error: "boom" }), { status: 500 }),
-    );
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "boom" }), { status: 500 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "boom" }), { status: 500 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "boom" }), { status: 500 }),
+      );
 
     const client = new SlothingAPIClient("http://localhost:3000");
     await expect(client.listResumes()).rejects.toThrow();
+  });
+
+  it("retries transient read failures and returns the eventual response", async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        new Response("Service unavailable", { status: 503 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            resumes: [
+              {
+                id: "r-2",
+                name: "Recovered resume",
+                targetRole: "Engineer",
+                updatedAt: "2026-05-18T00:00:00.000Z",
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      );
+
+    const client = new SlothingAPIClient("http://localhost:3000");
+    const resumes = await client.listResumes();
+
+    expect(resumes).toHaveLength(1);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry 401 and clears auth immediately", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401,
+      }),
+    );
+
+    const client = new SlothingAPIClient("http://localhost:3000");
+    await expect(client.listResumes()).rejects.toThrow(
+      "Authentication expired",
+    );
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(mocks.setStorage).toHaveBeenCalledWith({
+      authToken: undefined,
+      tokenExpiry: undefined,
+    });
+    expect(mocks.clearSessionAuthCache).toHaveBeenCalled();
+  });
+
+  it("does not retry non-idempotent import mutations", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: "try later" }), { status: 503 }),
+    );
+
+    const client = new SlothingAPIClient("http://localhost:3000");
+    await expect(client.importJob(job)).rejects.toThrow("try later");
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });

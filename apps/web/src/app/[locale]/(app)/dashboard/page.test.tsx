@@ -2,7 +2,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Dashboard from "./page";
-import { BASIC_ONBOARDING_STEPS } from "@/lib/onboarding/steps";
+import {
+  ADVANCED_ONBOARDING_STEPS,
+  BASIC_ONBOARDING_STEPS,
+} from "@/lib/onboarding/steps";
 import messages from "@/messages/en.json";
 
 const toastMock = vi.hoisted(() => vi.fn());
@@ -113,7 +116,7 @@ describe("Dashboard onboarding", () => {
       screen.getByText((_content, element) =>
         Boolean(
           element?.textContent ===
-          `0of ${BASIC_ONBOARDING_STEPS.length} complete`,
+          `0of ${BASIC_ONBOARDING_STEPS.length + ADVANCED_ONBOARDING_STEPS.length} complete`,
         ),
       ),
     ).toBeInTheDocument();

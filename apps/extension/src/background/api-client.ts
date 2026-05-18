@@ -19,6 +19,11 @@ import {
   setStorage,
 } from "./storage";
 
+type RetryPolicy = "none" | "safe" | "once";
+
+const TRANSIENT_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504]);
+const CHAT_RETRY_STATUS_CODES = new Set([500, 502, 503, 504]);
+
 export class SlothingAPIClient {
   private baseUrl: string;
 
@@ -46,22 +51,38 @@ export class SlothingAPIClient {
   private async authenticatedFetch<T>(
     path: string,
     options: RequestInit = {},
+    retryPolicy: RetryPolicy = inferRetryPolicy(options),
   ): Promise<T> {
     const token = await this.getAuthToken();
     if (!token) {
       throw new Error("Not authenticated");
     }
 
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        "X-Extension-Token": token,
-        ...options.headers,
-      },
-    });
+    const maxAttempts =
+      retryPolicy === "safe" ? 3 : retryPolicy === "once" ? 2 : 1;
+    let lastResponse: Response | null = null;
+    let sawRetry = false;
 
-    if (!response.ok) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      let response: Response;
+      try {
+        response = await fetch(`${this.baseUrl}${path}`, {
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            "X-Extension-Token": token,
+            ...options.headers,
+          },
+        });
+      } catch (error) {
+        if (attempt < maxAttempts) {
+          sawRetry = true;
+          await waitForRetry(retryDelayMs(attempt));
+          continue;
+        }
+        throw error;
+      }
+
       if (response.status === 401) {
         // Clear invalid token AND the fast-path session cache (#30) so the
         // next popup open re-verifies instead of trusting a stale verdict.
@@ -69,13 +90,36 @@ export class SlothingAPIClient {
         await clearSessionAuthCache();
         throw new Error("Authentication expired");
       }
+
+      if (response.ok) {
+        return response.json();
+      }
+
+      lastResponse = response;
+
+      if (
+        attempt < maxAttempts &&
+        TRANSIENT_STATUS_CODES.has(response.status)
+      ) {
+        sawRetry = true;
+        await waitForRetry(retryDelayMs(attempt, response));
+        continue;
+      }
+
       const error = await response
         .json()
         .catch(() => ({ error: "Request failed" }));
-      throw new Error(error.error || `Request failed: ${response.status}`);
+      const fallback = sawRetry
+        ? `Request still failing after retry: ${response.status}`
+        : `Request failed: ${response.status}`;
+      throw new Error(error.error || fallback);
     }
 
-    return response.json();
+    throw new Error(
+      sawRetry && lastResponse
+        ? `Request still failing after retry: ${lastResponse.status}`
+        : "Request failed",
+    );
   }
 
   async isAuthenticated(): Promise<boolean> {
@@ -83,7 +127,7 @@ export class SlothingAPIClient {
     if (!token) return false;
 
     try {
-      await this.authenticatedFetch("/api/extension/auth/verify");
+      await this.authenticatedFetch("/api/extension/auth/verify", {}, "safe");
       // Record the working-auth breadcrumb so the popup can distinguish a
       // true logout from a service-worker state-loss after this point.
       // See #27.
@@ -95,7 +139,11 @@ export class SlothingAPIClient {
   }
 
   async getProfile(): Promise<ExtensionProfile> {
-    return this.authenticatedFetch<ExtensionProfile>("/api/extension/profile");
+    return this.authenticatedFetch<ExtensionProfile>(
+      "/api/extension/profile",
+      {},
+      "safe",
+    );
   }
 
   async importJob(job: ScrapedJob): Promise<{
@@ -266,7 +314,7 @@ export class SlothingAPIClient {
   async listResumes(): Promise<ExtensionResumeSummary[]> {
     const response = await this.authenticatedFetch<{
       resumes: ExtensionResumeSummary[];
-    }>("/api/extension/resumes");
+    }>("/api/extension/resumes", {}, "safe");
     return response.resumes ?? [];
   }
 
@@ -393,7 +441,39 @@ export class SlothingAPIClient {
         Accept: "text/event-stream",
       },
       body: JSON.stringify({ prompt, jobContext }),
+    }).catch(async (error) => {
+      await waitForRetry(retryDelayMs(1));
+      const retried = await fetch(`${this.baseUrl}/api/extension/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Extension-Token": token,
+          Accept: "text/event-stream",
+        },
+        body: JSON.stringify({ prompt, jobContext }),
+      });
+      if (!retried.ok && CHAT_RETRY_STATUS_CODES.has(retried.status)) {
+        throw error;
+      }
+      return retried;
     });
+
+    if (!response.ok && CHAT_RETRY_STATUS_CODES.has(response.status)) {
+      await waitForRetry(retryDelayMs(1, response));
+      const retryResponse = await fetch(`${this.baseUrl}/api/extension/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Extension-Token": token,
+          Accept: "text/event-stream",
+        },
+        body: JSON.stringify({ prompt, jobContext }),
+      });
+      if (retryResponse.ok) {
+        yield* readChatStream(retryResponse);
+        return;
+      }
+    }
 
     if (!response.ok) {
       // 401: invalidate the token, mirror authenticatedFetch() so the popup
@@ -413,46 +493,7 @@ export class SlothingAPIClient {
       throw new Error(errMessage);
     }
 
-    const reader = response.body?.getReader();
-    if (!reader) {
-      throw new Error("No response body");
-    }
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-
-      // SSE frames are separated by a blank line (\n\n). We split on it and
-      // hold the trailing partial in `buffer`.
-      const frames = buffer.split("\n\n");
-      buffer = frames.pop() ?? "";
-
-      for (const frame of frames) {
-        const line = frame.split("\n").find((l) => l.startsWith("data: "));
-        if (!line) continue;
-        const dataStr = line.slice(6).trim();
-        if (!dataStr) continue;
-        let parsed: { token?: string; done?: boolean; error?: string };
-        try {
-          parsed = JSON.parse(dataStr);
-        } catch {
-          continue;
-        }
-        if (parsed.error) {
-          throw new Error(parsed.error);
-        }
-        if (parsed.token) {
-          yield parsed.token;
-        }
-        if (parsed.done) {
-          return;
-        }
-      }
-    }
+    yield* readChatStream(response);
   }
 
   /**
@@ -470,6 +511,75 @@ export class SlothingAPIClient {
       body: JSON.stringify(payload),
     });
   }
+}
+
+async function* readChatStream(
+  response: Response,
+): AsyncGenerator<string, void, void> {
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error("No response body");
+  }
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    // SSE frames are separated by a blank line (\n\n). We split on it and
+    // hold the trailing partial in `buffer`.
+    const frames = buffer.split("\n\n");
+    buffer = frames.pop() ?? "";
+
+    for (const frame of frames) {
+      const line = frame.split("\n").find((l) => l.startsWith("data: "));
+      if (!line) continue;
+      const dataStr = line.slice(6).trim();
+      if (!dataStr) continue;
+      let parsed: { token?: string; done?: boolean; error?: string };
+      try {
+        parsed = JSON.parse(dataStr);
+      } catch {
+        continue;
+      }
+      if (parsed.error) {
+        throw new Error(parsed.error);
+      }
+      if (parsed.token) {
+        yield parsed.token;
+      }
+      if (parsed.done) {
+        return;
+      }
+    }
+  }
+}
+
+function inferRetryPolicy(options: RequestInit): RetryPolicy {
+  const method = (options.method || "GET").toUpperCase();
+  return method === "GET" ? "safe" : "none";
+}
+
+function retryDelayMs(attempt: number, response?: Response): number {
+  const retryAfter = response?.headers.get("Retry-After");
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    if (Number.isFinite(seconds) && seconds >= 0 && seconds < 5) {
+      return seconds * 1000;
+    }
+  }
+
+  const base = attempt === 1 ? 250 : 750;
+  const jitter = Math.floor(Math.random() * 75);
+  return base + jitter;
+}
+
+async function waitForRetry(delayMs: number): Promise<void> {
+  if (process.env.NODE_ENV === "test") return;
+  await new Promise((resolve) => setTimeout(resolve, delayMs));
 }
 
 function getReadableJobDescription(job: ScrapedJob): string {

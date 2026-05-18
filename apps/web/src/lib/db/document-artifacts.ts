@@ -1,4 +1,5 @@
 import db from "./legacy";
+import { nowIso } from "@/lib/format/time";
 import { generateId } from "@/lib/utils";
 import type {
   DocumentSourceMap,
@@ -172,7 +173,7 @@ export function saveDocumentArtifact(
     sourceMap,
     links: input.links ?? [],
     ocrUsed: Boolean(input.ocrUsed),
-    createdAt: input.createdAt ?? new Date().toISOString(),
+    createdAt: input.createdAt ?? nowIso(),
   };
 
   db.prepare(

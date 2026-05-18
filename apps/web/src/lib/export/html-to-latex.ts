@@ -509,6 +509,40 @@ export interface HtmlToLatexOptions {
   margin?: string;
 }
 
+export interface LatexPreviewResult {
+  tex: string;
+  warnings: string[];
+}
+
+const UNSUPPORTED_WARNING_TAGS: Record<string, string> = {
+  img: "Images are omitted from LaTeX source.",
+  table: "Tables are flattened and may need manual cleanup.",
+  input: "Form controls are omitted from LaTeX source.",
+};
+
+export function collectLatexWarnings(html: string): string[] {
+  const warnings = new Set<string>();
+  for (const token of tokenize(html)) {
+    if (
+      (token.kind === "open" || token.kind === "void") &&
+      UNSUPPORTED_WARNING_TAGS[token.tag]
+    ) {
+      warnings.add(UNSUPPORTED_WARNING_TAGS[token.tag]);
+    }
+  }
+  return Array.from(warnings);
+}
+
+export function htmlToLatexPreview(
+  html: string,
+  options: HtmlToLatexOptions = {},
+): LatexPreviewResult {
+  return {
+    tex: htmlToLatex(html, options),
+    warnings: collectLatexWarnings(html),
+  };
+}
+
 /**
  * Convert a Tiptap-rendered HTML string into a complete LaTeX document.
  *

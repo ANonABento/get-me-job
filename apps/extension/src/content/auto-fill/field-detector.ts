@@ -1,6 +1,12 @@
 // Field detection for auto-fill
 
-import type { DetectedField, FieldType, FieldSignals } from "@/shared/types";
+import type {
+  DetectedField,
+  DetectedUploadField,
+  DocumentUploadKind,
+  FieldType,
+  FieldSignals,
+} from "@/shared/types";
 import {
   FIELD_PATTERNS,
   CUSTOM_QUESTION_INDICATORS,
@@ -29,6 +35,27 @@ export class FieldDetector {
     return fields;
   }
 
+  detectUploadFields(form: HTMLFormElement): DetectedUploadField[] {
+    const uploads: DetectedUploadField[] = [];
+    const inputs =
+      form.querySelectorAll<HTMLInputElement>('input[type="file"]');
+
+    for (const element of inputs) {
+      if (this.shouldSkipUploadElement(element)) continue;
+      const signals = this.gatherSignals(element);
+      const kind = detectDocumentUploadKind(signals);
+      if (kind === "unknown" && !looksLikeDocumentUpload(signals)) continue;
+      uploads.push({
+        element,
+        kind,
+        label: signals.label || undefined,
+        accept: element.accept || undefined,
+      });
+    }
+
+    return uploads;
+  }
+
   private shouldSkipElement(element: HTMLElement): boolean {
     const input = element as HTMLInputElement;
 
@@ -51,6 +78,14 @@ export class FieldDetector {
     }
 
     return false;
+  }
+
+  private shouldSkipUploadElement(element: HTMLInputElement): boolean {
+    const style = window.getComputedStyle(element);
+    if (style.display === "none" || style.visibility === "hidden") {
+      return true;
+    }
+    return element.disabled;
   }
 
   detectFieldType(
@@ -254,4 +289,34 @@ export class FieldDetector {
     const text = `${signals.label} ${signals.placeholder} ${signals.nearbyText}`;
     return CUSTOM_QUESTION_INDICATORS.some((pattern) => pattern.test(text));
   }
+}
+
+function detectDocumentUploadKind(signals: FieldSignals): DocumentUploadKind {
+  const text = [
+    signals.name,
+    signals.id,
+    signals.label,
+    signals.ariaLabel,
+    signals.placeholder,
+    signals.nearbyText,
+  ].join(" ");
+
+  if (/\b(?:cover\s*letter|motivation\s*letter)\b/i.test(text)) {
+    return "coverLetter";
+  }
+  if (/\b(?:resume|résumé|cv|curriculum\s+vitae)\b/i.test(text)) {
+    return "resume";
+  }
+  if (/\bportfolio\b/i.test(text)) {
+    return "portfolio";
+  }
+  if (/\btranscript\b/i.test(text)) {
+    return "transcript";
+  }
+  return "unknown";
+}
+
+function looksLikeDocumentUpload(signals: FieldSignals): boolean {
+  const text = `${signals.name} ${signals.id} ${signals.label} ${signals.ariaLabel} ${signals.nearbyText}`;
+  return /\b(?:document|attachment|upload|file)\b/i.test(text);
 }

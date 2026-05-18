@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type {
   ExtensionProfile,
+  ExtensionResumeSummary,
   ExtensionSettings,
   SidebarLayout,
   SimilarAnswer,
@@ -27,12 +28,15 @@ const DESKTOP_MIN_WIDTH = 1024;
 export interface SidebarControllerUpdate {
   scrapedJob: ScrapedJob | null;
   detectedFieldCount: number;
+  detectedUploadCount: number;
+  latestResume: ExtensionResumeSummary | null;
   profile: ExtensionProfile | null;
   settings?: ExtensionSettings | null;
   onTailor: () => Promise<void>;
   onCoverLetter: () => Promise<void>;
   onSave: () => Promise<void>;
-  onAutoFill: () => Promise<void>;
+  onAutoFill: (options?: { overwriteExisting?: boolean }) => Promise<unknown>;
+  onOpenLatestResume: () => Promise<void>;
   onSearchAnswers: (query: string) => Promise<SimilarAnswer[]>;
   onApplyAnswer: (answer: SimilarAnswer) => Promise<void> | void;
   /**
@@ -124,6 +128,8 @@ export class JobPageSidebarController {
       <JobPageSidebar
         scrapedJob={this.state.scrapedJob}
         detectedFieldCount={this.state.detectedFieldCount}
+        detectedUploadCount={this.state.detectedUploadCount}
+        latestResume={this.state.latestResume}
         score={score}
         layout={this.layout}
         onLayoutChange={(updates) => {
@@ -134,6 +140,7 @@ export class JobPageSidebarController {
         onCoverLetter={this.state.onCoverLetter}
         onSave={this.state.onSave}
         onAutoFill={this.state.onAutoFill}
+        onOpenLatestResume={this.state.onOpenLatestResume}
         onSearchAnswers={this.state.onSearchAnswers}
         onApplyAnswer={this.state.onApplyAnswer}
         onChatStream={this.state.onChatStream}

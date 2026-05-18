@@ -334,6 +334,7 @@
     "list": "Lista",
     "kanban": "Kanban",
     "addOpportunity": "Agregar oportunidad",
+    "importJob": "Importar empleo",
     "filters": {
       "panel": "Filtros",
       "type": "Tipo",

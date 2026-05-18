@@ -8,6 +8,7 @@ import React, {
 import type {
   SidebarLayout,
   SidebarPosition,
+  ExtensionResumeSummary,
   SimilarAnswer,
   ScrapedJob,
 } from "@/shared/types";
@@ -19,6 +20,8 @@ export type SidebarAction = "tailor" | "coverLetter" | "save" | "autoFill";
 export interface JobPageSidebarProps {
   scrapedJob: ScrapedJob;
   detectedFieldCount: number;
+  detectedUploadCount: number;
+  latestResume: ExtensionResumeSummary | null;
   score: ResumeScore | null;
   layout: SidebarLayout;
   onLayoutChange: (updates: Partial<SidebarLayout>) => void;
@@ -26,7 +29,8 @@ export interface JobPageSidebarProps {
   onTailor: () => Promise<void>;
   onCoverLetter: () => Promise<void>;
   onSave: () => Promise<void>;
-  onAutoFill: () => Promise<void>;
+  onAutoFill: (options?: { overwriteExisting?: boolean }) => Promise<unknown>;
+  onOpenLatestResume: () => Promise<void>;
   onSearchAnswers: (query: string) => Promise<SimilarAnswer[]>;
   onApplyAnswer: (answer: SimilarAnswer) => Promise<void> | void;
   /**
@@ -49,6 +53,13 @@ export interface JobPageSidebarProps {
 
 type Notice = { kind: "success" | "error"; message: string } | null;
 type ActionFeedback = { action: SidebarAction; label: string } | null;
+type AutoFillActionResult = {
+  filled?: number;
+  skipped?: number;
+  errors?: number;
+  conflicts?: number;
+  alreadyFilled?: number;
+};
 type DragState = {
   pointerId: number;
   startX: number;
@@ -70,6 +81,7 @@ export function JobPageSidebar(props: JobPageSidebarProps) {
   const [activeAction, setActiveAction] = useState<SidebarAction | null>(null);
   const [actionFeedback, setActionFeedback] = useState<ActionFeedback>(null);
   const [notice, setNotice] = useState<Notice>(null);
+  const [autoFillConflicts, setAutoFillConflicts] = useState(0);
   const [query, setQuery] = useState("");
   const [answers, setAnswers] = useState<SimilarAnswer[]>([]);
   const [searching, setSearching] = useState(false);
@@ -167,14 +179,28 @@ export function JobPageSidebar(props: JobPageSidebarProps) {
 
   async function runAction(
     action: SidebarAction,
-    callback: () => Promise<void>,
+    callback: () => Promise<unknown>,
   ) {
     setActiveAction(action);
     setActionFeedback(null);
     setNotice(null);
 
     try {
-      await callback();
+      const result = await callback();
+      const fillResult = isAutoFillResult(result) ? result : null;
+      if (action === "autoFill" && fillResult) {
+        const conflicts = fillResult.conflicts ?? 0;
+        setAutoFillConflicts(conflicts);
+        const conflictCopy =
+          conflicts > 0
+            ? `. Skipped ${conflicts} field${conflicts === 1 ? "" : "s"} with existing values.`
+            : "";
+        setActionFeedback({
+          action,
+          label: `Filled ${fillResult.filled ?? 0}${conflictCopy}`,
+        });
+        return;
+      }
       setActionFeedback({
         action,
         label: action === "autoFill" ? "Fields updated" : "Done",
@@ -373,9 +399,49 @@ export function JobPageSidebar(props: JobPageSidebarProps) {
                   : undefined
               }
               disabled={activeAction !== null || props.detectedFieldCount === 0}
-              onClick={() => runAction("autoFill", props.onAutoFill)}
+              onClick={() =>
+                runAction("autoFill", () =>
+                  props.onAutoFill({ overwriteExisting: false }),
+                )
+              }
             />
+            {autoFillConflicts > 0 && (
+              <ActionButton
+                label={`Overwrite ${autoFillConflicts} skipped field${autoFillConflicts === 1 ? "" : "s"}`}
+                activeLabel="Overwriting..."
+                active={activeAction === "autoFill"}
+                disabled={activeAction !== null}
+                onClick={() =>
+                  runAction("autoFill", () =>
+                    props.onAutoFill({ overwriteExisting: true }),
+                  )
+                }
+              />
+            )}
           </section>
+
+          {props.detectedUploadCount > 0 && (
+            <section
+              className="status-card"
+              aria-label="Document upload handoff"
+            >
+              <strong>Resume upload detected</strong>
+              <span>
+                Slothing cannot attach files for you. Download your latest
+                document, then upload it manually on this application.
+              </span>
+              {props.latestResume && (
+                <span className="muted">{props.latestResume.name}</span>
+              )}
+              <button
+                className="small-button"
+                type="button"
+                onClick={() => void props.onOpenLatestResume()}
+              >
+                {props.latestResume ? "Open latest resume" : "Open Studio"}
+              </button>
+            </section>
+          )}
 
           {notice?.kind === "error" && (
             <div className={`status-card ${notice.kind}`} role="status">
@@ -441,6 +507,14 @@ export function JobPageSidebar(props: JobPageSidebarProps) {
         </div>
       </div>
     </aside>
+  );
+}
+
+function isAutoFillResult(value: unknown): value is AutoFillActionResult {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    ("filled" in value || "conflicts" in value || "skipped" in value),
   );
 }
 

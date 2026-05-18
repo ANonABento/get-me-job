@@ -372,6 +372,54 @@ describe("StudioPage", () => {
     expect(screen.getByRole("menuitem", { name: /^PDF/i })).toBeInTheDocument();
   });
 
+  it("shows real LaTeX source with copy and download actions", async () => {
+    mockStudioFetch(bankEntries);
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: vi.fn(() => "blob:latex"),
+      revokeObjectURL: vi.fn(),
+    });
+
+    renderStudioPage();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Toggle entry" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("resume-html")).toHaveTextContent(
+        "Current HTML",
+      ),
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "LaTeX" }));
+
+    expect(screen.getByText(/\\documentclass/)).toBeInTheDocument();
+    expect(screen.queryByText(/on the roadmap/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Template:/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy .tex" }));
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith(
+        expect.stringContaining("\\documentclass"),
+      ),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Download .tex" }));
+    expect(URL.createObjectURL).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "text/x-tex;charset=utf-8" }),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Switch back to Visual" }),
+    );
+    expect(screen.getByText("Resume preview")).toBeInTheDocument();
+  });
+
   it("does not trigger non-modifier shortcuts while typing in the JD textarea", async () => {
     renderStudioPage();
 

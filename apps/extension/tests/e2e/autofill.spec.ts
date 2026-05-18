@@ -169,3 +169,55 @@ test("autofill is idempotent when triggered twice", async () => {
     await page.close();
   }
 });
+
+test("preserves user-entered values unless overwrite is requested", async () => {
+  const page = await context.newPage();
+  try {
+    await loadDemoPage(page, "job-form.html");
+    await page.locator("#firstName").fill("Manual");
+
+    const firstFill = await sendMessageToTab<{
+      success: boolean;
+      data?: { filled: number; conflicts: number };
+    }>(context, extensionId, "job-form.html", { type: "TRIGGER_FILL" });
+
+    expect(firstFill.success).toBe(true);
+    expect(firstFill.data?.conflicts).toBeGreaterThanOrEqual(1);
+    await expect(page.locator("#firstName")).toHaveValue("Manual");
+
+    const overwriteFill = await sendMessageToTab<{
+      success: boolean;
+      data?: { filled: number; conflicts: number };
+    }>(context, extensionId, "job-form.html", {
+      type: "TRIGGER_FILL",
+      payload: { overwriteExisting: true },
+    });
+
+    expect(overwriteFill.success).toBe(true);
+    await expect(page.locator("#firstName")).toHaveValue("Riley");
+  } finally {
+    await page.close();
+  }
+});
+
+test("reports resume uploads without filling file inputs", async () => {
+  const page = await context.newPage();
+  try {
+    await loadDemoPage(page, "job-form.html");
+
+    const status = await sendMessageToTab<{
+      page: {
+        detectedUploadCount: number;
+        documentUploads: Array<{ kind: string; label?: string }>;
+      };
+    }>(context, extensionId, "job-form.html", {
+      type: "GET_SURFACE_CONTEXT",
+    });
+
+    expect(status.page.detectedUploadCount).toBe(1);
+    expect(status.page.documentUploads[0]).toMatchObject({ kind: "resume" });
+    await expect(page.locator("#resumeUpload")).toHaveValue("");
+  } finally {
+    await page.close();
+  }
+});

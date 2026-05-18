@@ -1,0 +1,140 @@
+{
+  "skips": [
+    {
+      "file": "apps/web/e2e/validation.spec.ts",
+      "line": 8,
+      "kind": "test.skip",
+      "reason": "Full suite requires authenticated app fixtures and interactive form seed data.",
+      "owner": "web-app",
+      "targetRemovalCondition": "Replace with auth-bypassed seeded fixtures or split into smoke-safe tests."
+    },
+    {
+      "file": "apps/web/e2e/modals.spec.ts",
+      "line": 103,
+      "kind": "test.describe.skip",
+      "reason": "Legacy modal selectors predate the current routed app shell.",
+      "owner": "web-app",
+      "targetRemovalCondition": "Port keyboard shortcut modal coverage to current settings and command surfaces."
+    },
+    {
+      "file": "apps/web/e2e/modals.spec.ts",
+      "line": 151,
+      "kind": "test.describe.skip",
+      "reason": "Legacy opportunity modal flow needs authenticated seeded opportunities.",
+      "owner": "web-app",
+      "targetRemovalCondition": "Add deterministic opportunity fixtures for CI."
+    },
+    {
+      "file": "apps/web/e2e/modals.spec.ts",
+      "line": 230,
+      "kind": "test.describe.skip",
+      "reason": "Legacy profile modal flow needs authenticated seeded profile data.",
+      "owner": "web-app",
+      "targetRemovalCondition": "Add authenticated profile fixture or replace with component tests."
+    },
+    {
+      "file": "apps/web/e2e/modals.spec.ts",
+      "line": 298,
+      "kind": "test.describe.skip",
+      "reason": "Legacy interview modal flow needs seeded interview state.",
+      "owner": "web-app",
+      "targetRemovalCondition": "Add interview session fixtures usable in Playwright."
+    },
+    {
+      "file": "apps/web/e2e/modals.spec.ts",
+      "line": 327,
+      "kind": "test.describe.skip",
+      "reason": "Legacy bank modal flow needs authenticated bank data.",
+      "owner": "web-app",
+      "targetRemovalCondition": "Add bank entry fixtures for CI."
+    },
+    {
+      "file": "apps/web/e2e/modals.spec.ts",
+      "line": 355,
+      "kind": "test.describe.skip",
+      "reason": "General legacy modal behavior depends on pages now covered by narrower tests.",
+      "owner": "web-app",
+      "targetRemovalCondition": "Replace with current dialog accessibility checks."
+    },
+    {
+      "file": "apps/web/e2e/modals.spec.ts",
+      "line": 425,
+      "kind": "test.describe.skip",
+      "reason": "Legacy confirmation dialogs need current destructive-action fixtures.",
+      "owner": "web-app",
+      "targetRemovalCondition": "Port to current destructive action components."
+    },
+    {
+      "file": "apps/web/e2e/opportunities-kanban.spec.ts",
+      "line": 4,
+      "kind": "test.skip",
+      "reason": "Requires authenticated NextAuth fixture and seeded opportunities.",
+      "owner": "web-app",
+      "targetRemovalCondition": "Seed opportunities in Playwright setup and remove file-level skip."
+    },
+    {
+      "file": "apps/web/e2e/pages/interview.spec.ts",
+      "line": 8,
+      "kind": "test.skip",
+      "reason": "Generated page suite requires authenticated session and page seed data.",
+      "owner": "web-app",
+      "targetRemovalCondition": "Replace generated page suite with maintained authenticated smoke coverage."
+    },
+    {
+      "file": "apps/web/e2e/pages/settings.spec.ts",
+      "line": 8,
+      "kind": "test.skip",
+      "reason": "Generated page suite requires authenticated session and page seed data.",
+      "owner": "web-app",
+      "targetRemovalCondition": "Replace generated page suite with maintained authenticated smoke coverage."
+    },
+    {
+      "file": "apps/web/e2e/pages/analytics.spec.ts",
+      "line": 8,
+      "kind": "test.skip",
+      "reason": "Generated page suite requires authenticated session and page seed data.",
+      "owner": "web-app",
+      "targetRemovalCondition": "Replace generated page suite with maintained authenticated smoke coverage."
+    },
+    {
+      "file": "apps/web/e2e/pages/upload.spec.ts",
+      "line": 8,
+      "kind": "test.skip",
+      "reason": "Generated page suite requires authenticated session and page seed data.",
+      "owner": "web-app",
+      "targetRemovalCondition": "Replace generated page suite with maintained authenticated smoke coverage."
+    },
+    {
+      "file": "apps/web/e2e/pages/dashboard.spec.ts",
+      "line": 8,
+      "kind": "test.skip",
+      "reason": "Generated page suite requires authenticated session and page seed data.",
+      "owner": "web-app",
+      "targetRemovalCondition": "Replace generated page suite with maintained authenticated smoke coverage."
+    },
+    {
+      "file": "apps/web/e2e/jobs.spec.ts",
+      "line": 15,
+      "kind": "test.skip",
+      "reason": "Legacy jobs suite requires authenticated app fixture and seeded data.",
+      "owner": "web-app",
+      "targetRemovalCondition": "Port coverage to opportunities routes with deterministic fixtures."
+    },
+    {
+      "file": "apps/web/e2e/profile.spec.ts",
+      "line": 4,
+      "kind": "test.skip",
+      "reason": "Legacy profile suite requires authenticated profile seed data.",
+      "owner": "web-app",
+      "targetRemovalCondition": "Seed profile data in CI or replace with focused component coverage."
+    },
+    {
+      "file": "apps/web/src/components/jobs/add-job-dialog.test.tsx",
+      "line": 69,
+      "kind": "it.skip",
+      "reason": "URL scrape test needs a deterministic fetch/parser fixture.",
+      "owner": "web-app",
+      "targetRemovalCondition": "Mock importJobFromUrl end to end and assert form population."
+    }
+  ]
+}

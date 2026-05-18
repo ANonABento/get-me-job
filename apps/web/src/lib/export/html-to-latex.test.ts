@@ -5,6 +5,7 @@ import {
   escapeLatexText,
   htmlToLatex,
   htmlToLatexBody,
+  htmlToLatexPreview,
   tokenize,
 } from "./html-to-latex";
 
@@ -282,5 +283,15 @@ describe("htmlToLatex — full document", () => {
   it("escapes special chars in the pdftitle metadata", () => {
     const tex = htmlToLatex("<p>x</p>", { title: "R&D 100%" });
     expect(tex).toContain("pdftitle={R\\&D 100\\%}");
+  });
+});
+
+describe("htmlToLatexPreview", () => {
+  it("returns source plus warnings for unsupported nodes", () => {
+    const preview = htmlToLatexPreview("<p>Hello</p><img src='x.png' />");
+
+    expect(preview.tex).toContain("\\documentclass");
+    expect(preview.tex).toContain("Hello");
+    expect(preview.warnings).toContain("Images are omitted from LaTeX source.");
   });
 });

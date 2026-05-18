@@ -40,21 +40,13 @@ describe("TermsPage", () => {
     ).toBeGreaterThan(0);
   });
 
-  it("flags jurisdiction and dispute terms for legal review", () => {
+  it("does not ship placeholder legal copy", () => {
     const { container } = render(<TermsPage />);
 
-    expect(container).toHaveTextContent(
-      /governing-law and dispute[-\s]?resolution/i,
+    expect(container).not.toHaveTextContent(
+      /TBD|being finalized|draft|legal counsel|pending legal review/i,
     );
-    expect(container).toHaveTextContent(
-      /dispute-resolution sections below are still being finalized/i,
-    );
-    expect(container).toHaveTextContent(
-      /specific governing jurisdiction.*is being finalized with legal counsel/i,
-    );
-    expect(container).toHaveTextContent(
-      /formal dispute resolution terms.*are being finalized/i,
-    );
-    expect(container).toHaveTextContent(/finalized with legal counsel/i);
+    expect(container).toHaveTextContent(/State of Delaware/i);
+    expect(container).toHaveTextContent(/within 30 days/i);
   });
 });

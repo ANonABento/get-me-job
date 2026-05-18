@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import type {
+  DocumentUploadKind,
   ExtensionProfile,
+  ExtensionResumeSummary,
   PageSurfaceContext,
   ScrapedJob,
 } from "@/shared/types";
@@ -27,6 +29,12 @@ interface PageStatus {
   hasForm: boolean;
   hasJobListing: boolean;
   detectedFields: number;
+  detectedUploadCount: number;
+  documentUploads: Array<{
+    kind: DocumentUploadKind;
+    label?: string;
+    accept?: string;
+  }>;
   scrapedJob: ScrapedJob | null;
 }
 
@@ -106,6 +114,8 @@ export default function App() {
   const [pageStatus, setPageStatus] = useState<PageStatus | null>(null);
   const [surfaceContext, setSurfaceContext] =
     useState<PageSurfaceContext | null>(null);
+  const [latestResume, setLatestResume] =
+    useState<ExtensionResumeSummary | null>(null);
   const [activeTabId, setActiveTabId] = useState<number | null>(null);
   const [activeTabUrl, setActiveTabUrl] = useState<string | null>(null);
   const [pageProbeState, setPageProbeState] =
@@ -221,8 +231,15 @@ export default function App() {
             hasForm: context.page.hasApplicationForm,
             hasJobListing: context.page.job !== null,
             detectedFields: context.page.detectedFieldCount,
+            detectedUploadCount: context.page.detectedUploadCount,
+            documentUploads: context.page.documentUploads,
             scrapedJob: context.page.job,
           });
+          if (context.page.detectedUploadCount > 0) {
+            void loadLatestResume();
+          } else {
+            setLatestResume(null);
+          }
           setPageProbeState("ready");
           if (
             !context.page.job &&
@@ -382,6 +399,24 @@ export default function App() {
   async function handleOpenDashboard() {
     const baseUrl = await resolveApiBaseUrl();
     chrome.tabs.create({ url: `${baseUrl}/dashboard` });
+    window.close();
+  }
+
+  async function loadLatestResume() {
+    const response = await sendMessage<ExtensionResumeSummary[]>(
+      Messages.listResumes(),
+    );
+    if (response.success) {
+      setLatestResume(response.data?.[0] ?? null);
+    }
+  }
+
+  async function handleOpenStudioForResume() {
+    const baseUrl = await resolveApiBaseUrl();
+    const resumeParam = latestResume
+      ? `?from=extension&tailorId=${encodeURIComponent(latestResume.id)}`
+      : "";
+    chrome.tabs.create({ url: `${baseUrl}/en/studio${resumeParam}` });
     window.close();
   }
 
@@ -678,6 +713,28 @@ export default function App() {
                   ? "Ready on this application page."
                   : "Open a job posting, then scan again."}
               </p>
+            )}
+            {(pageStatus?.detectedUploadCount ?? 0) > 0 && (
+              <div className="page-summary">
+                <span className="clip">
+                  Resume upload detected. Attach your file manually.
+                </span>
+                {latestResume ? (
+                  <span className="card-sub clip" title={latestResume.name}>
+                    Latest: {latestResume.name}
+                  </span>
+                ) : (
+                  <span className="card-sub clip">
+                    Open Studio to export your latest document.
+                  </span>
+                )}
+                <button
+                  className="btn block"
+                  onClick={handleOpenStudioForResume}
+                >
+                  {latestResume ? "Open latest resume" : "Open Studio"}
+                </button>
+              </div>
             )}
             {detectedJob && (
               <button className="btn primary block" onClick={handleShowPanel}>

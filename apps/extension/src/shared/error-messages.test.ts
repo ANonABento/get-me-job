@@ -65,6 +65,14 @@ describe("messageForError", () => {
     );
   });
 
+  it("distinguishes exhausted retry failures from immediate server failures", () => {
+    expect(
+      messageForError(new Error("Request still failing after retry: 503")),
+    ).toBe(
+      "Slothing is still not responding after retrying. Try again in a minute.",
+    );
+  });
+
   it("maps Failed to fetch (browser network error) to a network message", () => {
     expect(messageForError(new Error("Failed to fetch"))).toBe(
       "Network error. Check your connection and try again.",

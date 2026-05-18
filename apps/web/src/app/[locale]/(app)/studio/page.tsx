@@ -375,6 +375,8 @@ function StudioPageContent() {
               onModeChange={setCanvasMode}
               content={studio.content}
               html={studio.html}
+              templateName={studio.templateId}
+              documentName={activeDocumentName}
             >
               <ResumePreview
                 templateId={studio.templateId}

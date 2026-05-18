@@ -16,6 +16,8 @@ export interface FillResult {
   filled: number;
   skipped: number;
   errors: number;
+  alreadyFilled: number;
+  conflicts: number;
   /** Count of fields placed in the cold zone (skipped fill, badge attached). */
   cold: number;
   /** Count of fields filled with a yellow-band marker. */
@@ -23,9 +25,19 @@ export interface FillResult {
   details: Array<{
     fieldType: string;
     filled: boolean;
+    alreadyFilled?: boolean;
+    conflict?: FillConflict;
+    overwritten?: boolean;
     zone?: ConfidenceZone;
     error?: string;
   }>;
+}
+
+export interface FillConflict {
+  fieldType: string;
+  currentValue: string;
+  suggestedValue: string;
+  label?: string;
 }
 
 /**
@@ -47,6 +59,8 @@ export interface FillFormOptions {
   minimumConfidence?: number;
   /** Fired after each successful fill (corrections tracking — #33). */
   onFilled?: OnFilledCallback;
+  /** When true, non-empty fields may be replaced by Slothing suggestions. */
+  overwriteExisting?: boolean;
 }
 
 export class AutoFillEngine {
@@ -66,6 +80,8 @@ export class AutoFillEngine {
       filled: 0,
       skipped: 0,
       errors: 0,
+      alreadyFilled: 0,
+      conflicts: 0,
       cold: 0,
       yellow: 0,
       details: [],
@@ -106,6 +122,44 @@ export class AutoFillEngine {
           continue;
         }
 
+        const currentValue = this.getCurrentValue(field.element);
+        const hadExistingValue = this.hasMeaningfulExistingValue(field.element);
+        const wouldOverwriteExisting =
+          hadExistingValue &&
+          !this.valuesEquivalent(field.element, currentValue, value);
+        if (hadExistingValue) {
+          if (this.valuesEquivalent(field.element, currentValue, value)) {
+            result.alreadyFilled++;
+            result.skipped++;
+            result.details.push({
+              fieldType: field.fieldType,
+              filled: false,
+              alreadyFilled: true,
+              zone,
+            });
+            continue;
+          }
+
+          const conflict: FillConflict = {
+            fieldType: field.fieldType,
+            currentValue,
+            suggestedValue: value,
+            label: field.label,
+          };
+
+          if (!options.overwriteExisting) {
+            result.conflicts++;
+            result.skipped++;
+            result.details.push({
+              fieldType: field.fieldType,
+              filled: false,
+              conflict,
+              zone,
+            });
+            continue;
+          }
+        }
+
         const filled = await this.fillField(field.element, value);
 
         if (filled) {
@@ -113,6 +167,7 @@ export class AutoFillEngine {
           result.details.push({
             fieldType: field.fieldType,
             filled: true,
+            overwritten: options.overwriteExisting && wouldOverwriteExisting,
             zone,
           });
           if (zone === "yellow") {
@@ -223,6 +278,104 @@ export class AutoFillEngine {
     return false;
   }
 
+  private getCurrentValue(
+    element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement,
+  ): string {
+    const tagName = element.tagName.toLowerCase();
+    if (tagName === "select") {
+      const select = element as HTMLSelectElement;
+      const option = select.selectedOptions[0];
+      return option?.value || option?.text || "";
+    }
+
+    if (element instanceof HTMLInputElement) {
+      const type = element.type?.toLowerCase() || "text";
+      if (type === "checkbox") {
+        return element.checked ? "true" : "false";
+      }
+      if (type === "radio") {
+        const selected = element.name
+          ? document.querySelector<HTMLInputElement>(
+              `input[type="radio"][name="${cssEscape(element.name)}"]:checked`,
+            )
+          : element.checked
+            ? element
+            : null;
+        return selected?.value || "";
+      }
+    }
+
+    return element.value || "";
+  }
+
+  private hasMeaningfulExistingValue(
+    element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement,
+  ): boolean {
+    const tagName = element.tagName.toLowerCase();
+    if (tagName === "select") {
+      return Boolean((element as HTMLSelectElement).value.trim());
+    }
+
+    if (element instanceof HTMLInputElement) {
+      const type = element.type?.toLowerCase() || "text";
+      if (type === "checkbox") return element.checked;
+      if (type === "radio") {
+        if (!element.name) return element.checked;
+        return Boolean(
+          document.querySelector(
+            `input[type="radio"][name="${cssEscape(element.name)}"]:checked`,
+          ),
+        );
+      }
+    }
+
+    return element.value.trim().length > 0;
+  }
+
+  private valuesEquivalent(
+    element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement,
+    current: string,
+    suggested: string,
+  ): boolean {
+    const normalizedCurrent = normalizeValue(current);
+    const normalizedSuggested = normalizeValue(suggested);
+    if (normalizedCurrent === normalizedSuggested) return true;
+
+    if (element instanceof HTMLSelectElement) {
+      const option = element.selectedOptions[0];
+      return Boolean(
+        option &&
+        (normalizeValue(option.value) === normalizedSuggested ||
+          normalizeValue(option.text) === normalizedSuggested),
+      );
+    }
+
+    if (element instanceof HTMLInputElement) {
+      const type = element.type?.toLowerCase() || "text";
+      if (type === "checkbox") {
+        return element.checked === parseBooleanSuggestion(suggested);
+      }
+      if (type === "radio") {
+        const selected = element.name
+          ? document.querySelector<HTMLInputElement>(
+              `input[type="radio"][name="${cssEscape(element.name)}"]:checked`,
+            )
+          : element.checked
+            ? element
+            : null;
+        if (!selected) return false;
+        const label = this.getRadioLabel(selected) || "";
+        return (
+          normalizeValue(selected.value) === normalizedSuggested ||
+          normalizeValue(label).includes(normalizedSuggested) ||
+          normalizedSuggested.includes(normalizeValue(selected.value))
+        );
+      }
+    }
+
+    return false;
+  }
+
   private fillTextInput(
     element: HTMLInputElement | HTMLTextAreaElement,
     value: string,
@@ -274,9 +427,7 @@ export class AutoFillEngine {
   }
 
   private fillCheckbox(element: HTMLInputElement, value: string): boolean {
-    const shouldCheck = ["true", "yes", "1", "on"].includes(
-      value.toLowerCase(),
-    );
+    const shouldCheck = parseBooleanSuggestion(value);
     element.checked = shouldCheck;
     this.dispatchInputEvents(element);
     return true;
@@ -365,6 +516,14 @@ export class AutoFillEngine {
       element.dispatchEvent(new Event("input", { bubbles: true }));
     }
   }
+}
+
+function normalizeValue(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function parseBooleanSuggestion(value: string): boolean {
+  return ["true", "yes", "1", "on"].includes(value.trim().toLowerCase());
 }
 
 function fieldKey(field: DetectedField): string {

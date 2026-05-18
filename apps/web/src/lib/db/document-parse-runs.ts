@@ -1,4 +1,5 @@
 import db from "./legacy";
+import { nowIso } from "@/lib/format/time";
 import { generateId } from "@/lib/utils";
 import type { ParsedResumeV2Result } from "@/lib/ingest/types";
 
@@ -140,7 +141,7 @@ export function saveDocumentParseRun(
     confidence: input.confidence ?? 0,
     warnings: input.warnings ?? [],
     structured: input.structured ?? {},
-    createdAt: input.createdAt ?? new Date().toISOString(),
+    createdAt: input.createdAt ?? nowIso(),
   };
 
   db.prepare(
