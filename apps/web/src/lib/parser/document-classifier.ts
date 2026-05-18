@@ -208,7 +208,7 @@ export function classifyDocumentByContent(text: string): DocumentType | null {
   ].filter((pattern) => pattern.test(normalized)).length;
   if (
     bulletLines.length >= 3 &&
-    resumeSectionHits < 2 &&
+    (resumeSectionHits < 2 || !hasResumeContact) &&
     !hasLetterGreeting &&
     (careerNoteSignals >= 1 || bulletLines.length / rawLines.length >= 0.6)
   ) {
