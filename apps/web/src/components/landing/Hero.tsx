@@ -187,19 +187,3 @@ function HeroVideoStage() {
     </div>
   );
 }
-
-/* Announcement bar — slim paper band sitting above the nav. */
-export function AnnouncementBar() {
-  return (
-    <div className="border-b border-rule bg-paper px-4 py-[7px] text-center text-[12.5px] text-ink-2">
-      <span className="mr-2 inline-block rounded-sm bg-brand-soft px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-brand-dark">
-        New
-      </span>
-      <strong className="font-semibold text-ink">The loop is here.</strong>{" "}
-      Atomize once. Apply forever.{" "}
-      <span aria-hidden className="ml-1">
-        →
-      </span>
-    </div>
-  );
-}

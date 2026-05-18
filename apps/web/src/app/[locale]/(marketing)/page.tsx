@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { AnnouncementBar, LandingHero } from "@/components/landing/Hero";
+import { LandingHero } from "@/components/landing/Hero";
 import { TheLoop } from "@/components/landing/TheLoop";
 import { Section, type SectionProps } from "@/components/landing/Section";
 import { Closer } from "@/components/landing/ClosingSections";
@@ -187,7 +187,6 @@ export default function LandingPage() {
         suppressHydrationWarning
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <AnnouncementBar />
       <LandingHero />
       <TheLoop />
       <LogoStrip />
