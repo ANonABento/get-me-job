@@ -1,4 +1,5 @@
 import type { DocumentSourceMap, ParsedResumeV2Result } from "./types";
+import { resolveSourceSpanIds } from "./source-spans";
 
 export interface ParserV2Diagnostic {
   lineCount: number;
@@ -10,26 +11,29 @@ export interface ParserV2Diagnostic {
   };
   missingRootSourceSpans: string[];
   missingBulletSourceSpans: string[];
+  partialRootSourceSpans: string[];
+  partialBulletSourceSpans: string[];
 }
 
 export function createParserV2Diagnostic(
   sourceMap: DocumentSourceMap,
   parsed: ParsedResumeV2Result,
 ): ParserV2Diagnostic {
-  const lineIds = new Set(sourceMap.lines.map((line) => line.id));
   const missingRootSourceSpans: string[] = [];
   const missingBulletSourceSpans: string[] = [];
+  const partialRootSourceSpans: string[] = [];
+  const partialBulletSourceSpans: string[] = [];
 
   for (const root of [
     ...parsed.profile.education,
     ...parsed.profile.experiences,
     ...parsed.profile.projects,
   ]) {
-    if (
-      root.sourceSpanIds.length === 0 ||
-      root.sourceSpanIds.some((id) => !lineIds.has(id))
-    ) {
+    const resolved = resolveSourceSpanIds(sourceMap, root.sourceSpanIds);
+    if (resolved.sourceQuality === "missing") {
       missingRootSourceSpans.push(root.id);
+    } else if (resolved.sourceQuality === "partial") {
+      partialRootSourceSpans.push(root.id);
     }
   }
 
@@ -38,11 +42,11 @@ export function createParserV2Diagnostic(
     ...parsed.profile.projects,
   ]) {
     for (const [index, bullet] of root.highlights.entries()) {
-      if (
-        bullet.sourceSpanIds.length === 0 ||
-        bullet.sourceSpanIds.some((id) => !lineIds.has(id))
-      ) {
+      const resolved = resolveSourceSpanIds(sourceMap, bullet.sourceSpanIds);
+      if (resolved.sourceQuality === "missing") {
         missingBulletSourceSpans.push(`${root.id}:${index}`);
+      } else if (resolved.sourceQuality === "partial") {
+        partialBulletSourceSpans.push(`${root.id}:${index}`);
       }
     }
   }
@@ -57,5 +61,7 @@ export function createParserV2Diagnostic(
     },
     missingRootSourceSpans,
     missingBulletSourceSpans,
+    partialRootSourceSpans,
+    partialBulletSourceSpans,
   };
 }

@@ -36,9 +36,12 @@ export interface DocumentSourceMap {
   rawText: string;
 }
 
+export type SourceQuality = "exact" | "partial" | "missing";
+
 export interface SourceGroundedText {
   text: string;
   sourceSpanIds: string[];
+  sourceQuality: SourceQuality;
 }
 
 export interface ParsedContactV2 {
@@ -51,6 +54,7 @@ export interface ParsedContactV2 {
   website?: string;
   confidence: number;
   sourceSpanIds: string[];
+  sourceQuality: SourceQuality;
 }
 
 export interface ParsedExperienceV2 {
@@ -65,6 +69,7 @@ export interface ParsedExperienceV2 {
   highlights: SourceGroundedText[];
   skills: string[];
   sourceSpanIds: string[];
+  sourceQuality: SourceQuality;
 }
 
 export interface ParsedEducationV2 {
@@ -78,6 +83,7 @@ export interface ParsedEducationV2 {
   gpa?: string;
   highlights: SourceGroundedText[];
   sourceSpanIds: string[];
+  sourceQuality: SourceQuality;
 }
 
 export interface ParsedSkillV2 {
@@ -85,6 +91,7 @@ export interface ParsedSkillV2 {
   name: string;
   category: "technical" | "soft" | "language" | "tool" | "other";
   sourceSpanIds: string[];
+  sourceQuality: SourceQuality;
 }
 
 export interface ParsedProjectV2 {
@@ -97,6 +104,21 @@ export interface ParsedProjectV2 {
   startDate?: string;
   endDate?: string;
   sourceSpanIds: string[];
+  sourceQuality: SourceQuality;
+}
+
+export interface ResolvedSourceSpan {
+  id: string;
+  page: number;
+  text: string;
+  bbox: SourceBbox;
+  tokenIds: string[];
+}
+
+export interface ResolvedSourceSpans {
+  spans: ResolvedSourceSpan[];
+  missingIds: string[];
+  sourceQuality: SourceQuality;
 }
 
 export interface ParsedResumeV2Profile {

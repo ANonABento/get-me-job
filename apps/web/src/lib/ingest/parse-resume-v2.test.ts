@@ -37,6 +37,16 @@ describe("parseResumeV2FromSourceMap", () => {
     expect(parsed.profile.education).toMatchObject(expected.education);
     expect(parsed.profile.experiences).toMatchObject(expected.experiences);
     expect(parsed.profile.projects).toMatchObject(expected.projects);
+    expect(
+      [
+        parsed.profile.contact,
+        ...parsed.profile.education,
+        ...parsed.profile.experiences,
+        ...parsed.profile.projects,
+        ...parsed.profile.experiences.flatMap((entry) => entry.highlights),
+        ...parsed.profile.projects.flatMap((entry) => entry.highlights),
+      ].every((item) => item.sourceQuality === "exact"),
+    ).toBe(true);
     expect(parsed.warnings).toEqual([]);
   });
 
@@ -73,5 +83,7 @@ describe("parseResumeV2FromSourceMap", () => {
     expect(parsed.profile.contact.name).toBe("Jake Ryan");
     expect(diagnostic.missingRootSourceSpans).toEqual([]);
     expect(diagnostic.missingBulletSourceSpans).toEqual([]);
+    expect(diagnostic.partialRootSourceSpans).toEqual([]);
+    expect(diagnostic.partialBulletSourceSpans).toEqual([]);
   });
 });

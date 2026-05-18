@@ -16,7 +16,9 @@ import type {
   ParsedResumeV2Result,
   ParsedSkillV2,
   SourceLine,
+  SourceQuality,
 } from "./types";
+import { sourceQualityForSpanIds } from "./source-spans";
 
 type SectionName =
   | "contact"
@@ -118,6 +120,7 @@ function sliceSection(
 }
 
 function parseContact(
+  sourceMap: DocumentSourceMap,
   lines: SourceLine[],
   firstSectionIndex: number,
 ): ParsedResumeV2Result["profile"]["contact"] {
@@ -126,6 +129,7 @@ function parseContact(
     .filter((line) => line.text);
   const text = contactLines.map((line) => line.text).join("\n");
   const { contact } = extractContact(text);
+  const sourceSpanIds = contactLines.map((line) => line.id);
   return {
     name: contact.name,
     email: contact.email,
@@ -135,7 +139,8 @@ function parseContact(
     github: contact.github,
     website: contact.website,
     confidence: contact.confidence,
-    sourceSpanIds: contactLines.map((line) => line.id),
+    sourceSpanIds,
+    sourceQuality: sourceQualityForSpanIds(sourceMap, sourceSpanIds),
   };
 }
 
@@ -167,7 +172,17 @@ function parseEducationDegreeAndField(line: string): {
   return parseDegreeAndField(normalized);
 }
 
-function parseEducation(lines: SourceLine[]): ParsedEducationV2[] {
+function sourceQuality(
+  sourceMap: DocumentSourceMap,
+  sourceSpanIds: string[],
+): SourceQuality {
+  return sourceQualityForSpanIds(sourceMap, sourceSpanIds);
+}
+
+function parseEducation(
+  sourceMap: DocumentSourceMap,
+  lines: SourceLine[],
+): ParsedEducationV2[] {
   const education: ParsedEducationV2[] = [];
   for (let i = 0; i < lines.length; i += 1) {
     const schoolLine = lines[i];
@@ -193,13 +208,17 @@ function parseEducation(lines: SourceLine[]): ParsedEducationV2[] {
       endDate: end,
       highlights: [],
       sourceSpanIds,
+      sourceQuality: sourceQuality(sourceMap, sourceSpanIds),
     });
     i += 1;
   }
   return education;
 }
 
-function parseExperiences(lines: SourceLine[]): ParsedExperienceV2[] {
+function parseExperiences(
+  sourceMap: DocumentSourceMap,
+  lines: SourceLine[],
+): ParsedExperienceV2[] {
   const experiences: ParsedExperienceV2[] = [];
   let current: ParsedExperienceV2 | null = null;
 
@@ -219,7 +238,11 @@ function parseExperiences(lines: SourceLine[]): ParsedExperienceV2[] {
     if (/^[•●○◦■▪▸→✓\-–—*]\s*/.test(line.text)) {
       const bullet = textWithoutBullet(line.text);
       if (current && bullet) {
-        current.highlights.push({ text: bullet, sourceSpanIds: [line.id] });
+        current.highlights.push({
+          text: bullet,
+          sourceSpanIds: [line.id],
+          sourceQuality: sourceQuality(sourceMap, [line.id]),
+        });
       }
       continue;
     }
@@ -253,6 +276,7 @@ function parseExperiences(lines: SourceLine[]): ParsedExperienceV2[] {
       highlights: [],
       skills: [],
       sourceSpanIds,
+      sourceQuality: sourceQuality(sourceMap, sourceSpanIds),
     };
     if (companyLine && !hasDateRange(companyLine.text)) i += 1;
   }
@@ -268,7 +292,10 @@ function splitTechnologies(value: string): string[] {
     .filter(Boolean);
 }
 
-function parseProjects(lines: SourceLine[]): ParsedProjectV2[] {
+function parseProjects(
+  sourceMap: DocumentSourceMap,
+  lines: SourceLine[],
+): ParsedProjectV2[] {
   const projects: ParsedProjectV2[] = [];
   let current: ParsedProjectV2 | null = null;
 
@@ -286,7 +313,11 @@ function parseProjects(lines: SourceLine[]): ParsedProjectV2[] {
     if (/^[•●○◦■▪▸→✓\-–—*]\s*/.test(line.text)) {
       const bullet = textWithoutBullet(line.text);
       if (current && bullet) {
-        current.highlights.push({ text: bullet, sourceSpanIds: [line.id] });
+        current.highlights.push({
+          text: bullet,
+          sourceSpanIds: [line.id],
+          sourceQuality: sourceQuality(sourceMap, [line.id]),
+        });
       }
       continue;
     }
@@ -309,6 +340,7 @@ function parseProjects(lines: SourceLine[]): ParsedProjectV2[] {
       startDate: start,
       endDate: end,
       sourceSpanIds: [line.id],
+      sourceQuality: sourceQuality(sourceMap, [line.id]),
     };
   }
 
@@ -316,7 +348,10 @@ function parseProjects(lines: SourceLine[]): ParsedProjectV2[] {
   return projects;
 }
 
-function parseSkills(lines: SourceLine[]): ParsedSkillV2[] {
+function parseSkills(
+  sourceMap: DocumentSourceMap,
+  lines: SourceLine[],
+): ParsedSkillV2[] {
   const skillText = lines
     .map((line) => {
       const text = normalizeText(line.text);
@@ -333,6 +368,7 @@ function parseSkills(lines: SourceLine[]): ParsedSkillV2[] {
       name: skill.name,
       category: skill.category,
       sourceSpanIds,
+      sourceQuality: sourceQuality(sourceMap, sourceSpanIds),
     };
   });
 }
@@ -354,15 +390,23 @@ export function parseResumeV2FromSourceMap(
   const indexes = sectionLineMap(lines);
   const firstSectionIndex = Math.min(...indexes.values());
   const contact = parseContact(
+    sourceMap,
     lines,
     Number.isFinite(firstSectionIndex) ? firstSectionIndex : lines.length,
   );
-  const education = parseEducation(sliceSection(lines, indexes, "education"));
+  const education = parseEducation(
+    sourceMap,
+    sliceSection(lines, indexes, "education"),
+  );
   const experiences = parseExperiences(
+    sourceMap,
     sliceSection(lines, indexes, "experience"),
   );
-  const projects = parseProjects(sliceSection(lines, indexes, "projects"));
-  const skills = parseSkills(sliceSection(lines, indexes, "skills"));
+  const projects = parseProjects(
+    sourceMap,
+    sliceSection(lines, indexes, "projects"),
+  );
+  const skills = parseSkills(sourceMap, sliceSection(lines, indexes, "skills"));
   const profile = {
     contact,
     experiences,

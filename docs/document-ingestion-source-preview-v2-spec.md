@@ -756,6 +756,9 @@ Known gaps before this branch should merge:
   - Southwestern field includes `Computer Science, Minor in Business`.
   - source-map reconstructed lines show visual column separation, for example
     `Southwestern University | Georgetown, TX`.
+- Add a source-span resolver for parser-v2 diagnostics and preview-v2 wiring.
+- Add `sourceQuality` (`exact`, `partial`, `missing`) to parser-v2 roots and
+  bullets.
 - Run focused parser/source-map tests and `pnpm --dir apps/web type-check`.
 
 Next implementation slices:
@@ -765,7 +768,9 @@ Next implementation slices:
    parser-v2 diagnostics and future preview-v2 wiring.
 3. Add source quality classification (`exact`, `partial`, `missing`) for
    parser-v2 roots and bullets.
-4. Only after the parser/source-map core is stable, add persistence for
+4. Add parser-v2 fixtures beyond `syzfjbzwjncs.pdf` before generalizing
+   heuristics.
+5. Only after the parser/source-map core is stable, add persistence for
    `document_artifacts` and `document_parse_runs`.
-5. Keep `/api/upload` and `/api/parse` route migration out of this branch until
+6. Keep `/api/upload` and `/api/parse` route migration out of this branch until
    persistence is reviewed separately.
