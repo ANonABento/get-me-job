@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  deriveHeaderSearchNeedles,
   deriveSearchNeedle,
   deriveSearchNeedles,
+  findSourceLinksForBboxes,
   findPositionsForText,
   isJunkItem,
   type PdfPositionItem,
@@ -480,5 +482,68 @@ describe("deriveSearchNeedles", () => {
         company: "Acme",
       }),
     ).toBe("Engineer Acme");
+  });
+});
+
+describe("deriveHeaderSearchNeedles", () => {
+  it("keeps project header candidates separate from long descriptions", () => {
+    expect(
+      deriveHeaderSearchNeedles("project", {
+        name: "Portfolio",
+        description: "Built a full-stack portfolio with analytics",
+      }),
+    ).toEqual(["Portfolio"]);
+  });
+});
+
+describe("findSourceLinksForBboxes", () => {
+  it("associates PDF link annotations with the matching source line", () => {
+    const items = [
+      item("Portfolio", { x0: 72, x1: 130, y0: 100, y1: 112 }),
+      item("React", { x0: 150, x1: 190, y0: 100, y1: 112 }),
+      item("Other line", { x0: 72, x1: 130, y0: 140, y1: 152 }),
+    ];
+    const links = findSourceLinksForBboxes(
+      [
+        {
+          url: "https://example.com/portfolio",
+          page: 1,
+          x0: 128,
+          y0: 100,
+          x1: 146,
+          y1: 112,
+        },
+      ],
+      items,
+      [[1, 72, 100, 190, 112]],
+    );
+
+    expect(links).toEqual([
+      {
+        url: "https://example.com/portfolio",
+        text: "Portfolio React",
+        page: 1,
+        bbox: [1, 128, 100, 146, 112],
+      },
+    ]);
+  });
+
+  it("does not attach link annotations from unrelated lines", () => {
+    const links = findSourceLinksForBboxes(
+      [
+        {
+          url: "https://example.com/unrelated",
+          page: 1,
+          x0: 72,
+          y0: 180,
+          x1: 120,
+          y1: 192,
+        },
+      ],
+      [item("Portfolio", { x0: 72, x1: 130, y0: 100, y1: 112 })],
+      [[1, 72, 100, 130, 112]],
+    );
+
+    expect(links).toEqual([]);
   });
 });

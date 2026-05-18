@@ -603,6 +603,7 @@ export const customTemplates = sqliteTable(
     id: text("id").primaryKey(),
     userId: text("user_id").notNull().default(DEFAULT_USER_ID),
     name: text("name").notNull(),
+    description: text("description"),
     sourceDocumentId: text("source_document_id"),
     sourceFilename: text("source_filename"),
     sourceType: text("source_type"),
@@ -634,6 +635,9 @@ export const profileBank = sqliteTable(
     // PF.2 — positional metadata for the review-modal document preview.
     sourcePage: integer("source_page"),
     sourceBbox: text("source_bbox"),
+    sourceOrder: integer("source_order"),
+    sourceHeaderBbox: text("source_header_bbox"),
+    sourceLinks: text("source_links"),
     confidenceScore: real("confidence_score").default(0.8),
     createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
   },

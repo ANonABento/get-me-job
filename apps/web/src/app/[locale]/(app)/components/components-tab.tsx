@@ -85,6 +85,11 @@ import { useToast } from "@/components/ui/toast";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import { uploadSuccessMessage } from "./utils";
 import {
+  compareReviewSourceOrder,
+  getReviewPreviewBboxes,
+  getReviewSourceState,
+} from "./upload-review-source-metadata";
+import {
   BANK_GRID_GAP_PX,
   ESTIMATED_CARD_HEIGHT_BANK,
   MIN_BANK_COLUMN_WIDTH_PX,
@@ -203,31 +208,8 @@ function getEntryLabel(entry: BankEntry): string {
   return name || "Component";
 }
 
-function getPdfOrderKey(entry: BankEntry): number {
-  if (Array.isArray(entry.sourceBbox) && entry.sourceBbox.length > 0) {
-    let page = Infinity;
-    let y = Infinity;
-    let x = Infinity;
-    for (const [bboxPage, x0, y0] of entry.sourceBbox) {
-      if (bboxPage < page || (bboxPage === page && y0 < y)) {
-        page = bboxPage;
-        y = y0;
-        x = x0;
-      } else if (bboxPage === page && y0 === y && x0 < x) {
-        x = x0;
-      }
-    }
-    return page * 1_000_000 + y * 1_000 + x;
-  }
-
-  const order = Number(entry.content.sourceOrder ?? entry.content.order);
-  if (Number.isFinite(order)) return 10_000_000 + order;
-
-  return 20_000_000 + toEpoch(entry.createdAt);
-}
-
 function sortByPdfOrder(a: BankEntry, b: BankEntry): number {
-  const orderDelta = getPdfOrderKey(a) - getPdfOrderKey(b);
+  const orderDelta = compareReviewSourceOrder(a, b);
   if (orderDelta !== 0) return orderDelta;
   return a.id.localeCompare(b.id);
 }
@@ -1181,7 +1163,7 @@ export function BankComponentsTab({
                 filename: uploadData.document?.filename || file.name,
                 mimeType: uploadData.document?.mimeType || file.type,
                 entryCount: reviewEntries.length,
-                importedAt: new Date().toISOString(),
+                importedAt: nowIso(),
               }),
             );
           } catch {
@@ -2864,18 +2846,20 @@ function UploadReviewEntries({
   const previewHighlights = useMemo<HighlightInput[]>(
     () =>
       entries
-        .filter(
-          (
+        .map((entry) => {
+          const bboxes = getReviewPreviewBboxes(
             entry,
-          ): entry is BankEntry & {
-            sourceBbox: NonNullable<BankEntry["sourceBbox"]>;
-          } => Array.isArray(entry.sourceBbox) && entry.sourceBbox.length > 0,
-        )
-        .map((entry) => ({
-          entryId: entry.id,
-          category: entry.category,
-          bboxes: entry.sourceBbox,
-        })),
+            isReviewRootEntry(entry),
+          );
+          return bboxes
+            ? {
+                entryId: entry.id,
+                category: entry.category,
+                bboxes,
+              }
+            : null;
+        })
+        .filter((highlight): highlight is HighlightInput => highlight !== null),
     [entries],
   );
 
@@ -3097,6 +3081,10 @@ function UploadReviewEntries({
           const duplicates = existingKeys.get(reviewDuplicateKey(entry)) ?? [];
           const warnings = getReviewWarnings(entry, children, duplicates);
           const reviewReason = getBulletReviewReason(entry, entries);
+          const sourceState = getReviewSourceState(
+            entry,
+            isReviewRootEntry(entry),
+          );
           return (
             <button
               key={entry.id}
@@ -3127,6 +3115,7 @@ function UploadReviewEntries({
                 {reviewReason ? (
                   <span className="text-warning">{reviewReason}</span>
                 ) : null}
+                <span>{sourceState}</span>
                 <span>{Math.round((entry.confidenceScore ?? 0) * 100)}%</span>
                 {warnings.length > 0 ? (
                   <span className="text-warning">
@@ -3145,7 +3134,7 @@ function UploadReviewEntries({
     <div
       className={cn(
         "grid h-full min-h-0 grid-cols-1",
-        // lg+ — 3-pane (or 2-pane when no PDF). Components | Document | Review.
+        // lg+ — 3-pane (or 2-pane when no source preview). Components | Document | Review.
         // On <lg the same DOM tree stacks vertically — components and document
         // get capped vertical bands so the review pane below stays usable.
         documentTabAvailable
@@ -3185,8 +3174,10 @@ function UploadReviewEntries({
                   {getEntryLabel(selectedEntry)}
                 </h3>
                 {documentTabAvailable &&
-                Array.isArray(selectedEntry.sourceBbox) &&
-                selectedEntry.sourceBbox.length > 0 ? (
+                getReviewPreviewBboxes(
+                  selectedEntry,
+                  isReviewRootEntry(selectedEntry),
+                ) ? (
                   <button
                     type="button"
                     onClick={() => handleViewInDocument(selectedEntry.id)}

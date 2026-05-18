@@ -18,6 +18,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { parseToDate } from "@/lib/format/time";
 import { isSlothingLocalStorageKey, STORAGE_KEYS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import {
@@ -143,7 +144,7 @@ export function TweaksPanel() {
 
   useEffect(() => {
     if (!isDevelopment || !devToolsEnabled || !fakeDate) return;
-    const fakeTime = new Date(`${fakeDate}T12:00:00`).getTime();
+    const fakeTime = parseToDate(`${fakeDate}T12:00:00`)?.getTime() ?? NaN;
     if (Number.isNaN(fakeTime)) return;
 
     originalDateRef.current ??= window.Date;

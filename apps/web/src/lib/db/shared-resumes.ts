@@ -1,5 +1,6 @@
 import { randomBytes } from "crypto";
 import db from "./legacy";
+import { nowEpoch } from "@/lib/format/time";
 
 /**
  * View-only resume share links.
@@ -118,7 +119,7 @@ export interface CreateShareInput {
 export function createShare(input: CreateShareInput): SharedResume {
   ensureSharedResumesSchema();
 
-  const now = input.now ?? Date.now();
+  const now = input.now ?? nowEpoch();
   const ttl = input.ttlMs ?? DEFAULT_SHARE_TTL_MS;
   if (ttl <= 0) {
     throw new Error("Share TTL must be positive");
@@ -160,7 +161,7 @@ export function createShare(input: CreateShareInput): SharedResume {
  */
 export function getShareByToken(
   token: string,
-  now: number = Date.now(),
+  now: number = nowEpoch(),
 ): SharedResume | null {
   ensureSharedResumesSchema();
 
@@ -176,7 +177,7 @@ export function getShareByToken(
 
 export function incrementViewCount(
   token: string,
-  now: number = Date.now(),
+  now: number = nowEpoch(),
 ): number {
   ensureSharedResumesSchema();
   const result = db

@@ -34,6 +34,9 @@ interface EntryReport {
   candidates: string[];
   bestCandidateIndex: number | null;
   diagnostic: MatchDiagnostic | null;
+  sourceOrder?: number;
+  sourceHeaderBbox?: unknown;
+  sourceLinks?: unknown;
 }
 
 export async function GET(
@@ -79,6 +82,9 @@ export async function GET(
         candidates: [],
         bestCandidateIndex: null,
         diagnostic: null,
+        sourceOrder: entry.sourceOrder,
+        sourceHeaderBbox: entry.sourceHeaderBbox,
+        sourceLinks: entry.sourceLinks,
       };
     }
     let winningIndex: number | null = null;
@@ -102,6 +108,9 @@ export async function GET(
       candidates,
       bestCandidateIndex: winningIndex,
       diagnostic: winningDiagnostic,
+      sourceOrder: entry.sourceOrder,
+      sourceHeaderBbox: entry.sourceHeaderBbox,
+      sourceLinks: entry.sourceLinks,
     };
   });
 
@@ -111,6 +120,7 @@ export async function GET(
     documentId,
     pageCount: positions.pageDimensions.length,
     itemCount: positions.items.length,
+    linkCount: positions.links.length,
     totalEntries: reports.length,
     matched,
     missed: reports.length - matched,

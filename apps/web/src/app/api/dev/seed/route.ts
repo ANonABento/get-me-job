@@ -7,6 +7,7 @@ import { insertBankEntries } from "@/lib/db/profile-bank";
 import { getDb } from "@/lib/db";
 import { runDevCleanSlate } from "@/lib/dev/clean-slate";
 import { generateId } from "@/lib/utils";
+import { addDays, formatIsoDateOnly, nowIso } from "@/lib/format/time";
 import type { InsertBankEntry } from "@/lib/db/profile-bank";
 import type { JobDescription } from "@/types";
 
@@ -416,15 +417,13 @@ function seedAtsScans(userId: string, jobs: JobDescription[]): number {
           ],
         },
       }),
-      new Date().toISOString(),
+      nowIso(),
     );
   return 1;
 }
 
 function daysFromNow(days: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
+  return formatIsoDateOnly(addDays(nowIso(), days));
 }
 
 function daysAgo(days: number): string {

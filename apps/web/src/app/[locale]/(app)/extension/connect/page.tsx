@@ -7,6 +7,7 @@ import { CenteredPagePanel } from "@/components/ui/page-layout";
 import { Link } from "@/i18n/navigation";
 import { isNextAuthConfiguredOnClient } from "@/lib/auth-client";
 import { parseDeviceName } from "@/lib/extension/device-name";
+import { nowEpoch } from "@/lib/format/time";
 import { CheckCircle, Loader2, Chrome, AlertCircle } from "lucide-react";
 
 type ConnectStatus = "loading" | "connecting" | "success" | "error";
@@ -34,8 +35,8 @@ async function waitForLocalStoragePickup(
   timeoutMs = 10_000,
   intervalMs = 250,
 ): Promise<boolean> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
+  const deadline = nowEpoch() + timeoutMs;
+  while (nowEpoch() < deadline) {
     if (!localStorage.getItem(EXTENSION_TOKEN_STORAGE_KEY)) return true;
     await sleep(intervalMs);
   }

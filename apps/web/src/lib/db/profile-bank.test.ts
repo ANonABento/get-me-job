@@ -26,6 +26,7 @@ import {
   findDuplicateEntry,
   getDeduplicationKey,
   updateBankEntry,
+  updateBankEntryPositions,
   deleteBankEntry,
   getSourceDocuments,
   deleteSourceDocument,
@@ -65,6 +66,9 @@ describe("Profile Bank DB Functions", () => {
         "experience",
         0,
         null,
+        null,
+        null,
+        null,
         0.9,
       );
     });
@@ -90,6 +94,9 @@ describe("Profile Bank DB Functions", () => {
         null,
         "skill",
         0,
+        null,
+        null,
+        null,
         null,
         0.8,
       );
@@ -129,6 +136,55 @@ describe("Profile Bank DB Functions", () => {
         "experience",
         2,
         "experience",
+        null,
+        null,
+        null,
+        0.8,
+      );
+    });
+
+    it("persists source preview citation metadata", () => {
+      const mockRun = vi.fn();
+      (db.prepare as Mock).mockReturnValue({ run: mockRun });
+
+      insertBankEntry(
+        {
+          category: "project",
+          content: { name: "Portfolio" },
+          sourceOrder: 7,
+          sourceHeaderBbox: [[1, 72, 120, 180, 132]],
+          sourceLinks: [
+            {
+              url: "https://example.com",
+              text: "Portfolio",
+              page: 1,
+              bbox: [1, 180, 120, 220, 132],
+            },
+          ],
+        },
+        TEST_USER_ID,
+      );
+
+      expect(mockRun).toHaveBeenCalledWith(
+        "test-id",
+        TEST_USER_ID,
+        "project",
+        JSON.stringify({ name: "Portfolio" }),
+        null,
+        null,
+        "project",
+        0,
+        null,
+        7,
+        JSON.stringify([[1, 72, 120, 180, 132]]),
+        JSON.stringify([
+          {
+            url: "https://example.com",
+            text: "Portfolio",
+            page: 1,
+            bbox: [1, 180, 120, 220, 132],
+          },
+        ]),
         0.8,
       );
     });
@@ -162,6 +218,12 @@ describe("Profile Bank DB Functions", () => {
           category: "skill",
           content: '{"name":"React"}',
           source_document_id: "doc-1",
+          source_order: 4,
+          source_bbox: JSON.stringify([[2, 10, 20, 30, 40]]),
+          source_header_bbox: JSON.stringify([[2, 10, 20, 30, 28]]),
+          source_links: JSON.stringify([
+            { url: "https://example.com", page: 2 },
+          ]),
           confidence_score: 0.9,
           created_at: "2024-01-15T10:00:00.000Z",
         },
@@ -179,10 +241,42 @@ describe("Profile Bank DB Functions", () => {
           category: "skill",
           content: { name: "React" },
           sourceDocumentId: "doc-1",
+          sourcePage: undefined,
+          sourceBbox: [[2, 10, 20, 30, 40]],
+          sourceOrder: 4,
+          sourceHeaderBbox: [[2, 10, 20, 30, 28]],
+          sourceLinks: [{ url: "https://example.com", page: 2 }],
           confidenceScore: 0.9,
           createdAt: "2024-01-15T10:00:00.000Z",
         },
       ]);
+    });
+
+    it("maps legacy rows without source preview citation metadata", () => {
+      const mockRows = [
+        {
+          id: "entry-legacy",
+          user_id: TEST_USER_ID,
+          category: "skill",
+          content: '{"name":"React"}',
+          source_document_id: null,
+          confidence_score: 0.9,
+          created_at: "2024-01-15T10:00:00.000Z",
+        },
+      ];
+      (db.prepare as Mock).mockReturnValue({
+        all: vi.fn().mockReturnValue(mockRows),
+      });
+
+      const result = getBankEntries(TEST_USER_ID);
+
+      expect(result[0]).toMatchObject({
+        id: "entry-legacy",
+        sourceBbox: undefined,
+        sourceOrder: undefined,
+        sourceHeaderBbox: undefined,
+        sourceLinks: undefined,
+      });
     });
 
     it("hydrates hierarchy metadata from first-class columns", () => {
@@ -498,6 +592,68 @@ describe("Profile Bank DB Functions", () => {
       expect(deleted).toBe(true);
       expect(childRun).toHaveBeenCalledWith("user-123", "parent-1", "parent-1");
       expect(parentRun).toHaveBeenCalledWith("parent-1", "user-123");
+    });
+  });
+
+  describe("updateBankEntryPositions", () => {
+    it("updates legacy source bbox fields and additive citation metadata", () => {
+      const mockRun = vi.fn();
+      (db.prepare as Mock).mockReturnValue({ run: mockRun });
+
+      updateBankEntryPositions("entry-1", "user-123", {
+        page: 2,
+        bboxes: [[2, 10, 20, 30, 40]],
+        sourceOrder: 5,
+        headerBboxes: [[2, 10, 20, 30, 28]],
+        sourceLinks: [
+          {
+            url: "https://example.com",
+            text: "Portfolio",
+            page: 2,
+            bbox: [2, 30, 20, 60, 28],
+          },
+        ],
+      });
+
+      expect(mockRun).toHaveBeenCalledWith(
+        2,
+        JSON.stringify([[2, 10, 20, 30, 40]]),
+        5,
+        JSON.stringify([[2, 10, 20, 30, 28]]),
+        JSON.stringify([
+          {
+            url: "https://example.com",
+            text: "Portfolio",
+            page: 2,
+            bbox: [2, 30, 20, 60, 28],
+          },
+        ]),
+        "fuzzy",
+        "entry-1",
+        "user-123",
+      );
+    });
+
+    it("preserves existing additive metadata when only sourceBbox is updated", () => {
+      const mockRun = vi.fn();
+      (db.prepare as Mock).mockReturnValue({ run: mockRun });
+
+      updateBankEntryPositions("entry-1", "user-123", {
+        page: 1,
+        bboxes: [[1, 1, 2, 3, 4]],
+        matchMethod: "fuzzy",
+      });
+
+      expect(mockRun).toHaveBeenCalledWith(
+        1,
+        JSON.stringify([[1, 1, 2, 3, 4]]),
+        null,
+        null,
+        null,
+        "fuzzy",
+        "entry-1",
+        "user-123",
+      );
     });
   });
 

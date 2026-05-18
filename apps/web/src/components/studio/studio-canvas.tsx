@@ -26,6 +26,10 @@ export function StudioCanvas({
     () => deriveStats({ content, html }),
     [content, html],
   );
+  const formattedWords = useMemo(
+    () => new Intl.NumberFormat().format(words),
+    [words],
+  );
 
   return (
     <div className="flex h-full flex-col">
@@ -85,7 +89,7 @@ export function StudioCanvas({
         }}
       >
         <span className="font-mono uppercase tracking-[0.14em]">
-          {pages} page{pages === 1 ? "" : "s"} · {words.toLocaleString()} word
+          {pages} page{pages === 1 ? "" : "s"} · {formattedWords} word
           {words === 1 ? "" : "s"}
         </span>
         <span className="font-mono uppercase tracking-[0.14em]">
