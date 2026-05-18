@@ -107,12 +107,14 @@ export function DeepSection({
     <section
       id={id}
       className={cn(
-        "scroll-mt-[84px] py-[60px] md:py-[100px]",
+        "scroll-mt-[84px] py-[64px] md:py-[112px]",
         alt && "bg-page-2",
         className,
       )}
     >
-      <div className="mx-auto w-full max-w-wrap px-5 md:px-10">{children}</div>
+      <div className="mx-auto w-full max-w-[1480px] px-5 md:px-10">
+        {children}
+      </div>
     </section>
   );
 }
@@ -120,16 +122,19 @@ export function DeepSection({
 /** Two-column deep-section grid. `reverse` swaps copy/visual order at md+. */
 export function DeepGrid({
   reverse = false,
+  className,
   children,
 }: {
   reverse?: boolean;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
     <div
       className={cn(
-        "grid gap-10 md:grid-cols-2 md:gap-20",
+        "grid items-center gap-10 lg:grid-cols-[minmax(320px,0.72fr)_minmax(0,1.28fr)] lg:gap-16",
         reverse && "md:[&>*:first-child]:order-2",
+        className,
       )}
     >
       {children}

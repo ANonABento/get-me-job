@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowRight, X } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight } from "lucide-react";
 import { DeepSection, HighlighterEm, MonoCap } from "./primitives";
 
 /* ───────────────── Logo strip — "Scrapes from" marquee ─────────────────
@@ -28,9 +29,9 @@ export function LogoStrip() {
   const doubled = [...SCRAPED_BOARDS, ...SCRAPED_BOARDS];
   return (
     <section className="overflow-hidden border-y border-rule bg-page-2 py-7">
-      <div className="mx-auto flex max-w-wrap items-center gap-7 px-8">
+      <div className="mx-auto flex max-w-[1480px] items-center gap-7 px-5 md:px-10">
         <span className="flex-shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3">
-          Scrapes from
+          Works where jobs live
         </span>
         {/* Mask the edges so items fade in/out as they enter/leave. */}
         <div
@@ -91,178 +92,131 @@ export function LogoStrip() {
 /* ───────────────── Problem compare — Before / After ─────────────────
  *
  * The setup beat: "Job hunting wasn't supposed to need fifteen tabs."
- * Two cards on desktop, stacked on mobile. Left card = chaos (scattered
- * tab-stack visual). Right card = unified (slim queue mock). Sits
- * between the hero/logo-strip and the feature deep dives so the rest
- * of the landing has emotional context.
+ * Wide, app-like bridge from scattered job-search work into a Slothing
+ * workspace. This intentionally sets up the product flow before the
+ * feature deep dives.
  */
-const MESSY_TABS = [
-  { label: "linkedin.com/jobs", x: 0, y: 0, rot: -3 },
-  { label: "resume-final-v7.docx", x: 80, y: 14, rot: 2 },
-  { label: "notion · roles tracker", x: 18, y: 34, rot: -1 },
-  { label: "workday — page 3 of 5", x: 130, y: 48, rot: 4 },
-  { label: "gmail · recruiter thread", x: 60, y: 64, rot: -2 },
-  { label: "chatgpt — cover-letter draft", x: 160, y: 80, rot: 1 },
+const BEFORE_ROWS = [
+  ["Resume_v7_final.docx", "Where did the Figma bullet go?"],
+  ["Spreadsheet tracker", "Two roles are missing follow-up dates"],
+  ["Chat draft", "Cover letter tone does not match the resume"],
+  ["Workday form", "Typing the same answer again"],
+] as const;
+
+const AFTER_ROWS = [
+  ["Knowledge Bank", "Stories, projects, metrics, and saved answers"],
+  ["Review queue", "Imported jobs wait for a quick yes/no"],
+  ["Studio", "Tailored resume and cover letter share the same evidence"],
+  ["Interview prep", "Practice prompts use the role and your own stories"],
 ] as const;
 
 export function ProblemCompare() {
   return (
-    <DeepSection alt>
-      <div className="mx-auto mb-12 max-w-3xl text-center">
-        <MonoCap>The problem</MonoCap>
-        <h2 className="mt-4 font-display text-section-h2 text-ink">
-          Job hunting wasn&rsquo;t supposed to need{" "}
-          <HighlighterEm>fifteen tabs</HighlighterEm>.
-        </h2>
-        <p className="mt-4 text-[17px] leading-relaxed text-ink-2">
-          Your career deserves one calm workspace, not a browser full of
-          half-saved drafts.
-        </p>
-      </div>
-
-      <div className="grid items-stretch gap-4 md:grid-cols-[1fr_56px_1fr]">
-        {/* BEFORE — tab storm */}
-        <article className="flex flex-col rounded-xl border border-rule bg-paper p-7 opacity-[0.92]">
-          <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-ink-3">
-            <span className="mr-1.5 text-destructive" aria-hidden>
-              ✕
-            </span>
-            Before · the tab storm
-          </span>
-          <h3 className="mt-4 font-display text-[22px] font-bold tracking-tight text-ink">
-            Everywhere at once
-          </h3>
-          <p className="mt-3 flex-1 text-[14px] leading-6 text-ink-2">
-            Eight tabs to send one application. Resumes scattered across
-            folders. The good bullet — somewhere in a 2022 cover letter.
+    <DeepSection alt className="border-b border-rule">
+      <div className="grid gap-10 lg:grid-cols-[0.66fr_1.34fr] lg:items-end">
+        <div className="max-w-[590px]">
+          <MonoCap>The shift</MonoCap>
+          <h2 className="mt-4 font-display text-section-h2 text-ink">
+            Turn scattered job-search work into{" "}
+            <HighlighterEm>one calm workspace</HighlighterEm>.
+          </h2>
+          <p className="mt-5 max-w-[54ch] text-lede text-ink-2">
+            Slothing keeps the moving parts connected: the role you saved, the
+            resume you tailored, the form answer you wrote, and the interview
+            story you need next.
           </p>
-
-          {/* Stack-of-tabs visual */}
-          <div className="relative mt-4 h-[110px]">
-            {MESSY_TABS.map((tab, idx) => (
-              <span
-                key={tab.label}
-                className="absolute inline-flex h-[26px] items-center gap-1.5 rounded-md border border-rule bg-page px-2.5 font-mono text-[11px] text-ink-3 shadow-paper-card"
-                style={{
-                  left: `${tab.x}px`,
-                  top: `${tab.y}px`,
-                  transform: `rotate(${tab.rot}deg)`,
-                  zIndex: idx + 1,
-                }}
-              >
-                <span
-                  className="h-1.5 w-1.5 rounded-full bg-ink-3/60"
-                  aria-hidden
-                />
-                {tab.label}
-              </span>
-            ))}
-          </div>
-        </article>
-
-        {/* Arrow */}
-        <div className="flex items-center justify-center text-ink-3 md:rotate-0">
-          <ArrowRight className="hidden h-6 w-12 md:block" aria-hidden="true" />
-          <ArrowRight
-            className="block h-6 w-12 rotate-90 md:hidden"
-            aria-hidden="true"
-          />
         </div>
 
-        {/* AFTER — unified */}
-        <article className="flex flex-col rounded-xl border border-rule bg-paper p-7">
-          <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-ink-3">
-            <span className="mr-1.5 text-brand" aria-hidden>
-              ✓
-            </span>
-            After · one workspace
-          </span>
-          <h3 className="mt-4 font-display text-[22px] font-bold tracking-tight text-ink">
-            Everything in one place
-          </h3>
-          <p className="mt-3 flex-1 text-[14px] leading-6 text-ink-2">
-            One queue for roles, one bank for stories, one editor for tailored
-            docs. Your career, in one calm tab.
-          </p>
+        <div className="relative">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,0.86fr)_56px_minmax(0,1.14fr)]">
+            <WorkflowPanel
+              label="Before"
+              title="Pieces drift apart"
+              rows={BEFORE_ROWS}
+              muted
+            />
 
-          {/* Mini unified queue mock */}
-          <div className="mt-4 overflow-hidden rounded-xl border border-rule bg-page">
-            <div className="flex items-center gap-1.5 border-b border-rule px-3 py-2 font-mono text-[11px] text-ink-3">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand" aria-hidden />
-              slothing · job queue
+            <div className="flex items-center justify-center text-ink-3">
+              <ArrowRight
+                className="hidden h-6 w-12 lg:block"
+                aria-hidden="true"
+              />
+              <ArrowRight
+                className="block h-6 w-12 rotate-90 lg:hidden"
+                aria-hidden="true"
+              />
             </div>
-            <div className="divide-y divide-rule">
-              {[
-                {
-                  initial: "L",
-                  name: "Senior Engineer",
-                  co: "Linear",
-                  status: "Applied",
-                  tone: "applied",
-                },
-                {
-                  initial: "▲",
-                  name: "Backend",
-                  co: "Vercel",
-                  status: "Interview",
-                  tone: "interview",
-                },
-                {
-                  initial: "F",
-                  name: "Design Eng",
-                  co: "Figma",
-                  status: "To apply",
-                  tone: "apply",
-                },
-              ].map((row) => (
-                <div
-                  key={`${row.name}-${row.co}`}
-                  className="flex items-center gap-2.5 px-3 py-2 text-[12px]"
-                >
-                  <span
-                    className="grid h-5 w-5 place-items-center rounded-sm border border-rule bg-paper font-bold text-brand-dark"
-                    aria-hidden
-                  >
-                    {row.initial}
-                  </span>
-                  <span className="flex-1 text-ink-2">
-                    <span className="font-medium text-ink">{row.name}</span>
-                    <span className="text-ink-3"> · {row.co}</span>
-                  </span>
-                  <CompareStatusPill tone={row.tone as Tone}>
-                    {row.status}
-                  </CompareStatusPill>
-                </div>
-              ))}
-            </div>
+
+            <WorkflowPanel
+              label="After"
+              title="The work stays linked"
+              rows={AFTER_ROWS}
+            />
           </div>
-        </article>
+
+          <div className="pointer-events-none absolute -bottom-16 right-5 hidden h-44 w-36 lg:block">
+            <Image
+              src="/brand/sloths/slothing-mascot-hero.png"
+              alt=""
+              fill
+              className="object-contain object-bottom drop-shadow-[0_20px_30px_rgba(80,60,30,0.16)]"
+              sizes="144px"
+            />
+          </div>
+        </div>
       </div>
     </DeepSection>
   );
 }
 
-type Tone = "apply" | "applied" | "interview";
-
-function CompareStatusPill({
-  tone,
-  children,
+function WorkflowPanel({
+  label,
+  title,
+  rows,
+  muted = false,
 }: {
-  tone: Tone;
-  children: React.ReactNode;
+  label: string;
+  title: string;
+  rows: readonly (readonly [string, string])[];
+  muted?: boolean;
 }) {
-  const cls =
-    tone === "apply"
-      ? "bg-brand-soft text-brand-dark"
-      : tone === "applied"
-        ? "bg-[var(--stage-applied-bg)] text-[var(--stage-applied-fg)]"
-        : "bg-[var(--stage-interview-bg)] text-[var(--stage-interview-fg)]";
   return (
-    <span
-      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wide ${cls}`}
+    <article
+      className={`overflow-hidden rounded-xl border border-rule bg-paper shadow-paper-card ${
+        muted ? "opacity-85" : ""
+      }`}
     >
-      {children}
-    </span>
+      <div className="flex items-center justify-between border-b border-rule px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span
+            className={`h-2 w-2 rounded-full ${muted ? "bg-ink-3/50" : "bg-brand"}`}
+            aria-hidden
+          />
+          <MonoCap>{label}</MonoCap>
+        </div>
+        {!muted ? (
+          <span className="rounded-sm bg-brand-soft px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-brand-dark">
+            synced
+          </span>
+        ) : null}
+      </div>
+      <div className="p-5">
+        <h3 className="font-display text-[24px] font-bold leading-tight text-ink">
+          {title}
+        </h3>
+        <div className="mt-5 divide-y divide-rule rounded-lg border border-rule bg-page">
+          {rows.map(([name, detail]) => (
+            <div
+              key={name}
+              className="grid gap-1 px-4 py-3 sm:grid-cols-[150px_1fr]"
+            >
+              <span className="text-[13px] font-semibold text-ink">{name}</span>
+              <span className="text-[13px] leading-5 text-ink-3">{detail}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </article>
   );
 }
 

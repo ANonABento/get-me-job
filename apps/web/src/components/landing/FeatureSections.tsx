@@ -1,3 +1,5 @@
+import Image from "next/image";
+import { CheckCircle2, CircleDot, FileText, Mic2, Search } from "lucide-react";
 import {
   DashList,
   DeepEyebrow,
@@ -7,165 +9,249 @@ import {
   MonoCap,
 } from "./primitives";
 
+function FeatureNarrative({
+  number,
+  label,
+  title,
+  children,
+  bullets,
+}: {
+  number: string;
+  label: string;
+  title: React.ReactNode;
+  children: React.ReactNode;
+  bullets: string[];
+}) {
+  return (
+    <div className="flex max-w-[620px] flex-col gap-5">
+      <DeepEyebrow number={number} label={label} />
+      <h2 className="font-display text-section-h2 text-ink">{title}</h2>
+      <p className="max-w-[56ch] text-lede text-ink-2">{children}</p>
+      <DashList items={bullets} />
+    </div>
+  );
+}
+
+function AppSurface({
+  eyebrow,
+  title,
+  children,
+  mascot = false,
+}: {
+  eyebrow: string;
+  title: string;
+  children: React.ReactNode;
+  mascot?: boolean;
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-rule bg-paper shadow-paper-elevated">
+      <div className="flex items-center justify-between gap-3 border-b border-rule px-4 py-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-brand-soft" />
+          <span className="h-2.5 w-2.5 rounded-full bg-brand-soft" />
+          <span className="h-2.5 w-2.5 rounded-full bg-brand-soft" />
+          <MonoCap className="ml-2 truncate">{eyebrow}</MonoCap>
+        </div>
+        <span className="hidden rounded-sm bg-page px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3 sm:inline">
+          {title}
+        </span>
+      </div>
+      <div className="relative p-4 md:p-6">{children}</div>
+      {mascot ? (
+        <div className="pointer-events-none absolute -bottom-11 -right-3 h-40 w-32 opacity-95 md:h-52 md:w-40">
+          <Image
+            src="/brand/sloths/slothing-mascot-hero.png"
+            alt=""
+            fill
+            className="object-contain object-bottom drop-shadow-[0_20px_30px_rgba(80,60,30,0.16)]"
+            sizes="160px"
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function MiniPill({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-1 text-[11.5px] font-medium text-brand-dark">
+      <CheckCircle2 className="h-3 w-3" aria-hidden />
+      {children}
+    </span>
+  );
+}
+
 /* ───────────────── 01 · Knowledge Bank ───────────────── */
 export function KnowledgeBankSection() {
   return (
     <DeepSection id="feat-bank">
       <DeepGrid>
-        <div className="flex flex-col gap-5">
-          <DeepEyebrow number="01" label="Knowledge Bank" />
-          <h2 className="max-w-[14ch] font-display text-section-h2 text-ink">
-            Every story you&rsquo;ve <HighlighterEm>ever told</HighlighterEm>,
-            in one place.
-          </h2>
-          <p className="max-w-[50ch] text-lede text-ink-2">
-            Drop in a resume or paste an essay and Slothing extracts the
-            evidence — projects, impact, leadership moments, skills — into a
-            knowledge bank you can remix for any application.
-          </p>
-          <DashList
-            items={[
-              "Extracts STAR stories and quantified impact",
-              "Tags by role family, skill, and seniority",
-              "Reuses across resumes, cover letters, and interview prep",
-            ]}
-          />
-        </div>
+        <FeatureNarrative
+          number="01"
+          label="Knowledge Bank"
+          title={
+            <>
+              Save the evidence once, then use it{" "}
+              <HighlighterEm>everywhere</HighlighterEm>.
+            </>
+          }
+          bullets={[
+            "Extracts projects, metrics, skills, and STAR stories from resumes and notes",
+            "Keeps source context so generated drafts stay grounded",
+            "Reuses the same bank across resumes, cover letters, forms, and prep",
+          ]}
+        >
+          Slothing starts by turning your scattered career material into a
+          searchable bank. Every later feature pulls from that same source, so
+          the story stays consistent from the first saved job to the final
+          interview.
+        </FeatureNarrative>
 
-        <div className="rounded-xl border border-rule bg-paper p-6 shadow-paper-card">
-          <div className="rounded-lg border border-rule bg-page p-4">
-            <MonoCap>Resume_v3.pdf</MonoCap>
-            <div className="mt-2 font-display text-[18px] font-bold text-ink">
-              Maya Chen — Senior PM
+        <AppSurface eyebrow="knowledge bank" title="Resume parsed">
+          <div className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
+            <div className="rounded-lg border border-rule bg-page p-4">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-brand" aria-hidden />
+                <MonoCap>source document</MonoCap>
+              </div>
+              <h3 className="mt-3 font-display text-[24px] font-bold leading-tight text-ink">
+                Maya Chen - senior product manager
+              </h3>
+              <div className="mt-4 space-y-2 text-[13px] leading-5 text-ink-3">
+                <p className="rounded-md bg-brand-soft px-3 py-2 text-ink-2">
+                  Led billing platform launch from 0 to 1, reaching $4.2M ARR in
+                  year one.
+                </p>
+                <p className="px-3 py-2">
+                  Managed roadmap tradeoffs across product, design, and
+                  engineering.
+                </p>
+                <p className="rounded-md bg-brand-soft px-3 py-2 text-ink-2">
+                  Mentored six PMs through two reorganizations while maintaining
+                  team delivery pace.
+                </p>
+              </div>
             </div>
-            <div className="mt-2 space-y-1.5 text-[12.5px] text-ink-3">
-              <div className="rounded-sm bg-brand-soft px-2 py-1 text-ink-2">
-                Led 0→1 launch for billing platform — $4.2M ARR yr 1
+
+            <div className="rounded-lg border border-rule bg-page">
+              <div className="grid grid-cols-[1fr_92px_92px] border-b border-rule px-4 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3">
+                <span>extracted item</span>
+                <span>type</span>
+                <span>reuse</span>
               </div>
-              <div className="px-2 py-1">Standard line of resume copy here</div>
-              <div className="rounded-sm bg-brand-soft px-2 py-1 text-ink-2">
-                Mentored 6 PMs across two re-orgs
-              </div>
-              <div className="px-2 py-1">Another standard line</div>
+              {[
+                ["Billing platform launch, $4.2M ARR", "impact", "resume"],
+                ["Roadmap pushback with prototype evidence", "story", "prep"],
+                ["Mentored six PMs to senior scope", "lead", "forms"],
+                ["Payment rails architecture decisions", "skill", "cover"],
+              ].map(([item, type, reuse]) => (
+                <div
+                  key={item}
+                  className="grid grid-cols-[1fr_92px_92px] items-center border-b border-rule px-4 py-3 last:border-0"
+                >
+                  <span className="text-[13px] font-medium text-ink">
+                    {item}
+                  </span>
+                  <span className="font-mono text-[11px] text-ink-3">
+                    {type}
+                  </span>
+                  <span className="rounded-sm bg-paper px-2 py-1 text-center font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">
+                    {reuse}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
-
-          <div className="mt-5 grid gap-2">
-            {[
-              ["Architecture decisions on payment rails", "arch"],
-              ["38% retention lift through onboarding", "impact"],
-              ["Shipped ML eval harness in 6 weeks", "ml"],
-              ["Mentored 6 PMs to senior", "lead"],
-              ["Maintains 3 OSS libraries", "oss"],
-            ].map(([text, tag]) => (
-              <div
-                key={tag}
-                className="flex items-center gap-3 rounded-full border border-rule bg-page px-3 py-2 text-[13px] text-ink-2"
-              >
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand" />
-                <span className="flex-1">{text}</span>
-                <MonoCap className="text-[10px]">{tag}</MonoCap>
-              </div>
-            ))}
-          </div>
-        </div>
+        </AppSurface>
       </DeepGrid>
     </DeepSection>
   );
 }
 
-/* ───────────────── 02 · Browser scraper (alt band) ───────────────── */
+/* ───────────────── 02 · Browser scraper ───────────────── */
 export function ExtensionSection() {
   return (
     <DeepSection id="feat-scrape" alt>
       <DeepGrid reverse>
-        <div className="rounded-xl border border-rule bg-paper p-6 shadow-paper-card">
-          <div className="flex items-center gap-2 border-b border-rule pb-3">
-            <span className="h-3 w-3 rounded-full bg-brand-soft" />
-            <span className="h-3 w-3 rounded-full bg-brand-soft" />
-            <span className="h-3 w-3 rounded-full bg-brand-soft" />
-          </div>
-          <div className="mt-3 flex items-center gap-2 rounded-md border border-rule bg-page px-3 py-2 text-[12px] text-ink-3">
-            <span>🔒</span>
-            <span className="flex-1 truncate">
-              linkedin.com/jobs/search?keywords=design+engineer
-            </span>
-            <MonoCap className="text-[10px]">v0.4</MonoCap>
-          </div>
+        <AppSurface eyebrow="browser extension" title="Review before tracking">
+          <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+            <div className="rounded-lg border border-rule bg-page p-4">
+              <div className="flex items-center gap-2 rounded-md border border-rule bg-paper px-3 py-2 text-[12px] text-ink-3">
+                <Search className="h-3.5 w-3.5 text-brand" aria-hidden />
+                <span className="min-w-0 flex-1 truncate">
+                  linkedin.com/jobs/search?keywords=design+engineer
+                </span>
+              </div>
+              <div className="mt-4 rounded-lg bg-brand-soft p-4">
+                <MonoCap className="text-brand-dark">detected page</MonoCap>
+                <p className="mt-2 text-[14px] font-medium leading-6 text-ink">
+                  47 listings found. Slothing can import the page into review
+                  without adding noise to your tracked list.
+                </p>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <MiniPill>LinkedIn</MiniPill>
+                <MiniPill>Greenhouse</MiniPill>
+                <MiniPill>Lever</MiniPill>
+                <MiniPill>Workday</MiniPill>
+              </div>
+            </div>
 
-          <div className="mt-4 flex items-center gap-2 rounded-md bg-brand-soft px-3 py-2 text-[13px] text-ink-2">
-            <span>✓</span>
-            <span className="flex-1">
-              <strong>Detected:</strong> LinkedIn · 47 listings on this page
-            </span>
-            <span className="rounded-full bg-paper px-2 py-0.5 font-mono text-[10px] uppercase text-ink-3">
-              scraping
-            </span>
-          </div>
-
-          <ul className="mt-4 space-y-2 text-[13px]">
-            {[
-              [
-                "Linear",
-                "Design Engineer · Remote",
-                "✓ Imported",
-                "text-ink-3",
-              ],
-              [
-                "Notion",
-                "Senior Product Designer · NYC",
-                "Importing…",
-                "text-ink",
-              ],
-              ["Figma", "Brand Designer · SF", "✓ Imported", "text-ink-3"],
-              ["Vercel", "Product Engineer · Remote", "Queued", "text-ink-3"],
-              ["Stripe", "Design Engineer · Remote", "Queued", "text-ink-3"],
-            ].map(([co, role, status, color]) => (
-              <li
-                key={co}
-                className="flex items-center justify-between gap-3 border-b border-rule pb-2 last:border-0"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-page text-[11px] font-semibold text-ink-2">
-                    {(co as string)[0]}
-                  </span>
-                  <div>
-                    <div className="text-ink">{co}</div>
-                    <div className="text-[12px] text-ink-3">{role}</div>
+            <div className="overflow-hidden rounded-lg border border-rule bg-page">
+              <div className="grid grid-cols-[1fr_92px_96px] border-b border-rule px-4 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3">
+                <span>review queue</span>
+                <span>match</span>
+                <span>action</span>
+              </div>
+              {[
+                ["Linear", "Design engineer - remote", 92, "track"],
+                ["Notion", "Senior product designer - NYC", 81, "review"],
+                ["Figma", "UX engineer - San Francisco", 95, "track"],
+                ["Stripe", "Product engineer - remote", 76, "skip"],
+              ].map(([company, role, match, action]) => (
+                <div
+                  key={company}
+                  className="grid grid-cols-[1fr_92px_96px] items-center border-b border-rule px-4 py-3 last:border-0"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-[13px] font-semibold text-ink">
+                      {company}
+                    </div>
+                    <div className="truncate text-[12px] text-ink-3">
+                      {role}
+                    </div>
                   </div>
+                  <span className="font-mono text-[12px] text-ink-2">
+                    {match}%
+                  </span>
+                  <span className="rounded-sm bg-paper px-2 py-1 text-center font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">
+                    {action}
+                  </span>
                 </div>
-                <span className={`text-[12.5px] ${color}`}>{status}</span>
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-4 flex items-center justify-between text-[12px] text-ink-3">
-            <MonoCap>3 / 47 imported</MonoCap>
-            <span className="rounded-md border border-rule bg-page px-2 py-1 font-mono">
-              ⌘ ⇧ I to import current page
-            </span>
+              ))}
+            </div>
           </div>
-        </div>
+        </AppSurface>
 
-        <div className="flex flex-col gap-5">
-          <DeepEyebrow number="02" label="Browser scraper" />
-          <h2 className="max-w-[14ch] font-display text-section-h2 text-ink">
-            One keystroke from <HighlighterEm>job board</HighlighterEm> to your
-            pipeline.
-          </h2>
-          <p className="max-w-[50ch] text-lede text-ink-2">
-            The Slothing browser extension reads any listing on LinkedIn,
-            Greenhouse, Workday, or Lever and drops it straight into your review
-            queue — with role, company, comp, and full JD captured.
-          </p>
-          <DashList
-            items={[
-              "Works on the 5 biggest ATS platforms out of the box",
-              "Imports listing pages in bulk with one keystroke",
-              "Routes through review before hitting your tracked list",
-            ]}
-          />
-        </div>
+        <FeatureNarrative
+          number="02"
+          label="Browser scraper"
+          title={
+            <>
+              Capture a listing without breaking your{" "}
+              <HighlighterEm>flow</HighlighterEm>.
+            </>
+          }
+          bullets={[
+            "Imports single listings or job-search pages from common boards",
+            "Routes everything through review before it joins the pipeline",
+            "Keeps the full description attached to the role for later tailoring",
+          ]}
+        >
+          The extension turns job boards into an intake layer. Save the roles
+          worth considering, skip the obvious misses, and let Slothing carry the
+          description forward into scoring, tailoring, and prep.
+        </FeatureNarrative>
       </DeepGrid>
     </DeepSection>
   );
@@ -176,201 +262,196 @@ export function ATSMatchSection() {
   return (
     <DeepSection id="feat-ats">
       <DeepGrid>
-        <div className="flex flex-col gap-5">
-          <DeepEyebrow number="03" label="ATS match" />
-          <h2 className="max-w-[14ch] font-display text-section-h2 text-ink">
-            See exactly why a resume{" "}
-            <HighlighterEm>does or doesn&rsquo;t</HighlighterEm> match.
-          </h2>
-          <p className="max-w-[50ch] text-lede text-ink-2">
-            Paste a JD, get a per-keyword breakdown, seniority fit, and the one
-            swap that pushes your match score over 90.
-          </p>
-          <DashList
-            items={[
-              "Keyword coverage, weighted by recency and impact",
-              "Seniority + tenure fit with confidence band",
-              "One-click suggested swaps to lift your score",
-            ]}
-          />
-        </div>
+        <FeatureNarrative
+          number="03"
+          label="ATS match"
+          title={
+            <>
+              Know what to change before you{" "}
+              <HighlighterEm>apply</HighlighterEm>.
+            </>
+          }
+          bullets={[
+            "Shows covered, weak, and missing requirements in one workbench",
+            "Weights evidence by recency, impact, and role fit",
+            "Suggests edits using material already in your Knowledge Bank",
+          ]}
+        >
+          Slothing does not stop at a score. It shows why the resume matches,
+          where the job description is underrepresented, and which saved story
+          is the best next edit.
+        </FeatureNarrative>
 
-        <div className="rounded-xl border border-rule bg-paper p-6 shadow-paper-card">
-          <div className="flex items-center justify-between border-b border-rule pb-3">
-            <MonoCap>figma-design-engineer.md · 2 min ago</MonoCap>
-          </div>
-
-          <div className="mt-5 flex items-center justify-between gap-6">
-            <div>
-              <div className="text-[14px] text-ink-2">Design Engineer</div>
-              <div className="font-display text-[20px] font-bold text-ink">
-                Figma · Remote
-              </div>
-            </div>
-            <div className="relative h-24 w-24">
-              <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="44"
-                  fill="none"
-                  stroke="var(--rule)"
-                  strokeWidth="8"
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="44"
-                  fill="none"
-                  stroke="var(--brand)"
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                  strokeDasharray={`${0.95 * 2 * Math.PI * 44} ${2 * Math.PI * 44}`}
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-display text-[22px] font-bold text-ink">
-                  95
-                </span>
-                <MonoCap className="text-[9px]">% MATCH</MonoCap>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-5">
-            <div className="mb-2 flex items-center justify-between text-[12.5px] text-ink-3">
-              <span>Keyword coverage</span>
-              <span>88%</span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-page">
-              <div
-                className="h-full rounded-full bg-brand"
-                style={{ width: "88%" }}
-              />
-            </div>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {["React", "TypeScript", "Design systems", "Figma", "CSS"].map(
-                (k) => (
-                  <span
-                    key={k}
-                    className="rounded-full bg-brand-soft px-2.5 py-0.5 text-[11.5px] text-ink-2"
-                  >
-                    ✓ {k}
+        <AppSurface eyebrow="match workbench" title="Figma design engineer">
+          <div className="grid gap-5 xl:grid-cols-[220px_1fr]">
+            <div className="rounded-lg border border-rule bg-page p-5 text-center">
+              <MonoCap>resume match</MonoCap>
+              <div className="relative mx-auto mt-5 h-32 w-32">
+                <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="43"
+                    fill="none"
+                    stroke="var(--rule)"
+                    strokeWidth="9"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="43"
+                    fill="none"
+                    stroke="var(--brand)"
+                    strokeWidth="9"
+                    strokeLinecap="round"
+                    strokeDasharray={`${0.92 * 2 * Math.PI * 43} ${2 * Math.PI * 43}`}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="font-display text-[34px] font-bold text-ink">
+                    92
                   </span>
-                ),
-              )}
-              {["WebGL", "Motion"].map((k) => (
-                <span
-                  key={k}
-                  className="rounded-full border border-rule bg-page px-2.5 py-0.5 text-[11.5px] text-ink-3"
-                >
-                  × {k}
-                </span>
-              ))}
+                  <MonoCap className="text-[9px]">match</MonoCap>
+                </div>
+              </div>
+              <p className="mt-4 text-[13px] leading-5 text-ink-3">
+                Good fit. One motion-systems bullet would move this from strong
+                to ready.
+              </p>
+            </div>
+
+            <div className="grid gap-4">
+              <div className="rounded-lg border border-rule bg-page p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <MonoCap>requirement coverage</MonoCap>
+                  <span className="font-mono text-[11px] text-ink-3">
+                    18 of 21 covered
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    "React",
+                    "TypeScript",
+                    "design systems",
+                    "prototyping",
+                    "cross-functional",
+                  ].map((tag) => (
+                    <MiniPill key={tag}>{tag}</MiniPill>
+                  ))}
+                  {["WebGL", "motion systems", "plugin APIs"].map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1 rounded-full border border-rule bg-paper px-2.5 py-1 text-[11.5px] text-ink-3"
+                    >
+                      <CircleDot className="h-3 w-3" aria-hidden />
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-rule bg-page p-4">
+                <MonoCap>suggested edit</MonoCap>
+                <p className="mt-3 text-[14px] leading-6 text-ink-2">
+                  Replace a generic component maintenance bullet with the saved
+                  story about designing the prototype motion system for the
+                  launch dashboard.
+                </p>
+                <div className="mt-3 rounded-md bg-paper px-3 py-2 font-mono text-[12px] leading-5 text-ink-3">
+                  source: Knowledge Bank / project: Launch dashboard
+                </div>
+              </div>
             </div>
           </div>
-
-          <div className="mt-5 flex items-center gap-2 rounded-md bg-brand-soft p-3 text-[13px] text-ink-2">
-            <span>⚡</span>
-            <span>
-              Swap &ldquo;maintained components&rdquo; →{" "}
-              <strong>&ldquo;designed motion system&rdquo;</strong> to push to
-              98%
-            </span>
-          </div>
-        </div>
+        </AppSurface>
       </DeepGrid>
     </DeepSection>
   );
 }
 
-/* ───────────────── 04 · Form autofill (alt band) ───────────────── */
+/* ───────────────── 04 · Form autofill ───────────────── */
 export function FormAutofillSection() {
   return (
     <DeepSection id="feat-autofill" alt>
       <DeepGrid reverse>
-        <div className="relative rounded-xl border border-rule bg-paper p-6 shadow-paper-card">
-          <div className="flex items-center gap-2 border-b border-rule pb-3">
-            <span className="h-3 w-3 rounded-full bg-brand-soft" />
-            <span className="h-3 w-3 rounded-full bg-brand-soft" />
-            <span className="h-3 w-3 rounded-full bg-brand-soft" />
-          </div>
-          <div className="mt-3 mb-5 text-[12px] text-ink-3">
-            boards.greenhouse.io/apply · Figma
-          </div>
+        <AppSurface
+          eyebrow="application form"
+          title="Draft with evidence"
+          mascot
+        >
+          <div className="grid gap-4 xl:grid-cols-[1fr_310px]">
+            <div className="space-y-4 rounded-lg border border-rule bg-page p-4">
+              {[
+                ["Full name", "Maya Chen"],
+                ["Work authorization", "US citizen - no sponsorship needed"],
+                [
+                  "Why are you interested?",
+                  "Figma is one of the rare design tools where systems thinking and craft meet at scale...",
+                ],
+              ].map(([label, value], index) => (
+                <label key={label} className="block">
+                  <span className="mb-1 block text-[12.5px] text-ink-3">
+                    {label}
+                  </span>
+                  <span
+                    className={`block rounded-md border bg-paper px-3 py-2 text-[14px] leading-6 text-ink ${
+                      index === 2 ? "border-brand" : "border-rule"
+                    }`}
+                  >
+                    {value}
+                    {index === 2 ? (
+                      <span className="ml-px inline-block h-4 w-px translate-y-[3px] animate-caret-blink bg-brand" />
+                    ) : null}
+                  </span>
+                </label>
+              ))}
+            </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1 block text-[12.5px] text-ink-3">
-                Full name
-              </label>
-              <div className="rounded-md border border-rule bg-page px-3 py-2 text-[14px] text-ink">
-                Maya Chen
+            <div className="relative rounded-lg bg-inverse p-5 text-inverse-ink">
+              <MonoCap className="text-inverse-ink/60">Slothing draft</MonoCap>
+              <p className="mt-3 text-[14px] leading-6 opacity-85">
+                Pulled from your design-engineer voice preset and the billing
+                platform launch story. Review the field, then fill it.
+              </p>
+              <div className="mt-5 space-y-2 text-[12.5px]">
+                <div className="rounded-md bg-inverse-ink/10 px-3 py-2">
+                  source: Knowledge Bank
+                </div>
+                <div className="rounded-md bg-inverse-ink/10 px-3 py-2">
+                  tone: practical, concise
+                </div>
               </div>
-            </div>
-            <div>
-              <label className="mb-1 block text-[12.5px] text-ink-3">
-                Why are you interested?
-              </label>
-              <div className="rounded-md border-2 border-brand bg-page px-3 py-2 text-[14px] text-ink">
-                Figma is one of the rare design tools that ships
-                <span className="ml-px inline-block h-4 w-px translate-y-[3px] bg-brand animate-caret-blink" />
-              </div>
-            </div>
-            <div>
-              <label className="mb-1 block text-[12.5px] text-ink-3">
-                Work authorization
-              </label>
-              <div className="rounded-md border border-rule bg-page px-3 py-2 text-[14px] text-ink">
-                US citizen · No sponsorship needed
+              <div className="mt-5 flex gap-2">
+                <span className="rounded-md border border-current/20 px-3 py-1.5 text-[12px]">
+                  Edit
+                </span>
+                <span className="rounded-md bg-inverse-ink px-3 py-1.5 text-[12px] text-inverse">
+                  Fill field
+                </span>
               </div>
             </div>
           </div>
+        </AppSurface>
 
-          <div className="mt-6 rounded-lg bg-inverse p-4 text-inverse-ink">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[12.5px]">
-                <span>🦥</span>
-                <span>Slothing</span>
-              </div>
-              <span className="rounded-md bg-page/20 px-2 py-0.5 font-mono text-[10px] uppercase">
-                ⌘ ⇧ F
-              </span>
-            </div>
-            <div className="mt-2 text-[13px] opacity-80">
-              Drafted from Knowledge Bank using your design-engineer voice
-              preset
-            </div>
-            <div className="mt-3 flex items-center gap-2">
-              <button className="rounded-md border border-current/20 px-3 py-1.5 text-[12px]">
-                Skip
-              </button>
-              <button className="rounded-md bg-inverse-ink px-3 py-1.5 text-[12px] text-inverse">
-                Fill ↵
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-5">
-          <DeepEyebrow number="04" label="Form autofill" />
-          <h2 className="max-w-[14ch] font-display text-section-h2 text-ink">
-            Stop <HighlighterEm>retyping</HighlighterEm> your story into every
-            form.
-          </h2>
-          <p className="max-w-[50ch] text-lede text-ink-2">
-            Slothing reads any application form and drafts each free-response
-            field using examples from your Knowledge Bank — in your voice, with
-            evidence you already wrote down once.
-          </p>
-          <DashList
-            items={[
-              "Works inside Greenhouse, Lever, Workday, Ashby, and Slothing-native flows",
-              "Draws from voice presets you can swap per role family",
-              "Always editable before submit — never silent autosubmit",
-            ]}
-          />
-        </div>
+        <FeatureNarrative
+          number="04"
+          label="Form autofill"
+          title={
+            <>
+              Stop rewriting the same answer in every{" "}
+              <HighlighterEm>form</HighlighterEm>.
+            </>
+          }
+          bullets={[
+            "Drafts form answers from saved stories and reusable answers",
+            "Lets you inspect and edit every response before filling",
+            "Works with extension flows and Slothing-native application steps",
+          ]}
+        >
+          The autofill flow is deliberately not a black box. Slothing proposes
+          an answer, shows where it came from, and waits for you to approve the
+          field.
+        </FeatureNarrative>
       </DeepGrid>
     </DeepSection>
   );
@@ -381,59 +462,77 @@ export function InterviewPrepSection() {
   return (
     <DeepSection id="feat-interview">
       <DeepGrid>
-        <div className="flex flex-col gap-5">
-          <DeepEyebrow number="05" label="Interview prep" />
-          <h2 className="max-w-[14ch] font-display text-section-h2 text-ink">
-            Real interview prep, not <HighlighterEm>flashcards</HighlighterEm>.
-          </h2>
-          <p className="max-w-[50ch] text-lede text-ink-2">
-            Speak (or type) your answer. Slothing scores structure, specificity,
-            and tradeoff-reasoning, and points at a tighter version of the same
-            story from your bank.
-          </p>
-          <DashList
-            items={[
-              "Voice mode with on-device transcription",
-              "Per-axis scoring with specific rewrite suggestions",
-              "Tracks recurring weak spots across sessions",
-            ]}
-          />
-        </div>
+        <FeatureNarrative
+          number="05"
+          label="Interview prep"
+          title={
+            <>
+              Practice with the job and your own{" "}
+              <HighlighterEm>stories</HighlighterEm>.
+            </>
+          }
+          bullets={[
+            "Builds prompts from the target role and your resume evidence",
+            "Scores structure, specificity, and tradeoff reasoning",
+            "Turns weak answers into follow-up practice notes",
+          ]}
+        >
+          Interview prep uses the same role and bank context as the application.
+          You practice the stories you are likely to need, not random flashcard
+          prompts.
+        </FeatureNarrative>
 
-        <div className="rounded-xl border border-rule bg-paper p-6 shadow-paper-card">
-          <div className="space-y-3">
-            <div className="max-w-[80%] rounded-2xl bg-page-2 px-4 py-2.5 text-[14px] text-ink-2">
-              Tell me about a time you disagreed with your manager.
+        <AppSurface eyebrow="interview notes" title="Product sense loop">
+          <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
+            <div className="space-y-4">
+              <div className="max-w-[86%] rounded-lg bg-page-2 px-4 py-3 text-[14px] leading-6 text-ink-2">
+                Tell me about a time you disagreed with your manager.
+              </div>
+              <div className="ml-auto max-w-[88%] rounded-lg bg-ink px-4 py-3 text-[14px] leading-6 text-page">
+                The roadmap had us building a marketplace, but usage data showed
+                teams needed better eval tools. I pushed back with a three-week
+                prototype and a narrow success metric...
+              </div>
+              <div className="rounded-lg border border-rule bg-page p-4">
+                <MonoCap>suggested tighter version</MonoCap>
+                <p className="mt-3 text-[14px] leading-6 text-ink-2">
+                  Name the alternative you rejected, then quantify the eval
+                  prototype result before describing the decision.
+                </p>
+              </div>
             </div>
-            <div className="ml-auto max-w-[80%] rounded-2xl bg-ink px-4 py-2.5 text-[14px] text-page">
-              Our 2024 roadmap had us building a model marketplace, but the data
-              said most users wanted better eval tools. I pushed back with a
-              3-week prototype that we ended up shipping instead…
+
+            <div className="rounded-lg border border-rule bg-page p-4">
+              <div className="flex items-center gap-2">
+                <Mic2 className="h-4 w-4 text-brand" aria-hidden />
+                <MonoCap>feedback</MonoCap>
+              </div>
+              {[
+                ["Structure", "8.2"],
+                ["Specificity", "7.4"],
+                ["Tradeoff reasoning", "9.1"],
+              ].map(([label, score]) => (
+                <div key={label} className="mt-4">
+                  <div className="mb-1 flex items-center justify-between text-[12.5px]">
+                    <span className="text-ink-2">{label}</span>
+                    <span className="font-mono font-medium text-ink">
+                      {score}
+                    </span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-paper">
+                    <div
+                      className="h-full rounded-full bg-brand"
+                      style={{ width: `${Number(score) * 10}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+              <div className="mt-5 rounded-md bg-brand-soft px-3 py-2 text-[12.5px] leading-5 text-ink-2">
+                Next prompt: explain a tradeoff you owned end to end.
+              </div>
             </div>
           </div>
-
-          <div className="mt-5 rounded-lg border border-rule bg-page p-4">
-            <MonoCap>Feedback</MonoCap>
-            <ul className="mt-2 space-y-1.5 text-[13px]">
-              <li className="flex items-center justify-between">
-                <span className="text-ink-2">Structure</span>
-                <span className="font-mono font-medium text-ink">8.2</span>
-              </li>
-              <li className="flex items-center justify-between">
-                <span className="text-ink-2">Specificity</span>
-                <span className="font-mono font-medium text-ink">7.4</span>
-              </li>
-              <li className="flex items-center justify-between">
-                <span className="text-ink-2">Tradeoff reasoning</span>
-                <span className="font-mono font-medium text-brand">9.1</span>
-              </li>
-            </ul>
-            <p className="mt-3 italic text-[12.5px] text-ink-3">
-              &ldquo;Strong tradeoff framing — name the alternative you said no
-              to, and you&rsquo;ll land a 9 across the board.&rdquo;
-            </p>
-          </div>
-        </div>
+        </AppSurface>
       </DeepGrid>
     </DeepSection>
   );
