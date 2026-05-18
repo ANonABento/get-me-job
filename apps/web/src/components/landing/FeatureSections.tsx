@@ -1,5 +1,14 @@
 import Image from "next/image";
-import { CheckCircle2, CircleDot, FileText, Mic2, Search } from "lucide-react";
+import {
+  Building2,
+  CheckCircle2,
+  CircleDot,
+  FileText,
+  Heart,
+  Mic2,
+  Search,
+  Sparkles,
+} from "lucide-react";
 import {
   DashList,
   DeepEyebrow,
@@ -8,6 +17,8 @@ import {
   HighlighterEm,
   MonoCap,
 } from "./primitives";
+
+/* ─────────── Shared local primitives ─────────── */
 
 function FeatureNarrative({
   number,
@@ -81,7 +92,11 @@ function MiniPill({ children }: { children: React.ReactNode }) {
   );
 }
 
-/* ───────────────── 01 · Knowledge Bank ───────────────── */
+/* ─────────────────────────────────────────────────────────── */
+/* ANCHOR 01 — Knowledge Bank                                  */
+/* "Atomize your career into reusable parts."                  */
+/* ─────────────────────────────────────────────────────────── */
+
 export function KnowledgeBankSection() {
   return (
     <DeepSection id="feat-bank">
@@ -91,20 +106,18 @@ export function KnowledgeBankSection() {
           label="Knowledge Bank"
           title={
             <>
-              Save the evidence once, then use it{" "}
-              <HighlighterEm>everywhere</HighlighterEm>.
+              Upload once. Reuse <HighlighterEm>everywhere</HighlighterEm>.
             </>
           }
           bullets={[
-            "Extracts projects, metrics, skills, and STAR stories from resumes and notes",
-            "Keeps source context so generated drafts stay grounded",
-            "Reuses the same bank across resumes, cover letters, forms, and prep",
+            "Parses resumes, docs, and past applications into stories, projects, skills, and answers",
+            "Keeps source context attached, so every later draft is grounded in something you actually did",
+            "Becomes the single bank that resumes, cover letters, forms, and interview prep all draw from",
           ]}
         >
-          Slothing starts by turning your scattered career material into a
-          searchable bank. Every later feature pulls from that same source, so
-          the story stays consistent from the first saved job to the final
-          interview.
+          Your career stops being scattered across fifteen Google Docs. Slothing
+          turns it into a searchable component library — the source of truth
+          every other part of the product reads from.
         </FeatureNarrative>
 
         <AppSurface eyebrow="knowledge bank" title="Resume parsed">
@@ -115,7 +128,7 @@ export function KnowledgeBankSection() {
                 <MonoCap>source document</MonoCap>
               </div>
               <h3 className="mt-3 font-display text-[24px] font-bold leading-tight text-ink">
-                Maya Chen - senior product manager
+                Maya Chen — senior product manager
               </h3>
               <div className="mt-4 space-y-2 text-[13px] leading-5 text-ink-3">
                 <p className="rounded-md bg-brand-soft px-3 py-2 text-ink-2">
@@ -135,7 +148,7 @@ export function KnowledgeBankSection() {
 
             <div className="rounded-lg border border-rule bg-page">
               <div className="grid grid-cols-[1fr_92px_92px] border-b border-rule px-4 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3">
-                <span>extracted item</span>
+                <span>component</span>
                 <span>type</span>
                 <span>reuse</span>
               </div>
@@ -168,121 +181,163 @@ export function KnowledgeBankSection() {
   );
 }
 
-/* ───────────────── 02 · Browser scraper ───────────────── */
-export function ExtensionSection() {
-  return (
-    <DeepSection id="feat-scrape" alt>
-      <DeepGrid reverse>
-        <AppSurface eyebrow="browser extension" title="Review before tracking">
-          <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-            <div className="rounded-lg border border-rule bg-page p-4">
-              <div className="flex items-center gap-2 rounded-md border border-rule bg-paper px-3 py-2 text-[12px] text-ink-3">
-                <Search className="h-3.5 w-3.5 text-brand" aria-hidden />
-                <span className="min-w-0 flex-1 truncate">
-                  linkedin.com/jobs/search?keywords=design+engineer
-                </span>
-              </div>
-              <div className="mt-4 rounded-lg bg-brand-soft p-4">
-                <MonoCap className="text-brand-dark">detected page</MonoCap>
-                <p className="mt-2 text-[14px] font-medium leading-6 text-ink">
-                  47 listings found. Slothing can import the page into review
-                  without adding noise to your tracked list.
-                </p>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <MiniPill>LinkedIn</MiniPill>
-                <MiniPill>Greenhouse</MiniPill>
-                <MiniPill>Lever</MiniPill>
-                <MiniPill>Workday</MiniPill>
-              </div>
-            </div>
+/* ─────────────────────────────────────────────────────────── */
+/* ANCHOR 02 — Capture overnight + Tinder review queue         */
+/* "Jobs come to you. Review them on your phone."              */
+/* ─────────────────────────────────────────────────────────── */
 
-            <div className="overflow-hidden rounded-lg border border-rule bg-page">
-              <div className="grid grid-cols-[1fr_92px_96px] border-b border-rule px-4 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3">
-                <span>review queue</span>
-                <span>match</span>
-                <span>action</span>
-              </div>
-              {[
-                ["Linear", "Design engineer - remote", 92, "track"],
-                ["Notion", "Senior product designer - NYC", 81, "review"],
-                ["Figma", "UX engineer - San Francisco", 95, "track"],
-                ["Stripe", "Product engineer - remote", 76, "skip"],
-              ].map(([company, role, match, action]) => (
-                <div
-                  key={company}
-                  className="grid grid-cols-[1fr_92px_96px] items-center border-b border-rule px-4 py-3 last:border-0"
-                >
-                  <div className="min-w-0">
-                    <div className="truncate text-[13px] font-semibold text-ink">
-                      {company}
-                    </div>
-                    <div className="truncate text-[12px] text-ink-3">
-                      {role}
-                    </div>
-                  </div>
-                  <span className="font-mono text-[12px] text-ink-2">
-                    {match}%
-                  </span>
-                  <span className="rounded-sm bg-paper px-2 py-1 text-center font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">
-                    {action}
-                  </span>
-                </div>
-              ))}
-            </div>
+const QUEUE_CARDS = [
+  {
+    company: "Linear",
+    role: "Design Engineer",
+    location: "Remote · NA",
+    match: 92,
+    salary: "$170–210k",
+    tags: ["React", "Design systems", "Remote-first"],
+  },
+  {
+    company: "Notion",
+    role: "Senior Product Designer",
+    location: "NYC · Hybrid",
+    match: 81,
+    salary: "$160–195k",
+    tags: ["Prototyping", "Editor tooling"],
+  },
+  {
+    company: "Figma",
+    role: "UX Engineer",
+    location: "SF",
+    match: 95,
+    salary: "$185–225k",
+    tags: ["WebGL", "Motion", "Design systems"],
+  },
+] as const;
+
+export function CaptureAndQueueSection() {
+  return (
+    <DeepSection id="feat-capture" alt>
+      <DeepGrid reverse>
+        <div className="flex flex-col gap-6">
+          <div className="relative aspect-[16/10] w-full overflow-hidden rounded-xl border border-rule bg-page-2 shadow-paper">
+            <Image
+              src="/marketing/anchors/overnight-capture.png"
+              alt="Slothing mascot napping while job cards queue themselves from a laptop"
+              fill
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 640px"
+            />
           </div>
-        </AppSurface>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {QUEUE_CARDS.slice(0, 2).map((card) => (
+              <PhoneCard key={card.company} card={card} />
+            ))}
+          </div>
+        </div>
 
         <FeatureNarrative
           number="02"
-          label="Browser scraper"
+          label="Capture + Review"
           title={
             <>
-              Capture a listing without breaking your{" "}
-              <HighlighterEm>flow</HighlighterEm>.
+              Job hunt while you sleep.
+              <br />
+              Review on your <HighlighterEm>coffee break</HighlighterEm>.
             </>
           }
           bullets={[
-            "Imports single listings or job-search pages from common boards",
-            "Routes everything through review before it joins the pipeline",
-            "Keeps the full description attached to the role for later tailoring",
+            "Browser extension scrapes LinkedIn, Greenhouse, Lever, Workday, Indeed, Waterloo Works, and generic JSON-LD postings",
+            "Leave the agent running overnight — wake up to a normalized queue",
+            "Swipe through it on your phone over breakfast, A/B-compare like for like across sources",
           ]}
         >
-          The extension turns job boards into an intake layer. Save the roles
-          worth considering, skip the obvious misses, and let Slothing carry the
-          description forward into scoring, tailoring, and prep.
+          The hardest part of a job hunt isn&rsquo;t applying. It&rsquo;s
+          deciding what&rsquo;s worth applying to. Slothing collects roles from
+          every board, normalizes them so they read the same, and lets you
+          triage from your phone in the minutes you already have.
         </FeatureNarrative>
       </DeepGrid>
     </DeepSection>
   );
 }
 
-/* ───────────────── 03 · ATS match ───────────────── */
-export function ATSMatchSection() {
+function PhoneCard({ card }: { card: (typeof QUEUE_CARDS)[number] }) {
   return (
-    <DeepSection id="feat-ats">
+    <div className="rounded-xl border border-rule bg-paper p-4 shadow-paper-card">
+      <div className="flex items-center justify-between">
+        <div className="inline-flex items-center gap-2">
+          <span className="grid h-7 w-7 place-items-center rounded-sm border border-rule bg-page font-mono text-[11px] font-bold text-brand-dark">
+            {card.company.slice(0, 2)}
+          </span>
+          <div>
+            <div className="text-[13px] font-semibold text-ink">
+              {card.company}
+            </div>
+            <div className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-3">
+              {card.location}
+            </div>
+          </div>
+        </div>
+        <div className="font-mono text-[11px] text-ink-2">{card.match}%</div>
+      </div>
+      <div className="mt-3 font-display text-[16px] font-bold leading-tight text-ink">
+        {card.role}
+      </div>
+      <div className="mt-1 font-mono text-[11px] text-ink-3">{card.salary}</div>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {card.tags.map((tag) => (
+          <span
+            key={tag}
+            className="rounded-full bg-page px-2 py-0.5 text-[11px] text-ink-2"
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+      <div className="mt-4 flex items-center gap-2">
+        <span className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-rule bg-page text-[12px] text-ink-3">
+          Skip
+        </span>
+        <span className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md bg-brand text-[12px] font-medium text-page">
+          <Heart className="h-3.5 w-3.5" aria-hidden />
+          Save
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────── */
+/* ANCHOR 03 — Studio + ATS match                              */
+/* "Tailor without hallucination."                             */
+/* ─────────────────────────────────────────────────────────── */
+
+export function StudioSection() {
+  return (
+    <DeepSection id="feat-studio">
       <DeepGrid>
         <FeatureNarrative
           number="03"
-          label="ATS match"
+          label="Studio + ATS"
           title={
             <>
-              Know what to change before you{" "}
-              <HighlighterEm>apply</HighlighterEm>.
+              Tailored to the role.
+              <br />
+              Grounded in <HighlighterEm>your bank</HighlighterEm>.
             </>
           }
           bullets={[
-            "Shows covered, weak, and missing requirements in one workbench",
-            "Weights evidence by recency, impact, and role fit",
-            "Suggests edits using material already in your Knowledge Bank",
+            "Assembles resumes, cover letters, and portfolios from real components — every bullet traceable back to your bank",
+            "AI rewrites and net-new bullets are optional, and anything you like saves back to the bank for next time",
+            "ATS scanner shows covered, weak, and missing requirements before you submit",
           ]}
         >
-          Slothing does not stop at a score. It shows why the resume matches,
-          where the job description is underrepresented, and which saved story
-          is the best next edit.
+          Every tailored resume comes from your own words. The bank is the
+          source of truth — so generated drafts can&rsquo;t hallucinate a
+          project you never shipped or a skill you never used.
         </FeatureNarrative>
 
-        <AppSurface eyebrow="match workbench" title="Figma design engineer">
+        <AppSurface eyebrow="studio · ats match" title="Figma design engineer">
           <div className="grid gap-5 xl:grid-cols-[220px_1fr]">
             <div className="rounded-lg border border-rule bg-page p-5 text-center">
               <MonoCap>resume match</MonoCap>
@@ -315,8 +370,8 @@ export function ATSMatchSection() {
                 </div>
               </div>
               <p className="mt-4 text-[13px] leading-5 text-ink-3">
-                Good fit. One motion-systems bullet would move this from strong
-                to ready.
+                Strong fit. One motion-systems bullet would move this from
+                strong to ready.
               </p>
             </div>
 
@@ -353,12 +408,11 @@ export function ATSMatchSection() {
               <div className="rounded-lg border border-rule bg-page p-4">
                 <MonoCap>suggested edit</MonoCap>
                 <p className="mt-3 text-[14px] leading-6 text-ink-2">
-                  Replace a generic component maintenance bullet with the saved
-                  story about designing the prototype motion system for the
-                  launch dashboard.
+                  Swap the generic component-maintenance bullet for your saved
+                  story about the launch-dashboard motion system.
                 </p>
                 <div className="mt-3 rounded-md bg-paper px-3 py-2 font-mono text-[12px] leading-5 text-ink-3">
-                  source: Knowledge Bank / project: Launch dashboard
+                  source: Knowledge Bank · project: Launch dashboard
                 </div>
               </div>
             </div>
@@ -369,29 +423,47 @@ export function ATSMatchSection() {
   );
 }
 
-/* ───────────────── 04 · Form autofill ───────────────── */
-export function FormAutofillSection() {
+/* ─────────────────────────────────────────────────────────── */
+/* SUPPORTING 04 — Answer Bank (autofill memory)               */
+/* "Type each answer once. Slothing remembers the rest."       */
+/* ─────────────────────────────────────────────────────────── */
+
+export function AnswerBankSection() {
   return (
     <DeepSection id="feat-autofill" alt>
       <DeepGrid reverse>
         <AppSurface
-          eyebrow="application form"
-          title="Draft with evidence"
+          eyebrow="application form · greenhouse"
+          title="Autofilled from memory"
           mascot
         >
-          <div className="grid gap-4 xl:grid-cols-[1fr_310px]">
+          <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
             <div className="space-y-4 rounded-lg border border-rule bg-page p-4">
               {[
-                ["Full name", "Maya Chen"],
-                ["Work authorization", "US citizen - no sponsorship needed"],
+                ["Full name", "Maya Chen", "remembered"],
+                [
+                  "Work authorization",
+                  "US citizen — no sponsorship needed",
+                  "remembered",
+                ],
                 [
                   "Why are you interested?",
-                  "Figma is one of the rare design tools where systems thinking and craft meet at scale...",
+                  "Figma is one of the rare design tools where systems thinking and craft meet at scale…",
+                  "drafting",
                 ],
-              ].map(([label, value], index) => (
+              ].map(([label, value, state], index) => (
                 <label key={label} className="block">
-                  <span className="mb-1 block text-[12.5px] text-ink-3">
-                    {label}
+                  <span className="mb-1 flex items-center justify-between text-[12.5px] text-ink-3">
+                    <span>{label}</span>
+                    <span
+                      className={`rounded-sm px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] ${
+                        state === "remembered"
+                          ? "bg-brand-soft text-brand-dark"
+                          : "bg-page-2 text-ink-3"
+                      }`}
+                    >
+                      {state}
+                    </span>
                   </span>
                   <span
                     className={`block rounded-md border bg-paper px-3 py-2 text-[14px] leading-6 text-ink ${
@@ -408,14 +480,14 @@ export function FormAutofillSection() {
             </div>
 
             <div className="relative rounded-lg bg-inverse p-5 text-inverse-ink">
-              <MonoCap className="text-inverse-ink/60">Slothing draft</MonoCap>
+              <MonoCap className="text-inverse-ink/60">Memory</MonoCap>
               <p className="mt-3 text-[14px] leading-6 opacity-85">
-                Pulled from your design-engineer voice preset and the billing
-                platform launch story. Review the field, then fill it.
+                Pulled from your design-engineer voice preset and the launch
+                story you wrote three applications ago. Edit once — it learns.
               </p>
               <div className="mt-5 space-y-2 text-[12.5px]">
                 <div className="rounded-md bg-inverse-ink/10 px-3 py-2">
-                  source: Knowledge Bank
+                  source: Answer Bank · 17 saved
                 </div>
                 <div className="rounded-md bg-inverse-ink/10 px-3 py-2">
                   tone: practical, concise
@@ -435,104 +507,147 @@ export function FormAutofillSection() {
 
         <FeatureNarrative
           number="04"
-          label="Form autofill"
+          label="Answer Bank"
           title={
             <>
-              Stop rewriting the same answer in every{" "}
-              <HighlighterEm>form</HighlighterEm>.
+              Type each answer once.
+              <br />
+              Slothing <HighlighterEm>remembers the rest</HighlighterEm>.
             </>
           }
           bullets={[
-            "Drafts form answers from saved stories and reusable answers",
-            "Lets you inspect and edit every response before filling",
-            "Works with extension flows and Slothing-native application steps",
+            "The extension auto-imports your tailored resume and pre-fills every form field with one click",
+            "Persistent answer bank stores free-text replies and adapts them per role — no copy-paste, no re-typing",
+            "Every suggested answer shows its source, so you stay in control of the words that go out",
           ]}
         >
-          The autofill flow is deliberately not a black box. Slothing proposes
-          an answer, shows where it came from, and waits for you to approve the
-          field.
+          Application forms are the silent tax on a job hunt. Slothing&rsquo;s
+          answer bank turns the eleventh time you write &ldquo;why this
+          company?&rdquo; into a one-click fill — and gets better at sounding
+          like you with every edit.
         </FeatureNarrative>
       </DeepGrid>
     </DeepSection>
   );
 }
 
-/* ───────────────── 05 · Interview prep ───────────────── */
-export function InterviewPrepSection() {
+/* ─────────────────────────────────────────────────────────── */
+/* SUPPORTING 05 — Research + Interview prep                   */
+/* "When the interview lands, you're already prepared."        */
+/* ─────────────────────────────────────────────────────────── */
+
+export function InterviewResearchSection() {
   return (
     <DeepSection id="feat-interview">
       <DeepGrid>
         <FeatureNarrative
           number="05"
-          label="Interview prep"
+          label="Research + Practice"
           title={
             <>
-              Practice with the job and your own{" "}
-              <HighlighterEm>stories</HighlighterEm>.
+              When the interview lands,
+              <br />
+              you&rsquo;re <HighlighterEm>already prepared</HighlighterEm>.
             </>
           }
           bullets={[
-            "Builds prompts from the target role and your resume evidence",
-            "Scores structure, specificity, and tradeoff reasoning",
-            "Turns weak answers into follow-up practice notes",
+            "Research agents pull company, role, salary band, team, and recent news into a single dossier",
+            "Interview prep generates prompts from the actual role and your bank — not generic flashcards",
+            "Voice recording + STAR coaching grade structure, specificity, and tradeoff reasoning",
           ]}
         >
-          Interview prep uses the same role and bank context as the application.
-          You practice the stories you are likely to need, not random flashcard
-          prompts.
+          Most interview prep tools throw generic questions at you. Slothing
+          uses the same role context and the same stories you applied with, so
+          the practice rehearses the answers you&rsquo;re actually going to
+          need.
         </FeatureNarrative>
 
-        <AppSurface eyebrow="interview notes" title="Product sense loop">
-          <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
-            <div className="space-y-4">
-              <div className="max-w-[86%] rounded-lg bg-page-2 px-4 py-3 text-[14px] leading-6 text-ink-2">
-                Tell me about a time you disagreed with your manager.
-              </div>
-              <div className="ml-auto max-w-[88%] rounded-lg bg-ink px-4 py-3 text-[14px] leading-6 text-page">
-                The roadmap had us building a marketplace, but usage data showed
-                teams needed better eval tools. I pushed back with a three-week
-                prototype and a narrow success metric...
-              </div>
-              <div className="rounded-lg border border-rule bg-page p-4">
-                <MonoCap>suggested tighter version</MonoCap>
-                <p className="mt-3 text-[14px] leading-6 text-ink-2">
-                  Name the alternative you rejected, then quantify the eval
-                  prototype result before describing the decision.
-                </p>
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-rule bg-page p-4">
-              <div className="flex items-center gap-2">
-                <Mic2 className="h-4 w-4 text-brand" aria-hidden />
-                <MonoCap>feedback</MonoCap>
-              </div>
+        <div className="grid gap-4">
+          <AppSurface eyebrow="research · figma" title="Company dossier">
+            <div className="grid gap-3 md:grid-cols-2">
               {[
-                ["Structure", "8.2"],
-                ["Specificity", "7.4"],
-                ["Tradeoff reasoning", "9.1"],
-              ].map(([label, score]) => (
-                <div key={label} className="mt-4">
-                  <div className="mb-1 flex items-center justify-between text-[12.5px]">
-                    <span className="text-ink-2">{label}</span>
-                    <span className="font-mono font-medium text-ink">
-                      {score}
-                    </span>
+                {
+                  icon: Building2,
+                  label: "Company snapshot",
+                  body: "Series E. Recent multimodal AI launch. Hiring across editor + AI surface area.",
+                },
+                {
+                  icon: Sparkles,
+                  label: "Salary band",
+                  body: "$185k – $225k base + equity. Comp transparency in offer letter.",
+                },
+                {
+                  icon: Search,
+                  label: "Team you'd join",
+                  body: "Reports to Sho Kuwamoto. Six engineers, two designers. Eng-heavy.",
+                },
+                {
+                  icon: FileText,
+                  label: "Likely topics",
+                  body: "Design systems, prototyping in code, motion, plugin APIs.",
+                },
+              ].map((card) => {
+                const Icon = card.icon;
+                return (
+                  <div
+                    key={card.label}
+                    className="rounded-lg border border-rule bg-page p-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-3.5 w-3.5 text-brand" aria-hidden />
+                      <MonoCap>{card.label}</MonoCap>
+                    </div>
+                    <p className="mt-2 text-[13px] leading-5 text-ink-2">
+                      {card.body}
+                    </p>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-paper">
-                    <div
-                      className="h-full rounded-full bg-brand"
-                      style={{ width: `${Number(score) * 10}%` }}
-                    />
-                  </div>
+                );
+              })}
+            </div>
+          </AppSurface>
+
+          <AppSurface eyebrow="interview · practice" title="STAR loop">
+            <div className="grid gap-4 md:grid-cols-[1fr_220px]">
+              <div className="space-y-3">
+                <div className="max-w-[88%] rounded-lg bg-page-2 px-4 py-3 text-[13.5px] leading-6 text-ink-2">
+                  Tell me about a time you disagreed with your manager.
                 </div>
-              ))}
-              <div className="mt-5 rounded-md bg-brand-soft px-3 py-2 text-[12.5px] leading-5 text-ink-2">
-                Next prompt: explain a tradeoff you owned end to end.
+                <div className="ml-auto max-w-[88%] rounded-lg bg-ink px-4 py-3 text-[13.5px] leading-6 text-page">
+                  The roadmap had us building a marketplace, but usage data
+                  showed teams needed better eval tools. I pushed back with a
+                  three-week prototype…
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-rule bg-page p-3">
+                <div className="flex items-center gap-2">
+                  <Mic2 className="h-3.5 w-3.5 text-brand" aria-hidden />
+                  <MonoCap>feedback</MonoCap>
+                </div>
+                {[
+                  ["Structure", "8.2"],
+                  ["Specificity", "7.4"],
+                  ["Tradeoffs", "9.1"],
+                ].map(([label, score]) => (
+                  <div key={label} className="mt-3">
+                    <div className="mb-1 flex items-center justify-between text-[12.5px]">
+                      <span className="text-ink-2">{label}</span>
+                      <span className="font-mono font-medium text-ink">
+                        {score}
+                      </span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-paper">
+                      <div
+                        className="h-full rounded-full bg-brand"
+                        style={{ width: `${Number(score) * 10}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
-        </AppSurface>
+          </AppSurface>
+        </div>
       </DeepGrid>
     </DeepSection>
   );

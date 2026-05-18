@@ -57,6 +57,10 @@ import {
   PagePanel,
   StandardEmptyState,
 } from "@/components/ui/page-layout";
+import {
+  HowItWorksDiagram,
+  OnboardingEmptyState,
+} from "@/components/ui/empty-states";
 import { SkeletonButton, SkeletonCard } from "@/components/ui/skeleton";
 import { usePreferredLocale } from "@/components/format/time-ago";
 import { useErrorToast } from "@/hooks/use-error-toast";
@@ -442,6 +446,50 @@ export default function CalendarPage() {
           </Link>
         )}
 
+        {events.length === 0 && filterType === "all" ? (
+          <OnboardingEmptyState
+            icon={CalendarIcon}
+            illustrationName="calendar-empty"
+            title="Nothing scheduled yet"
+            description="Interview prep, follow-ups, deadlines, and reminders show up here once your search starts moving."
+            steps={[
+              {
+                icon: Briefcase,
+                label: "Add roles",
+                description:
+                  "Save opportunities with interview or deadline dates.",
+              },
+              {
+                icon: Bell,
+                label: "Set reminders",
+                description:
+                  "Create follow-ups and prep tasks tied to each role.",
+              },
+              {
+                icon: Rss,
+                label: "Subscribe",
+                description: "Send your Slothing feed to your calendar app.",
+              },
+            ]}
+            primaryAction={
+              <Button onClick={openCreateDialog}>
+                <Plus className="mr-2 h-4 w-4" />
+                {dialogsT("title")}
+              </Button>
+            }
+            secondaryAction={
+              <Button
+                variant="outline"
+                onClick={() => setShowSubscribeDialog(true)}
+              >
+                <Rss className="mr-2 h-4 w-4" />
+                Subscribe
+              </Button>
+            }
+            className="mb-6"
+          />
+        ) : null}
+
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Calendar Grid */}
           <Suspense fallback={<SkeletonCard className="lg:col-span-2" />}>
@@ -806,6 +854,29 @@ export default function CalendarPage() {
           </DialogHeader>
 
           <div className="space-y-6 py-4">
+            <HowItWorksDiagram
+              steps={[
+                {
+                  icon: Copy,
+                  label: "Copy feed URL",
+                  description:
+                    "Use the private link generated for your account.",
+                },
+                {
+                  icon: Rss,
+                  label: "Add subscription",
+                  description: "Paste it into Google, Apple, or Outlook.",
+                },
+                {
+                  icon: Check,
+                  label: "Stay synced",
+                  description:
+                    "Events update when your Slothing calendar changes.",
+                },
+              ]}
+              className="rounded-lg border bg-paper p-4"
+            />
+
             {/* Webcal Link */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">

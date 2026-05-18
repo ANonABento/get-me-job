@@ -16,6 +16,7 @@ import {
   Timer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { OnboardingEmptyState } from "@/components/ui/empty-states";
 import {
   Select,
   SelectContent,
@@ -105,22 +106,44 @@ export function InterviewJobSelection({
 
   if (opportunities.length === 0) {
     return (
-      <div className="rounded-lg border bg-card p-12 text-center">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-muted text-muted-foreground mb-6">
-          <MessageSquare className="h-10 w-10" />
-        </div>
-        <h2 className="text-2xl font-bold">{t("empty.title")}</h2>
-        <p className="text-muted-foreground mt-2 max-w-md mx-auto">
-          {t("empty.description")}
-        </p>
-        <Link
-          href="/opportunities"
-          className="inline-flex items-center justify-center gap-2 px-6 py-3 mt-6 rounded-xl gradient-bg text-primary-foreground font-medium hover:opacity-90 transition-opacity"
-        >
-          <Briefcase className="h-5 w-5" />
-          {t("empty.addOpportunity")}
-        </Link>
-
+      <div className="space-y-6">
+        <OnboardingEmptyState
+          icon={MessageSquare}
+          illustrationName="interview-empty"
+          title={t("empty.title")}
+          description={t("empty.description")}
+          steps={[
+            {
+              icon: Briefcase,
+              label: "Choose a role",
+              description: "Start from a saved opportunity for targeted prep.",
+            },
+            {
+              icon: MessageSquare,
+              label: "Generate questions",
+              description: "Practice behavioral and role-specific prompts.",
+            },
+            {
+              icon: Mic,
+              label: "Answer out loud",
+              description: "Get feedback and improve the next take.",
+            },
+          ]}
+          primaryAction={
+            <Button asChild>
+              <Link href="/opportunities">
+                <Briefcase className="mr-2 h-4 w-4" />
+                {t("empty.addOpportunity")}
+              </Link>
+            </Button>
+          }
+          secondaryAction={
+            <Button variant="outline" onClick={() => onStartQuickPractice()}>
+              <Plus className="mr-2 h-4 w-4" />
+              {t("actions.quickPractice")}
+            </Button>
+          }
+        />
         <div className="mt-12">
           <CategoryPracticeTiles
             pastSessions={pastSessions}

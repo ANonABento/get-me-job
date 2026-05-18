@@ -18,6 +18,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { getCurrentUserId } from "@/lib/auth";
+import {
+  getExtensionLaunchCopy,
+  getExtensionLaunchState,
+} from "@/lib/extension/install";
 import { getA11yTranslations } from "@/lib/i18n/get-a11y-translations";
 import { getLocalizedPageMetadata, getMetadataBase } from "@/lib/seo";
 import { CSP_NONCE_HEADER } from "@/lib/security/headers";
@@ -94,13 +98,14 @@ const faqs = [
 export default async function ExtensionLandingPage() {
   const userId = await getCurrentUserId();
   const a11yT = await getA11yTranslations();
+  const launchCopy = getExtensionLaunchCopy(getExtensionLaunchState());
 
   return (
     <main className="pt-24">
       <section className="mx-auto grid max-w-6xl gap-10 px-6 py-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:py-20">
         <div>
           <Badge variant="secondary" className="mb-5">
-            Slothing browser extension
+            {launchCopy.label}
           </Badge>
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
             Capture jobs from any site, instantly.
@@ -108,6 +113,9 @@ export default async function ExtensionLandingPage() {
           <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
             The Slothing browser extension turns any LinkedIn, Indeed, or
             company careers page into a one-click save.
+          </p>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
+            {launchCopy.description}
           </p>
           <div className="mt-8">
             <ExtensionInstallButtons variant="primary" />

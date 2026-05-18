@@ -3,6 +3,8 @@ import type { TailoredResume } from "@/lib/resume/generator";
 import { bankEntriesToResume } from "@/lib/resume/bank-to-resume";
 import { buildCoverLetterPreviewContent } from "@/lib/builder/cover-letter-preview-fallback";
 import type { SectionState } from "@/lib/builder/section-manager";
+import { applyAtsStrictnessToResume } from "./ats-strictness";
+import { DEFAULT_TAILOR_SETTINGS, type TailorSettings } from "./settings";
 
 /**
  * "Manual tailor" is the deterministic counterpart to the LLM-driven
@@ -34,6 +36,8 @@ export interface ManualTailorInput {
   contact?: ContactInfo;
   /** Optional summary override. Resume mode only. */
   summary?: string;
+  /** Optional tailor settings. ATS strictness applies to deterministic output. */
+  settings?: TailorSettings;
 }
 
 export interface ManualTailorResult {
@@ -80,6 +84,7 @@ const DEFAULT_CONTACT: ContactInfo = { name: "Your Name" };
 export function assembleManualTailor(
   input: ManualTailorInput,
 ): ManualTailorResult {
+  const settings = input.settings ?? DEFAULT_TAILOR_SETTINGS;
   const orderedEntries = selectAndOrderEntries(
     input.entries,
     input.selectedIds,
@@ -95,13 +100,16 @@ export function assembleManualTailor(
         : "";
 
     return {
-      resume: {
-        contact,
-        summary: body,
-        experiences: [],
-        skills: [],
-        education: [],
-      },
+      resume: applyAtsStrictnessToResume(
+        {
+          contact,
+          summary: body,
+          experiences: [],
+          skills: [],
+          education: [],
+        },
+        settings.atsStrictness,
+      ),
       orderedEntries,
     };
   }
@@ -113,10 +121,13 @@ export function assembleManualTailor(
   const base = bankEntriesToResume(orderedEntries, contact);
 
   return {
-    resume: {
-      ...base,
-      summary: input.summary ?? base.summary,
-    },
+    resume: applyAtsStrictnessToResume(
+      {
+        ...base,
+        summary: input.summary ?? base.summary,
+      },
+      settings.atsStrictness,
+    ),
     orderedEntries,
   };
 }

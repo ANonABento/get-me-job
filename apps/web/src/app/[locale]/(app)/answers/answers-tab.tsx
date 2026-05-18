@@ -29,7 +29,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ErrorState, getErrorMessage } from "@/components/ui/error-state";
-import { StandardEmptyState } from "@/components/ui/page-layout";
+import {
+  OnboardingEmptyState,
+  ZeroResultEmptyState,
+} from "@/components/ui/empty-states";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { VirtualGrid } from "@/components/ui/virtual-list";
@@ -613,23 +616,81 @@ export function BankAnswersTab({
               variant="card"
             />
           ) : filteredAnswers.length === 0 ? (
-            <StandardEmptyState
-              icon={ClipboardList}
-              title={query ? "No matching answers" : "Start your answer bank"}
-              description={
-                query
-                  ? "Try a different search term."
-                  : "Save common responses like work authorization, sponsorship, relocation, portfolio links, and repeated application questions."
-              }
-              action={
-                !query ? (
+            answers.length === 0 ? (
+              <OnboardingEmptyState
+                icon={ClipboardList}
+                illustrationName="answers-zero"
+                title="Start your answer bank"
+                description="Save common responses like work authorization, sponsorship, relocation, portfolio links, and repeated application questions."
+                steps={[
+                  {
+                    icon: ClipboardList,
+                    label: "Add a question",
+                    description:
+                      "Capture the prompt once instead of rewriting.",
+                  },
+                  {
+                    icon: CopyPlus,
+                    label: "Save your answer",
+                    description: "Keep the response polished and reusable.",
+                  },
+                  {
+                    icon: Search,
+                    label: "Reuse fast",
+                    description: "Search by topic, source, or answer type.",
+                  },
+                ]}
+                primaryAction={
                   <Button onClick={openCreateDialog}>
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="mr-2 h-4 w-4" />
                     Add Answer
                   </Button>
-                ) : null
-              }
-            />
+                }
+              />
+            ) : (
+              <ZeroResultEmptyState
+                title="No matching answers"
+                description="Try a different search term or remove the active filters."
+                filters={[
+                  ...(query
+                    ? [
+                        {
+                          label: `Search: ${query}`,
+                          onRemove: () => setQuery(""),
+                        },
+                      ]
+                    : []),
+                  ...(activeType !== "all"
+                    ? [
+                        {
+                          label: ANSWER_COMPONENT_LABELS[activeType],
+                          onRemove: () => setActiveType("all"),
+                        },
+                      ]
+                    : []),
+                  ...(activeSource !== "all"
+                    ? [
+                        {
+                          label: SOURCE_FILTER_LABELS[activeSource],
+                          onRemove: () => setActiveSource("all"),
+                        },
+                      ]
+                    : []),
+                ]}
+                action={
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setQuery("");
+                      setActiveType("all");
+                      setActiveSource("all");
+                    }}
+                  >
+                    Clear filters
+                  </Button>
+                }
+              />
+            )
           ) : (
             <div className="space-y-4">
               <AnswerGrid

@@ -52,6 +52,10 @@ export interface GetEmailSendsOptions {
   jobId?: string;
 }
 
+export interface GetFailedEmailSendsOptions {
+  limit?: number;
+}
+
 function ensureSchema(): void {
   ensureEmailSendsSchema(db);
 }
@@ -163,6 +167,69 @@ export function hasDailyDigestSentSince(
     .get(userId, sinceIso) as { id: string } | undefined;
 
   return Boolean(row);
+}
+
+export function hasDigestSentSince(
+  userId: string,
+  type: string,
+  sinceIso: string,
+): boolean {
+  ensureSchema();
+  const row = db
+    .prepare(
+      `
+      SELECT id
+      FROM email_sends
+      WHERE user_id = ? AND type = ? AND status = 'sent' AND sent_at >= ?
+      LIMIT 1
+    `,
+    )
+    .get(userId, type, sinceIso) as { id: string } | undefined;
+
+  return Boolean(row);
+}
+
+export function getFailedEmailSends(
+  options: GetFailedEmailSendsOptions = {},
+): EmailSend[] {
+  ensureSchema();
+  const limit = Math.min(Math.max(options.limit ?? 25, 1), 100);
+  const rows = db
+    .prepare(
+      `
+      SELECT id, user_id, type, job_id, recipient, subject, body,
+             in_reply_to_draft_id, gmail_message_id, status, error_message, sent_at
+      FROM email_sends
+      WHERE status = 'failed'
+      ORDER BY sent_at ASC
+      LIMIT ?
+    `,
+    )
+    .all(limit) as EmailSendRow[];
+
+  return rows.map(mapEmailSend);
+}
+
+export function markEmailSendStatus(
+  id: string,
+  userId: string,
+  status: "sent" | "failed",
+  errorMessage?: string,
+): boolean {
+  ensureSchema();
+  const result = db
+    .prepare(
+      `
+      UPDATE email_sends
+      SET status = ?, error_message = ?, sent_at = ?
+      WHERE id = ? AND user_id = ?
+    `,
+    )
+    .run(status, errorMessage || null, nowIso(), id, userId) as
+    | { changes?: number }
+    | undefined;
+
+  return (result?.changes ?? 0) > 0;
 }
 
 export function createEmailSend(

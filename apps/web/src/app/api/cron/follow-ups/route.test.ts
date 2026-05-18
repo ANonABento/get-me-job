@@ -15,6 +15,10 @@ vi.mock("@/lib/db/legacy", () => ({
   default: { prepare: mocks.prepare },
 }));
 
+vi.mock("@/lib/db/cron-runs", () => ({
+  recordCronRun: vi.fn(),
+}));
+
 vi.mock("@/lib/welcome-series/state", () => ({
   ensureWelcomeSeriesSchema: mocks.ensureWelcomeSeriesSchema,
 }));

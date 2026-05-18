@@ -3,6 +3,9 @@ import { listOpportunitiesTool } from "./list-opportunities.js";
 import { getOpportunityDetailTool } from "./get-opportunity-detail.js";
 import { searchAnswerBankTool } from "./search-answer-bank.js";
 import { saveAnswerTool } from "./save-answer.js";
+import { slothingPushJobTool } from "./slothing-push-job.js";
+import { slothingUpdateStatusTool } from "./slothing-update-status.js";
+import { slothingScrapeUrlTool } from "./slothing-scrape-url.js";
 import type { AnyToolDefinition, ToolDefinition } from "./types.js";
 
 // Each tool is type-erased to `AnyToolDefinition` for the dispatcher. The
@@ -14,6 +17,9 @@ export const allTools: ReadonlyArray<AnyToolDefinition> = [
   getOpportunityDetailTool as unknown as AnyToolDefinition,
   searchAnswerBankTool as unknown as AnyToolDefinition,
   saveAnswerTool as unknown as AnyToolDefinition,
+  slothingPushJobTool as unknown as AnyToolDefinition,
+  slothingUpdateStatusTool as unknown as AnyToolDefinition,
+  slothingScrapeUrlTool as unknown as AnyToolDefinition,
 ] as const;
 
 export {
@@ -22,5 +28,8 @@ export {
   getOpportunityDetailTool,
   searchAnswerBankTool,
   saveAnswerTool,
+  slothingPushJobTool,
+  slothingUpdateStatusTool,
+  slothingScrapeUrlTool,
 };
 export type { ToolDefinition, AnyToolDefinition };

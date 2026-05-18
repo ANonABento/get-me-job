@@ -1,8 +1,11 @@
 import { CalendarDays, Clock3, ArrowRight } from "lucide-react";
-import { getAlternateLanguages } from "@/lib/seo";
-import { Link } from "@/i18n/navigation";
+import { headers } from "next/headers";
+
+import { getAlternateLanguages, getMetadataBase } from "@/lib/seo";
+import { CSP_NONCE_HEADER } from "@/lib/security/headers";
 import { formatDateAbsolute } from "@/lib/format/time";
-import { BLOG_POSTS } from "./posts";
+import { Link } from "@/i18n/navigation";
+import { BLOG_POSTS, getBlogJsonLdBase } from "./posts";
 
 export function generateMetadata({ params }: { params: { locale: string } }) {
   return {
@@ -16,11 +19,33 @@ export function generateMetadata({ params }: { params: { locale: string } }) {
   };
 }
 
+function buildBlogListJsonLd(locale: string) {
+  const base = getMetadataBase();
+
+  const posts = BLOG_POSTS.map((post) => ({
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.description,
+    datePublished: post.publishedDate,
+    url: new URL(`/${locale}/blog/${post.slug}`, base).toString(),
+  }));
+
+  return {
+    ...getBlogJsonLdBase(),
+    mainEntity: posts,
+    itemListElement: posts,
+    numberOfItems: posts.length,
+  };
+}
+
 export default function BlogIndexPage({
   params,
 }: {
   params: { locale: string };
 }) {
+  const routeHeaders = headers();
+  const nonce = routeHeaders.get(CSP_NONCE_HEADER);
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
       <header className="space-y-4 border-b pb-10">
@@ -33,6 +58,15 @@ export default function BlogIndexPage({
           a job search workflow you control.
         </p>
       </header>
+
+      <script
+        {...(nonce ? { nonce } : {})}
+        suppressHydrationWarning
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(buildBlogListJsonLd(params.locale)),
+        }}
+      />
 
       <section className="mt-10 grid gap-6 md:grid-cols-2">
         {BLOG_POSTS.map((post) => (

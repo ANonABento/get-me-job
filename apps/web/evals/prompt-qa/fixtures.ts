@@ -32,6 +32,7 @@ function emptyBank(): GroupedBankEntries {
     skill: [],
     project: [],
     education: [],
+    paragraph: [],
     bullet: [],
     achievement: [],
     certification: [],

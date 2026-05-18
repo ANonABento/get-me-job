@@ -1,4 +1,6 @@
 import type { LLMConfig } from "@/types";
+import { getSlothingBentoRouterClient } from "@/lib/llm/bentorouter-client";
+import type { SlothingBentoTaskId } from "@/lib/llm/bentorouter-tasks";
 import {
   DEFAULT_LLM_TIMEOUT_MS,
   LLM_ENDPOINTS,
@@ -29,6 +31,7 @@ interface Message {
 
 interface CompletionOptions {
   messages: Message[];
+  task?: SlothingBentoTaskId;
   temperature?: number;
   maxTokens?: number;
   timeoutMs?: number;
@@ -66,10 +69,15 @@ export class LLMClient {
   async complete(options: CompletionOptions): Promise<string> {
     const {
       messages,
+      task,
       temperature = 0.7,
       maxTokens = 4096,
       timeoutMs,
     } = options;
+
+    if (task) {
+      return this.completeWithBentoRouter(messages, task, temperature);
+    }
 
     switch (this.config.provider) {
       case "openai":
@@ -98,8 +106,28 @@ export class LLMClient {
   async *stream(
     options: StreamCompletionOptions,
   ): AsyncGenerator<string, string, unknown> {
-    const { messages, temperature = 0.7, maxTokens = 4096, onChunk } = options;
+    const {
+      messages,
+      task,
+      temperature = 0.7,
+      maxTokens = 4096,
+      onChunk,
+    } = options;
     let fullContent = "";
+
+    if (task) {
+      for await (const chunk of getSlothingBentoRouterClient().stream({
+        task,
+        messages,
+        temperature,
+      })) {
+        if (!chunk.text) continue;
+        fullContent += chunk.text;
+        onChunk?.(chunk.text);
+        yield chunk.text;
+      }
+      return fullContent;
+    }
 
     switch (this.config.provider) {
       case "openai":
@@ -151,6 +179,26 @@ export class LLMClient {
     }
 
     return fullContent;
+  }
+
+  private async completeWithBentoRouter(
+    messages: Message[],
+    task: SlothingBentoTaskId,
+    temperature: number,
+  ): Promise<string> {
+    const result = await getSlothingBentoRouterClient().run({
+      task,
+      messages,
+      temperature,
+    });
+    if (result.status === "success" || result.status === "degraded") {
+      return result.text;
+    }
+    throw new Error(
+      result.reason
+        ? `BentoRouter request failed: ${result.reason}`
+        : "BentoRouter request failed.",
+    );
   }
 
   private async *streamOpenAI(

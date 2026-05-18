@@ -54,6 +54,7 @@ import { Button } from "@/components/ui/button";
 import { DashboardSkeleton } from "@/components/skeletons/dashboard-skeleton";
 import { SkeletonCard, SkeletonStatCard } from "@/components/ui/skeleton";
 import {
+  ADVANCED_ONBOARDING_STEPS,
   BASIC_ONBOARDING_STEPS,
   countCompletedSteps,
   getActiveStepIndex,
@@ -444,7 +445,7 @@ function NewUserDashboard({
   const a11yT = useA11yTranslations();
 
   const t = useTranslations("dashboard");
-  const steps = BASIC_ONBOARDING_STEPS;
+  const steps = [...BASIC_ONBOARDING_STEPS, ...ADVANCED_ONBOARDING_STEPS];
   const completedCount = countCompletedSteps(steps, stats);
   const activeStepIndex = getActiveStepIndex(steps, stats);
   const activeStep = steps[activeStepIndex] ?? steps[0];
@@ -667,13 +668,13 @@ function SetupStep({
           className="text-[13.5px] font-semibold leading-tight"
           style={{ color: "var(--ink)" }}
         >
-          {t(`onboarding.steps.${step.id}.title`)}
+          {step.title ?? t(`onboarding.steps.${step.id}.title`)}
         </h3>
         <p
           className="mt-0.5 text-[12px] leading-snug"
           style={{ color: "var(--ink-3)" }}
         >
-          {t(`onboarding.steps.${step.id}.description`)}
+          {step.description ?? t(`onboarding.steps.${step.id}.description`)}
         </p>
       </div>
       <span
@@ -687,7 +688,7 @@ function SetupStep({
       >
         {active
           ? t("onboarding.recommended")
-          : t(`onboarding.steps.${step.id}.actionLabel`)}
+          : (step.actionLabel ?? t(`onboarding.steps.${step.id}.actionLabel`))}
         {!active ? <ArrowRight className="h-3 w-3" aria-hidden="true" /> : null}
       </span>
     </Link>

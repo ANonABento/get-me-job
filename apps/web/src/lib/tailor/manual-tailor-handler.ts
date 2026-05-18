@@ -19,8 +19,7 @@
  * INTEGRATION — Studio sub-bar wiring (orchestrator, leave this file alone)
  * ---------------------------------------------------------------------------
  *
- * Inside the studio page (where `handleTailorManual` currently shows a
- * "Coming soon" toast), wire it like:
+ * Inside the studio page, wire it like:
  *
  * ```ts
  * import { runManualTailor } from "@/lib/tailor/manual-tailor-handler";
@@ -72,6 +71,7 @@ import { generateCoverLetterHTML } from "@/lib/builder/cover-letter-document";
 import { tailoredResumeToTipTapDocument } from "@/lib/editor/bank-to-tiptap";
 import { coverLetterTextToTipTapDocument } from "@/lib/editor/cover-letter-tiptap";
 import { assembleManualTailor } from "./manual-tailor";
+import type { TailorSettings } from "./settings";
 
 export interface RunManualTailorInput {
   entries: BankEntry[];
@@ -81,6 +81,7 @@ export interface RunManualTailorInput {
   templateId: string;
   contact?: ContactInfo;
   summary?: string;
+  settings?: TailorSettings;
 }
 
 export interface RunManualTailorResult {
@@ -100,6 +101,7 @@ export function runManualTailor(
     documentMode: input.documentMode,
     contact: input.contact,
     summary: input.summary,
+    settings: input.settings,
   });
 
   if (input.documentMode === "cover_letter") {

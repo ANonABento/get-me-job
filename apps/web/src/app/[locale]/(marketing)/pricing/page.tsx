@@ -15,6 +15,7 @@ import { headers } from "next/headers";
 
 import { Button } from "@/components/ui/button";
 import { CheckoutButton } from "@/components/billing/billing-actions";
+import { WaitlistForm } from "@/components/marketing/waitlist-form";
 import { Link } from "@/i18n/navigation";
 import { CSP_NONCE_HEADER } from "@/lib/security/headers";
 import { getLocalizedPageMetadata, getMetadataBase } from "@/lib/seo";
@@ -94,7 +95,8 @@ const tiers: readonly Tier[] = [
     cta: "Start Weekly",
     ctaAction: { kind: "checkout", plan: "pro_weekly" },
     highlighted: false,
-    ctaNote: "Stripe checkout. Requires a Slothing account — sign in first if you're new.",
+    ctaNote:
+      "Stripe checkout. Requires a Slothing account — sign in first if you're new.",
     features: [
       "Everything in Hosted Free",
       "Slothing-provided AI credits",
@@ -112,7 +114,8 @@ const tiers: readonly Tier[] = [
     cta: "Start Monthly",
     ctaAction: { kind: "checkout", plan: "pro_monthly" },
     highlighted: true,
-    ctaNote: "Stripe checkout. Requires a Slothing account — sign in first if you're new.",
+    ctaNote:
+      "Stripe checkout. Requires a Slothing account — sign in first if you're new.",
     badge: "Most popular",
     features: [
       "Everything in Weekly",
@@ -540,8 +543,8 @@ export default async function PricingPage() {
                 >
                   AGPL-3.0 on GitHub
                 </a>
-                . A small billing module for slothing.work is proprietary.
-                Audit or fork the parts that touch your data.
+                . A small billing module for slothing.work is proprietary. Audit
+                or fork the parts that touch your data.
               </p>
             </div>
             <div>
@@ -566,6 +569,24 @@ export default async function PricingPage() {
             any application. Slothing does not guarantee hiring outcomes,
             interview results, or offer decisions.
           </p>
+        </section>
+
+        <section
+          className="mt-16 grid gap-6 rounded-lg border bg-card p-6 md:grid-cols-[0.9fr_1.1fr] md:items-start"
+          aria-labelledby="waitlist-heading"
+        >
+          <div>
+            <Hourglass className="h-7 w-7 text-primary" />
+            <h2 id="waitlist-heading" className="mt-3 text-xl font-semibold">
+              Want launch updates?
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Join the waitlist for hosted availability, extension marketplace
+              listings, Google setup notes, and early launch windows. No billing
+              is required to get updates.
+            </p>
+          </div>
+          <WaitlistForm source="pricing" />
         </section>
 
         <section className="mt-16 flex flex-col items-center gap-4 rounded-lg border border-primary/30 bg-primary/5 p-8 text-center">

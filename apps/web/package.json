@@ -37,6 +37,7 @@
     "stripe:setup": "tsx scripts/stripe-setup.ts"
   },
   "dependencies": {
+    "@anonabento/bento-router": "file:../../../bento-router",
     "@auth/drizzle-adapter": "^1.11.2",
     "@libsql/client": "^0.14.0",
     "@next/env": "14.2.35",

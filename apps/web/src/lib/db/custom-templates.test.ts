@@ -12,7 +12,10 @@ vi.mock("@/lib/utils", () => ({
 }));
 
 import db from "./legacy";
-import { saveCustomTemplate } from "./custom-templates";
+import {
+  saveCustomTemplate,
+  updateCustomTemplateMetadata,
+} from "./custom-templates";
 
 const analyzedStyles = {
   styles: {
@@ -64,6 +67,7 @@ describe("Custom Template Database Functions", () => {
       null,
       null,
       null,
+      null,
       JSON.stringify(analyzedStyles),
       expect.any(String),
       expect.any(String),
@@ -84,6 +88,7 @@ describe("Custom Template Database Functions", () => {
       "test-template-id",
       "user-1",
       "Modern",
+      null,
       "doc-1",
       null,
       null,
@@ -91,6 +96,32 @@ describe("Custom Template Database Functions", () => {
       expect.any(String),
       expect.any(String),
       "doc-1",
+      "user-1",
+    );
+  });
+
+  it("should update template display metadata", () => {
+    const mockRun = vi.fn().mockReturnValue({ changes: 1 });
+    (db.prepare as Mock).mockReturnValue({ run: mockRun });
+
+    const updated = updateCustomTemplateMetadata(
+      "template-1",
+      {
+        name: "Boardroom",
+        description: "Dense executive layout",
+      },
+      "user-1",
+    );
+
+    expect(updated).toBe(true);
+    expect(db.prepare).toHaveBeenCalledWith(
+      "UPDATE custom_templates SET name = ?, description = ?, updated_at = ? WHERE id = ? AND user_id = ?",
+    );
+    expect(mockRun).toHaveBeenCalledWith(
+      "Boardroom",
+      "Dense executive layout",
+      expect.any(String),
+      "template-1",
       "user-1",
     );
   });

@@ -19,6 +19,7 @@ import {
   DEFAULT_PROMPT_CONTENT,
   type PromptVariant,
 } from "@/lib/db/prompt-variants";
+import { applyAtsStrictnessToResume } from "./ats-strictness";
 import { buildTailoredResumePrompt } from "./prompt-builders";
 import { DEFAULT_TAILOR_SETTINGS, type TailorSettings } from "./settings";
 
@@ -64,10 +65,17 @@ export async function generateFromBank(
   input: BankResumeInput,
   llmConfig: LLMConfig | null,
 ): Promise<GenerateFromBankResult> {
-  const baseResume = input.seedResume ?? generateBaseFromBank(input);
+  const settings = input.settings ?? DEFAULT_TAILOR_SETTINGS;
+  const baseResume = applyAtsStrictnessToResume(
+    input.seedResume ?? generateBaseFromBank(input),
+    settings.atsStrictness,
+  );
   if (llmConfig) {
     const activeVariant = getActivePromptVariant(input.userId);
-    const resume = await generateWithLLM(input, llmConfig, activeVariant);
+    const resume = applyAtsStrictnessToResume(
+      await generateWithLLM(input, llmConfig, activeVariant),
+      settings.atsStrictness,
+    );
     return { resume, baseResume, promptVariantId: activeVariant?.id ?? null };
   }
   return { resume: baseResume, baseResume, promptVariantId: null };

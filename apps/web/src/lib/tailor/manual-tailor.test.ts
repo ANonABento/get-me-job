@@ -219,6 +219,43 @@ describe("assembleManualTailor — resume mode", () => {
     expect(resume.contact.name).toBe("Ada Lovelace");
     expect(resume.summary).toBe("Custom summary");
   });
+
+  it("applies strict ATS formatting when settings request it", () => {
+    const entries = [
+      makeEntry({
+        id: "e1",
+        category: "experience",
+        content: {
+          company: "Acme",
+          title: "Engineer",
+          startDate: "2020",
+          endDate: "2024",
+          highlights: ["• Built dashboards — improved matching"],
+        },
+      }),
+      sampleSkill("s1", "React → UI"),
+    ];
+
+    const { resume } = assembleManualTailor({
+      entries,
+      selectedIds: new Set(["e1", "s1"]),
+      sections: allSectionsVisible,
+      documentMode: "resume",
+      settings: {
+        bulletsPerRole: { min: 1, max: 4 },
+        bulletsPerProject: { min: 0, max: 0 },
+        maxRoles: 5,
+        maxProjects: 0,
+        atsStrictness: "strict",
+        dropBulletsShorterThan: 0,
+      },
+    });
+
+    expect(resume.experiences[0].highlights).toEqual([
+      "Built dashboards - improved matching",
+    ]);
+    expect(resume.skills).toContain("React UI");
+  });
 });
 
 describe("assembleManualTailor — cover_letter mode", () => {

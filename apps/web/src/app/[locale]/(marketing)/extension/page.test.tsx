@@ -35,6 +35,10 @@ describe("ExtensionLandingPage", () => {
     expect(
       screen.getByText(/The Slothing browser extension turns/i),
     ).toBeInTheDocument();
+    expect(screen.getByText("Local install")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Store listings are not live yet/i),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Less copying, more deciding" }),
     ).toBeInTheDocument();

@@ -41,4 +41,30 @@ describe("generateResumePreviewFallbackHTML", () => {
     expect(html).toContain("Built accessible UI");
     expect(html).toContain("TypeScript");
   });
+
+  it("uses a resolved custom template when provided", () => {
+    const html = generateResumePreviewFallbackHTML(
+      [makeEntry("skill", { name: "TypeScript" })],
+      "custom-template",
+      {
+        id: "custom-template",
+        name: "Custom",
+        description: "Imported",
+        styles: {
+          fontFamily: "Arial, sans-serif",
+          fontSize: "11pt",
+          headerSize: "20pt",
+          sectionHeaderSize: "12pt",
+          lineHeight: "1.4",
+          accentColor: "#123456",
+          layout: "single-column",
+          headerStyle: "left",
+          bulletStyle: "disc",
+          sectionDivider: "line",
+        },
+      },
+    );
+
+    expect(html).toContain("#123456");
+  });
 });

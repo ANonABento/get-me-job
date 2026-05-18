@@ -30,8 +30,24 @@ describe("onboarding step registry", () => {
     );
   });
 
-  it("reserves advanced onboarding without rendering steps yet", () => {
-    expect(ADVANCED_ONBOARDING_STEPS).toEqual([]);
+  it("defines advanced onboarding steps for shipped surfaces", () => {
+    expect(ADVANCED_ONBOARDING_STEPS.map((step) => step.id)).toEqual([
+      "draft-cover-letter",
+      "practice-interview",
+      "research-salary",
+      "choose-studio-template",
+      "review-calendar",
+    ]);
+    expect(
+      ADVANCED_ONBOARDING_STEPS.every((step) => step.tier === "advanced"),
+    ).toBe(true);
+    expect(ADVANCED_ONBOARDING_STEPS.map((step) => step.href)).toEqual([
+      "/studio?mode=cover-letter",
+      "/interview",
+      "/toolkit?tab=salary",
+      "/studio",
+      "/calendar",
+    ]);
   });
 
   it("returns the first incomplete step index", () => {

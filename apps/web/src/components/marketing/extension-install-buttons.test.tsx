@@ -14,44 +14,25 @@ describe("ExtensionInstallButtons", () => {
     setUserAgent("curl/8.0");
   });
 
-  it("places the detected Chrome listing first without linking to a placeholder store page", async () => {
+  it("hides store CTAs while no marketplace listing is live", () => {
     setUserAgent(
       "Mozilla/5.0 AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36",
     );
 
-    render(<ExtensionInstallButtons variant="primary" />);
+    const { container } = render(<ExtensionInstallButtons variant="primary" />);
 
-    expect(
-      await screen.findByRole("button", {
-        name: /chrome listing coming soon/i,
-      }),
-    ).toBeDisabled();
-    expect(
-      screen.queryByRole("link", { name: /chrome/i }),
-    ).not.toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
-  it("shows Safari as a disabled coming-soon state", async () => {
-    setUserAgent(
-      "Mozilla/5.0 AppleWebKit/605.1.15 Version/17.4 Safari/605.1.15",
-    );
-
-    render(<ExtensionInstallButtons variant="primary" onlyDetected />);
-
-    expect(
-      await screen.findByRole("button", {
-        name: /safari support coming soon/i,
-      }),
-    ).toBeDisabled();
-  });
-
-  it("uses compact labels", async () => {
+  it("also hides compact detected CTAs without a live listing", () => {
     setUserAgent("Mozilla/5.0 Gecko/20100101 Firefox/124.0");
 
-    render(<ExtensionInstallButtons variant="compact" onlyDetected />);
+    const { container } = render(
+      <ExtensionInstallButtons variant="compact" onlyDetected />,
+    );
 
-    expect(
-      await screen.findByRole("button", { name: /firefox soon/i }),
-    ).toHaveClass("px-3");
+    expect(container).toBeEmptyDOMElement();
   });
 });

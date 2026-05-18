@@ -39,6 +39,8 @@ export function ExtensionInstallButtons({
   const primaryStore = primary ?? null;
   const isCompact = variant === "compact";
 
+  if (!primaryStore) return null;
+
   return (
     <div
       className={cn(
@@ -47,13 +49,11 @@ export function ExtensionInstallButtons({
         className,
       )}
     >
-      {primaryStore ? (
-        <StoreButton
-          store={primaryStore}
-          prominent={!isCompact}
-          compact={isCompact}
-        />
-      ) : null}
+      <StoreButton
+        store={primaryStore}
+        prominent={!isCompact}
+        compact={isCompact}
+      />
 
       {!onlyDetected && secondary.length > 0 ? (
         <div
@@ -109,9 +109,6 @@ function StoreButton({
         disabled
         variant={prominent ? "default" : "outline"}
         size={compact ? "sm" : "lg"}
-        // Prominent disabled (e.g. "Coming soon" Chrome anchor) keeps
-        // full opacity so it still visually anchors the hero. shadcn's
-        // default disabled:opacity-50 mutes it otherwise.
         className={cn(
           compact ? "min-w-0 px-3" : "w-full sm:w-auto",
           prominent && "disabled:opacity-100 disabled:cursor-default",

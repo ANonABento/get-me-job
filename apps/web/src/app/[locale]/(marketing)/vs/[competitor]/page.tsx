@@ -1,9 +1,11 @@
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { Check, Github, KeyRound, ShieldCheck, TimerReset } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
-import { getAlternateLanguages } from "@/lib/seo";
+import { CSP_NONCE_HEADER } from "@/lib/security/headers";
+import { getAlternateLanguages, getMetadataBase } from "@/lib/seo";
 
 const competitors = {
   teal: {
@@ -41,7 +43,7 @@ export function generateStaticParams() {
 export function generateMetadata({
   params,
 }: {
-  params: { competitor: string };
+  params: { locale: string; competitor: string };
 }) {
   const competitor =
     competitors[params.competitor as keyof typeof competitors] ?? null;
@@ -56,14 +58,76 @@ export function generateMetadata({
   };
 }
 
+function buildCompetitorSchema(
+  locale: string,
+  competitor: (typeof competitors)[keyof typeof competitors],
+) {
+  const base = getMetadataBase();
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: `How is Slothing different from ${competitor.name}?`,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: `Slothing is open source and can be self-hosted, which helps with privacy, key control, and flexible deployments.`,
+            },
+          },
+          {
+            "@type": "Question",
+            name: "What pricing model does this comparison use?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "We compare weekly-first usage plans versus monthly pricing models to keep comparisons aligned for active job seekers.",
+            },
+          },
+        ],
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: new URL(`/${locale}`, base).toString(),
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Comparison",
+            item: new URL(`/${locale}/vs`, base).toString(),
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: `Slothing vs ${competitor.name}`,
+            item: new URL(
+              `/${locale}/vs/${competitor.name.toLowerCase()}`,
+              base,
+            ).toString(),
+          },
+        ],
+      },
+    ],
+  };
+}
+
 export default function CompetitorComparisonPage({
   params,
 }: {
-  params: { competitor: string };
+  params: { locale: string; competitor: string };
 }) {
   const competitor =
     competitors[params.competitor as keyof typeof competitors] ?? null;
   if (!competitor) notFound();
+
+  const routeHeaders = headers();
+  const nonce = routeHeaders.get(CSP_NONCE_HEADER);
 
   return (
     <main className="min-h-screen bg-background">
@@ -122,6 +186,17 @@ export default function CompetitorComparisonPage({
           </div>
         </div>
       </section>
+
+      <script
+        {...(nonce ? { nonce } : {})}
+        suppressHydrationWarning
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            buildCompetitorSchema(params.locale, competitor),
+          ),
+        }}
+      />
 
       <section className="mx-auto max-w-6xl px-6 py-12">
         <div className="overflow-hidden rounded-lg border">

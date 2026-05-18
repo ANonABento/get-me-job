@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireCronAuth } from "@/lib/cron-auth";
 import db from "@/lib/db/legacy";
-import { nowEpoch } from "@/lib/format/time";
+import { recordCronRun } from "@/lib/db/cron-runs";
+import { nowEpoch, nowIso } from "@/lib/format/time";
 import { ensureWelcomeSeriesSchema } from "@/lib/welcome-series/state";
 import { processWelcomeSeriesForUser } from "@/lib/welcome-series/process";
 
@@ -17,6 +18,7 @@ export async function GET(request: NextRequest) {
   if (authError) return authError;
 
   const startedAt = nowEpoch();
+  const startedIso = nowIso();
 
   try {
     ensureWelcomeSeriesSchema();
@@ -40,22 +42,40 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const durationMs = nowEpoch() - startedAt;
+    const response = {
       ok: true,
       cron: "follow-ups",
       processed: users.length,
       sent,
       skipped,
       errors,
-      durationMs: nowEpoch() - startedAt,
+      durationMs,
+    };
+    recordCronRun({
+      cron: "follow-ups",
+      status: errors === 0 ? "success" : "failure",
+      startedAt: startedIso,
+      durationMs,
+      summary: response,
     });
+
+    return NextResponse.json(response);
   } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Welcome series cron failed";
+    recordCronRun({
+      cron: "follow-ups",
+      status: "failure",
+      startedAt: startedIso,
+      durationMs: nowEpoch() - startedAt,
+      error: message,
+    });
     console.error("Welcome series cron failed:", error);
     return NextResponse.json(
       {
         ok: false,
-        error:
-          error instanceof Error ? error.message : "Welcome series cron failed",
+        error: message,
       },
       { status: 500 },
     );

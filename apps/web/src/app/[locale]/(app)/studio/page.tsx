@@ -31,6 +31,7 @@ import { getMobilePanelClasses } from "@/lib/builder/section-manager";
 import { downloadLatex } from "@/lib/export/latex-client";
 import { createShareLink, copyShareUrl } from "@/lib/share/client";
 import { runManualTailor } from "@/lib/tailor/manual-tailor-handler";
+import { loadTailorSettings } from "@/lib/tailor/settings";
 import { cn } from "@/lib/utils";
 
 function StudioPageContent() {
@@ -128,6 +129,7 @@ function StudioPageContent() {
         sections: studio.sections,
         documentMode: studio.documentMode,
         templateId: studio.templateId,
+        settings: loadTailorSettings(),
       });
       studio.handleContentChange(result.content);
       addToast({
@@ -235,7 +237,11 @@ function StudioPageContent() {
         onOpenVersionHistory={handleOpenVersionHistory}
         editor={editor}
         templateId={studio.templateId}
+        customTemplates={studio.customTemplates}
         onTemplateSelect={studio.handleTemplateSelect}
+        onTemplatesChanged={async () => {
+          await studio.refreshCustomTemplates();
+        }}
         onTailorAi={handleTailorAi}
         onTailorManual={handleTailorManual}
         onTailorSettings={openTailorSettings}

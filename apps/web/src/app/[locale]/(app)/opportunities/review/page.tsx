@@ -6,11 +6,8 @@ import { ArrowLeft, Settings } from "lucide-react";
 import { OpportunityReviewQueue } from "@/components/opportunities/review-queue";
 import { OpportunitiesReviewSkeleton } from "@/components/skeletons/opportunities-review-skeleton";
 import { Button } from "@/components/ui/button";
-import {
-  AppPage,
-  PageContent,
-  StandardEmptyState,
-} from "@/components/ui/page-layout";
+import { AppPage, PageContent } from "@/components/ui/page-layout";
+import { PrerequisiteEmptyState } from "@/components/ui/empty-states";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import { readJsonResponse } from "@/lib/http";
 import type { SettingsResponse } from "@/types/api";
@@ -109,7 +106,7 @@ export default function OpportunityReviewPage() {
     return (
       <AppPage>
         <PageContent>
-          <StandardEmptyState
+          <PrerequisiteEmptyState
             icon={Settings}
             title={a11yT("reviewQueueDisabled")}
             description="Enable it in Settings to review pending opportunities."

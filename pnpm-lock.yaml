@@ -99,6 +99,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@anonabento/bento-router':
+        specifier: file:../../../bento-router
+        version: file:../bento-router(@types/node@20.19.40)(jiti@1.21.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
       '@auth/drizzle-adapter':
         specifier: ^1.11.2
         version: 1.11.2
@@ -399,6 +402,18 @@ packages:
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
     engines: {node: '>=10'}
+
+  '@anonabento/bento-router@file:../bento-router':
+    resolution: {directory: ../bento-router, type: directory}
+    hasBin: true
+    peerDependencies:
+      react: '>=18'
+      react-dom: '>=18'
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
 
   '@asamuzakjp/css-color@4.1.2':
     resolution: {integrity: sha512-NfBUvBaYgKIuq6E/RBLY1m0IohzNHAYyaJGuTK79Z23uNwmz2jl1mPsC5ZxCCxylinKhT1Amn5oNTlx1wN8cQg==}
@@ -2071,6 +2086,9 @@ packages:
   '@react-pdf/types@2.11.1':
     resolution: {integrity: sha512-i9xQgfaDU9QoeNnbp6rltXCWg1huEh195rpOuN8cE4BZ2FuLdQrsIcb2dhFF9aOxXf+XBA6LOSpIW051MDD/bw==}
 
+  '@rolldown/pluginutils@1.0.0-beta.27':
+    resolution: {integrity: sha512-+d0F4MKMCbeVUJwG96uQ4SgAznZNSq93I3V+9NHA4OpvqG8mRCpGdKmK8l/dl02h2CCDHwW2FqilnTyDcAnqjA==}
+
   '@rolldown/pluginutils@1.0.0-rc.3':
     resolution: {integrity: sha512-eybk3TjzzzV97Dlj5c+XrBFW57eTNhzod66y9HrBlzJ6NsCrWCp/2kaPS3K9wJmurBC0Tdw4yPjXKZqlznim3Q==}
 
@@ -2759,6 +2777,12 @@ packages:
     resolution: {integrity: sha512-lrW200hZdbfRtztbygyaq/6jP6AKE8qQN2KvPcJ+x7wiD038YtnYtZ82IMNJ69GJibV7bwL3y9FgK+5w/pYt6g==}
     cpu: [x64]
     os: [win32]
+
+  '@vitejs/plugin-react@4.7.0':
+    resolution: {integrity: sha512-gUu9hwfWvvEDBBmgtAowQCojwZmJ5mcLn3aufeCsitijs3+f2NsrPtlAWIR6OPiqljl96GVCUbLe0HyqIpVaoA==}
+    engines: {node: ^14.18.0 || >=16.0.0}
+    peerDependencies:
+      vite: ^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0
 
   '@vitejs/plugin-react@5.2.0':
     resolution: {integrity: sha512-YmKkfhOAi3wsB1PhJq5Scj3GXMn3WvtQ/JC0xoopuHoXSdmtdStOpFrYaT1kie2YgFBcIe64ROzMYRjCrYOdYw==}
@@ -5318,6 +5342,10 @@ packages:
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
 
+  react-refresh@0.17.0:
+    resolution: {integrity: sha512-z6F7K9bV85EfseRCp2bzrpyQ0Gkw1uLoCel9XBVWPg/TjRj94SkJzUTGfOa4bs7iJvBWtQG0Wq7wnI0syw3EBQ==}
+    engines: {node: '>=0.10.0'}
+
   react-refresh@0.18.0:
     resolution: {integrity: sha512-QgT5//D3jfjJb6Gsjxv0Slpj23ip+HtOpnNgnb2S5zU3CB26G/IDPGoy4RJB42wzFE46DRsstbW6tKHoKbhAxw==}
     engines: {node: '>=0.10.0'}
@@ -6404,6 +6432,27 @@ snapshots:
   '@adobe/css-tools@4.4.4': {}
 
   '@alloc/quick-lru@5.2.0': {}
+
+  '@anonabento/bento-router@file:../bento-router(@types/node@20.19.40)(jiti@1.21.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)':
+    dependencies:
+      '@vitejs/plugin-react': 4.7.0(vite@7.3.3(@types/node@20.19.40)(jiti@1.21.7)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4))
+      vite: 7.3.3(@types/node@20.19.40)(jiti@1.21.7)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+    optionalDependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - '@types/node'
+      - jiti
+      - less
+      - lightningcss
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - supports-color
+      - terser
+      - tsx
+      - yaml
 
   '@asamuzakjp/css-color@4.1.2':
     dependencies:
@@ -7828,6 +7877,8 @@ snapshots:
       '@react-pdf/primitives': 4.3.0
       '@react-pdf/stylesheet': 6.2.1
 
+  '@rolldown/pluginutils@1.0.0-beta.27': {}
+
   '@rolldown/pluginutils@1.0.0-rc.3': {}
 
   '@rollup/rollup-android-arm-eabi@4.60.3':
@@ -8470,6 +8521,18 @@ snapshots:
 
   '@unrs/resolver-binding-win32-x64-msvc@1.11.1':
     optional: true
+
+  '@vitejs/plugin-react@4.7.0(vite@7.3.3(@types/node@20.19.40)(jiti@1.21.7)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4))':
+    dependencies:
+      '@babel/core': 7.29.0
+      '@babel/plugin-transform-react-jsx-self': 7.27.1(@babel/core@7.29.0)
+      '@babel/plugin-transform-react-jsx-source': 7.27.1(@babel/core@7.29.0)
+      '@rolldown/pluginutils': 1.0.0-beta.27
+      '@types/babel__core': 7.20.5
+      react-refresh: 0.17.0
+      vite: 7.3.3(@types/node@20.19.40)(jiti@1.21.7)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+    transitivePeerDependencies:
+      - supports-color
 
   '@vitejs/plugin-react@5.2.0(vite@7.3.3(@types/node@20.19.40)(jiti@1.21.7)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4))':
     dependencies:
@@ -11302,6 +11365,8 @@ snapshots:
   react-is@17.0.2: {}
 
   react-is@18.3.1: {}
+
+  react-refresh@0.17.0: {}
 
   react-refresh@0.18.0: {}
 

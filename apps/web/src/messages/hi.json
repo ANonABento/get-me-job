@@ -833,7 +833,11 @@
           "title": "पहचाने गए दस्तावेज़ घटकों की समीक्षा करें",
           "description": "{filename} को {count, plural, one {# संपादन योग्य घटक} other {# संपादन योग्य घटकों}} में बांटा गया था। सुधार करते समय सहेजते रहें।",
           "keepEditing": "बाद में संपादन जारी रखें",
-          "done": "हो गया"
+          "done": "हो गया",
+          "discardImport": "आयात त्यागें",
+          "discardConfirmTitle": "{count, plural, one {# आयातित घटक} other {# आयातित घटकों}} त्यागें?",
+          "discardConfirmDescription": "यह अभी {filename} से आयात किए गए {count, plural, one {घटक} other {घटकों}} को हटा देगा। आप बाद में फ़ाइल पुनः अपलोड कर सकते हैं।",
+          "discardConfirm": "त्यागें"
         },
         "moveBullets": {
           "title": "चुने गए बुलेट्स ले जाएं",
@@ -1079,6 +1083,7 @@
     "uploadFile": "फ़ाइल अपलोड करें (Ctrl+U)",
     "failedToLoadDocuments": "दस्तावेज़ लोड करने में विफल",
     "expand": "बढ़ाना",
+    "collapse": "संक्षिप्त करें",
     "selectAllVisibleComponents": "सभी दृश्यमान घटकों का चयन करें",
     "noComponentsDetected": "कोई घटक नहीं पाया गया",
     "noComponentsLeft": "कोई घटक नहीं बचा",

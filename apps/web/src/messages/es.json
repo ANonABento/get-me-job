@@ -833,7 +833,11 @@
           "title": "Revisar componentes detectados del documento",
           "description": "{filename} se dividió en {count, plural, one {# componente editable} other {# componentes editables}}. Guarda las correcciones sobre la marcha.",
           "keepEditing": "Seguir editando después",
-          "done": "Listo"
+          "done": "Listo",
+          "discardImport": "Descartar importación",
+          "discardConfirmTitle": "¿Descartar {count, plural, one {# componente importado} other {# componentes importados}}?",
+          "discardConfirmDescription": "Esto elimina {count, plural, one {el componente} other {los componentes}} que se acaban de importar desde {filename}. Puedes volver a subir el archivo más tarde.",
+          "discardConfirm": "Descartar"
         },
         "moveBullets": {
           "title": "Mover viñetas seleccionadas",
@@ -1079,6 +1083,7 @@
     "uploadFile": "Subir archivo (Ctrl+U)",
     "failedToLoadDocuments": "No se pudieron cargar los documentos",
     "expand": "Expandir",
+    "collapse": "Contraer",
     "selectAllVisibleComponents": "Seleccionar todos los componentes visibles",
     "noComponentsDetected": "No se detectaron componentes",
     "noComponentsLeft": "No quedan componentes",

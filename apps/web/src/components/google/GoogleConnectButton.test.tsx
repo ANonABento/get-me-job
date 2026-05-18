@@ -38,9 +38,12 @@ describe("GoogleConnectButton", () => {
     render(<GoogleConnectButton />);
 
     const button = screen.getByRole("button", {
-      name: /Coming soon - Google integration/i,
+      name: /Google setup required/i,
     });
     expect(button).toBeDisabled();
+    expect(
+      screen.getByText(/Add Google OAuth credentials/i),
+    ).toBeInTheDocument();
   });
 
   it("kicks off Google sign-in for signed-out users when they click connect", () => {

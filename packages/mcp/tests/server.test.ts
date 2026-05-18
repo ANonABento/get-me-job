@@ -67,13 +67,10 @@ function makeFetchStub(queue: StubResponseSpec[]) {
       expect(url).toContain(next.expectPath);
     }
 
-    return new Response(
-      next.body == null ? "" : JSON.stringify(next.body),
-      {
-        status: next.status,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+    return new Response(next.body == null ? "" : JSON.stringify(next.body), {
+      status: next.status,
+      headers: { "Content-Type": "application/json" },
+    });
   };
 
   return { stub, calls, queue };
@@ -84,7 +81,8 @@ async function connectClient(fetchImpl: typeof fetch, token = VALID_TOKEN) {
     config: { baseUrl: BASE_URL, token },
     fetchImpl,
   });
-  const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
+  const [serverTransport, clientTransport] =
+    InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "test-client", version: "0.0.0" });
   await Promise.all([
     server.connect(serverTransport),
@@ -110,7 +108,7 @@ describe("@slothing/mcp server", () => {
     }
   });
 
-  it("registers all five tools", async () => {
+  it("registers all tools", async () => {
     const { stub } = makeFetchStub([]);
     const { client, server } = await connectClient(stub);
     opened.push({ close: () => server.close() });
@@ -125,6 +123,9 @@ describe("@slothing/mcp server", () => {
         "list_opportunities",
         "save_answer",
         "search_answer_bank",
+        "slothing_push_job",
+        "slothing_scrape_url",
+        "slothing_update_status",
       ].sort(),
     );
   });
@@ -146,7 +147,10 @@ describe("@slothing/mcp server", () => {
     opened.push({ close: () => server.close() });
     opened.push({ close: () => client.close() });
 
-    const result = await client.callTool({ name: "get_profile", arguments: {} });
+    const result = await client.callTool({
+      name: "get_profile",
+      arguments: {},
+    });
 
     expect(result.isError).not.toBe(true);
     expect(calls).toHaveLength(1);
@@ -262,6 +266,100 @@ describe("@slothing/mcp server", () => {
       answer: "Mission fit.",
       sourceUrl: "https://example.com/apply",
       sourceCompany: "ExampleCo",
+    });
+  });
+
+  it("slothing_push_job POSTs a structured opportunity payload", async () => {
+    const body = {
+      imported: 1,
+      opportunityIds: ["job-1"],
+      pendingCount: 3,
+      dedupedIds: [],
+    };
+    const { stub, calls } = makeFetchStub([
+      {
+        status: 201,
+        body,
+        expectMethod: "POST",
+        expectPath: "/api/opportunities/from-extension",
+      },
+    ]);
+    const { client, server } = await connectClient(stub);
+    opened.push({ close: () => server.close() });
+    opened.push({ close: () => client.close() });
+
+    const result = await client.callTool({
+      name: "slothing_push_job",
+      arguments: {
+        title: "Frontend Engineer",
+        company: "Acme",
+        description: "Build product UI",
+        url: "https://example.com/jobs/frontend",
+        source: "agent",
+      },
+    });
+
+    expect(result.isError).not.toBe(true);
+    expect(calls[0]?.body).toEqual({
+      title: "Frontend Engineer",
+      company: "Acme",
+      description: "Build product UI",
+      url: "https://example.com/jobs/frontend",
+      source: "agent",
+    });
+  });
+
+  it("slothing_update_status PATCHes the encoded opportunity id", async () => {
+    const body = { opportunity: { id: "job/1", status: "applied" } };
+    const { stub, calls } = makeFetchStub([
+      {
+        status: 200,
+        body,
+        expectMethod: "PATCH",
+        expectPath: "/api/extension/opportunities/job%2F1/status",
+      },
+    ]);
+    const { client, server } = await connectClient(stub);
+    opened.push({ close: () => server.close() });
+    opened.push({ close: () => client.close() });
+
+    const result = await client.callTool({
+      name: "slothing_update_status",
+      arguments: { opportunityId: "job/1", status: "applied" },
+    });
+
+    expect(result.isError).not.toBe(true);
+    expect(calls[0]?.body).toEqual({ status: "applied" });
+  });
+
+  it("slothing_scrape_url POSTs the URL to the extension scrape endpoint", async () => {
+    const body = {
+      opportunity: {
+        title: "Engineer",
+        company: "Acme",
+        url: "https://jobs.lever.co/acme/123",
+      },
+    };
+    const { stub, calls } = makeFetchStub([
+      {
+        status: 200,
+        body,
+        expectMethod: "POST",
+        expectPath: "/api/extension/opportunities/scrape",
+      },
+    ]);
+    const { client, server } = await connectClient(stub);
+    opened.push({ close: () => server.close() });
+    opened.push({ close: () => client.close() });
+
+    const result = await client.callTool({
+      name: "slothing_scrape_url",
+      arguments: { url: "https://jobs.lever.co/acme/123" },
+    });
+
+    expect(result.isError).not.toBe(true);
+    expect(calls[0]?.body).toEqual({
+      url: "https://jobs.lever.co/acme/123",
     });
   });
 

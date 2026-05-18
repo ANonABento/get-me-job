@@ -248,18 +248,7 @@ export function TailorSettingsDialog({
 
           {/* ATS strictness */}
           <div className="grid gap-1.5">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="tailor-ats-strictness">ATS rules</Label>
-              <span
-                className="inline-flex h-4 items-center rounded-full px-1.5 font-mono text-[9px] font-semibold uppercase tracking-wider"
-                style={{
-                  backgroundColor: "var(--rule-strong-bg)",
-                  color: "var(--ink-3)",
-                }}
-              >
-                Coming soon
-              </span>
-            </div>
+            <Label htmlFor="tailor-ats-strictness">ATS rules</Label>
             <Select
               value={draft.atsStrictness}
               onValueChange={(value) =>
@@ -288,9 +277,8 @@ export function TailorSettingsDialog({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Your preference is saved, but the generator doesn&rsquo;t read
-              this knob yet — it&rsquo;ll shape unsupported-claim filtering and
-              formatting strip-down in a later release.
+              Shapes AI prompt guidance and deterministic manual output: strict
+              mode favors plain, keyword-forward text.
             </p>
           </div>
 
@@ -361,8 +349,7 @@ export function TailorSettingsDialog({
 
 /**
  * Convenience hook that owns the open/closed state + renders the dialog.
- * Wire `dialog` into your tree and call `open()` from the menu item that
- * used to show the "Coming soon" toast.
+ * Wire `dialog` into your tree and call `open()` from the settings menu item.
  */
 export function useTailorSettingsDialog(options?: {
   onSaved?: (settings: TailorSettings) => void;

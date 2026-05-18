@@ -128,6 +128,11 @@ describe("ResumePreview", () => {
     expect(
       screen.getByRole("heading", { name: "Select entries from your bank" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("presentation")).toHaveAttribute(
+      "src",
+      "/illustrations/empty/studio-zero.svg",
+    );
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
     expect(
       screen.getByText("Pick the bank entries to include"),
     ).toBeInTheDocument();
@@ -136,14 +141,9 @@ describe("ResumePreview", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Edit and export your resume")).toBeInTheDocument();
     expect(
-      screen.getByText("Pick the bank entries to include").closest("li")
-        ?.className,
-    ).toContain("rounded-md");
-    expect(
-      screen.getByText("Pick the bank entries to include").closest("li")
-        ?.className,
-    ).toContain("bg-muted/40");
-    expect(screen.getByText("1").className).toContain("rounded-md");
+      screen.getByText("Pick the bank entries to include").closest("ol"),
+    ).toHaveClass("mt-7");
+    expect(screen.getByText("1").className).toContain("rounded-full");
 
     fireEvent.click(
       screen.getByRole("button", {

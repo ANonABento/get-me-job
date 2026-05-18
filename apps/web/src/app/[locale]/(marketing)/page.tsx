@@ -1,19 +1,15 @@
 import { headers } from "next/headers";
 import { LandingHero } from "@/components/landing/Hero";
+import { TheLoop } from "@/components/landing/TheLoop";
 import {
-  ATSMatchSection,
-  ExtensionSection,
-  FormAutofillSection,
-  InterviewPrepSection,
+  AnswerBankSection,
+  CaptureAndQueueSection,
+  InterviewResearchSection,
   KnowledgeBankSection,
+  StudioSection,
 } from "@/components/landing/FeatureSections";
-import {
-  Closer,
-  HowItWorks,
-  IntegrationsStrip,
-  JobQueuePreview,
-} from "@/components/landing/ClosingSections";
-import { LogoStrip, ProblemCompare } from "@/components/landing/RichSections";
+import { Closer } from "@/components/landing/ClosingSections";
+import { LogoStrip, WhySlothing } from "@/components/landing/RichSections";
 import { getLocalizedMarketingPageMetadata } from "@/lib/seo";
 import { CSP_NONCE_HEADER } from "@/lib/security/headers";
 
@@ -26,7 +22,7 @@ const jsonLd = {
   "@type": "WebApplication",
   name: "Slothing",
   description:
-    "A calmer way to job hunt. AI-powered resume tailoring, interview prep, and application tracking — local-first and open source.",
+    "You're not lazy. Your job search system is. Slothing is one workspace that atomizes your career into reusable components, captures jobs from every board, and lets you tailor and apply without re-typing your life into every form.",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   offers: {
@@ -53,15 +49,13 @@ export default function LandingPage() {
       />
       <LandingHero />
       <LogoStrip />
-      <ProblemCompare />
+      <TheLoop />
       <KnowledgeBankSection />
-      <ExtensionSection />
-      <ATSMatchSection />
-      <FormAutofillSection />
-      <InterviewPrepSection />
-      <HowItWorks />
-      <IntegrationsStrip />
-      <JobQueuePreview />
+      <CaptureAndQueueSection />
+      <StudioSection />
+      <AnswerBankSection />
+      <InterviewResearchSection />
+      <WhySlothing />
       <Closer />
     </>
   );

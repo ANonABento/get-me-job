@@ -22,6 +22,11 @@ type ResetResult =
   | { kind: "done"; cleared: number }
   | { kind: "error"; message: string };
 
+type AccountDeletionResult =
+  | { kind: "idle" }
+  | { kind: "done"; deletedRows: number }
+  | { kind: "error"; message: string };
+
 /**
  * Danger Zone — currently scopes to *local* destructive actions that
  * don't require a backend mutation:
@@ -41,7 +46,11 @@ type ResetResult =
 export function DangerZoneSection() {
   const { confirm, dialog } = useConfirmDialog();
   const [busy, setBusy] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [result, setResult] = useState<ResetResult>({ kind: "idle" });
+  const [accountResult, setAccountResult] = useState<AccountDeletionResult>({
+    kind: "idle",
+  });
 
   async function handleResetLocal() {
     const confirmed = await confirm({
@@ -78,6 +87,47 @@ export function DangerZoneSection() {
       });
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    const confirmed = await confirm({
+      title: "Delete account data?",
+      description:
+        'This permanently deletes your Slothing account data, opportunities, documents, generated resumes, settings, Google tokens, sessions, and extension tokens. Type "DELETE" in the next prompt is handled by the server request.',
+      confirmLabel: "Delete account data",
+    });
+    if (!confirmed) return;
+
+    setDeletingAccount(true);
+    setAccountResult({ kind: "idle" });
+    try {
+      const response = await fetch("/api/account", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmation: "DELETE" }),
+      });
+      const body = (await response.json().catch(() => null)) as {
+        error?: string;
+        deleted?: { totalDeletedRows?: number };
+      } | null;
+      if (!response.ok) {
+        throw new Error(body?.error ?? "Could not delete account data.");
+      }
+      setAccountResult({
+        kind: "done",
+        deletedRows: body?.deleted?.totalDeletedRows ?? 0,
+      });
+    } catch (error) {
+      setAccountResult({
+        kind: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Could not delete account data.",
+      });
+    } finally {
+      setDeletingAccount(false);
     }
   }
 
@@ -131,6 +181,45 @@ export function DangerZoneSection() {
                 <Trash2 className="mr-2 h-4 w-4" aria-hidden />
               )}
               Reset local data
+            </Button>
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-md border border-destructive/40 bg-destructive/[0.06] p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-ink">
+                Delete account data
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-ink-3">
+                Permanently removes your server-side Slothing data, including
+                opportunities, documents, settings, integrations, sessions, and
+                extension tokens.
+              </p>
+              {accountResult.kind === "done" ? (
+                <p className="mt-2 text-xs text-ink-2">
+                  Deleted {pluralize(accountResult.deletedRows, "database row")}
+                  . Sign out and reload before using Slothing again.
+                </p>
+              ) : null}
+              {accountResult.kind === "error" ? (
+                <p className="mt-2 text-xs text-destructive">
+                  {accountResult.message}
+                </p>
+              ) : null}
+            </div>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={() => void handleDeleteAccount()}
+              disabled={deletingAccount}
+              className="shrink-0"
+            >
+              {deletingAccount ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" aria-hidden />
+              )}
+              Delete account data
             </Button>
           </div>
         </EditorialPanelBody>

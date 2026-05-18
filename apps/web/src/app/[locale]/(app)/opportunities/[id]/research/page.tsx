@@ -7,12 +7,8 @@ import { Briefcase } from "lucide-react";
 import { CompanyEnrichmentDossier } from "@/components/research/company-enrichment-dossier";
 import { OpportunityResearchSkeleton } from "@/components/skeletons/opportunity-research-skeleton";
 import { Button } from "@/components/ui/button";
-import {
-  AppPage,
-  PageContent,
-  PageHeader,
-  StandardEmptyState,
-} from "@/components/ui/page-layout";
+import { AppPage, PageContent, PageHeader } from "@/components/ui/page-layout";
+import { ErrorEmptyState } from "@/components/ui/empty-states";
 import type { JobDescription } from "@/types";
 
 export default function CompanyResearchPage() {
@@ -48,9 +44,9 @@ export default function CompanyResearchPage() {
     return (
       <AppPage>
         <PageContent>
-          <StandardEmptyState
-            icon={Briefcase}
+          <ErrorEmptyState
             title={error || "Opportunity not found"}
+            description="Research needs an active opportunity. Open the tracker and choose a saved role."
             action={
               <Button asChild variant="outline">
                 <Link href="/opportunities">Open Opportunities</Link>

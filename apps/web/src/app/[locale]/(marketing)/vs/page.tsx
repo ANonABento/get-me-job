@@ -1,8 +1,10 @@
 import { ArrowRight, ShieldCheck } from "lucide-react";
+import { headers } from "next/headers";
 
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
-import { getAlternateLanguages } from "@/lib/seo";
+import { CSP_NONCE_HEADER } from "@/lib/security/headers";
+import { getAlternateLanguages, getMetadataBase } from "@/lib/seo";
 
 const competitors = [
   {
@@ -22,7 +24,7 @@ const competitors = [
   },
 ] as const;
 
-export function generateMetadata() {
+export function generateMetadata({ params }: { params: { locale: string } }) {
   return {
     title: "Slothing comparisons",
     description:
@@ -34,7 +36,61 @@ export function generateMetadata() {
   };
 }
 
-export default function CompareIndexPage() {
+function buildCompareIndexSchema(locale: string) {
+  const base = getMetadataBase();
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "Why compare Slothing against other job tools?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Comparing lets you check which tool matches your privacy, ownership, and flexibility needs before switching workflows.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Is Slothing self-hostable?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Yes. Slothing is open-source and supports self-hosted deployments for teams and privacy-focused users.",
+            },
+          },
+        ],
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: new URL(`/${locale}`, base).toString(),
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Comparison",
+            item: new URL(`/${locale}/vs`, base).toString(),
+          },
+        ],
+      },
+    ],
+  };
+}
+
+export default function CompareIndexPage({
+  params,
+}: {
+  params: { locale: string };
+}) {
+  const routeHeaders = headers();
+  const nonce = routeHeaders.get(CSP_NONCE_HEADER);
+
   return (
     <main className="min-h-screen bg-background">
       <section className="border-b bg-card/40">
@@ -59,6 +115,15 @@ export default function CompareIndexPage() {
           </div>
         </div>
       </section>
+
+      <script
+        {...(nonce ? { nonce } : {})}
+        suppressHydrationWarning
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(buildCompareIndexSchema(params.locale)),
+        }}
+      />
 
       <section className="mx-auto grid max-w-6xl gap-4 px-6 py-12 md:grid-cols-3">
         {competitors.map((competitor, index) => (

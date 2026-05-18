@@ -4,6 +4,10 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import type { Editor } from "@tiptap/react";
 import { ArrowRight, FileText, PenLine, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  EmptyIllustration,
+  HowItWorksDiagram,
+} from "@/components/ui/empty-states";
 import { Link } from "@/i18n/navigation";
 import { ResumeEditor } from "@/lib/editor/resume-editor";
 import { EditorFormattingControls } from "@/components/studio/editor-toolbar";
@@ -205,6 +209,7 @@ export function ResumePreview({
     bankIsEmpty,
   );
   const EmptyStateIcon = documentMode === "cover_letter" ? PenLine : FileText;
+  const emptyStateSteps = emptyStateContent.steps.map((label) => ({ label }));
   const diff =
     documentMode === "resume" && baseResume && tailoredResume
       ? createTailorDiff(baseResume, tailoredResume)
@@ -289,9 +294,11 @@ export function ResumePreview({
           ) : (
             <div className="flex min-h-[11in] items-center justify-center px-14 py-16 text-paper-foreground">
               <div className="w-full max-w-md text-center">
-                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <EmptyStateIcon className="h-8 w-8" aria-hidden="true" />
-                </div>
+                <EmptyIllustration
+                  name="studio-zero"
+                  icon={EmptyStateIcon}
+                  className="mx-auto mb-5 h-32 w-32 sm:h-36 sm:w-36"
+                />
                 <p className="text-xs font-semibold uppercase text-primary">
                   {emptyStateContent.eyebrow}
                 </p>
@@ -302,19 +309,10 @@ export function ResumePreview({
                   {emptyStateContent.description}
                 </p>
 
-                <ol className="mt-7 space-y-2 text-left">
-                  {emptyStateContent.steps.map((step, index) => (
-                    <li
-                      key={step}
-                      className="flex items-center gap-3 rounded-md bg-muted/40 px-4 py-3 text-sm text-paper-foreground/70"
-                    >
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background text-xs font-bold text-primary">
-                        {index + 1}
-                      </span>
-                      <span className="min-w-0 flex-1">{step}</span>
-                    </li>
-                  ))}
-                </ol>
+                <HowItWorksDiagram
+                  steps={emptyStateSteps}
+                  className="mt-7 rounded-lg bg-muted/30 p-4 text-paper-foreground"
+                />
 
                 {bankIsEmpty ? (
                   <Button

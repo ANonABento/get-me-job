@@ -4,11 +4,18 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { CenteredPagePanel } from "@/components/ui/page-layout";
+import { HowItWorksDiagram } from "@/components/ui/empty-states";
 import { Link } from "@/i18n/navigation";
 import { isNextAuthConfiguredOnClient } from "@/lib/auth-client";
 import { parseDeviceName } from "@/lib/extension/device-name";
 import { nowEpoch } from "@/lib/format/time";
-import { CheckCircle, Loader2, Chrome, AlertCircle } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle,
+  Chrome,
+  KeyRound,
+  Loader2,
+} from "lucide-react";
 
 type ConnectStatus = "loading" | "connecting" | "success" | "error";
 type ExtensionTransport = "runtime" | "localstorage";
@@ -215,6 +222,27 @@ function StatusCard({
           Link your browser extension to your Slothing account.
         </p>
       </div>
+
+      <HowItWorksDiagram
+        steps={[
+          {
+            icon: Chrome,
+            label: "Open extension",
+            description: "Start connection from the browser popup.",
+          },
+          {
+            icon: KeyRound,
+            label: "Mint token",
+            description: "This page creates a short-lived auth token.",
+          },
+          {
+            icon: CheckCircle,
+            label: "Return to capture",
+            description: "Use the extension on any supported job page.",
+          },
+        ]}
+        className="mt-6 rounded-lg border bg-paper p-4"
+      />
 
       <div className="mt-6 flex flex-col items-center space-y-4">
         {status === "connecting" && (

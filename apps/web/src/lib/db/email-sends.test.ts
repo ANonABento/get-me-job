@@ -15,9 +15,12 @@ vi.mock("@/lib/utils", () => ({
 import db from "./legacy";
 import {
   createEmailSend,
+  getFailedEmailSends,
   getEmailSends,
   getRecentEmailSendForRecipient,
+  hasDigestSentSince,
   hasDailyDigestSentSince,
+  markEmailSendStatus,
 } from "./email-sends";
 
 describe("Email Send Database Functions", () => {
@@ -108,5 +111,53 @@ describe("Email Send Database Functions", () => {
       expect.stringContaining("type = 'daily_digest' AND sent_at >= ?"),
     );
     expect(mockGet).toHaveBeenCalledWith("user-1", "2026-05-10T00:00:00.000Z");
+  });
+
+  it("checks digest idempotency by digest type and sent status", () => {
+    const mockGet = vi.fn().mockReturnValue(undefined);
+    (db.prepare as Mock).mockReturnValue({ get: mockGet });
+
+    expect(
+      hasDigestSentSince("user-1", "daily_digest", "2026-05-01T00:00:00.000Z"),
+    ).toBe(false);
+    expect(db.prepare).toHaveBeenCalledWith(
+      expect.stringContaining("type = ? AND status = 'sent' AND sent_at >= ?"),
+    );
+    expect(mockGet).toHaveBeenCalledWith(
+      "user-1",
+      "daily_digest",
+      "2026-05-01T00:00:00.000Z",
+    );
+  });
+
+  it("lists failed sends oldest-first for retries", () => {
+    const mockAll = vi.fn().mockReturnValue([]);
+    (db.prepare as Mock).mockReturnValue({ all: mockAll });
+
+    expect(getFailedEmailSends({ limit: 10 })).toEqual([]);
+    expect(db.prepare).toHaveBeenCalledWith(
+      expect.stringContaining("WHERE status = 'failed'"),
+    );
+    expect(db.prepare).toHaveBeenCalledWith(
+      expect.stringContaining("ORDER BY sent_at ASC"),
+    );
+    expect(mockAll).toHaveBeenCalledWith(10);
+  });
+
+  it("updates send status after a retry attempt", () => {
+    const mockRun = vi.fn().mockReturnValue({ changes: 1 });
+    (db.prepare as Mock).mockReturnValue({ run: mockRun });
+
+    expect(markEmailSendStatus("send-1", "user-1", "sent")).toBe(true);
+    expect(db.prepare).toHaveBeenCalledWith(
+      expect.stringContaining("UPDATE email_sends"),
+    );
+    expect(mockRun).toHaveBeenCalledWith(
+      "sent",
+      null,
+      expect.any(String),
+      "send-1",
+      "user-1",
+    );
   });
 });
