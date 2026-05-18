@@ -213,6 +213,12 @@ function withChildCount(
   return { ...entry.content, childCount };
 }
 
+function scrollComponentsPageToTop(behavior: ScrollBehavior = "auto") {
+  document
+    .getElementById("main-content")
+    ?.scrollTo({ top: 0, left: 0, behavior });
+}
+
 function normalizeReviewText(value: unknown): string {
   return String(value ?? "")
     .toLowerCase()
@@ -1100,6 +1106,7 @@ export function BankComponentsTab({
   ) {
     await handleDataRefresh({ silent: true });
     const documentId = uploadData.document?.id;
+    let openedReview = false;
 
     if (documentId) {
       const reviewRes = await fetch(
@@ -1131,6 +1138,7 @@ export function BankComponentsTab({
             mimeType: uploadData.document?.mimeType || file.type,
             entries: reviewEntries,
           });
+          openedReview = true;
         } else {
           setUploadReview(null);
           setActiveDocumentId(null);
@@ -1144,11 +1152,25 @@ export function BankComponentsTab({
       title: uploadSuccessMessage(count, file.name),
     });
 
-    requestAnimationFrame(() => {
-      entriesListRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
+    if (openedReview) {
+      requestAnimationFrame(() => {
+        scrollComponentsPageToTop();
       });
+    } else {
+      requestAnimationFrame(() => {
+        entriesListRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    }
+  }
+
+  function closeUploadReview() {
+    setUploadReview(null);
+    setIsReviewParsingWithAi(false);
+    requestAnimationFrame(() => {
+      scrollComponentsPageToTop();
     });
   }
 
@@ -1282,7 +1304,7 @@ export function BankComponentsTab({
       const ids = new Set(importedEntries.map((entry) => entry.id));
       setEntries((prev) => prev.filter((entry) => !ids.has(entry.id)));
       setAllEntries((prev) => prev.filter((entry) => !ids.has(entry.id)));
-      setUploadReview(null);
+      closeUploadReview();
       addToast({ type: "info", title: `Discarded ${filename}.` });
     } catch (err) {
       showErrorToast(err, {
@@ -1649,8 +1671,7 @@ export function BankComponentsTab({
               open={!!uploadReview}
               onOpenChange={(open) => {
                 if (!open) {
-                  setUploadReview(null);
-                  setIsReviewParsingWithAi(false);
+                  closeUploadReview();
                 }
               }}
             >
@@ -1724,7 +1745,7 @@ export function BankComponentsTab({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setUploadReview(null)}
+                      onClick={closeUploadReview}
                     >
                       {dialogsT("review.keepEditing")}
                     </Button>
@@ -1745,7 +1766,7 @@ export function BankComponentsTab({
                           : "Check with AI"}
                       </Button>
                     ) : null}
-                    <Button size="sm" onClick={() => setUploadReview(null)}>
+                    <Button size="sm" onClick={closeUploadReview}>
                       {dialogsT("review.done")}
                     </Button>
                   </div>
