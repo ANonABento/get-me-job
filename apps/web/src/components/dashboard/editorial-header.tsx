@@ -4,6 +4,8 @@ import { Zap } from "lucide-react";
 import { nowDate } from "@slothing/shared";
 import { Link } from "@/i18n/navigation";
 import { pluralize } from "@/lib/text/pluralize";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-layout";
 
 interface EditorialDashboardHeaderProps {
   title: string;
@@ -14,8 +16,8 @@ interface EditorialDashboardHeaderProps {
 
 /**
  * Editorial page head used at the top of the dashboard.
- * Mirrors the Slothing handoff `.main-head` block: display-font h1, terse
- * sub-line, and an optional "Plan my day" right-aligned action.
+ * Uses the shared compact app-page header while preserving the dashboard's
+ * date / queue meta and "Plan my day" action.
  */
 export function EditorialDashboardHeader({
   title,
@@ -24,60 +26,20 @@ export function EditorialDashboardHeader({
   primaryActionLabel = "Plan my day",
 }: EditorialDashboardHeaderProps) {
   return (
-    <header
-      className="flex flex-col gap-3 px-6 py-7 lg:flex-row lg:items-end lg:justify-between"
-      style={{ borderBottom: "1px solid var(--rule)" }}
-    >
-      <div className="min-w-0">
-        <h1
-          className="m-0 truncate"
-          style={{
-            fontFamily: "var(--display)",
-            fontSize: "36px",
-            fontWeight: 700,
-            lineHeight: 1.05,
-            letterSpacing: "-0.035em",
-            color: "var(--ink)",
-          }}
-        >
-          {title}
-        </h1>
-        {subline ? (
-          <p
-            className="mt-1 text-[13.5px] leading-snug"
-            style={{ color: "var(--ink-3)" }}
-          >
-            {subline}
-          </p>
-        ) : null}
-      </div>
-
-      <Link
-        href={primaryActionHref}
-        className="inline-flex h-10 items-center gap-2 px-4 text-[13.5px] font-medium transition-colors"
-        style={{
-          backgroundColor: "var(--paper)",
-          border: "1px solid var(--rule)",
-          borderRadius: "var(--r-md)",
-          color: "var(--ink)",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = "var(--brand)";
-          e.currentTarget.style.color = "var(--brand)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = "var(--rule)";
-          e.currentTarget.style.color = "var(--ink)";
-        }}
-      >
-        <Zap
-          className="h-3.5 w-3.5"
-          aria-hidden="true"
-          style={{ color: "var(--brand)" }}
-        />
-        <span>{primaryActionLabel}</span>
-      </Link>
-    </header>
+    <PageHeader
+      icon={Zap}
+      title={title}
+      variant="compact"
+      meta={subline ? <span>· {subline}</span> : null}
+      actions={
+        <Button asChild variant="outline" size="sm" className="gap-2">
+          <Link href={primaryActionHref}>
+            <Zap className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>{primaryActionLabel}</span>
+          </Link>
+        </Button>
+      }
+    />
   );
 }
 
