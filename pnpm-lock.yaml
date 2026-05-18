@@ -100,8 +100,8 @@ importers:
   apps/web:
     dependencies:
       '@anonabento/bento-router':
-        specifier: file:../../../bento-router
-        version: file:../bento-router(@types/node@20.19.40)(jiti@1.21.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+        specifier: file:../../vendor/anonabento-bento-router-0.2.0-6839780.tgz
+        version: file:vendor/anonabento-bento-router-0.2.0-6839780.tgz(@types/node@20.19.40)(jiti@1.21.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
       '@auth/drizzle-adapter':
         specifier: ^1.11.2
         version: 1.11.2
@@ -403,8 +403,9 @@ packages:
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
     engines: {node: '>=10'}
 
-  '@anonabento/bento-router@file:../bento-router':
-    resolution: {directory: ../bento-router, type: directory}
+  '@anonabento/bento-router@file:vendor/anonabento-bento-router-0.2.0-6839780.tgz':
+    resolution: {integrity: sha512-Q+1+5Yw3ck2SZc7IJHqBHXfjF1gz+HwJz44ymyx++FWFy0kIiXwtLdbEfB8IhY5baDr3abVr1pEZIy8p+bz1bw==, tarball: file:vendor/anonabento-bento-router-0.2.0-6839780.tgz}
+    version: 0.2.0
     hasBin: true
     peerDependencies:
       react: '>=18'
@@ -6433,7 +6434,7 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@anonabento/bento-router@file:../bento-router(@types/node@20.19.40)(jiti@1.21.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)':
+  '@anonabento/bento-router@file:vendor/anonabento-bento-router-0.2.0-6839780.tgz(@types/node@20.19.40)(jiti@1.21.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)':
     dependencies:
       '@vitejs/plugin-react': 4.7.0(vite@7.3.3(@types/node@20.19.40)(jiti@1.21.7)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4))
       vite: 7.3.3(@types/node@20.19.40)(jiti@1.21.7)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
