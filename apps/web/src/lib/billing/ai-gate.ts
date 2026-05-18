@@ -14,7 +14,7 @@ export interface AiGatePass {
   allowed: true;
   llmConfig: LLMConfig;
   plan: UserPlan;
-  source: "self-host" | "byok" | "credits";
+  source: "self-host" | "byok" | "credits" | "fallback";
   transaction: CreditTransactionRecord | null;
   refund: () => void;
 }
@@ -36,11 +36,11 @@ export function gateAiFeature(
   const plan = getUserPlan(userId);
 
   if (plan === "self-host") {
-    if (!llmConfig) return missingProviderResponse();
+    if (!isUsableLLMConfig(llmConfig)) return missingProviderResponse();
     return pass(llmConfig, plan, "self-host", null);
   }
 
-  if (llmConfig?.apiKey) {
+  if (isUsableLLMConfig(llmConfig)) {
     return pass(llmConfig, plan, "byok", null);
   }
 
@@ -69,26 +69,32 @@ export function gateOptionalAiFeature(
   const plan = getUserPlan(userId);
 
   if (plan === "self-host") {
-    return optionalPass(llmConfig, plan, "self-host", null);
+    return optionalPass(
+      isUsableLLMConfig(llmConfig) ? llmConfig : null,
+      plan,
+      "self-host",
+      null,
+    );
   }
 
-  if (llmConfig?.apiKey) {
+  if (isUsableLLMConfig(llmConfig)) {
     return optionalPass(llmConfig, plan, "byok", null);
   }
 
   if (plan === "pro-monthly" || plan === "pro-weekly") {
+    if (!process.env.SLOTHING_HOSTED_LLM_API_KEY) {
+      return optionalPass(null, plan, "fallback", null);
+    }
     const transaction = deductCredits(userId, feature, refId);
     return optionalPass(getHostedLLMConfig(), plan, "credits", transaction);
   }
 
-  return NextResponse.json(
-    {
-      error: "AI tools require your own API key or a Pro plan.",
-      code: "billing_required",
-      plan,
-    },
-    { status: 402 },
-  );
+  return optionalPass(null, plan, "fallback", null);
+}
+
+function isUsableLLMConfig(config: LLMConfig | null): config is LLMConfig {
+  if (!config?.provider || !config.model) return false;
+  return config.provider === "ollama" || Boolean(config.apiKey);
 }
 
 export function isAiGateResponse(

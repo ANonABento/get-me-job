@@ -25,6 +25,7 @@ vi.mock("@/lib/auth", () =>
 );
 
 import { GET } from "./route";
+import { generatePrepGuide } from "@/lib/interview/prep-guide";
 import {
   expectRouteResponseContract,
   getRequest,
@@ -70,5 +71,42 @@ describe("/api/interview/prep-guide route contract", () => {
     await expect(response.json()).resolves.toMatchObject({
       error: expect.any(String),
     });
+  });
+
+  it("returns the basic prep guide when no provider is configured", async () => {
+    setAuthSuccess();
+    vi.mocked(generatePrepGuide).mockResolvedValueOnce({
+      jobTitle: "Frontend Engineer",
+      company: "Northstar Labs",
+      summary: "Prepare examples.",
+      checklist: [],
+      questions: [],
+      keyTopics: [],
+      yourStrengths: [],
+      potentialGaps: [],
+      talkingPoints: [],
+      createdAt: "2026-05-18T00:00:00.000Z",
+    });
+
+    const response = await invokeRouteHandler(
+      GET,
+      getRequest("http://localhost/api/interview/prep-guide?jobId=job-1", {
+        "x-extension-token": "test-token",
+      }),
+      routeContext(),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      usedLLM: false,
+      fallbackUsed: true,
+      fallbackReason: "provider_not_configured",
+    });
+    expect(generatePrepGuide).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.anything(),
+      expect.anything(),
+      null,
+    );
   });
 });

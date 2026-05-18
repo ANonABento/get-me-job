@@ -21,7 +21,7 @@ vi.mock("@/lib/llm/client", () => ({
 }));
 
 vi.mock("@/lib/billing/ai-gate", () => ({
-  gateAiFeature: vi.fn(() => ({
+  gateOptionalAiFeature: vi.fn(() => ({
     allowed: true,
     llmConfig: { provider: "openai", apiKey: "test-key", model: "test-model" },
     plan: "pro-monthly",
@@ -43,6 +43,7 @@ vi.mock("@/lib/templates/import", () =>
 );
 
 import { POST } from "./route";
+import { gateOptionalAiFeature } from "@/lib/billing/ai-gate";
 import { saveCustomTemplate } from "@/lib/db/custom-templates";
 import {
   extractTemplateFromFile,
@@ -223,6 +224,40 @@ describe("/api/templates/import route contract", () => {
       sectionsFound: ["experience"],
     });
     expect(saveCustomTemplate).not.toHaveBeenCalled();
+  });
+
+  it("falls back without constructing an LLM client when no provider is configured", async () => {
+    setAuthSuccess();
+    vi.mocked(gateOptionalAiFeature).mockReturnValueOnce({
+      allowed: true,
+      llmConfig: null,
+      plan: "self-host",
+      source: "self-host",
+      transaction: null,
+      refund: vi.fn(),
+    });
+
+    const response = await invokeRouteHandler(
+      POST,
+      multipartTemplateRequest(
+        "resume.tex",
+        "text/x-tex",
+        "\\documentclass{article}",
+        undefined,
+        { persist: "false" },
+      ),
+      routeContext(),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      usedLLM: false,
+      fallbackUsed: true,
+      fallbackReason: "provider_not_configured",
+    });
+    expect(extractTemplateFromFile).toHaveBeenCalledWith(
+      expect.objectContaining({ llmClient: null }),
+    );
   });
 
   it.each([

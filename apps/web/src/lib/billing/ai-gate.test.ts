@@ -121,4 +121,15 @@ describe("gateAiFeature", () => {
     }
     expect(mocks.deductCredits).not.toHaveBeenCalled();
   });
+
+  it("lets hosted-free optional AI routes fall back without billing", () => {
+    const result = gateOptionalAiFeature("user-1", "tailor", "upload-1");
+
+    expect(isAiGateResponse(result)).toBe(false);
+    if (!isAiGateResponse(result)) {
+      expect(result.source).toBe("fallback");
+      expect(result.llmConfig).toBeNull();
+    }
+    expect(mocks.deductCredits).not.toHaveBeenCalled();
+  });
 });

@@ -10,9 +10,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseJsonBody } from "@/lib/api-utils";
 import { getGeneratedResume, getProfile, saveGeneratedResume } from "@/lib/db";
 import {
-  gateAiFeature,
+  gateOptionalAiFeature,
   isAiGateResponse,
-  type AiGatePass,
+  type OptionalAiGatePass,
 } from "@/lib/billing/ai-gate";
 import { logPromptVariantResult } from "@/lib/db/prompt-variants";
 import { getGroupedBankEntries } from "@/lib/db/profile-bank";
@@ -26,6 +26,7 @@ import { normalizeTailorSettings } from "@/lib/tailor/settings";
 import { generateResumeHTML, TEMPLATES } from "@/lib/resume/pdf";
 import { getTemplateWithCustom } from "@/lib/resume/templates";
 import { isTailoredResume } from "@/lib/builder/tailored-resume-api";
+import { trackActivationEvent } from "@/lib/db/product-analytics";
 import { tailorRequestSchema } from "@/lib/schemas";
 import { writeFile, mkdir } from "fs/promises";
 import { generateId } from "@/lib/utils";
@@ -64,7 +65,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const authResult = await requireUserAuth(request);
   if (isAuthError(authResult)) return authResult;
-  let aiGate: AiGatePass | null = null;
+  let aiGate: OptionalAiGatePass | null = null;
 
   try {
     const parsed = await parseJsonBody(request, tailorRequestSchema);
@@ -163,7 +164,7 @@ export async function POST(request: NextRequest) {
       location: "",
     };
 
-    const gate = gateAiFeature(
+    const gate = gateOptionalAiFeature(
       authResult.userId,
       "tailor",
       opportunityId || `${company}:${nowEpoch()}`,
@@ -269,6 +270,19 @@ export async function POST(request: NextRequest) {
       authResult.userId,
       "tailor_generated",
     );
+    try {
+      trackActivationEvent({
+        event: "resume_tailored",
+        userId: authResult.userId,
+        source: "api/tailor",
+        metadata: {
+          opportunityId: opportunityId ?? null,
+          matchScore: analysis.matchScore,
+        },
+      });
+    } catch (analyticsError) {
+      console.error("Tailor analytics failed:", analyticsError);
+    }
 
     return NextResponse.json({
       success: true,
@@ -287,6 +301,9 @@ export async function POST(request: NextRequest) {
         quality: analysis.quality,
       },
       unlocked,
+      usedLLM: llmConfig !== null,
+      fallbackUsed: llmConfig === null,
+      fallbackReason: llmConfig ? null : "provider_not_configured",
     });
   } catch (error) {
     aiGate?.refund();

@@ -23,6 +23,7 @@ vi.mock("@/lib/auth", () =>
 );
 
 import { POST } from "./route";
+import { EMAIL_TEMPLATE_INFO, generateEmail } from "@/lib/email/templates";
 import {
   expectRouteResponseContract,
   getRequest,
@@ -86,5 +87,36 @@ describe("/api/email/generate route contract", () => {
     );
 
     await expectRouteResponseContract(response);
+  });
+
+  it("falls back to template generation when LLM is requested without a provider", async () => {
+    setAuthSuccess();
+    (EMAIL_TEMPLATE_INFO as Record<string, unknown>).follow_up = {
+      title: "Follow-up",
+      description: "Follow up",
+      icon: "Mail",
+    };
+    vi.mocked(generateEmail).mockReturnValueOnce({
+      subject: "Checking in",
+      body: "Hello",
+      placeholders: [],
+    });
+
+    const response = await invokeRouteHandler(
+      POST,
+      jsonRequest(
+        "http://localhost/api/email/generate",
+        { type: "follow_up", jobId: "job-1", useLLM: true },
+        "POST",
+      ),
+      routeContext(),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      usedLLM: false,
+      fallbackUsed: true,
+      fallbackReason: "provider_not_configured",
+    });
   });
 });

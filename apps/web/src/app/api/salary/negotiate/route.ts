@@ -7,9 +7,9 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import {
-  gateAiFeature,
+  gateOptionalAiFeature,
   isAiGateResponse,
-  type AiGatePass,
+  type OptionalAiGatePass,
 } from "@/lib/billing/ai-gate";
 import { LLMClient } from "@/lib/llm/client";
 import { formatCurrency } from "@/lib/salary/calculator";
@@ -138,7 +138,7 @@ function generateFallbackScript(request: NegotiationRequest) {
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
-  let aiGate: AiGatePass | null = null;
+  let aiGate: OptionalAiGatePass | null = null;
 
   try {
     const body: NegotiationRequest = await request.json();
@@ -159,13 +159,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Try to use LLM if configured
-    const gate = gateAiFeature(
+    const gate = gateOptionalAiFeature(
       authResult.userId,
       "document_assistant",
       `salary:${body.company}:${body.role}`,
     );
     if (isAiGateResponse(gate)) return gate;
     aiGate = gate;
+    let fallbackReason: "provider_not_configured" | "llm_error" | null =
+      gate.llmConfig ? null : "provider_not_configured";
     if (gate.llmConfig) {
       try {
         const client = new LLMClient(gate.llmConfig);
@@ -181,17 +183,32 @@ export async function POST(request: NextRequest) {
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const script = JSON.parse(jsonMatch[0]);
-          return NextResponse.json({ script, source: "ai" });
+          return NextResponse.json({
+            script,
+            source: "ai",
+            usedLLM: true,
+            fallbackUsed: false,
+            fallbackReason: null,
+          });
         }
+        aiGate?.refund();
+        fallbackReason = "llm_error";
       } catch (llmError) {
         aiGate?.refund();
+        fallbackReason = "llm_error";
         console.error("LLM generation failed, using fallback:", llmError);
       }
     }
 
     // Fallback to template-based script
     const script = generateFallbackScript(body);
-    return NextResponse.json({ script, source: "template" });
+    return NextResponse.json({
+      script,
+      source: "template",
+      usedLLM: false,
+      fallbackUsed: true,
+      fallbackReason,
+    });
   } catch (error) {
     aiGate?.refund();
     console.error("Negotiation script error:", error);

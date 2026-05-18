@@ -19,6 +19,7 @@ vi.mock("@/lib/auth", () =>
 );
 
 import { POST } from "./route";
+import { analyzeTemplateWithLLM } from "@/lib/resume/template-analyzer";
 import {
   expectRouteResponseContract,
   getRequest,
@@ -82,5 +83,32 @@ describe("/api/templates/analyze route contract", () => {
     );
 
     await expectRouteResponseContract(response);
+  });
+
+  it("uses heuristic analysis when no provider is configured", async () => {
+    setAuthSuccess();
+
+    const response = await invokeRouteHandler(
+      POST,
+      jsonRequest(
+        "http://localhost/api/templates/analyze",
+        {
+          text: "Ada Lovelace\nExperience\n- Built polished TypeScript applications with React and accessibility testing.",
+        },
+        "POST",
+      ),
+      routeContext(),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      usedLLM: false,
+      fallbackUsed: true,
+      fallbackReason: "provider_not_configured",
+    });
+    expect(analyzeTemplateWithLLM).toHaveBeenCalledWith(
+      expect.any(String),
+      null,
+    );
   });
 });

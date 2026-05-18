@@ -9,9 +9,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import { getProfile } from "@/lib/db";
 import {
-  gateAiFeature,
+  gateOptionalAiFeature,
   isAiGateResponse,
-  type AiGatePass,
+  type OptionalAiGatePass,
 } from "@/lib/billing/ai-gate";
 import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
 import { requireAuth, isAuthError } from "@/lib/auth";
@@ -27,7 +27,7 @@ interface FollowUpResponse {
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
-  let aiGate: AiGatePass | null = null;
+  let aiGate: OptionalAiGatePass | null = null;
 
   try {
     const { jobId, originalQuestion, userAnswer, questionCategory } =
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     const job = jobId ? getJob(jobId, authResult.userId) : null;
     const profile = getProfile(authResult.userId);
-    const gate = gateAiFeature(
+    const gate = gateOptionalAiFeature(
       authResult.userId,
       "interview_turn",
       `followup:${jobId ?? "general"}`,
@@ -51,23 +51,27 @@ export async function POST(request: NextRequest) {
     aiGate = gate;
 
     let followUp: FollowUpResponse;
+    let usedLLM = false;
+    let fallbackReason: "provider_not_configured" | "llm_error" | null =
+      gate.llmConfig ? null : "provider_not_configured";
 
     if (gate.llmConfig) {
-      const client = new LLMClient(gate.llmConfig);
+      try {
+        const client = new LLMClient(gate.llmConfig);
 
-      const jobContext = job
-        ? `The candidate is interviewing for ${job.title} at ${job.company}.`
-        : "This is a general interview practice.";
+        const jobContext = job
+          ? `The candidate is interviewing for ${job.title} at ${job.company}.`
+          : "This is a general interview practice.";
 
-      const profileContext = profile
-        ? `The candidate has experience as ${profile.experiences[0]?.title || "a professional"}.`
-        : "";
+        const profileContext = profile
+          ? `The candidate has experience as ${profile.experiences[0]?.title || "a professional"}.`
+          : "";
 
-      const response = await client.complete({
-        messages: [
-          {
-            role: "system",
-            content: `You are an expert interview coach conducting a realistic interview simulation.
+        const response = await client.complete({
+          messages: [
+            {
+              role: "system",
+              content: `You are an expert interview coach conducting a realistic interview simulation.
 Your role is to ask insightful follow-up questions that probe deeper into the candidate's answer.
 Follow-up questions should:
 - Dig deeper into specific claims or examples mentioned
@@ -75,10 +79,10 @@ Follow-up questions should:
 - Request specific metrics or outcomes
 - Explore the candidate's decision-making process
 - Be relevant to the job they're applying for`,
-          },
-          {
-            role: "user",
-            content: `${jobContext} ${profileContext}
+            },
+            {
+              role: "user",
+              content: `${jobContext} ${profileContext}
 
 Original interview question (${questionCategory || "general"}):
 "${originalQuestion}"
@@ -94,24 +98,35 @@ Return a JSON object with:
   "reason": "Brief explanation of why this follow-up is valuable",
   "suggestedFocus": ["Key point 1 to address", "Key point 2 to address"]
 }`,
-          },
-        ],
-        temperature: 0.7,
-        maxTokens: 500,
-      });
-
-      try {
-        followUp = parseJSONFromLLM<FollowUpResponse>(response);
-      } catch {
-        // If JSON parsing fails, create a structured response from the text
-        followUp = {
-          followUpQuestion: response.trim(),
-          reason: "Probing deeper into your answer",
-          suggestedFocus: [
-            "Provide specific examples",
-            "Include measurable outcomes",
+            },
           ],
-        };
+          temperature: 0.7,
+          maxTokens: 500,
+        });
+
+        try {
+          followUp = parseJSONFromLLM<FollowUpResponse>(response);
+        } catch {
+          // If JSON parsing fails, create a structured response from the text
+          followUp = {
+            followUpQuestion: response.trim(),
+            reason: "Probing deeper into your answer",
+            suggestedFocus: [
+              "Provide specific examples",
+              "Include measurable outcomes",
+            ],
+          };
+        }
+        usedLLM = true;
+      } catch (llmError) {
+        aiGate?.refund();
+        fallbackReason = "llm_error";
+        console.error("Follow-up LLM generation failed:", llmError);
+        followUp = generateBasicFollowUp(
+          originalQuestion,
+          userAnswer,
+          questionCategory,
+        );
       }
     } else {
       // Generate follow-up without LLM based on question category
@@ -125,6 +140,9 @@ Return a JSON object with:
     return NextResponse.json({
       success: true,
       ...followUp,
+      usedLLM,
+      fallbackUsed: !usedLLM,
+      fallbackReason: usedLLM ? null : fallbackReason,
     });
   } catch (error) {
     aiGate?.refund();

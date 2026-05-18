@@ -8,9 +8,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import { getProfile } from "@/lib/db";
 import {
-  gateAiFeature,
+  gateOptionalAiFeature,
   isAiGateResponse,
-  type AiGatePass,
+  type OptionalAiGatePass,
 } from "@/lib/billing/ai-gate";
 import { getCompanyResearch } from "@/lib/db/company-research";
 import {
@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
-  let aiGate: AiGatePass | null = null;
+  let aiGate: OptionalAiGatePass | null = null;
 
   try {
     const { searchParams } = new URL(request.url);
@@ -44,17 +44,33 @@ export async function GET(request: NextRequest) {
     }
 
     const profile = getProfile(authResult.userId);
-    const gate = gateAiFeature(authResult.userId, "interview_turn", jobId);
+    const gate = gateOptionalAiFeature(
+      authResult.userId,
+      "interview_turn",
+      jobId,
+    );
     if (isAiGateResponse(gate)) return gate;
     aiGate = gate;
     const companyResearch = getCompanyResearch(job.company, authResult.userId);
+    let usedLLM = false;
+    let fallbackReason: "provider_not_configured" | "llm_error" | null =
+      gate.llmConfig ? null : "provider_not_configured";
 
-    const guide = await generatePrepGuide(
-      job,
-      profile,
-      companyResearch,
-      gate.llmConfig,
-    );
+    let guide;
+    try {
+      guide = await generatePrepGuide(
+        job,
+        profile,
+        companyResearch,
+        gate.llmConfig,
+      );
+      usedLLM = gate.llmConfig !== null;
+    } catch (llmError) {
+      aiGate?.refund();
+      fallbackReason = "llm_error";
+      console.error("Prep guide LLM generation failed:", llmError);
+      guide = await generatePrepGuide(job, profile, companyResearch, null);
+    }
 
     if (format === "markdown") {
       const markdown = generateExportableDocument(guide);
@@ -66,7 +82,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json(guide);
+    return NextResponse.json({
+      ...guide,
+      usedLLM,
+      fallbackUsed: !usedLLM,
+      fallbackReason: usedLLM ? null : fallbackReason,
+    });
   } catch (error) {
     aiGate?.refund();
     console.error("Prep guide error:", error);

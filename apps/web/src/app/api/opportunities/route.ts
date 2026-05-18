@@ -5,15 +5,16 @@ import { jobToOpportunity } from "@/lib/opportunities";
 import { createJob, listJobsPaginated } from "@/lib/db/jobs";
 import { enrichCompany } from "@/lib/enrichment";
 import {
-  gateAiFeature,
+  gateOptionalAiFeature,
   isAiGateResponse,
-  type AiGatePass,
+  type OptionalAiGatePass,
 } from "@/lib/billing/ai-gate";
 import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
 import { TECH_KEYWORDS } from "@/lib/constants";
 import { createJobSchema } from "@/lib/validation/jobs";
 import { OPPORTUNITY_STATUSES } from "@slothing/shared/schemas";
 import { createOpportunitySchema } from "@/types/opportunity";
+import { trackActivationEvent } from "@/lib/db/product-analytics";
 import { safeTrackActivity } from "@/lib/streak/track";
 import {
   buildPaginationResult,
@@ -117,7 +118,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
-  let aiGate: AiGatePass | null = null;
+  let aiGate: OptionalAiGatePass | null = null;
 
   try {
     const body = await request.json();
@@ -126,34 +127,43 @@ export async function POST(request: NextRequest) {
       const data = legacyJobParseResult.data;
       let keywords: string[] = [];
 
-      const gate = gateAiFeature(
+      const gate = gateOptionalAiFeature(
         authResult.userId,
         "document_assistant",
         `opportunity:${data.company}:${data.title}`,
       );
       if (isAiGateResponse(gate)) return gate;
       aiGate = gate;
-      try {
-        const client = new LLMClient(gate.llmConfig);
-        const response = await client.complete({
-          messages: [
-            {
-              role: "user",
-              content: `Extract the key skills, technologies, and requirements from this job description. Return ONLY a JSON array of strings, nothing else.
+      let usedLLM = false;
+      let fallbackReason: "provider_not_configured" | "llm_error" | null =
+        gate.llmConfig ? null : "provider_not_configured";
+      if (gate.llmConfig) {
+        try {
+          const client = new LLMClient(gate.llmConfig);
+          const response = await client.complete({
+            messages: [
+              {
+                role: "user",
+                content: `Extract the key skills, technologies, and requirements from this job description. Return ONLY a JSON array of strings, nothing else.
 
 Job Description:
 ${data.description}
 
 Return format: ["skill1", "skill2", "skill3", ...]`,
-            },
-          ],
-          temperature: 0.1,
-          maxTokens: 500,
-        });
-        keywords = parseJSONFromLLM<string[]>(response);
-      } catch (llmError) {
-        aiGate?.refund();
-        console.error("Failed to extract keywords:", llmError);
+              },
+            ],
+            temperature: 0.1,
+            maxTokens: 500,
+          });
+          keywords = parseJSONFromLLM<string[]>(response);
+          usedLLM = true;
+        } catch (llmError) {
+          aiGate?.refund();
+          fallbackReason = "llm_error";
+          console.error("Failed to extract keywords:", llmError);
+          keywords = extractKeywordsBasic(data.description);
+        }
+      } else {
         keywords = extractKeywordsBasic(data.description);
       }
 
@@ -171,9 +181,26 @@ Return format: ["skill1", "skill2", "skill3", ...]`,
         authResult.userId,
         "opp_created",
       );
+      try {
+        trackActivationEvent({
+          event: "opportunity_created",
+          userId: authResult.userId,
+          source: "api/opportunities",
+          metadata: { mode: "legacy_job_schema" },
+        });
+      } catch (analyticsError) {
+        console.error("Opportunity analytics failed:", analyticsError);
+      }
 
       return NextResponse.json(
-        { job, opportunity: jobToOpportunity(job), unlocked },
+        {
+          job,
+          opportunity: jobToOpportunity(job),
+          unlocked,
+          usedLLM,
+          fallbackUsed: !usedLLM,
+          fallbackReason,
+        },
         { status: 201 },
       );
     }
@@ -217,6 +244,16 @@ Return format: ["skill1", "skill2", "skill3", ...]`,
       authResult.userId,
       "opp_created",
     );
+    try {
+      trackActivationEvent({
+        event: "opportunity_created",
+        userId: authResult.userId,
+        source: "api/opportunities",
+        metadata: { mode: "opportunity_schema" },
+      });
+    } catch (analyticsError) {
+      console.error("Opportunity analytics failed:", analyticsError);
+    }
     return NextResponse.json(
       { job, opportunity: jobToOpportunity(job), unlocked },
       { status: 201 },

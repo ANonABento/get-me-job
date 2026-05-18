@@ -66,9 +66,19 @@ vi.mock("@/lib/streak/track", () => ({
   safeTrackActivity: vi.fn(async () => ({ unlocked: [] })),
 }));
 
+vi.mock("@/lib/db/product-analytics", () =>
+  globalThis.__contractRouteMocks!.createContractModuleMock(
+    "@/lib/db/product-analytics",
+  ),
+);
+
 import { GET, POST } from "./route";
 import { checkTailorQuota } from "@/lib/plan/quota";
+import { saveGeneratedResume } from "@/lib/db";
+import { createJob } from "@/lib/db/jobs";
 import { getGroupedBankEntries } from "@/lib/db/profile-bank";
+import { analyzeJobFit } from "@/lib/tailor/analyze";
+import { generateFromBank } from "@/lib/tailor/generate";
 import {
   expectRouteResponseContract,
   getRequest,
@@ -206,6 +216,107 @@ describe("/api/tailor route contract", () => {
       used: 5,
       resetAt: "2026-06-01T00:00:00.000Z",
       upgradeUrl: "/pricing",
+    });
+  });
+
+  it("generates from the deterministic bank path without a provider", async () => {
+    setAuthSuccess();
+    vi.mocked(checkTailorQuota).mockReturnValueOnce({
+      allowed: true,
+      tier: "free",
+      used: 1,
+      limit: 5,
+      resetAt: "2026-06-01T00:00:00.000Z",
+    });
+    const resume = {
+      contact: { name: "Ada Lovelace", email: "ada@example.com" },
+      summary: "Frontend engineer",
+      experiences: [],
+      skills: ["TypeScript"],
+      education: [],
+    };
+    vi.mocked(getGroupedBankEntries).mockReturnValueOnce({
+      experience: [
+        {
+          id: "entry-1",
+          userId: "user-1",
+          category: "experience",
+          content: {},
+          confidenceScore: 1,
+          createdAt: "2026-05-18T00:00:00.000Z",
+        },
+      ],
+      project: [],
+      education: [],
+      skill: [],
+      paragraph: [],
+      bullet: [],
+      achievement: [],
+      certification: [],
+      hackathon: [],
+    });
+    vi.mocked(analyzeJobFit).mockReturnValueOnce({
+      matchScore: 80,
+      keywordsFound: ["TypeScript"],
+      keywordsMissing: [],
+      gaps: [],
+      matchedEntries: [],
+      quality: {
+        status: "ready_to_apply",
+        label: "Ready",
+        rationale: "Strong match.",
+        nextActions: [],
+        reasons: ["strong_jd_match"],
+      },
+    });
+    vi.mocked(generateFromBank).mockResolvedValueOnce({
+      resume,
+      baseResume: resume,
+      promptVariantId: null,
+    });
+    vi.mocked(createJob).mockReturnValueOnce({
+      id: "job-1",
+      title: "Frontend Engineer",
+      company: "Northstar Labs",
+      description: "Build TypeScript apps.",
+      requirements: [],
+      responsibilities: [],
+      keywords: ["TypeScript"],
+      status: "saved",
+      createdAt: "2026-05-18T00:00:00.000Z",
+    });
+    vi.mocked(saveGeneratedResume).mockReturnValueOnce({
+      id: "resume-1",
+      jobId: "job-1",
+      profileId: "user-1",
+      templateId: "modern",
+      contentJson: JSON.stringify(resume),
+      htmlPath: "/resumes/test.html",
+      matchScore: 80,
+      createdAt: "2026-05-18T00:00:00.000Z",
+    });
+
+    const response = await invokeRouteHandler(
+      POST,
+      jsonRequest(
+        "http://localhost/api/tailor",
+        {
+          action: "generate",
+          jobDescription: "Build TypeScript apps.",
+          jobTitle: "Frontend Engineer",
+          company: "Northstar Labs",
+        },
+        "POST",
+      ),
+      routeContext(),
+    );
+
+    expect(response.status).toBe(200);
+    expect(generateFromBank).toHaveBeenCalledWith(expect.any(Object), null);
+    await expect(response.json()).resolves.toMatchObject({
+      usedLLM: false,
+      fallbackUsed: true,
+      fallbackReason: "provider_not_configured",
     });
   });
 

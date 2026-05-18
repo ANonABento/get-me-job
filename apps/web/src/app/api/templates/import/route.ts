@@ -2,9 +2,9 @@ import { nowEpoch } from "@/lib/format/time";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import {
-  gateAiFeature,
+  gateOptionalAiFeature,
   isAiGateResponse,
-  type AiGatePass,
+  type OptionalAiGatePass,
 } from "@/lib/billing/ai-gate";
 import { saveCustomTemplate } from "@/lib/db/custom-templates";
 import { LLMClient } from "@/lib/llm/client";
@@ -22,7 +22,7 @@ const MAX_TEMPLATE_FILE_BYTES = 10 * 1024 * 1024;
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
-  let aiGate: AiGatePass | null = null;
+  let aiGate: OptionalAiGatePass | null = null;
 
   const rateLimit = rateLimiters.standard(
     getClientIdentifier(request, authResult.userId),
@@ -80,20 +80,26 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const gate = gateAiFeature(
+    const gate = gateOptionalAiFeature(
       authResult.userId,
       "document_assistant",
       `template-import:${nowEpoch()}`,
     );
     if (isAiGateResponse(gate)) return gate;
     aiGate = gate;
-    const llmClient = new LLMClient(gate.llmConfig);
+    const llmClient = gate.llmConfig ? new LLMClient(gate.llmConfig) : null;
     const extracted = await extractTemplateFromFile({
       buffer,
       filename: file.name,
       mimeType: file.type,
       llmClient,
     });
+    const usedLLM = llmClient !== null;
+    const fallbackMetadata = {
+      usedLLM,
+      fallbackUsed: !usedLLM,
+      fallbackReason: usedLLM ? null : "provider_not_configured",
+    };
     const name =
       typeof nameValue === "string" && nameValue.trim()
         ? nameValue.trim().slice(0, 100)
@@ -105,6 +111,7 @@ export async function POST(request: NextRequest) {
         warnings: extracted.warnings,
         confidence: extracted.confidence,
         sectionsFound: extracted.sectionsFound,
+        ...fallbackMetadata,
       });
     }
 
@@ -127,6 +134,7 @@ export async function POST(request: NextRequest) {
       warnings: extracted.warnings,
       confidence: extracted.confidence,
       sectionsFound: extracted.sectionsFound,
+      ...fallbackMetadata,
     });
   } catch (error) {
     aiGate?.refund();

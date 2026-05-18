@@ -9,9 +9,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import { getProfile } from "@/lib/db";
 import {
-  gateAiFeature,
+  gateOptionalAiFeature,
   isAiGateResponse,
-  type AiGatePass,
+  type OptionalAiGatePass,
 } from "@/lib/billing/ai-gate";
 import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
 import { generateEmail, EMAIL_TEMPLATE_INFO } from "@/lib/email/templates";
@@ -40,7 +40,7 @@ interface LLMEmailResponse {
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
-  let aiGate: AiGatePass | null = null;
+  let aiGate: OptionalAiGatePass | null = null;
 
   try {
     const rawData = await request.json();
@@ -84,61 +84,68 @@ export async function POST(request: NextRequest) {
     };
 
     // Try LLM-enhanced generation first
+    let fallbackReason: "provider_not_configured" | "llm_error" | null = null;
     if (useLLM) {
-      const gate = gateAiFeature(
+      const gate = gateOptionalAiFeature(
         authResult.userId,
         "email",
         `${type}:${jobId ?? "general"}`,
       );
       if (isAiGateResponse(gate)) return gate;
       aiGate = gate;
-      try {
-        const client = new LLMClient(gate.llmConfig);
-        const templateInfo = EMAIL_TEMPLATE_INFO[type];
+      fallbackReason = gate.llmConfig ? null : "provider_not_configured";
+      if (gate.llmConfig) {
+        try {
+          const client = new LLMClient(gate.llmConfig);
+          const templateInfo = EMAIL_TEMPLATE_INFO[type];
 
-        const prompt = buildEmailGenerationPrompt({
-          templateInfo,
-          profile: profile || undefined,
-          job: job || undefined,
-          contextParams,
-          type,
-        });
-
-        const response = await client.complete({
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.7,
-          maxTokens: 1000,
-        });
-
-        const parsed = parseJSONFromLLM<LLMEmailResponse>(response);
-        if (parsed.subject && parsed.body) {
-          const selfCheck = parsed.selfCheck
-            ? {
-                ...parsed.selfCheck,
-                genericPhrases: mergeGenericPhraseMatches(
-                  parsed.selfCheck.genericPhrases,
-                  detectGenericPhrases(parsed.body),
-                ),
-              }
-            : undefined;
-
-          return NextResponse.json({
-            success: true,
-            email: {
-              subject: parsed.subject,
-              body: parsed.body,
-              placeholders: [],
-            },
-            ...(selfCheck ? { selfCheck } : {}),
-            usedLLM: true,
+          const prompt = buildEmailGenerationPrompt({
+            templateInfo,
+            profile: profile || undefined,
+            job: job || undefined,
+            contextParams,
+            type,
           });
+
+          const response = await client.complete({
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.7,
+            maxTokens: 1000,
+          });
+
+          const parsed = parseJSONFromLLM<LLMEmailResponse>(response);
+          if (parsed.subject && parsed.body) {
+            const selfCheck = parsed.selfCheck
+              ? {
+                  ...parsed.selfCheck,
+                  genericPhrases: mergeGenericPhraseMatches(
+                    parsed.selfCheck.genericPhrases,
+                    detectGenericPhrases(parsed.body),
+                  ),
+                }
+              : undefined;
+
+            return NextResponse.json({
+              success: true,
+              email: {
+                subject: parsed.subject,
+                body: parsed.body,
+                placeholders: [],
+              },
+              ...(selfCheck ? { selfCheck } : {}),
+              usedLLM: true,
+              fallbackUsed: false,
+              fallbackReason: null,
+            });
+          }
+        } catch (llmError) {
+          aiGate?.refund();
+          fallbackReason = "llm_error";
+          console.error(
+            "LLM generation failed, falling back to template:",
+            llmError,
+          );
         }
-      } catch (llmError) {
-        aiGate?.refund();
-        console.error(
-          "LLM generation failed, falling back to template:",
-          llmError,
-        );
       }
     }
 
@@ -149,6 +156,8 @@ export async function POST(request: NextRequest) {
       success: true,
       email,
       usedLLM: false,
+      fallbackUsed: useLLM,
+      fallbackReason: useLLM ? fallbackReason : null,
     });
   } catch (error) {
     aiGate?.refund();
