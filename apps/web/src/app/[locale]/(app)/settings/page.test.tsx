@@ -170,13 +170,13 @@ describe("SettingsPage", () => {
     const { container } = renderSettingsPage();
 
     // `wide` is full-bleed now (dropped the `max-w-screen-2xl` cap when
-    // the coach rail came out). Settings uses the compact header variant
-    // (single-row, `px-6 py-3`); content inset stays `px-6 py-6`.
+    // the coach rail came out). Settings uses the compact header variant;
+    // header and content share the responsive app-page inset.
     const header = screen.getByRole("banner");
     expect(header).toHaveAttribute("data-variant", "compact");
-    expect(header.firstElementChild).toHaveClass("px-6", "py-3");
+    expect(header.firstElementChild).toHaveClass("px-4", "py-3", "sm:px-6");
 
-    const content = container.querySelector(".px-6.py-6");
+    const content = container.querySelector(".px-4.py-5.sm\\:px-6.sm\\:py-6");
     expect(content).not.toBeNull();
   });
 

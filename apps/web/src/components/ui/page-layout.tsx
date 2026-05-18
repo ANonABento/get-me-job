@@ -126,7 +126,7 @@ export function PageHeader({
       >
         <div
           className={cn(
-            "flex min-h-12 items-center gap-4 px-6 py-3",
+            "flex min-h-12 flex-col items-stretch gap-3 px-4 py-3 sm:px-6 md:flex-row md:items-center md:gap-4",
             getPageWidthClassName(width),
           )}
         >
@@ -159,7 +159,12 @@ export function PageHeader({
 
   return (
     <header className={cn("border-b bg-card/70", className)}>
-      <div className={cn("px-6 py-6", getPageWidthClassName(width))}>
+      <div
+        className={cn(
+          "px-4 py-5 sm:px-6 sm:py-6",
+          getPageWidthClassName(width),
+        )}
+      >
         <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="flex max-w-3xl items-start gap-4">
             <PageIconTile icon={Icon} className="mt-1" />
@@ -197,11 +202,13 @@ export function PageContent({
 }: PageContentProps) {
   return (
     <div
-      // 24px horizontal padding (px-6) matches the editorial header's text
-      // inset so cards align with the page title. The design uses 32px but
-      // assumes a 320px coach rail filling the right side; without that
-      // rail, 32px feels orphaned and 0 feels edge-flush.
-      className={cn("px-6 py-6", getPageWidthClassName(width), className)}
+      // Desktop uses the same 24px inset as the compact header; mobile
+      // tightens to 16px so controls have enough working width.
+      className={cn(
+        "px-4 py-5 sm:px-6 sm:py-6",
+        getPageWidthClassName(width),
+        className,
+      )}
     >
       {children}
     </div>
@@ -221,7 +228,7 @@ export function PageShell({
 }: PageShellProps) {
   return (
     <AppPage padding="none">
-      <PageContent width={width} className={cn("space-y-4 lg:py-8", className)}>
+      <PageContent width={width} className={cn("space-y-4", className)}>
         {children}
       </PageContent>
     </AppPage>

@@ -128,8 +128,10 @@ describe("page layout helpers", () => {
       "pb-24",
     );
     expect(screen.getByText("Content")).toHaveClass(
-      "px-6",
-      "py-6",
+      "px-4",
+      "py-5",
+      "sm:px-6",
+      "sm:py-6",
       "max-w-3xl",
     );
   });

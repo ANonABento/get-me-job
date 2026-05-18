@@ -106,7 +106,15 @@ import { useA11yTranslations } from "@/lib/i18n/use-a11y-translations";
 
 const DriveFilePicker = dynamic(
   () => import("@/components/google").then((m) => m.DriveFilePicker),
-  { loading: () => <SkeletonButton className="w-40" />, ssr: false },
+  {
+    loading: () => (
+      <Button variant="outline" size="sm" disabled>
+        <HardDrive className="mr-2 h-4 w-4" />
+        From Drive
+      </Button>
+    ),
+    ssr: false,
+  },
 );
 
 const SourceDocuments = dynamic(
@@ -1782,10 +1790,7 @@ export function BankComponentsTab({
                 <>
                   {/* Keep this in flow: <main> is the scrollport, and nested sticky filter bars can trap wheel scrolling. */}
                   <Suspense fallback={<BankFiltersSkeleton />}>
-                    <div
-                      className="border-b border-border/50 bg-background/95 py-3"
-                      data-testid="bank-search-filters"
-                    >
+                    <div data-testid="bank-search-filters">
                       <SearchBar
                         ref={searchInputRef}
                         query={query}

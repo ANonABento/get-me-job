@@ -403,7 +403,7 @@ export default function Dashboard() {
     <ErrorBoundary>
       <AppPage padding="none">
         <EditorialDashboardHeader title={headerTitle} subline={headerSubline} />
-        <PageContent width="wide" className="space-y-4 lg:py-8">
+        <PageContent width="wide" className="space-y-4">
           {loading ? (
             <DashboardSkeleton />
           ) : onboardingActive ? (

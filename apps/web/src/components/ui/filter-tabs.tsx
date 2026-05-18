@@ -34,7 +34,7 @@ export function FilterTabs<T extends string>({
       aria-label={ariaLabel}
       className={cn(
         "flex items-center gap-2 overflow-x-auto whitespace-nowrap",
-        wrap && "flex-wrap overflow-x-visible whitespace-normal",
+        wrap && "sm:flex-wrap sm:overflow-x-visible sm:whitespace-normal",
         className,
       )}
     >

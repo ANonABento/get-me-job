@@ -472,7 +472,7 @@ export default function OpportunityDetailPage({
 
   return (
     <AppPage>
-      <PageContent className="py-6">
+      <PageContent>
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-6">
             <header className="border-b pb-5">
