@@ -21,7 +21,7 @@ const SCRAPED_BOARDS = [
 export function LogoStrip() {
   const doubled = [...SCRAPED_BOARDS, ...SCRAPED_BOARDS];
   return (
-    <section className="overflow-hidden border-y border-rule bg-page-2 py-7">
+    <section className="overflow-hidden border-y border-rule bg-paper py-4">
       <div className="mx-auto flex max-w-[1480px] items-center gap-7 px-5 md:px-10">
         <span className="flex-shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3">
           Works where jobs live
@@ -64,7 +64,7 @@ export function LogoStrip() {
           }
         }
         :global(.logo-strip-track) {
-          animation: logo-strip-scroll 38s linear infinite;
+          animation: logo-strip-scroll 32s linear infinite;
         }
         :global(.logo-strip-track:hover) {
           animation-play-state: paused;
