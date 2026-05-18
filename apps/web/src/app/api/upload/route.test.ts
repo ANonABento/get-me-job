@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   getLLMConfig: vi.fn(),
   deleteSourceDocuments: vi.fn(),
   listBankEntriesPaginated: vi.fn(),
+  updateBankEntryForUser: vi.fn(),
   updateBankEntryPositions: vi.fn(),
   populateBankFromProfile: vi.fn(),
   populateBankFromParsedDocument: vi.fn(),
@@ -55,6 +56,7 @@ vi.mock("@/lib/llm/is-configured", () => ({
 vi.mock("@/lib/db/profile-bank", () => ({
   deleteSourceDocuments: mocks.deleteSourceDocuments,
   listBankEntriesPaginated: mocks.listBankEntriesPaginated,
+  updateBankEntryForUser: mocks.updateBankEntryForUser,
   updateBankEntryPositions: mocks.updateBankEntryPositions,
 }));
 
@@ -695,6 +697,15 @@ describe("upload route dedupe flow", () => {
     const response = await POST(uploadRequest(pdfFile()));
 
     expect(response.status).toBe(200);
+    expect(mocks.updateBankEntryForUser).toHaveBeenCalledWith(
+      "project-1",
+      "user-1",
+      expect.objectContaining({
+        name: "Portfolio",
+        url: "https://example.com/portfolio",
+      }),
+      0.9,
+    );
     expect(mocks.updateBankEntryPositions).toHaveBeenCalledWith(
       "project-1",
       "user-1",
@@ -727,6 +738,70 @@ describe("upload route dedupe flow", () => {
         category: "bullet",
         anchorBbox: expect.objectContaining({ page: 1, y0: 100 }),
       }),
+    );
+  });
+
+  it("promotes PDF links into generic component URLs without overwriting explicit URLs", async () => {
+    mocks.listBankEntriesPaginated.mockReturnValueOnce([
+      {
+        id: "experience-1",
+        userId: "user-1",
+        category: "experience",
+        content: { title: "Engineer", company: "Acme" },
+        sourceOrder: 1,
+        confidenceScore: 0.9,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+      {
+        id: "cert-1",
+        userId: "user-1",
+        category: "certification",
+        content: {
+          name: "AWS Cert",
+          issuer: "AWS",
+          url: "https://explicit.example/cert",
+        },
+        sourceOrder: 2,
+        confidenceScore: 0.95,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+    ]);
+    mocks.findPositionsForText
+      .mockReturnValueOnce([[1, 72, 100, 160, 112]])
+      .mockReturnValueOnce([[1, 72, 100, 300, 112]])
+      .mockReturnValueOnce([[1, 72, 140, 160, 152]])
+      .mockReturnValueOnce([[1, 72, 140, 300, 152]]);
+    mocks.findSourceLinksForBboxes
+      .mockReturnValueOnce([
+        {
+          url: "https://acme.example",
+          text: "Engineer Acme",
+          page: 1,
+          bbox: [1, 160, 100, 180, 112],
+        },
+      ])
+      .mockReturnValueOnce([
+        {
+          url: "https://annotation.example/cert",
+          text: "AWS Cert",
+          page: 1,
+          bbox: [1, 160, 140, 180, 152],
+        },
+      ]);
+
+    const response = await POST(uploadRequest(pdfFile()));
+
+    expect(response.status).toBe(200);
+    expect(mocks.updateBankEntryForUser).toHaveBeenCalledTimes(1);
+    expect(mocks.updateBankEntryForUser).toHaveBeenCalledWith(
+      "experience-1",
+      "user-1",
+      expect.objectContaining({
+        title: "Engineer",
+        company: "Acme",
+        url: "https://acme.example",
+      }),
+      0.9,
     );
   });
 });
