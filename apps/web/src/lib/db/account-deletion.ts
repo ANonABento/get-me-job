@@ -125,6 +125,11 @@ const USER_SCOPED_DELETES: DeleteStatement[] = [
     sql: "DELETE FROM shared_resumes WHERE user_id = ?",
     optional: true,
   },
+  {
+    table: "document_artifacts",
+    sql: "DELETE FROM document_artifacts WHERE user_id = ?",
+    optional: true,
+  },
   { table: "documents", sql: "DELETE FROM documents WHERE user_id = ?" },
   { table: "jobs", sql: "DELETE FROM jobs WHERE user_id = ?" },
   { table: "experiences", sql: "DELETE FROM experiences WHERE user_id = ?" },

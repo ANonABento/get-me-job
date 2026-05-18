@@ -62,6 +62,32 @@ export const documents = sqliteTable(
   }),
 );
 
+export const documentArtifacts = sqliteTable(
+  "document_artifacts",
+  {
+    id: text("id").primaryKey(),
+    documentId: text("document_id").notNull(),
+    userId: text("user_id").notNull().default(DEFAULT_USER_ID),
+    extractorVersion: text("extractor_version").notNull(),
+    status: text("status").notNull(),
+    failureReason: text("failure_reason"),
+    rawText: text("raw_text").notNull().default(""),
+    normalizedText: text("normalized_text").notNull().default(""),
+    pagesJson: text("pages_json").notNull().default("[]"),
+    linksJson: text("links_json").notNull().default("[]"),
+    ocrUsed: integer("ocr_used", { mode: "boolean" }).notNull().default(false),
+    createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("idx_document_artifacts_document_created").on(
+      table.userId,
+      table.documentId,
+      table.createdAt,
+    ),
+    index("idx_document_artifacts_user_status").on(table.userId, table.status),
+  ],
+);
+
 // Profile table
 export const profile = sqliteTable("profile", {
   id: text("id").primaryKey(),

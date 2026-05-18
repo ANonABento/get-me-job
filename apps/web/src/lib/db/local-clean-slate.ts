@@ -111,6 +111,11 @@ export function buildLocalDevCleanSlateStatements(
       sql: "DELETE FROM reminders WHERE job_id IN (SELECT id FROM jobs WHERE user_id = ?)",
       params: userParam,
     },
+    {
+      sql: "DELETE FROM document_artifacts WHERE user_id = ?",
+      params: userParam,
+      requiredTable: "document_artifacts",
+    },
     { sql: "DELETE FROM documents WHERE user_id = ?", params: userParam },
     { sql: "DELETE FROM jobs WHERE user_id = ?", params: userParam },
     { sql: "DELETE FROM experiences WHERE profile_id = ?", params: userParam },

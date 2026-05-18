@@ -120,6 +120,7 @@ export {
   DEFAULT_PROFILE_ID,
   settings,
   documents,
+  documentArtifacts,
   profile,
   experiences,
   education,
@@ -172,6 +173,7 @@ export * from "./external-calendar-events";
 export * from "./suggested-status-updates";
 export * from "./custom-templates";
 export * from "./profile-bank";
+export * from "./document-artifacts";
 export * from "./answer-bank";
 export * from "./answer-bank-versions";
 export * from "./answer-bank-migration";

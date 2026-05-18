@@ -763,14 +763,17 @@ Known gaps before this branch should merge:
 
 Next implementation slices:
 
-1. Finish first-slice correctness hardening listed above.
+1. Finish first-slice correctness hardening listed above. Done on `main` in
+   `0fa16b7c`.
 2. Add a small source-span resolver that maps `sourceSpanIds` to bboxes for
-   parser-v2 diagnostics and future preview-v2 wiring.
+   parser-v2 diagnostics and future preview-v2 wiring. Done on `main` in
+   `0fa16b7c`.
 3. Add source quality classification (`exact`, `partial`, `missing`) for
-   parser-v2 roots and bullets.
+   parser-v2 roots and bullets. Done on `main` in `0fa16b7c`.
 4. Add parser-v2 fixtures beyond `syzfjbzwjncs.pdf` before generalizing
    heuristics.
-5. Only after the parser/source-map core is stable, add persistence for
-   `document_artifacts` and `document_parse_runs`.
-6. Keep `/api/upload` and `/api/parse` route migration out of this branch until
-   persistence is reviewed separately.
+5. Add persistence for `document_artifacts`, plus a read-only source artifact
+   API. In progress.
+6. Add persistence for `document_parse_runs`.
+7. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+   reviewed separately.
