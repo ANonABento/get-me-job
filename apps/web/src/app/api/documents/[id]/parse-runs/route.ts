@@ -6,14 +6,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth, isAuthError } from "@/lib/auth";
+import { listDocumentParseRuns } from "@/lib/db";
 import {
-  getDocumentArtifact,
-  getLatestDocumentArtifact,
-  listDocumentParseRuns,
-  saveDocumentParseRun,
-  type ParseWarning,
-} from "@/lib/db";
-import { parseResumeV2FromSourceMap } from "@/lib/ingest/parse-resume-v2";
+  createBasicDocumentParseRun,
+  DocumentParseRunError,
+} from "@/lib/ingest/document-parse-run";
 
 export const dynamic = "force-dynamic";
 
@@ -72,36 +69,20 @@ export async function POST(
   }
 
   try {
-    const artifact = parsed.data.artifactId
-      ? getDocumentArtifact(parsed.data.artifactId, authResult.userId)
-      : getLatestDocumentArtifact(params.id, authResult.userId);
-
-    if (!artifact || artifact.documentId !== params.id) {
-      return NextResponse.json(
-        { error: "Document artifact not found" },
-        { status: 404 },
-      );
-    }
-
-    const structured = parseResumeV2FromSourceMap(artifact.sourceMap);
-    const warnings: ParseWarning[] = structured.warnings.map((message) => ({
-      code: "parser_warning",
-      message,
-      severity: "warning",
-    }));
-    const parseRun = saveDocumentParseRun({
+    const parseRun = createBasicDocumentParseRun({
       documentId: params.id,
-      artifactId: artifact.id,
       userId: authResult.userId,
-      mode: "basic",
-      status: "ready",
-      confidence: structured.confidence,
-      warnings,
-      structured,
+      artifactId: parsed.data.artifactId,
     });
 
     return NextResponse.json({ parseRun }, { status: 201 });
   } catch (error) {
+    if (error instanceof DocumentParseRunError) {
+      return NextResponse.json(
+        { error: error.publicMessage },
+        { status: error.status },
+      );
+    }
     console.error("Create document parse run error:", error);
     return NextResponse.json(
       { error: "Failed to create document parse run" },

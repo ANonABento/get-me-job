@@ -822,5 +822,9 @@ Next implementation slices:
     calculation onto the shared upload service while preserving its existing
     extraction, classification, bank ingestion, profile auto-promotion, and
     legacy response behavior. Done in the legacy upload validation slice.
-19. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+19. Extract basic parser-v2 parse-run creation into a shared service so
+    compatibility routes can wrap artifact lookup, deterministic parsing, and
+    parse-run persistence without duplicating route internals. Done in the
+    parse-run service-boundary slice.
+20. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.
