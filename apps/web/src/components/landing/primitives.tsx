@@ -1,6 +1,58 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/** Slim announcement bar — paper band, rust pill + body + arrow.
+ *
+ * Designed to live above the marketing Navbar via the layout slot
+ * (gated by an env var so we can flip messaging without code change).
+ * Optional `href` makes the whole bar clickable. */
+export function AnnouncementBar({
+  badge,
+  body,
+  reinforce,
+  href,
+  className,
+}: {
+  badge: string;
+  body: React.ReactNode;
+  reinforce?: React.ReactNode;
+  href?: string;
+  className?: string;
+}) {
+  const inner = (
+    <>
+      <span className="mr-2 inline-block rounded-sm bg-brand-soft px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-brand-dark">
+        {badge}
+      </span>
+      {reinforce ? (
+        <strong className="font-semibold text-ink">{reinforce}</strong>
+      ) : null}
+      {reinforce ? " " : null}
+      {body}
+      {href ? (
+        <span aria-hidden className="ml-1">
+          →
+        </span>
+      ) : null}
+    </>
+  );
+  const wrapClass = cn(
+    "block border-b border-rule bg-paper px-4 py-[7px] text-center text-[12.5px] text-ink-2",
+    className,
+  );
+  if (href) {
+    return (
+      <a
+        href={href}
+        className={cn(wrapClass, "transition-colors hover:bg-page")}
+      >
+        {inner}
+      </a>
+    );
+  }
+  return <div className={wrapClass}>{inner}</div>;
+}
+
 /** Mono-cap eyebrow caption ("01 · Knowledge Bank", "INSIDE SLOTHING", etc.). */
 export function MonoCap({
   children,
