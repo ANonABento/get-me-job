@@ -2,10 +2,16 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { Check, Github, KeyRound, ShieldCheck, TimerReset } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { CSP_NONCE_HEADER } from "@/lib/security/headers";
 import { getAlternateLanguages, getMetadataBase } from "@/lib/seo";
+import {
+  CompareTable,
+  type CompareColumn,
+  type CompareRow,
+} from "@/components/landing/CompareTable";
+import { InverseCTABand } from "@/components/landing/InverseCTABand";
+import { HighlighterEm } from "@/components/landing/primitives";
 
 const competitors = {
   teal: {
@@ -129,64 +135,17 @@ export default function CompetitorComparisonPage({
   const routeHeaders = headers();
   const nonce = routeHeaders.get(CSP_NONCE_HEADER);
 
+  const compareColumns: CompareColumn[] = [
+    { key: "slothing", label: "Slothing" },
+    { key: "other", label: competitor.name },
+  ];
+  const compareRows: CompareRow[] = rows.map(([category, slothing, other]) => ({
+    label: category,
+    cells: { slothing, other },
+  }));
+
   return (
-    <main className="min-h-screen bg-background">
-      <section className="border-b bg-card/40">
-        {/* pt-12 lg:pt-20 so the eyebrow doesn't collide with the
-            fixed top navbar (~64px tall + brand subtitle line). */}
-        <div className="mx-auto grid max-w-6xl gap-10 px-6 pt-12 pb-16 lg:grid-cols-[1fr_360px] lg:pt-20">
-          <div className="flex flex-col gap-5">
-            <div className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3">
-              <ShieldCheck className="h-3.5 w-3.5 text-brand" aria-hidden />
-              <span>Open-source alternative</span>
-            </div>
-            <h1 className="text-4xl font-semibold tracking-normal text-foreground md:text-5xl">
-              Slothing vs{" "}
-              <em className="not-italic italic font-display text-brand [background-image:linear-gradient(transparent_70%,var(--brand-soft)_70%)]">
-                {competitor.name}
-              </em>
-            </h1>
-            <p className="max-w-3xl text-lg leading-8 text-muted-foreground">
-              {competitor.contrast}
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Button asChild>
-                <Link href="/pricing">See pricing</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <a href="https://github.com/ANonABento/slothing">
-                  <Github className="h-4 w-4" />
-                  GitHub
-                </a>
-              </Button>
-            </div>
-          </div>
-
-          {/* border-rule-strong + bg-paper so the callout reads against
-              the dark Midnight Indigo paper in dark mode. The default
-              `border` token nearly vanishes against bg-background. */}
-          <div className="rounded-lg border border-rule-strong bg-paper p-5 shadow-paper-card">
-            <h2 className="font-display text-base font-semibold tracking-tight">
-              Why people pick Slothing
-            </h2>
-            <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
-              <li className="flex gap-2">
-                <Check className="mt-0.5 h-4 w-4 text-success" />
-                Read and modify the code that handles your resume.
-              </li>
-              <li className="flex gap-2">
-                <KeyRound className="mt-0.5 h-4 w-4 text-success" />
-                Bring your own LLM key on hosted free.
-              </li>
-              <li className="flex gap-2">
-                <TimerReset className="mt-0.5 h-4 w-4 text-success" />
-                Pay weekly when your search is active.
-              </li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
+    <>
       <script
         {...(nonce ? { nonce } : {})}
         suppressHydrationWarning
@@ -198,25 +157,103 @@ export default function CompetitorComparisonPage({
         }}
       />
 
-      <section className="mx-auto max-w-6xl px-6 py-12">
-        <div className="overflow-hidden rounded-lg border">
-          <div className="grid grid-cols-3 bg-muted px-4 py-3 text-sm font-semibold">
-            <div>Category</div>
-            <div>Slothing</div>
-            <div>{competitor.name}</div>
-          </div>
-          {rows.map(([category, slothing, other]) => (
-            <div
-              key={category}
-              className="grid grid-cols-3 gap-4 border-t px-4 py-4 text-sm"
-            >
-              <div className="font-medium">{category}</div>
-              <div>{slothing}</div>
-              <div className="text-muted-foreground">{other}</div>
+      {/* Hero */}
+      <section className="border-b border-rule bg-page">
+        <div className="mx-auto w-full max-w-[1480px] px-5 pb-16 pt-10 md:px-10 md:pb-20 md:pt-16">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)] lg:gap-12">
+            <div className="flex max-w-[640px] flex-col gap-5">
+              <span className="inline-flex w-fit items-center gap-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0.16em] text-brand">
+                <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
+                Open-source alternative
+              </span>
+              <h1 className="max-w-[15ch] font-display text-[clamp(40px,5.4vw,72px)] font-extrabold leading-[0.98] tracking-display text-ink">
+                Slothing vs <HighlighterEm>{competitor.name}</HighlighterEm>
+              </h1>
+              <p className="max-w-[56ch] text-[16.5px] leading-[1.55] text-ink-2">
+                {competitor.contrast}
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2.5">
+                <Link
+                  href="/pricing"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-ink px-5 py-3 text-[14px] font-semibold text-page transition-opacity hover:opacity-90"
+                >
+                  See pricing
+                </Link>
+                <a
+                  href="https://github.com/ANonABento/slothing"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-ink bg-transparent px-5 py-3 text-[14px] font-semibold text-ink transition-colors hover:bg-rule-strong-bg"
+                >
+                  <Github className="h-4 w-4" aria-hidden />
+                  GitHub
+                </a>
+              </div>
             </div>
-          ))}
+
+            <aside className="rounded-2xl border border-rule bg-paper p-5 shadow-paper-card md:p-6">
+              <h2 className="font-display text-[16px] font-bold tracking-tight text-ink">
+                Why people pick Slothing
+              </h2>
+              <ul className="mt-4 space-y-3 text-[14px] leading-6 text-ink-2">
+                <li className="flex gap-2.5">
+                  <Check
+                    className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand"
+                    aria-hidden
+                  />
+                  <span>
+                    Read and modify the code that handles your resume.
+                  </span>
+                </li>
+                <li className="flex gap-2.5">
+                  <KeyRound
+                    className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand"
+                    aria-hidden
+                  />
+                  <span>Bring your own LLM key on hosted free.</span>
+                </li>
+                <li className="flex gap-2.5">
+                  <TimerReset
+                    className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand"
+                    aria-hidden
+                  />
+                  <span>Pay weekly when your search is active.</span>
+                </li>
+              </ul>
+            </aside>
+          </div>
         </div>
       </section>
-    </main>
+
+      {/* Comparison table */}
+      <section className="border-t border-rule bg-paper py-16 md:py-20">
+        <div className="mx-auto w-full max-w-[1240px] px-5 md:px-10">
+          <CompareTable
+            columns={compareColumns}
+            rows={compareRows}
+            highlight="slothing"
+            caption={`Slothing vs ${competitor.name} · ${competitor.positioning}`}
+          />
+        </div>
+      </section>
+
+      {/* Closer */}
+      <InverseCTABand
+        eyebrow="Try Slothing"
+        headlineTop="One workspace."
+        headlineBottom="Yours to inspect."
+        body="Sign up and bring your own AI key, or self-host the whole thing on AGPL-3.0."
+        ctaPrimary={{
+          label: "Get started free",
+          href: "/sign-in",
+        }}
+        ctaSecondary={{
+          label: "Star on GitHub",
+          href: "https://github.com/ANonABento/slothing",
+          leadingGlyph: "★",
+          external: true,
+        }}
+      />
+    </>
   );
 }
