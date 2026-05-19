@@ -475,7 +475,10 @@ export function parseResumeBasic(text: string): Partial<Profile> {
 }
 
 function normalizeWhitespace(value: string): string {
-  return value.replace(/\s+/g, " ").trim();
+  return value
+    .replace(/[\u200b-\u200d\ufeff]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function cleanListValues(values: string[]): string[] {
@@ -483,7 +486,7 @@ function cleanListValues(values: string[]): string[] {
   const out: string[] = [];
   for (const value of values) {
     const cleaned = normalizeWhitespace(
-      value.replace(/^(?:[-*•]|\d+[.)])\s+/, ""),
+      value.replace(BULLET_PREFIX_PATTERN, ""),
     );
     if (!cleaned) continue;
     const key = cleaned.toLowerCase();
@@ -602,35 +605,162 @@ function isLikelyMetricOrProof(line: string): boolean {
   );
 }
 
+const BULLET_PREFIX_PATTERN = /^(?:[-*•●]|\d+[.)])[\s\u200b-\u200d\ufeff]+/;
+
+const PORTFOLIO_TECH_HINTS = new Set(
+  [
+    "aiml",
+    "altium designer",
+    "android studio",
+    "arduino",
+    "aws",
+    "blender",
+    "c",
+    "c#",
+    "c++",
+    "cuda",
+    "docker",
+    "eclipse",
+    "esp32",
+    "flask",
+    "freeRTOS",
+    "fsm",
+    "fusion360",
+    "gpio",
+    "java",
+    "javascript",
+    "jetson nano",
+    "linux",
+    "llama.cpp",
+    "motor control",
+    "node.js",
+    "onshape",
+    "opencv",
+    "python",
+    "pytorch",
+    "react",
+    "ros2",
+    "stm32",
+    "three.js",
+    "tts",
+    "unity 2d/3d",
+    "visual studio",
+    "vs code",
+    "whisper",
+  ].map((value) => value.toLowerCase()),
+);
+
+function isPortfolioBoilerplateLine(line: string): boolean {
+  const normalized = normalizeWhitespace(line).toLowerCase();
+  if (!normalized) return true;
+  if (/^(portfolio|selected work|projects?)$/.test(normalized)) return true;
+  if (normalized === "kevin jiang resume") return true;
+  if (/linkedin\.com\/in\//i.test(line)) {
+    return true;
+  }
+  if (/^github\.com\/[A-Za-z0-9_-]+$/i.test(normalized)) {
+    return true;
+  }
+  return false;
+}
+
+function splitPortfolioStack(stack: string): string[] {
+  return cleanListValues(
+    stack.split(/[|,;]/).map((item) => item.replace(/\s+/g, " ").trim()),
+  );
+}
+
+function hasPortfolioTechSignal(tokens: string[]): boolean {
+  return tokens.some((token) => {
+    const normalized = token.toLowerCase();
+    if (PORTFOLIO_TECH_HINTS.has(normalized)) return true;
+    return /\b(?:api|cad|cli|css|gpu|html|ide|sdk|sql|ui|ux|vr|web|3d|3d-printing)\b/i.test(
+      token,
+    );
+  });
+}
+
+function parseVisualPortfolioHeading(
+  line: string,
+): { name: string; technologies: string[] } | null {
+  const match = normalizeWhitespace(line).match(/^(.{2,80}?)\s+[—–-]\s+(.+)$/);
+  if (!match) return null;
+
+  const name = normalizeWhitespace(match[1]);
+  const technologies = splitPortfolioStack(match[2]);
+  if (!name || isPortfolioBoilerplateLine(name)) return null;
+  if (technologies.length < 2 && !hasPortfolioTechSignal(technologies)) {
+    return null;
+  }
+  if (!hasPortfolioTechSignal(technologies) && technologies.length < 3) {
+    return null;
+  }
+  return { name, technologies };
+}
+
+function isPortfolioBullet(line: string): boolean {
+  return BULLET_PREFIX_PATTERN.test(line);
+}
+
+function isExplicitPortfolioListLine(line: string): boolean {
+  return /^(stack|technologies|tools|built with)\s*:/i.test(line);
+}
+
+function isPortfolioUrlLine(line: string): boolean {
+  return /^https?:\/\//i.test(line) || /^(?:github|gitlab)\.com\//i.test(line);
+}
+
+function isLikelyPortfolioDescription(line: string): boolean {
+  const normalized = normalizeWhitespace(line);
+  if (normalized.length < 60) return false;
+  if (
+    isPortfolioBullet(normalized) ||
+    isPortfolioUrlLine(normalized) ||
+    isExplicitPortfolioListLine(normalized) ||
+    isPortfolioBoilerplateLine(normalized)
+  ) {
+    return false;
+  }
+  if (
+    /^(?:cad|real life|partial view|system|wiring|testing|printed|routed)\b/i.test(
+      normalized,
+    )
+  ) {
+    return false;
+  }
+  return true;
+}
+
 function parsePortfolioProjectBlock(
   name: string,
   block: string[],
+  headingTechnologies: string[] = [],
 ): PortfolioProjectData {
-  const joined = block.join("\n");
+  const contentLines = block.filter(
+    (line) => !isPortfolioBoilerplateLine(line),
+  );
+  const joined = contentLines.join("\n");
   const urls = extractUrls(joined);
-  const technologies = extractExplicitList(joined, [
-    "stack",
-    "technologies",
-    "tools",
-    "built with",
+  const technologies = cleanListValues([
+    ...headingTechnologies,
+    ...extractExplicitList(joined, [
+      "stack",
+      "technologies",
+      "tools",
+      "built with",
+    ]),
   ]);
   const bullets = cleanListValues(
-    block.filter((line) => /^(?:[-*•]|\d+[.)])\s+/.test(line)),
+    contentLines.filter((line) => isPortfolioBullet(line)),
   );
   const proofPoints = cleanListValues(
-    [...bullets, ...block]
+    [...bullets, ...contentLines]
       .map((line) => normalizeWhitespace(line))
       .filter(isLikelyMetricOrProof),
   );
-  const description = block
+  const description = contentLines
     .map((line) => normalizeWhitespace(line))
-    .find(
-      (line) =>
-        line &&
-        !/^(?:[-*•]|\d+[.)])\s+/.test(line) &&
-        !/^https?:\/\//i.test(line) &&
-        !/^(stack|technologies|tools|built with)\s*:/i.test(line),
-    );
+    .find(isLikelyPortfolioDescription);
 
   return {
     name: normalizeWhitespace(name) || "Untitled Project",
@@ -649,16 +779,36 @@ export function parsePortfolioBasic(text: string): PortfolioData {
     .filter(Boolean);
   const projects: PortfolioProjectData[] = [];
   let currentName = "";
+  let currentHeadingTechnologies: string[] = [];
   let currentBlock: string[] = [];
 
   const flush = () => {
     if (!currentName) return;
-    projects.push(parsePortfolioProjectBlock(currentName, currentBlock));
+    projects.push(
+      parsePortfolioProjectBlock(
+        currentName,
+        currentBlock,
+        currentHeadingTechnologies,
+      ),
+    );
     currentName = "";
+    currentHeadingTechnologies = [];
     currentBlock = [];
   };
 
   for (const line of lines) {
+    if (isPortfolioBoilerplateLine(line)) {
+      continue;
+    }
+
+    const visualHeading = parseVisualPortfolioHeading(line);
+    if (visualHeading) {
+      flush();
+      currentName = visualHeading.name;
+      currentHeadingTechnologies = visualHeading.technologies;
+      continue;
+    }
+
     const heading = line.match(
       /^(?:#{1,4}\s*)?(?:project|case study|selected work)\s*[:\-]\s*(.+)$/i,
     );
@@ -668,12 +818,6 @@ export function parsePortfolioBasic(text: string): PortfolioData {
       currentName = normalizeWhitespace(
         (heading?.[1] ?? markdownHeading?.[1]) || "",
       );
-      continue;
-    }
-    if (
-      !currentName &&
-      /^portfolio\b|^selected work\b|^projects?\b/i.test(line)
-    ) {
       continue;
     }
     if (!currentName && /(?:github\.com|https?:\/\/)/i.test(line)) {
