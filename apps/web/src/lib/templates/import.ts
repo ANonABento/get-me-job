@@ -152,7 +152,48 @@ async function extractTemplateText(
   if (sourceType === "tex") {
     return latexToText(buffer.toString("utf8")).trim();
   }
+  if (sourceType === "pdf") {
+    const positionedText = await extractPdfTextFromPositions(buffer);
+    if (positionedText.length >= 25) return positionedText;
+  }
   return (await extractTextFromFile(tempFile)).trim();
+}
+
+async function extractPdfTextFromPositions(buffer: Buffer): Promise<string> {
+  try {
+    const { extractPdfPositions } = await import("@/lib/parse/pdf-positions");
+    const positioned = await extractPdfPositions(buffer, {
+      includeJunk: false,
+    });
+    const pages = positioned.pageDimensions.map((page) => page.page);
+    const text = pages
+      .map((page) => {
+        const items = positioned.items.filter((item) => item.page === page);
+        const lines: Array<{ y: number; text: string[] }> = [];
+        for (const item of items) {
+          const line = lines.find(
+            (candidate) =>
+              Math.abs(candidate.y - item.y0) < Math.max(4, item.y1 - item.y0),
+          );
+          if (line) {
+            line.text.push(item.text);
+          } else {
+            lines.push({ y: item.y0, text: [item.text] });
+          }
+        }
+        return lines.map((line) => joinPositionedText(line.text)).join("\n");
+      })
+      .join("\n\n")
+      .replace(/[ \t]{2,}/g, " ")
+      .trim();
+    return text;
+  } catch {
+    return "";
+  }
+}
+
+function joinPositionedText(items: string[]): string {
+  return items.join("").replace(/\s+/g, " ").trim();
 }
 
 function latexToText(source: string): string {
