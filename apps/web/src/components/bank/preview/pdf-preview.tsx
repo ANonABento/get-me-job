@@ -145,7 +145,7 @@ export function PdfPreview({
 
     (async () => {
       try {
-        const res = await fetch(`/api/bank/documents/${documentId}/pdf`);
+        const res = await fetch(`/api/documents/${documentId}/preview/pdf`);
         if (!res.ok) {
           throw new Error(
             res.status === 404
