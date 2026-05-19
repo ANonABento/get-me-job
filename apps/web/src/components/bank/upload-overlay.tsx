@@ -121,6 +121,7 @@ export interface UploadOverlayProps {
   onComplete: (results: FileResult[]) => void;
   /** Called when file processing begins so the parent can show skeletons. */
   onUploadStart?: () => void;
+  onUploadFile?: (file: globalThis.File) => Promise<FileResult | null>;
 }
 
 // ---------------------------------------------------------------------------
@@ -130,6 +131,7 @@ export interface UploadOverlayProps {
 export function UploadOverlay({
   onComplete,
   onUploadStart,
+  onUploadFile,
 }: UploadOverlayProps) {
   const locale = useLocale();
   const t = useTranslations("dialogs.upload");
@@ -189,10 +191,18 @@ export function UploadOverlay({
       setCurrentFile(file.name);
       setStage("uploading");
 
+      if (onUploadFile) {
+        const result = await onUploadFile(file);
+        if (!result) throw new Error("Upload canceled");
+        setStage("storing");
+        return result;
+      }
+
       // Upload
       const formData = new FormData();
       formData.append("file", file);
-      let uploadRes = await fetch("/api/upload", {
+      formData.append("type", "resume");
+      let uploadRes = await fetch("/api/documents/upload/review", {
         method: "POST",
         body: formData,
       });
@@ -207,7 +217,7 @@ export function UploadOverlay({
           throw new Error("Upload canceled");
         }
 
-        uploadRes = await fetch("/api/upload?force=true", {
+        uploadRes = await fetch("/api/documents/upload/review?force=true", {
           method: "POST",
           body: formData,
         });
@@ -230,13 +240,14 @@ export function UploadOverlay({
       await new Promise((r) => setTimeout(r, 300));
 
       const entryCount =
+        uploadData.entries?.length ??
         uploadData.entriesCreated ??
         uploadData.parsing?.sectionsDetected?.length ??
         0;
 
       return { fileName: file.name, entryCount };
     },
-    [confirmReplacement],
+    [confirmReplacement, onUploadFile],
   );
 
   const processQueue = useCallback(

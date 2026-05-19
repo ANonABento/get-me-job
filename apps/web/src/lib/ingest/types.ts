@@ -34,6 +34,14 @@ export interface DocumentSourceMap {
   pages: SourceMapPage[];
   lines: SourceLine[];
   rawText: string;
+  links?: SourceLink[];
+}
+
+export interface SourceLink {
+  url: string;
+  text?: string;
+  page: number;
+  bbox: [number, number, number, number, number];
 }
 
 export type SourceQuality = "exact" | "partial" | "missing";
@@ -61,6 +69,7 @@ export interface ParsedExperienceV2 {
   id: string;
   company: string;
   title: string;
+  url?: string;
   location?: string;
   startDate: string;
   endDate?: string;
