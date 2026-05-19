@@ -1937,12 +1937,12 @@ export function BankComponentsTab({
               }}
             >
               <DialogContent className="max-h-[92vh] max-w-[min(98vw,104rem)] overflow-hidden p-0">
-                <DialogHeader className="border-b px-6 py-5">
-                  <DialogTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-muted-foreground" />
+                <DialogHeader className="border-b px-5 py-3">
+                  <DialogTitle className="flex items-center gap-2 text-base">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
                     {dialogsT("review.title")}
                   </DialogTitle>
-                  <DialogDescription>
+                  <DialogDescription className="text-xs">
                     {uploadReview
                       ? dialogsT("review.description", {
                           filename: uploadReview.filename,
@@ -1955,7 +1955,7 @@ export function BankComponentsTab({
                     filename: uploadReview.filename,
                     mimeType: uploadReview.mimeType,
                   }).kind !== "pdf" ? (
-                    <div className="mt-3 rounded-md border border-border/70 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                    <div className="mt-2 rounded-md border border-border/70 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground">
                       {
                         getUploadReviewPreviewStatus({
                           filename: uploadReview.filename,
@@ -3559,17 +3559,31 @@ function UploadReviewEntries({
           )}
         </div>
       ) : null}
-      <section className="min-h-0 overflow-y-auto bg-background px-5 py-4">
+      <section className="min-h-0 overflow-y-auto bg-background px-4 py-3">
         {selectedEntry ? (
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-start justify-between gap-2.5">
               <div className="min-w-0 flex-1">
-                <p className="font-mono text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                   Review component
                 </p>
-                <h3 className="mt-1 font-display text-lg font-semibold tracking-tight">
-                  {getEntryLabel(selectedEntry)}
-                </h3>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  <h3 className="mr-1 min-w-0 font-display text-base font-semibold leading-6 tracking-tight">
+                    {getEntryLabel(selectedEntry)}
+                  </h3>
+                  <Badge variant="secondary" className="h-6">
+                    {CATEGORY_LABELS[selectedEntry.category]}
+                  </Badge>
+                  <Badge variant="success" className="h-6">
+                    {Math.round((selectedEntry.confidenceScore ?? 0) * 100)}%
+                    confidence
+                  </Badge>
+                  {childEntries.length > 0 ? (
+                    <Badge variant="outline" className="h-6">
+                      {pluralize(childEntries.length, "bullet")}
+                    </Badge>
+                  ) : null}
+                </div>
                 {previewStatus.kind === "pdf" &&
                 getReviewPreviewBboxes(
                   selectedEntry,
@@ -3578,9 +3592,10 @@ function UploadReviewEntries({
                   <button
                     type="button"
                     onClick={() => handleViewInDocument(selectedEntry.id)}
-                    className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                    className="mt-1 inline-flex items-center gap-0.5 text-xs font-medium text-primary hover:underline"
                   >
-                    Jump to highlight ↗
+                    Jump to highlight
+                    <ChevronRight className="h-3 w-3" />
                   </button>
                 ) : null}
               </div>
@@ -3626,25 +3641,15 @@ function UploadReviewEntries({
                 )}
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">
-                {CATEGORY_LABELS[selectedEntry.category]}
-              </Badge>
-              <Badge variant="success">
-                {Math.round((selectedEntry.confidenceScore ?? 0) * 100)}%
-                confidence
-              </Badge>
-              {childEntries.length > 0 ? (
-                <Badge variant="outline">
-                  {pluralize(childEntries.length, "bullet")}
-                </Badge>
-              ) : null}
-              {selectedWarnings.map((warning) => (
-                <Badge key={warning} variant="warning">
-                  {warning}
-                </Badge>
-              ))}
-            </div>
+            {selectedWarnings.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {selectedWarnings.map((warning) => (
+                  <Badge key={warning} variant="warning" className="h-6">
+                    {warning}
+                  </Badge>
+                ))}
+              </div>
+            ) : null}
             {selectedAttentionReason ? (
               <div className="rounded-md border border-warning/35 bg-warning/10 px-3 py-2 text-sm">
                 <span className="font-medium text-warning">

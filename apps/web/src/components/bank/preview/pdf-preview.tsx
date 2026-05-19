@@ -290,6 +290,11 @@ export function PdfPreview({
     ? diagnostic.partialRootSourceSpans.length +
       diagnostic.partialBulletSourceSpans.length
     : 0;
+  const diagnosticSummary = diagnosticLoading
+    ? "Parser-v2 loading"
+    : diagnostic
+      ? `${diagnostic.lineCount} lines · ${rootCount} roots`
+      : null;
 
   useEffect(() => {
     if (
@@ -384,7 +389,10 @@ export function PdfPreview({
     }
 
     return (
-      <div ref={previewViewportRef} className="flex-1 overflow-auto px-4 pb-4">
+      <div
+        ref={previewViewportRef}
+        className="flex-1 overflow-auto px-4 pb-4 pt-3"
+      >
         <div className={cn("relative mx-auto block w-fit")}>
           <canvas
             ref={canvasRef}
@@ -404,8 +412,8 @@ export function PdfPreview({
         </div>
         {showHighlightFallback ? (
           <p className="mt-3 max-w-prose text-xs text-muted-foreground">
-            Could not locate parsed components in this PDF. Text-layer
-            positions did not match any extracted entry.
+            Could not locate parsed components in this PDF. Text-layer positions
+            did not match any extracted entry.
           </p>
         ) : null}
       </div>
@@ -414,7 +422,7 @@ export function PdfPreview({
 
   function renderSourcePanel() {
     return (
-      <div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
+      <div className="min-h-0 flex-1 overflow-auto px-4 pb-4 pt-3">
         {sourceText?.trim() ? (
           <pre className="whitespace-pre-wrap break-words rounded-md border bg-muted/20 p-3 font-body text-sm leading-6 text-foreground">
             {sourceText}
@@ -456,7 +464,7 @@ export function PdfPreview({
     }
 
     return (
-      <div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
+      <div className="min-h-0 flex-1 overflow-auto px-4 pb-4 pt-3">
         <div className="grid gap-2 text-sm sm:grid-cols-2">
           <div className="rounded-md border bg-muted/20 p-3">
             <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
@@ -490,82 +498,91 @@ export function PdfPreview({
   }
 
   return (
-    <div className="flex h-full flex-col gap-3">
-      <div className="space-y-2 px-4 pt-3 text-xs text-muted-foreground">
-        <div className="flex items-center justify-between gap-2">
-          <span
-            className="min-w-0 truncate font-medium text-foreground"
-            title={filename}
-          >
-            {filename}
-          </span>
+    <div className="flex h-full flex-col">
+      <div className="border-b px-4 py-2 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <div className="flex min-w-[12rem] flex-1 items-center gap-2">
+            <span
+              className="min-w-0 truncate font-medium text-foreground"
+              title={filename}
+            >
+              {filename}
+            </span>
+            {diagnosticSummary ? (
+              <span className="hidden shrink-0 text-muted-foreground xl:inline">
+                {diagnosticSummary}
+              </span>
+            ) : null}
+          </div>
           <div className="flex shrink-0 items-center rounded-md border bg-background p-0.5">
             {tabButton("pdf", "PDF")}
             {tabButton("source", "Source")}
             {tabButton("diagnostics", "Diagnostics")}
           </div>
+          {activeTab === "pdf" ? (
+            <div className="flex shrink-0 items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setPageNumber((n) => Math.max(1, n - 1))}
+                disabled={pageNumber <= 1}
+                aria-label="Previous page"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+              <span className="tabular-nums">
+                Page {pageNumber} of {totalPages}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() =>
+                  setPageNumber((n) => Math.min(totalPages, n + 1))
+                }
+                disabled={pageNumber >= totalPages}
+                aria-label="Next page"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+              <span className="mx-1.5 h-3 w-px bg-border" aria-hidden="true" />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() =>
+                  setZoom((z) => Math.max(0.5, +(z - 0.1).toFixed(2)))
+                }
+                aria-label="Zoom out"
+              >
+                <Minus className="h-3.5 w-3.5" />
+              </Button>
+              <span className="tabular-nums">{Math.round(zoom * 100)}%</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() =>
+                  setZoom((z) => Math.min(2, +(z + 0.1).toFixed(2)))
+                }
+                aria-label="Zoom in"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ) : null}
+          {diagnosticSummary ? (
+            <span className="text-muted-foreground xl:hidden">
+              {diagnosticSummary}
+            </span>
+          ) : null}
         </div>
-        {activeTab === "pdf" ? (
-          <div className="flex items-center justify-end gap-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setPageNumber((n) => Math.max(1, n - 1))}
-            disabled={pageNumber <= 1}
-            aria-label="Previous page"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </Button>
-          <span className="tabular-nums">
-            Page {pageNumber} of {totalPages}
-          </span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setPageNumber((n) => Math.min(totalPages, n + 1))}
-            disabled={pageNumber >= totalPages}
-            aria-label="Next page"
-          >
-            <ChevronRight className="h-3.5 w-3.5" />
-          </Button>
-          <span className="mx-2 h-3 w-px bg-border" aria-hidden="true" />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.1).toFixed(2)))}
-            aria-label="Zoom out"
-          >
-            <Minus className="h-3.5 w-3.5" />
-          </Button>
-          <span className="tabular-nums">{Math.round(zoom * 100)}%</span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setZoom((z) => Math.min(2, +(z + 0.1).toFixed(2)))}
-            aria-label="Zoom in"
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </Button>
-          </div>
-        ) : null}
       </div>
-      {(diagnosticLoading || diagnostic) && activeTab !== "diagnostics" ? (
-        <p className="px-4 text-xs text-muted-foreground">
-          {diagnosticLoading
-            ? "Loading parser-v2 diagnostics"
-            : diagnostic
-              ? `Parser-v2: ${diagnostic.lineCount} source lines, ${rootCount} parsed roots`
-              : null}
-        </p>
-      ) : null}
       {activeTab === "pdf"
         ? renderPdfPanel()
         : activeTab === "source"
