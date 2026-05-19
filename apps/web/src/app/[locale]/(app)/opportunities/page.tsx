@@ -139,10 +139,15 @@ export default function OpportunitiesPage({
   const [drawerOpportunityId, setDrawerOpportunityId] = useState<string | null>(
     null,
   );
-  const [hasCachedData, setHasCachedData] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return Boolean(window.localStorage.getItem(STORAGE_KEY));
-  });
+  // Initialize to `false` on both server + client first render so React's
+  // hydration check sees identical trees. Then sync from localStorage in a
+  // post-mount effect — the resulting render is treated as a normal
+  // update, not a hydration mismatch.
+  const [hasCachedData, setHasCachedData] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setHasCachedData(Boolean(window.localStorage.getItem(STORAGE_KEY)));
+  }, []);
   const showErrorToast = useErrorToast();
   const { addToast } = useToast();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
