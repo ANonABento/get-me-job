@@ -1,0 +1,20 @@
+{
+  "fixtures": [
+    {
+      "id": "overleaf-jakes-resume",
+      "file": "syzfjbzwjncs.pdf",
+      "expectedFile": "syzfjbzwjncs.expected.json",
+      "kind": "public-real-world-template",
+      "title": "Jake's Resume",
+      "author": "Jake Gutierrez",
+      "sourcePageUrl": "https://www.overleaf.com/latex/templates/jakes-resume/syzfjbzwjncs",
+      "sourcePdfUrl": "https://www.overleaf.com/latex/templates/jakes-resume/syzfjbzwjncs.pdf",
+      "sourceRepositoryUrl": "https://github.com/jakeryang/resume",
+      "license": "MIT",
+      "verifiedAt": "2026-05-18",
+      "sha256": "a09eb1f7a29c3991b04e52fc47d191a4a6067b18ebc071196a7e8488af5aa38c",
+      "expectedSha256": "2e95278e25504eff114d2d807b63842365c301b0d6ae55eeb2c6f957f63788b2",
+      "notes": "Downloaded from the public Overleaf template PDF URL. The Overleaf template page lists Jake Gutierrez as author and states the work is published under the MIT License."
+    }
+  ]
+}

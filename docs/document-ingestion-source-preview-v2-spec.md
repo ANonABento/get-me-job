@@ -785,5 +785,8 @@ Next implementation slices:
    bank-import commit slice.
 9. Add parser-v2 source-map and stored PDF preview APIs for review UI wiring.
    Done in the source-map/preview API slice.
-10. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+10. Add a parser-v2 fixture manifest that records public internet source,
+    license, verification date, and file hashes for downloaded real-world
+    resume fixtures. Done in the fixture-provenance slice for Jake's Resume.
+11. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.
