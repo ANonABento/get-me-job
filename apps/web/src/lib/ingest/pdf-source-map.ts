@@ -1,6 +1,7 @@
 import {
   extractPdfPositions,
   type PdfPositionItem,
+  type PdfPositionDocument,
 } from "@/lib/parse/pdf-positions";
 import type {
   DocumentSourceMap,
@@ -40,8 +41,16 @@ function lineCenter(line: PendingLine): number {
   return (bbox.y0 + bbox.y1) / 2;
 }
 
-function itemCenter(item: PdfPositionItem): number {
-  return (item.y0 + item.y1) / 2;
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? (sorted[middle - 1] + sorted[middle]) / 2
+    : sorted[middle];
+}
+
+function lineBaseline(line: PendingLine): number {
+  return median(line.tokens.map((token) => token.y0));
 }
 
 function sameVisualLine(line: PendingLine, item: PdfPositionItem): boolean {
@@ -50,7 +59,25 @@ function sameVisualLine(line: PendingLine, item: PdfPositionItem): boolean {
     ...line.tokens.map((token) => token.y1 - token.y0),
     8,
   );
-  return Math.abs(lineCenter(line) - itemCenter(item)) <= maxHeight * 0.7;
+  const baselineTolerance = Math.max(3, Math.min(maxHeight * 0.25, 8));
+  if (Math.abs(lineBaseline(line) - item.y0) <= baselineTolerance) {
+    return true;
+  }
+
+  const overlapY0 = Math.max(
+    item.y0,
+    Math.min(...line.tokens.map((token) => token.y0)),
+  );
+  const overlapY1 = Math.min(
+    item.y1,
+    Math.max(...line.tokens.map((token) => token.y1)),
+  );
+  const overlap = Math.max(0, overlapY1 - overlapY0);
+  const itemHeight = Math.max(item.y1 - item.y0, 1);
+  return (
+    overlap / itemHeight >= 0.7 &&
+    Math.abs(lineCenter(line) - (item.y0 + item.y1) / 2) <= maxHeight * 0.45
+  );
 }
 
 function shouldJoinWithoutLeadingSpace(
@@ -66,21 +93,30 @@ function shouldJoinWithoutLeadingSpace(
   return current.x0 - previous.x1 <= 1;
 }
 
+function sanitizePdfSourceText(text: string): string {
+  return text
+    .replace(/þÿ/g, "")
+    .replace(/\u0000/g, "")
+    .replace(/(\d)Í(?=-[A-Za-z]{2,})/g, "$1");
+}
+
 function lineText(tokens: PdfPositionItem[]): string {
-  return tokens.reduce((text, token, index) => {
-    const tokenText = token.text.trim();
-    if (!tokenText) return text;
-    if (index === 0 || !text) return tokenText;
-    const previous = tokens[index - 1];
-    const gap = token.x0 - previous.x1;
-    const prefix =
-      gap >= 72 && previous.text.trim() !== "|" && tokenText !== "|"
-        ? " | "
-        : shouldJoinWithoutLeadingSpace(previous, token)
-          ? ""
-          : " ";
-    return `${text}${prefix}${tokenText}`;
-  }, "");
+  return sanitizePdfSourceText(
+    tokens.reduce((text, token, index) => {
+      const tokenText = token.text.trim();
+      if (!tokenText) return text;
+      if (index === 0 || !text) return tokenText;
+      const previous = tokens[index - 1];
+      const gap = token.x0 - previous.x1;
+      const prefix =
+        gap >= 72 && previous.text.trim() !== "|" && tokenText !== "|"
+          ? " | "
+          : shouldJoinWithoutLeadingSpace(previous, token)
+            ? ""
+            : " ";
+      return `${text}${prefix}${tokenText}`;
+    }, ""),
+  );
 }
 
 function lineId(page: number, lineIndex: number): string {
@@ -151,6 +187,12 @@ export async function buildPdfSourceMap(
   buffer: Buffer,
 ): Promise<DocumentSourceMap> {
   const positions = await extractPdfPositions(buffer, { includeJunk: true });
+  return buildPdfSourceMapFromPositions(positions);
+}
+
+export function buildPdfSourceMapFromPositions(
+  positions: Pick<PdfPositionDocument, "items" | "pageDimensions">,
+): DocumentSourceMap {
   const lines = buildLines(positions.items).filter((line) => line.text);
   const pages: SourceMapPage[] = positions.pageDimensions.map((page) => ({
     ...page,

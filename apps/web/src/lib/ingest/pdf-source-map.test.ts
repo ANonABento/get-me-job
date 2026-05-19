@@ -3,7 +3,10 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { buildPdfSourceMap } from "./pdf-source-map";
+import {
+  buildPdfSourceMap,
+  buildPdfSourceMapFromPositions,
+} from "./pdf-source-map";
 
 const fixturePath = path.join(
   process.cwd(),
@@ -51,5 +54,79 @@ describe("buildPdfSourceMap", () => {
       "Southwestern UniversityGeorgetown",
     );
     expect(sourceMap.rawText).not.toContain("off ofThe Legend");
+  });
+
+  it("strips PDF extraction artifacts from reconstructed source text", () => {
+    const sourceMap = buildPdfSourceMapFromPositions({
+      pageDimensions: [{ page: 1, width: 612, height: 792 }],
+      items: [
+        {
+          text: "teleoperation of an 8Í-DOF robotic arm",
+          page: 1,
+          x0: 72,
+          y0: 100,
+          x1: 250,
+          y1: 111,
+        },
+      ],
+    });
+
+    expect(sourceMap.rawText).toContain(
+      "teleoperation of an 8-DOF robotic arm",
+    );
+    expect(sourceMap.rawText).not.toContain("8Í-DOF");
+  });
+
+  it("keeps vertically adjacent header links out of the email line", () => {
+    const sourceMap = buildPdfSourceMapFromPositions({
+      pageDimensions: [{ page: 1, width: 612, height: 792 }],
+      items: [
+        {
+          text: "Kevin Jiang",
+          page: 1,
+          x0: 33.75,
+          y0: 25.227,
+          x1: 197.25,
+          y1: 55.227,
+        },
+        {
+          text: "Dual Citizen (U.S. & Canada) | k",
+          page: 1,
+          x0: 311.995,
+          y0: 31.732,
+          x1: 462.889,
+          y1: 42.732,
+        },
+        {
+          text: "69jiang@uwaterloo.c",
+          page: 1,
+          x0: 462.885,
+          y0: 31.732,
+          x1: 568.766,
+          y1: 42.732,
+        },
+        {
+          text: "a",
+          page: 1,
+          x0: 568.762,
+          y0: 31.732,
+          x1: 574.504,
+          y1: 42.732,
+        },
+        {
+          text: "Kevin Jiang Portfolio",
+          page: 1,
+          x0: 466.962,
+          y0: 48.643,
+          x1: 570.755,
+          y1: 59.643,
+        },
+      ],
+    });
+
+    expect(sourceMap.lines.map((line) => line.text)).toEqual([
+      "Kevin Jiang | Dual Citizen (U.S. & Canada) | k69jiang@uwaterloo.ca",
+      "Kevin Jiang Portfolio",
+    ]);
   });
 });
