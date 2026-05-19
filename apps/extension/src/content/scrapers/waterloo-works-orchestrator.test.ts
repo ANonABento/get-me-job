@@ -4,6 +4,7 @@ import { describe, expect, it, beforeEach, vi } from "vitest";
 import {
   WaterlooWorksOrchestrator,
   getWaterlooWorksRows,
+  readWaterlooWorksRowMeta,
 } from "./waterloo-works-orchestrator";
 
 // Helper to build a postings-list page with N rows. Each row's title link, when
@@ -245,5 +246,99 @@ describe("WaterlooWorksOrchestrator", () => {
       throttleMs: 0,
     });
     expect(jobs).toEqual([]);
+  });
+});
+
+describe("readWaterlooWorksRowMeta", () => {
+  function makeRow(html: string): HTMLElement {
+    const wrapper = document.createElement("table");
+    wrapper.innerHTML = `<tbody>${html}</tbody>`;
+    document.body.innerHTML = "";
+    document.body.appendChild(wrapper);
+    return wrapper.querySelector("tr") as HTMLElement;
+  }
+
+  it("extracts ID from a span-wrapped cell + applicants from rightmost int", () => {
+    // Mirror of the live WW row shape: spans wrap each cell's content,
+    // ID is a 6-digit number, openings (2) appears before Apps (51).
+    const row = makeRow(`
+      <tr class="table__row--body">
+        <td><input type="checkbox" /></td>
+        <td><div class="row-toolbar">icons</div></td>
+        <td><span>471268</span></td>
+        <td><span class="display--flex"><a href="javascript:void(0)">AI Toolchain</a></span></td>
+        <td><span>onsemi</span></td>
+        <td><span>Industrial Solutions Division</span></td>
+        <td><span>2</span></td>
+        <td><span>Waterloo</span></td>
+        <td><span>Junior, Intermediate</span></td>
+        <td><span>51</span></td>
+      </tr>
+    `);
+    expect(readWaterlooWorksRowMeta(row)).toEqual({
+      sourceJobId: "471268",
+      applicants: 51,
+    });
+  });
+
+  it("tolerates a status-bullet prefix on the ID cell", () => {
+    // WW renders an unread-posting bullet ("●") before the ID. The cell's
+    // textContent becomes "● 471268" — strict integer regex misses this.
+    const row = makeRow(`
+      <tr class="table__row--body">
+        <td><span class="status-dot">●</span> 471268</td>
+        <td><a href="javascript:void(0)">Title</a></td>
+        <td>1</td>
+        <td>12</td>
+      </tr>
+    `);
+    expect(readWaterlooWorksRowMeta(row).sourceJobId).toBe("471268");
+    expect(readWaterlooWorksRowMeta(row).applicants).toBe(12);
+  });
+
+  it("ignores integers embedded in non-numeric text (salary, ratings, etc.)", () => {
+    // "Hourly $50,000" should not seed a fake 50000 sourceJobId, and a
+    // multi-word level cell ("Junior 2 Intermediate 3") shouldn't make
+    // the applicants count flip to 3.
+    const row = makeRow(`
+      <tr class="table__row--body">
+        <td><a href="javascript:void(0)">Title</a></td>
+        <td>Hourly $50,000</td>
+        <td>Junior 2 Intermediate 3</td>
+        <td>87</td>
+      </tr>
+    `);
+    expect(readWaterlooWorksRowMeta(row)).toEqual({
+      sourceJobId: undefined,
+      applicants: 87,
+    });
+  });
+
+  it("returns undefined for both fields when no integer cells exist", () => {
+    const row = makeRow(`
+      <tr class="table__row--body">
+        <td><a href="javascript:void(0)">Title only</a></td>
+        <td>Company</td>
+      </tr>
+    `);
+    expect(readWaterlooWorksRowMeta(row)).toEqual({
+      sourceJobId: undefined,
+      applicants: undefined,
+    });
+  });
+
+  it("does not count the ID cell as applicants", () => {
+    // If the ID is the only integer in the row, applicants stays
+    // undefined rather than echoing the ID.
+    const row = makeRow(`
+      <tr class="table__row--body">
+        <td><span>471268</span></td>
+        <td><a href="javascript:void(0)">Title</a></td>
+      </tr>
+    `);
+    expect(readWaterlooWorksRowMeta(row)).toEqual({
+      sourceJobId: "471268",
+      applicants: undefined,
+    });
   });
 });

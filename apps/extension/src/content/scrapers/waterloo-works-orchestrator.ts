@@ -123,28 +123,51 @@ export function readWaterlooWorksRowMeta(row: HTMLElement): {
   sourceJobId?: string;
   applicants?: number;
 } {
+  // Walk every direct-or-nested cell. Live WW wraps cell content in
+  // additional spans (`<td><span>471268</span></td>`) and sometimes
+  // prefixes IDs with a status bullet (`● 471268`), so direct-child +
+  // strict `^[0-9]+$` matching misses every real row. Instead, collect
+  // each cell's text and extract integer tokens from it.
   const cells = Array.from(
-    row.querySelectorAll<HTMLElement>(
-      ":scope > td, :scope > th, :scope > [role='cell']",
-    ),
-  );
-  const intCells: number[] = [];
-  for (const cell of cells) {
-    const text = (cell.textContent || "").trim();
-    // Reject anything that isn't a bare integer — guards against "$2,000",
-    // "20+", "Junior, Intermediate", etc.
-    if (/^[0-9]{1,7}$/.test(text)) {
-      const n = Number.parseInt(text, 10);
-      if (Number.isFinite(n)) intCells.push(n);
+    row.querySelectorAll<HTMLElement>("td, th, [role='cell']"),
+  ).filter((cell) => cell.closest("tr, [role='row']") === row);
+
+  const cellInts: Array<{ value: number; cellIndex: number }> = [];
+  cells.forEach((cell, cellIndex) => {
+    const text = (cell.textContent || "").replace(/\s+/g, " ").trim();
+    if (!text) return;
+    // Cells like "Waterloo" / "Junior, Intermediate" should not contribute
+    // an integer. We extract digit-only tokens delimited by non-digits,
+    // and require the cell to be MOSTLY numeric (>=70% of non-space chars
+    // are digits) so "Apps: 51" works but "Hourly $50,000" doesn't seed
+    // a fake "50000" ID.
+    const tokens = text.match(/\d{1,7}/g) ?? [];
+    if (tokens.length === 0) return;
+    const digitChars = text.replace(/\D/g, "").length;
+    const nonSpaceChars = text.replace(/\s+/g, "").length;
+    if (nonSpaceChars > 0 && digitChars / nonSpaceChars < 0.5) return;
+    for (const token of tokens) {
+      const n = Number.parseInt(token, 10);
+      if (Number.isFinite(n)) cellInts.push({ value: n, cellIndex });
     }
-  }
-  // WW posting IDs are 5-6 digit numbers (~471xxx in 2026). The first cell
-  // that fits is the ID; the remaining short ints belong to openings/apps.
-  // The Apps column is the rightmost short int, so we pick the last one.
-  const sourceJobId = intCells.find((n) => n >= 10000)?.toString();
-  const shortInts = intCells.filter((n) => n < 10000);
+  });
+
+  // WW posting IDs in 2026 are 6-digit numbers in the ~46xxxx-47xxxx
+  // range. The first int >= 10000 in row order is the ID.
+  const sourceJobId = cellInts
+    .find((entry) => entry.value >= 10000)
+    ?.value.toString();
+  // Applicants is the rightmost short integer; openings is also a short
+  // int but earlier in the row. If the same cell already produced the
+  // source ID, don't count it again as applicants.
+  const shortInts = cellInts.filter(
+    (entry) =>
+      entry.value < 10000 &&
+      entry.value >= 0 &&
+      entry.value.toString() !== sourceJobId,
+  );
   const applicants =
-    shortInts.length > 0 ? shortInts[shortInts.length - 1] : undefined;
+    shortInts.length > 0 ? shortInts[shortInts.length - 1].value : undefined;
   return { sourceJobId, applicants };
 }
 

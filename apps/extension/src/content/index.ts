@@ -99,13 +99,19 @@ const submitWatcher = new SubmitWatcher({
   },
 });
 
-// Scan page on load
-scanPage();
-submitWatcher.attach();
+// Scan page on load. `scanPage` is the only DOM-mutating entry point —
+// it short-circuits on the Slothing web app itself, so observing here is
+// safe but wasteful. We still attach the observer + submit watcher
+// because they're cheap, but skip mounting them on our own pages to keep
+// React unencumbered.
+if (!isSlothingWebAppPage()) {
+  scanPage();
+  submitWatcher.attach();
 
-// Re-scan on dynamic content changes
-const observer = new MutationObserver(debounce(scanPage, 500));
-observer.observe(document.body, { childList: true, subtree: true });
+  // Re-scan on dynamic content changes
+  const observer = new MutationObserver(debounce(scanPage, 500));
+  observer.observe(document.body, { childList: true, subtree: true });
+}
 
 // Deep-link to a specific WaterlooWorks posting via `#postingId=<id>` hash.
 // Opportunity rows in Slothing's UI link to URLs the scraper minted in this
@@ -159,6 +165,13 @@ function findWwRowLinkForId(postingId: string): HTMLElement | null {
 }
 
 async function scanPage() {
+  // The content script is injected on the Slothing web app itself
+  // (localhost dev + slothing.work) so the connect page's localStorage
+  // token pickup works. Everything else scanPage does — field
+  // detection, answer-bank decoration, sidebar mounting — mutates the
+  // DOM and trips React's hydration check. Bail early on our own pages.
+  if (isSlothingWebAppPage()) return;
+
   // Detect forms
   const forms = document.querySelectorAll("form");
   let nextDetectedFields: DetectedField[] = [];
@@ -248,10 +261,14 @@ function isSlothingWebAppPage(): boolean {
   if (host === "slothing.work" || host.endsWith(".slothing.work")) {
     return true;
   }
-  if (host !== "localhost" && host !== "127.0.0.1") return false;
-  return /\/(?:[a-z]{2}(?:-[A-Z]{2})?\/)?extension\/connect(?:\/|$)/.test(
-    window.location.pathname,
-  );
+  // Treat any localhost / 127.0.0.1 page as the Slothing web app for the
+  // purposes of skipping content-script DOM mutations. The /extension/
+  // connect path still needs its localStorage-token pickup handler, but
+  // that lives in a separate IIFE at the bottom of this file — it doesn't
+  // route through scanPage. Without this broadening, the answer-bank
+  // textarea decorator + sidebar mount fire on the Slothing dev server
+  // and cause React hydration mismatches on /opportunities/review etc.
+  return host === "localhost" || host === "127.0.0.1";
 }
 
 // Handle messages from popup and background
