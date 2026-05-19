@@ -226,7 +226,7 @@ export function OpportunityReviewQueue({
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="px-5 pb-4 pt-6">
-        <div className="mx-auto flex w-full max-w-md items-center justify-between">
+        <div className="mx-auto flex w-full max-w-md items-center justify-between md:max-w-5xl">
           <div>
             <Badge variant="secondary">Pending review</Badge>
             <h1 className="mt-3 font-display text-2xl font-semibold tracking-tight">
@@ -243,7 +243,11 @@ export function OpportunityReviewQueue({
       </header>
 
       <main className="flex flex-1 items-center justify-center px-4 pb-28">
-        <div className="relative h-[min(680px,72vh)] w-full max-w-md">
+        {/* Mobile: max-w-md card-on-card; desktop: max-w-5xl wider stage
+            so the 2-column inner layout (added below) actually breathes
+            and shows location + meta + actions next to title/description
+            instead of stacked. */}
+        <div className="relative h-[min(680px,72vh)] w-full max-w-md md:h-auto md:min-h-[520px] md:max-w-5xl">
           {queue[1] && (
             <div
               className="absolute inset-x-3 top-5 h-[calc(100%-1.25rem)] rounded-lg border bg-card/50 shadow-sm"
@@ -278,68 +282,79 @@ export function OpportunityReviewQueue({
               }}
               className="absolute inset-0 flex cursor-grab flex-col overflow-hidden rounded-lg border bg-card shadow-xl active:cursor-grabbing"
             >
-              <div className="flex-1 overflow-y-auto p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-primary">
-                      {activeJob.company}
-                    </p>
-                    <h2 className="mt-2 font-display text-3xl font-bold leading-tight tracking-tight">
-                      {activeJob.title}
-                    </h2>
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <StatusPill status={activeJob.status} />
-                      {activeJob.remoteType === "remote" && (
-                        <Badge variant="info">Remote</Badge>
-                      )}
-                      {activeJob.source === "waterlooworks" && (
-                        <Badge variant="outline">WaterlooWorks</Badge>
-                      )}
+              <div className="flex-1 overflow-y-auto p-6 md:grid md:grid-cols-3 md:gap-x-8 md:p-8">
+                {/* Left column on desktop: title + status badges +
+                    description. Single column on mobile keeps the swipe
+                    UX legible. */}
+                <div className="md:col-span-2">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-primary">
+                        {activeJob.company}
+                      </p>
+                      <h2 className="mt-2 font-display text-3xl font-bold leading-tight tracking-tight md:text-4xl">
+                        {activeJob.title}
+                      </h2>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <StatusPill status={activeJob.status} />
+                        {activeJob.remoteType === "remote" && (
+                          <Badge variant="info">Remote</Badge>
+                        )}
+                        {activeJob.source === "waterlooworks" && (
+                          <Badge variant="outline">WaterlooWorks</Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="mt-5 flex flex-wrap gap-2 text-sm text-muted-foreground">
-                  {location && (
-                    <span className="inline-flex items-center gap-1.5">
-                      <MapPin className="h-4 w-4" />
-                      {location}
-                    </span>
+                  {tags.length > 0 && (
+                    <div className="mt-6 flex flex-wrap gap-2">
+                      {tags.map((tag) => (
+                        <Badge key={tag} variant="outline">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
                   )}
-                  {salary && <span>{salary}</span>}
-                  {activeJob.deadline && (
-                    <span>Deadline {activeJob.deadline}</span>
-                  )}
-                </div>
 
-                <OpportunityMetaRow opportunity={activeJob} />
-
-                {tags.length > 0 && (
-                  <div className="mt-6 flex flex-wrap gap-2">
-                    {tags.map((tag) => (
-                      <Badge key={tag} variant="outline">
-                        {tag}
-                      </Badge>
-                    ))}
+                  <div className="mt-6">
+                    <p className="whitespace-pre-line text-sm leading-6 text-muted-foreground">
+                      {preview}
+                    </p>
+                    {activeJob.summary.length > DESCRIPTION_PREVIEW_LENGTH && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="mt-3 px-0"
+                        onClick={() => setExpanded((current) => !current)}
+                      >
+                        {expanded ? "Show less" : "Show more"}
+                      </Button>
+                    )}
                   </div>
-                )}
-
-                <div className="mt-6">
-                  <p className="whitespace-pre-line text-sm leading-6 text-muted-foreground">
-                    {preview}
-                  </p>
-                  {activeJob.summary.length > DESCRIPTION_PREVIEW_LENGTH && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="mt-3 px-0"
-                      onClick={() => setExpanded((current) => !current)}
-                    >
-                      {expanded ? "Show less" : "Show more"}
-                    </Button>
-                  )}
                 </div>
+
+                {/* Right column on desktop: location / salary / deadline
+                    inline strip + metadata badges. On mobile this falls
+                    below the title block in the natural flow because
+                    `md:grid` doesn't apply. */}
+                <aside className="mt-5 md:mt-0 md:col-span-1 md:border-l md:pl-8">
+                  <div className="flex flex-wrap gap-2 text-sm text-muted-foreground md:flex-col md:items-start md:gap-3">
+                    {location && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <MapPin className="h-4 w-4" />
+                        {location}
+                      </span>
+                    )}
+                    {salary && <span>{salary}</span>}
+                    {activeJob.deadline && (
+                      <span>Deadline {activeJob.deadline}</span>
+                    )}
+                  </div>
+
+                  <OpportunityMetaRow opportunity={activeJob} />
+                </aside>
               </div>
 
               <div className="grid grid-cols-3 gap-2 border-t bg-background/80 p-4 backdrop-blur">

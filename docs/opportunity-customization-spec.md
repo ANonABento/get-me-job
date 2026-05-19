@@ -294,7 +294,12 @@ Rules execute server-side in the import endpoint after `createJob` succeeds.
 
 ### Bucket F — Layout per form factor (P2)
 
-**Decision**: Let users define what shows in the card header / meta row / body / actions independently for desktop and mobile. Layout is a `LayoutSpec` (see §3.3) — an ordered list of "chunk keys".
+Shipped in two stages so the desktop visual win lands without waiting on the full customization UI:
+
+- **F.0 — Responsive layout (DONE)** — Wider container (`max-w-md md:max-w-5xl`) on `≥md`; the review-queue card uses a 2-column grid: title + status badges + tags + description on the left (`md:col-span-2`), location/salary/deadline + meta-row on the right (`md:col-span-1 md:border-l`). Mobile keeps the single-column swipe card. No new types, no preferences plumbing — pure CSS. Files: `apps/web/src/components/opportunities/review-queue.tsx`.
+- **F.1 — Drag-and-drop layout builder (future)** — Per-user customization described below.
+
+**Decision (F.1)**: Let users define what shows in the card header / meta row / body / actions independently for desktop and mobile. Layout is a `LayoutSpec` (see §3.3) — an ordered list of "chunk keys".
 
 Available chunks:
 
@@ -318,19 +323,20 @@ Available chunks:
 | `save` / `dismiss` / `apply` | Action buttons | actions |
 | `google-company` / `open-original` | Quick actions (bucket H) | actions |
 
-UI: drag-and-drop chunk reorderer with two columns (Desktop / Mobile). Disabled chunks live at the bottom of each column.
+UI (F.1): drag-and-drop chunk reorderer with two columns (Desktop / Mobile). Disabled chunks live at the bottom of each column. Renders inside `/settings → Opportunity preferences → Layout`. Provides a side-by-side card preview that updates as chunks reorder.
 
-**Files**:
+**Files (F.1)**:
 - `apps/web/src/components/opportunities/layout-builder.tsx` — new, drag-and-drop with `@dnd-kit`
-- `apps/web/src/components/opportunities/review-queue.tsx` — read `LayoutSpec` from preferences, render chunks in order via a `LayoutSpec → ReactNode[]` renderer
+- `apps/web/src/components/opportunities/review-queue.tsx` — read `LayoutSpec` from preferences, render chunks in order via a `LayoutSpec → ReactNode[]` renderer (currently the layout is hard-coded in JSX)
 - `apps/web/src/lib/opportunities/render-chunk.ts` — new, central chunk renderer
 
-**Defaults**: Defined in `apps/web/src/lib/opportunities/default-layout.ts`. Desktop emphasizes density (more meta chunks per row); mobile emphasizes vertical clarity (fewer chunks, larger touch targets).
+**Defaults (F.1)**: Defined in `apps/web/src/lib/opportunities/default-layout.ts`. Desktop emphasizes density (more meta chunks per row); mobile emphasizes vertical clarity (fewer chunks, larger touch targets). The F.0 hard-coded layout is the seed.
 
-**Acceptance**:
+**Acceptance (F.1)**:
 - [ ] Reordering chunks updates the card in the preview panel in real time
 - [ ] Reset-to-default button restores `default-layout.ts` values
 - [ ] Mobile breakpoint at `<640px` uses `layoutPreference.mobile`; otherwise `.desktop`
+- [ ] Migrating a user from F.0 to F.1 is invisible — `default-layout.ts` produces the same render as the hard-coded JSX
 
 ---
 
