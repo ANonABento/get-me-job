@@ -112,6 +112,22 @@ describe("/api/documents/[id]/source-map", () => {
         partialRootSourceSpans: [],
         partialBulletSourceSpans: [],
       },
+      sourceRefs: [
+        {
+          componentId: "contact",
+          category: "contact",
+          sourceSpanIds: ["p1-l001"],
+          sourceQuality: "exact",
+          sourceText: ["Jake Ryan"],
+        },
+        {
+          componentId: "edu-1",
+          category: "education",
+          sourceSpanIds: ["p1-l001"],
+          sourceQuality: "exact",
+          sourceText: ["Jake Ryan"],
+        },
+      ],
     });
   });
 
@@ -153,6 +169,7 @@ describe("/api/documents/[id]/source-map", () => {
     await expect(response.json()).resolves.toMatchObject({
       sourceText: "Jake Ryan",
       parseRun: null,
+      sourceRefs: [],
       diagnostic: null,
     });
   });

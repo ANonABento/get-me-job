@@ -12,6 +12,7 @@ import {
 } from "@/lib/db";
 import {
   createParserV2Diagnostic,
+  createParserV2SourceRefs,
   isParsedResumeV2Result,
 } from "@/lib/ingest/diagnostics";
 
@@ -52,12 +53,17 @@ export async function GET(
       parseRun && isParsedResumeV2Result(parseRun.structured)
         ? createParserV2Diagnostic(artifact.sourceMap, parseRun.structured)
         : null;
+    const sourceRefs =
+      parseRun && isParsedResumeV2Result(parseRun.structured)
+        ? createParserV2SourceRefs(artifact.sourceMap, parseRun.structured)
+        : [];
 
     return NextResponse.json({
       artifact,
       sourceMap: artifact.sourceMap,
       sourceText: artifact.sourceMap.rawText,
       parseRun,
+      sourceRefs,
       diagnostic,
     });
   } catch (error) {

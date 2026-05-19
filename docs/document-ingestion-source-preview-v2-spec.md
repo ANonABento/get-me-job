@@ -868,5 +868,9 @@ Next implementation slices:
     selected component; exact, partial, and fuzzy citations render differently,
     and "Jump to highlight" scrolls toward the selected source span. Done in
     the source-quality highlight slice.
-31. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+31. Add explicit parser-v2 `sourceRefs` to the source-map API so preview clients
+    can consume component source IDs, source quality, parent links, and cited
+    source text without walking raw parser internals. Done in the source-map
+    source refs slice.
+32. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.
