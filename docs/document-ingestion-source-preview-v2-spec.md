@@ -872,5 +872,9 @@ Next implementation slices:
     can consume component source IDs, source quality, parent links, and cited
     source text without walking raw parser internals. Done in the source-map
     source refs slice.
-32. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+32. Add focused `/api/parse` compatibility coverage for auth, validation,
+    missing documents, empty extracted text, non-fatal bank population, AI
+    fallback/refund, and parser-v2 context creation. Done in the parse
+    compatibility coverage slice.
+33. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.

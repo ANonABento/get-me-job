@@ -144,6 +144,82 @@ describe("/api/parse route", () => {
     });
   });
 
+  it("returns auth failures without reading documents", async () => {
+    const authResponse = NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 },
+    );
+    mocks.requireAuth.mockResolvedValueOnce(authResponse);
+    mocks.isAuthError.mockReturnValueOnce(true);
+
+    const response = await POST(parseRequest({ documentId: "doc-1" }));
+
+    expect(response.status).toBe(401);
+    expect(mocks.getDocuments).not.toHaveBeenCalled();
+    expect(mocks.smartParseResume).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed parse requests before reading documents", async () => {
+    const response = await POST(
+      parseRequest({ documentId: "doc-1", mode: "turbo" }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "Validation failed",
+      errors: [{ field: "mode" }],
+    });
+    expect(mocks.getDocuments).not.toHaveBeenCalled();
+    expect(mocks.smartParseResume).not.toHaveBeenCalled();
+  });
+
+  it("requires a document id or filename", async () => {
+    const response = await POST(parseRequest({}));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "Validation failed",
+      errors: [
+        {
+          field: "",
+          message: "Either filename or documentId is required",
+        },
+      ],
+    });
+    expect(mocks.getDocuments).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when the requested document is missing", async () => {
+    mocks.getDocuments.mockReturnValueOnce([]);
+
+    const response = await POST(parseRequest({ filename: "missing.pdf" }));
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({
+      error: "Document not found",
+    });
+    expect(mocks.smartParseResume).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when the legacy document has no extracted text", async () => {
+    mocks.getDocuments.mockReturnValueOnce([
+      {
+        id: "doc-1",
+        filename: "resume.pdf",
+        extractedText: "",
+      },
+    ]);
+
+    const response = await POST(parseRequest({ documentId: "doc-1" }));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "No text extracted from document",
+    });
+    expect(mocks.smartParseResume).not.toHaveBeenCalled();
+    expect(mocks.createBasicDocumentParseRun).not.toHaveBeenCalled();
+  });
+
   it("returns parser-v2 parse-run context when a source artifact exists", async () => {
     mocks.createBasicDocumentParseRun.mockReturnValueOnce({
       id: "run-1",
@@ -263,5 +339,32 @@ describe("/api/parse route", () => {
     );
     expect(mocks.parseResumeBasic).not.toHaveBeenCalled();
     expect(refund).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps parse successful when legacy bank population fails", async () => {
+    const errorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    mocks.populateBankFromProfile.mockImplementationOnce(() => {
+      throw new Error("bank unavailable");
+    });
+
+    const response = await POST(parseRequest({ documentId: "doc-1" }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      parsingMode: "basic",
+      parsingMethod: "basic",
+    });
+    expect(mocks.updateProfile).toHaveBeenCalledWith(
+      { contact: { name: "Ada" } },
+      "user-1",
+    );
+    expect(mocks.createBasicDocumentParseRun).toHaveBeenCalledWith({
+      documentId: "doc-1",
+      userId: "user-1",
+    });
+    errorSpy.mockRestore();
   });
 });
