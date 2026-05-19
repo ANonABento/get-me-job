@@ -27,13 +27,14 @@ describe("Footer", () => {
     expect(screen.queryByRole("link", { name: "Documents" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Interview Prep" })).toBeNull();
 
-    expect(screen.getByRole("link", { name: "ATS Scanner" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "ATS scanner" })).toHaveAttribute(
       "href",
       "/en/ats-scanner",
     );
-    expect(
-      screen.getByRole("link", { name: "Browser Extension" }),
-    ).toHaveAttribute("href", "/en/extension");
+    expect(screen.getByRole("link", { name: "Extension" })).toHaveAttribute(
+      "href",
+      "/en/extension",
+    );
 
     expect(hrefs()).not.toEqual(
       expect.arrayContaining(["/en/dashboard", "/en/bank", "/en/interview"]),
@@ -41,28 +42,39 @@ describe("Footer", () => {
   });
 
   it.each(["es", "zh-CN"])(
-    "prefixes internal links with %s and leaves section anchors unchanged",
+    "prefixes internal links with %s and leaves section anchors + external links unchanged",
     (locale) => {
       renderFooter(locale);
 
       const renderedHrefs = hrefs();
       const escapedLocale = locale.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const localePrefix = new RegExp(`^/${escapedLocale}(?:/|$|\\?)`);
 
-      expect(renderedHrefs).toEqual([
+      // Expected internal-link prefixes after locale normalization.
+      const internalRoutes = [
         `/${locale}`,
-        "#features",
-        "#how-it-works",
         `/${locale}/pricing`,
-        `/${locale}/ats-scanner`,
         `/${locale}/extension`,
+        `/${locale}/ats-scanner`,
+        `/${locale}/vs`,
         `/${locale}/blog`,
+        `/${locale}/docs/self-host`,
+        `/${locale}/docs/license`,
         `/${locale}/privacy`,
         `/${locale}/terms`,
-      ]);
+      ];
+      for (const route of internalRoutes) {
+        expect(renderedHrefs).toContain(route);
+      }
 
-      for (const href of renderedHrefs.filter((href) => href.startsWith("/"))) {
+      // Anchor + external links stay verbatim.
+      expect(renderedHrefs).toContain("#features");
+      expect(renderedHrefs).toContain("#how-it-works");
+      expect(renderedHrefs).toContain("https://github.com/ANonABento/slothing");
+
+      for (const href of renderedHrefs.filter((h) => h.startsWith("/"))) {
         expect(href, `footer link "${href}" missing /${locale} prefix`).toMatch(
-          new RegExp(`^/${escapedLocale}(?:/|$|\\?)`),
+          localePrefix,
         );
       }
     },
