@@ -5,7 +5,16 @@ import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useFormatter } from "next-intl";
 import { AnimatePresence, motion, type PanInfo } from "framer-motion";
-import { Check, ExternalLink, Inbox, MapPin, Settings, X } from "lucide-react";
+import {
+  Check,
+  ExternalLink,
+  Inbox,
+  Link2,
+  MapPin,
+  Search,
+  Settings,
+  X,
+} from "lucide-react";
 import { ExtensionInstallButtons } from "@/components/marketing/extension-install-buttons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -355,6 +364,24 @@ export function OpportunityReviewQueue({
                   onClick={() => void runAction("save")}
                 />
               </div>
+              {/* P0 quick actions — passive lookups that don't mutate
+                  status. "Search company" googles the employer; "Open
+                  original" round-trips to the source posting (for WW the
+                  hash hook in the content script reopens the modal). */}
+              <div className="grid grid-cols-2 gap-2 border-t bg-background/60 p-2 backdrop-blur">
+                <QuickActionLink
+                  label={`Search "${activeJob.company}"`}
+                  icon={<Search className="h-4 w-4" />}
+                  href={`https://www.google.com/search?q=${encodeURIComponent(activeJob.company)}`}
+                />
+                {activeJob.sourceUrl && (
+                  <QuickActionLink
+                    label="Open original"
+                    icon={<Link2 className="h-4 w-4" />}
+                    href={activeJob.sourceUrl}
+                  />
+                )}
+              </div>
             </motion.article>
           </AnimatePresence>
         </div>
@@ -391,6 +418,37 @@ function ActionButton({
       {icon}
       {label}
     </button>
+  );
+}
+
+/**
+ * Compact secondary-action row at the bottom of the review card. Renders
+ * passive deep-links (search Google for the company, open the original
+ * posting) that don't mutate review state. Use `<a target="_blank">` so
+ * users land back on the review card after the new tab closes.
+ */
+function QuickActionLink({
+  label,
+  icon,
+  href,
+}: {
+  label: string;
+  icon: ReactNode;
+  href: string;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(
+        "flex h-10 items-center justify-center gap-2 rounded-lg border bg-card text-xs font-medium",
+        "transition-colors hover:bg-muted",
+      )}
+    >
+      {icon}
+      <span className="truncate">{label}</span>
+    </a>
   );
 }
 

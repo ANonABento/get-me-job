@@ -1087,6 +1087,33 @@ export const verificationTokens = sqliteTable(
   (table) => [primaryKey({ columns: [table.identifier, table.token] })],
 );
 
+// Saved filter + sort presets for the review queue / opportunities list
+// (spec: docs/opportunity-customization-spec.md §3.2). One row per
+// preset; multiple per user. Pinned presets render as chips at the top
+// of the queue, ordered by `position`.
+export const opportunityPresets = sqliteTable(
+  "opportunity_presets",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().default(DEFAULT_USER_ID),
+    name: text("name").notNull(),
+    // "review" applies in /opportunities/review; "list" applies in the
+    // /opportunities list view. Same row could in theory cover both but
+    // the spec calls for per-scope presets to keep the chip bars distinct.
+    scope: text("scope").notNull().default("review"),
+    filtersJson: text("filters_json").notNull(),
+    sortId: text("sort_id").notNull().default("most-recent"),
+    pinned: integer("pinned", { mode: "boolean" }).notNull().default(false),
+    position: integer("position"),
+    createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("idx_opportunity_presets_user_pinned").on(table.userId, table.pinned),
+    index("idx_opportunity_presets_user_scope").on(table.userId, table.scope),
+  ],
+);
+
 // Type exports for use in application code.
 //
 // NOTE: the Drizzle row type is named `SettingsRow` (not `Settings`) to avoid

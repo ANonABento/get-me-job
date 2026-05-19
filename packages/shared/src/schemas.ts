@@ -63,6 +63,29 @@ export const CLOSED_SUB_STATUSES = [
   "dismissed",
 ] as const;
 
+// Built-in sort orders for the review queue + opportunities list. All
+// `Opportunity[]` callers route through `sortOpportunities()` in
+// apps/web/src/lib/opportunities/sort.ts; the helper looks up the
+// comparator for a given ID. `ai-recommended` and `closest-to-location`
+// are placeholders for follow-up specs — they render in the dropdown but
+// fall back to `most-recent` if their preconditions aren't met (no
+// profile-fit score; no user location).
+export const OPPORTUNITY_SORT_IDS = [
+  "most-recent",
+  "soonest-deadline",
+  "highest-pay",
+  "lowest-pay",
+  "lowest-applicants",
+  "highest-applicants",
+  "best-applicant-ratio",
+  "ai-recommended",
+  "closest-to-location",
+] as const;
+export type OpportunitySortId = (typeof OPPORTUNITY_SORT_IDS)[number];
+
+export const OPPORTUNITY_PRESET_SCOPES = ["review", "list"] as const;
+export type OpportunityPresetScope = (typeof OPPORTUNITY_PRESET_SCOPES)[number];
+
 export type OpportunityType = (typeof OPPORTUNITY_TYPES)[number];
 export type OpportunitySource = (typeof OPPORTUNITY_SOURCES)[number];
 export type OpportunityRemoteType = (typeof OPPORTUNITY_REMOTE_TYPES)[number];
@@ -334,6 +357,44 @@ export type UpdateOpportunityInput = z.input<typeof updateOpportunitySchema>;
 export type OpportunityFilters = z.infer<typeof opportunityFiltersSchema>;
 export type OpportunityStatusChangeInput = z.input<
   typeof opportunityStatusChangeSchema
+>;
+
+// Saved filter+sort combination the user can apply to the review queue or
+// opportunities list in one click. `position` controls pinned ordering;
+// negative or null positions are treated as "unpinned tail".
+export const opportunitySortIdSchema = z.enum(OPPORTUNITY_SORT_IDS);
+export const opportunityPresetScopeSchema = z.enum(OPPORTUNITY_PRESET_SCOPES);
+
+export const opportunityPresetSchema = z.object({
+  id: z.string(),
+  name: z.string().trim().min(1, "Name is required").max(80),
+  scope: opportunityPresetScopeSchema.default("review"),
+  filters: opportunityFiltersSchema,
+  sortId: opportunitySortIdSchema.default("most-recent"),
+  pinned: z.boolean().default(false),
+  position: z.number().int().nullable().optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+export type OpportunityPreset = z.infer<typeof opportunityPresetSchema>;
+
+// Used by POST /api/opportunity-presets — server assigns id + timestamps.
+export const createOpportunityPresetSchema = opportunityPresetSchema
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  // `pinned` defaults to false but callers may omit it
+  .extend({
+    pinned: z.boolean().optional().default(false),
+  });
+export type CreateOpportunityPresetInput = z.input<
+  typeof createOpportunityPresetSchema
+>;
+
+// Used by PATCH /api/opportunity-presets/[id] — every field is optional.
+export const updateOpportunityPresetSchema = opportunityPresetSchema
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .partial();
+export type UpdateOpportunityPresetInput = z.input<
+  typeof updateOpportunityPresetSchema
 >;
 
 // LLM provider configuration. The runtime validation source lives here so the
