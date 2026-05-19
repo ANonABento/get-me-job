@@ -1,13 +1,15 @@
-import { CalendarDays, Clock3, ArrowRight } from "lucide-react";
+import { ArrowRight, CalendarDays, Clock3 } from "lucide-react";
 import { headers } from "next/headers";
 
 import { getAlternateLanguages, getMetadataBase } from "@/lib/seo";
 import { CSP_NONCE_HEADER } from "@/lib/security/headers";
 import { formatDateAbsolute } from "@/lib/format/time";
 import { Link } from "@/i18n/navigation";
+import { MonoCap } from "@/components/landing/primitives";
 import { BLOG_POSTS, getBlogJsonLdBase } from "./posts";
 
 export function generateMetadata({ params }: { params: { locale: string } }) {
+  void params;
   return {
     title: "Blog",
     description:
@@ -47,18 +49,7 @@ export default function BlogIndexPage({
   const nonce = routeHeaders.get(CSP_NONCE_HEADER);
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
-      <header className="space-y-4 border-b pb-10">
-        <p className="text-sm font-semibold uppercase text-primary">
-          Resources
-        </p>
-        <h1 className="text-4xl font-bold tracking-tight">Slothing Blog</h1>
-        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-          Practical guides on resume optimization, interview prep, and building
-          a job search workflow you control.
-        </p>
-      </header>
-
+    <>
       <script
         {...(nonce ? { nonce } : {})}
         suppressHydrationWarning
@@ -68,40 +59,63 @@ export default function BlogIndexPage({
         }}
       />
 
-      <section className="mt-10 grid gap-6 md:grid-cols-2">
-        {BLOG_POSTS.map((post) => (
-          <article
-            key={post.slug}
-            className="rounded-lg border p-6 shadow-sm transition-colors hover:border-primary/40"
-          >
-            <div className="text-xs uppercase tracking-[0.08em] text-muted-foreground">
-              {post.audience} · {post.readMinutes} min read
-            </div>
-            <h2 className="mt-2 text-2xl font-semibold">{post.title}</h2>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              {post.description}
+      {/* Hero */}
+      <section className="border-b border-rule bg-page">
+        <div className="mx-auto w-full max-w-[1240px] px-5 pb-12 pt-10 md:px-10 md:pb-16 md:pt-16">
+          <div className="flex max-w-[640px] flex-col gap-4">
+            <MonoCap className="text-brand">Resources</MonoCap>
+            <h1 className="font-display text-[clamp(40px,5.4vw,72px)] font-extrabold leading-[0.98] tracking-display text-ink">
+              Slothing Blog
+            </h1>
+            <p className="max-w-[58ch] text-[16.5px] leading-[1.55] text-ink-2">
+              Practical guides on resume optimization, interview prep, and
+              building a job search workflow you control.
             </p>
-            <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
-                <CalendarDays className="h-3.5 w-3.5" />
-                {formatDateAbsolute(post.publishedDate, params.locale)}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Clock3 className="h-3.5 w-3.5" />
-                {post.readMinutes} min read
-              </span>
-            </div>
-
-            <Link
-              href={`/blog/${post.slug}`}
-              className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-            >
-              Read guide
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </article>
-        ))}
+          </div>
+        </div>
       </section>
-    </main>
+
+      {/* Post grid */}
+      <section className="border-t border-rule bg-paper py-12 md:py-16">
+        <div className="mx-auto w-full max-w-[1240px] px-5 md:px-10">
+          <div className="grid gap-5 md:grid-cols-2">
+            {BLOG_POSTS.map((post, index) => (
+              <article
+                key={post.slug}
+                className="flex flex-col rounded-2xl border border-rule bg-page p-6 shadow-paper-card transition-colors hover:border-brand md:p-8"
+              >
+                <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-brand">
+                  {String(index + 1).padStart(2, "0")} · {post.audience} ·{" "}
+                  {post.readMinutes} min
+                </span>
+                <h2 className="mt-3 font-display text-[24px] font-extrabold leading-tight tracking-display text-ink md:text-[28px]">
+                  {post.title}
+                </h2>
+                <p className="mt-3 flex-1 text-[14.5px] leading-6 text-ink-2">
+                  {post.description}
+                </p>
+                <div className="mt-5 flex items-center gap-4 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-3">
+                  <span className="inline-flex items-center gap-1.5">
+                    <CalendarDays className="h-3 w-3" aria-hidden />
+                    {formatDateAbsolute(post.publishedDate, params.locale)}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Clock3 className="h-3 w-3" aria-hidden />
+                    {post.readMinutes} min read
+                  </span>
+                </div>
+                <Link
+                  href={`/blog/${post.slug}`}
+                  className="mt-6 inline-flex w-fit items-center gap-1.5 text-[14px] font-semibold text-brand transition-colors hover:text-brand-dark"
+                >
+                  Read guide
+                  <ArrowRight className="h-4 w-4" aria-hidden />
+                </Link>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
   );
 }
