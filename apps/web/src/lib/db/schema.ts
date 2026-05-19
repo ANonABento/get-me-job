@@ -222,10 +222,28 @@ export const jobs = sqliteTable(
     deadline: text("deadline"),
     notes: text("notes"),
     createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+    // Extension-imported posting metadata (WaterlooWorks, Greenhouse, …).
+    // `source` is the scraper key (e.g. "waterloo_works"); `sourceJobId`
+    // is the platform's posting ID (e.g. WW "471268"). Together they're
+    // the natural key the bulk-scrape uses for dedupe.
+    source: text("source"),
+    sourceJobId: text("source_job_id"),
+    // Posting-level metadata surfaced from the modal. `openings` and
+    // `applicants` are int counts; `level` and `workTerm` are free-text
+    // because WW exposes them as multi-line lists ("Junior, Intermediate").
+    openings: integer("openings"),
+    applicants: integer("applicants"),
+    level: text("level"),
+    workTerm: text("work_term"),
   },
   (table) => [
     index("idx_jobs_user_created").on(table.userId, table.createdAt),
     index("idx_jobs_user_url").on(table.userId, table.url),
+    index("idx_jobs_user_source_job").on(
+      table.userId,
+      table.source,
+      table.sourceJobId,
+    ),
   ],
 );
 

@@ -384,6 +384,67 @@ test("WaterlooWorks live-style listing rows surface bulk page state", async () =
   }
 });
 
+test("WaterlooWorks list page still surfaces bulk state when a detail modal is open", async () => {
+  const page = await context.newPage();
+  const url =
+    "https://waterlooworks.uwaterloo.ca/myAccount/co-op/full/jobs.htm";
+  try {
+    await page.route(url, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "text/html; charset=utf-8",
+        body: `<!doctype html>
+          <html>
+            <body class="nPostingController page--1430 is--my-account new-student__posting-search loaded">
+              <main>
+                <table>
+                  <tbody>
+                    <tr>
+                      <td><button type="button">AI Toolchain Software Developer</button></td>
+                      <td>onsemi</td>
+                      <td>Waterloo</td>
+                    </tr>
+                    <tr>
+                      <td><button type="button">Software Developer</button></td>
+                      <td>onsemi</td>
+                      <td>Waterloo</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div role="dialog" aria-modal="true">
+                  <div class="dashboard-header__posting-title">
+                    <span>471264</span>
+                    <h2>AI Toolchain Software Developer</h2>
+                  </div>
+                </div>
+              </main>
+            </body>
+          </html>`,
+      }),
+    );
+    await page.goto(url);
+    await page.waitForLoadState("domcontentloaded");
+    await page.waitForTimeout(800);
+
+    const wwState = await sendMessageToTab<{
+      success: boolean;
+      data: {
+        kind: "list" | "detail" | "other";
+        rowCount: number;
+        hasNextPage: boolean;
+      };
+    }>(context, extensionId, "waterlooworks.uwaterloo.ca", {
+      type: "WW_GET_PAGE_STATE",
+    });
+    expect(wwState).toMatchObject({
+      success: true,
+      data: { kind: "list", rowCount: 2 },
+    });
+  } finally {
+    await page.close();
+  }
+});
+
 test("WaterlooWorks detail modal surfaces a detected job", async () => {
   const page = await context.newPage();
   const url =

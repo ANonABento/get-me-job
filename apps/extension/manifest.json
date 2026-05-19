@@ -3,13 +3,7 @@
   "name": "Slothing - Job Application Assistant",
   "version": "1.0.0",
   "description": "Auto-fill job applications and import job listings from LinkedIn, Waterloo Works, and more",
-  "permissions": [
-    "storage",
-    "tabs",
-    "activeTab",
-    "scripting",
-    "webNavigation"
-  ],
+  "permissions": ["storage", "tabs", "activeTab", "scripting", "webNavigation"],
   "host_permissions": [
     "*://*.linkedin.com/*",
     "*://*.indeed.com/*",
@@ -18,6 +12,7 @@
     "*://*.lever.co/*",
     "*://jobs.lever.co/*",
     "*://waterlooworks.uwaterloo.ca/*",
+    "*://*.uwaterloo.ca/*",
     "*://*.workdayjobs.com/*",
     "*://*.myworkdayjobs.com/*",
     "https://slothing.work/*",
@@ -43,6 +38,7 @@
         "*://*.lever.co/*",
         "*://jobs.lever.co/*",
         "*://waterlooworks.uwaterloo.ca/*",
+        "*://*.uwaterloo.ca/*",
         "*://*.workdayjobs.com/*",
         "*://*.myworkdayjobs.com/*",
         "https://slothing.work/*",

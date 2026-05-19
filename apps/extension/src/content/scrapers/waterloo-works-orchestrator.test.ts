@@ -166,6 +166,32 @@ describe("WaterlooWorksOrchestrator", () => {
     expect(getWaterlooWorksRows().length).toBe(2);
   });
 
+  it("detects role-grid rows and title buttons from the modern list", () => {
+    document.body.className = "new-student__posting-search";
+    document.body.innerHTML = `
+      <div role="table">
+        <div role="rowgroup">
+          <div role="row">
+            <div role="cell"><input type="checkbox" /></div>
+            <div role="cell">471264</div>
+            <div role="cell"><button type="button">AI Toolchain Software Developer</button></div>
+            <div role="cell">onsemi</div>
+            <div role="cell">Waterloo</div>
+          </div>
+          <div role="row">
+            <div role="cell"><input type="checkbox" /></div>
+            <div role="cell">471263</div>
+            <div role="cell"><button type="button">Software Developer</button></div>
+            <div role="cell">onsemi</div>
+            <div role="cell">Waterloo</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    expect(getWaterlooWorksRows().length).toBe(2);
+  });
+
   it("scrapeAllVisible respects maxJobs cap", async () => {
     buildPostingsPage({
       rowTitles: ["A", "B", "C", "D", "E"],

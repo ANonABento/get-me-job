@@ -38,7 +38,7 @@ interface PageStatus {
   scrapedJob: ScrapedJob | null;
 }
 
-type PageProbeState = "unknown" | "ready" | "needs-refresh";
+type PageProbeState = "checking" | "unknown" | "ready" | "needs-refresh";
 
 type WwPageKind = "list" | "detail" | "other";
 interface WwPageState {
@@ -46,6 +46,16 @@ interface WwPageState {
   rowCount: number;
   hasNextPage: boolean;
   currentPage?: string;
+}
+
+export interface BulkProgressSnapshot {
+  scrapedCount: number;
+  attemptedCount: number;
+  currentPage: number;
+  totalRowsOnPage: number;
+  lastTitle?: string;
+  done: boolean;
+  errors: string[];
 }
 
 // Generic bulk-scrape modes/results are exported by BulkSourceCard so popup
@@ -82,13 +92,14 @@ const CONTENT_SCRIPT_URL_PATTERNS = [
   /boards\.greenhouse\.io\//,
   /lever\.co\//,
   /jobs\.lever\.co\//,
-  /waterlooworks\.uwaterloo\.ca\//,
+  /\/\/waterlooworks[-.a-z0-9]*\.uwaterloo\.ca\//i,
   /workdayjobs\.com\//,
   /myworkdayjobs\.com\//,
 ];
 const LINKEDIN_JOBS_URL_PATTERN =
   /linkedin\.com\/jobs\/(?:view|search-results|search|collections)/;
 const LINKEDIN_JOB_RETRY_DELAYS_MS = [600, 1400];
+const PAGE_PROBE_TIMEOUT_MS = 4500;
 
 function matchBulkSource(url: string | undefined): BulkSourceKey | null {
   if (!url) return null;
@@ -119,7 +130,9 @@ export default function App() {
   const [activeTabId, setActiveTabId] = useState<number | null>(null);
   const [activeTabUrl, setActiveTabUrl] = useState<string | null>(null);
   const [pageProbeState, setPageProbeState] =
-    useState<PageProbeState>("unknown");
+    useState<PageProbeState>("checking");
+  const [pageScanInFlight, setPageScanInFlight] = useState(false);
+  const [pageScanError, setPageScanError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Cached so dashboard/review links can render without querying
   // GET_AUTH_STATUS again. Populated from the auth-status response on first
@@ -133,6 +146,8 @@ export default function App() {
     null,
   );
   const [wwBulkError, setWwBulkError] = useState<string | null>(null);
+  const [wwBulkProgress, setWwBulkProgress] =
+    useState<BulkProgressSnapshot | null>(null);
   // P3/#39 — Per-source state for Greenhouse / Lever / Workday. Keyed by
   // BulkSourceKey so a future source is a one-line addition.
   const [bulkStates, setBulkStates] = useState<
@@ -156,14 +171,53 @@ export default function App() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    const listener = (message: { type?: string }) => {
+    const listener = (message: {
+      type?: string;
+      payload?: BulkProgressSnapshot;
+    }) => {
       if (message.type === "AUTH_STATUS_CHANGED") {
         void checkAuthStatus();
+      }
+      if (message.type === "WW_BULK_PROGRESS_FANOUT" && message.payload) {
+        // The background re-broadcasts every progress event the content
+        // script emitted. Stash it so the bulk card can render live counts;
+        // clear on the terminal `done` event so the card flips back to its
+        // idle / result state.
+        if (message.payload.done) {
+          setWwBulkProgress(null);
+        } else {
+          setWwBulkProgress(message.payload);
+        }
       }
     };
     chrome.runtime.onMessage.addListener(listener);
     return () => chrome.runtime.onMessage.removeListener(listener);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // On mount, ask the background for the latest bulk-scrape snapshot so a
+  // popup reopened mid-scrape rehydrates its progress UI instead of looking
+  // idle.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const resp = await sendMessage<{ ww: BulkProgressSnapshot | null }>({
+          type: "GET_BULK_PROGRESS",
+        } as never);
+        if (!cancelled && resp.success && resp.data?.ww) {
+          setWwBulkProgress(resp.data.ww);
+          setWwBulkInFlight(
+            (resp.data.ww.currentPage ?? 1) > 1 ? "paginated" : "visible",
+          );
+        }
+      } catch {
+        // best-effort; missing snapshot just means no scrape in flight
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (viewState !== "session-lost") return;
@@ -212,6 +266,7 @@ export default function App() {
   }
 
   async function checkPageStatus(attempt = 0) {
+    if (attempt === 0) setPageProbeState("checking");
     const [tab] = await chrome.tabs.query({
       active: true,
       currentWindow: true,
@@ -219,13 +274,34 @@ export default function App() {
     if (tab?.id) {
       setActiveTabId(tab.id);
       setActiveTabUrl(tab.url || null);
+      let waterlooWorksListDetected = false;
+      if (isWaterlooWorksUrl(tab.url)) {
+        try {
+          const r = await sendTabMessageWithTimeout<{
+            success: boolean;
+            data?: WwPageState;
+          }>(tab.id, Messages.wwGetPageState(), PAGE_PROBE_TIMEOUT_MS);
+          if (r?.success && r.data) {
+            setWwState(r.data);
+            if (r.data.kind === "list") {
+              waterlooWorksListDetected = true;
+              setPageProbeState("ready");
+            }
+          }
+        } catch {
+          setWwState(null);
+        }
+      } else {
+        setWwState(null);
+      }
       try {
-        const response = await chrome.tabs.sendMessage(
+        const response = await sendTabMessageWithTimeout<PageSurfaceContext>(
           tab.id,
           Messages.getSurfaceContext(),
+          PAGE_PROBE_TIMEOUT_MS,
         );
-        if (response) {
-          const context = response as PageSurfaceContext;
+        const context = (response ?? null) as PageSurfaceContext | null;
+        if (context?.page) {
           setSurfaceContext(context);
           setPageStatus({
             hasForm: context.page.hasApplicationForm,
@@ -241,6 +317,7 @@ export default function App() {
             setLatestResume(null);
           }
           setPageProbeState("ready");
+          setPageScanError(null);
           if (
             !context.page.job &&
             isLinkedInJobsUrl(tab.url) &&
@@ -250,22 +327,29 @@ export default function App() {
               void checkPageStatus(attempt + 1);
             }, LINKEDIN_JOB_RETRY_DELAYS_MS[attempt]);
           }
+        } else if (waterlooWorksListDetected) {
+          // Surface context came back empty but the WW row probe already
+          // told us this is a list page — keep state at "ready" so the bulk
+          // card renders.
+          setPageProbeState("ready");
+        } else {
+          // No usable surface and no positive WW signal: force-resolve so the
+          // popup never stays in the "checking" idle state forever.
+          setPageProbeState(
+            !tab.url || hasContentScriptHost(tab.url)
+              ? "needs-refresh"
+              : "unknown",
+          );
         }
       } catch {
-        setPageProbeState(
-          !tab.url || hasContentScriptHost(tab.url)
-            ? "needs-refresh"
-            : "unknown",
-        );
-      }
-      if (tab.url && /waterlooworks\.uwaterloo\.ca/.test(tab.url)) {
-        try {
-          const r = await chrome.tabs.sendMessage(tab.id, {
-            type: "WW_GET_PAGE_STATE",
-          });
-          if (r?.success) setWwState(r.data);
-        } catch {
-          // Content script not yet loaded
+        if (waterlooWorksListDetected) {
+          setPageProbeState("ready");
+        } else {
+          setPageProbeState(
+            !tab.url || hasContentScriptHost(tab.url)
+              ? "needs-refresh"
+              : "unknown",
+          );
         }
       }
       // P3/#39 — probe Greenhouse/Lever/Workday listing pages. Only one
@@ -274,9 +358,10 @@ export default function App() {
       if (bulkKey) {
         try {
           const messageType = bulkPageStateMessage(bulkKey);
-          const r = await chrome.tabs.sendMessage(tab.id, {
-            type: messageType,
-          });
+          const r = await sendTabMessageWithTimeout<{
+            success: boolean;
+            data?: BulkSourceState;
+          }>(tab.id, { type: messageType }, PAGE_PROBE_TIMEOUT_MS);
           if (r?.success && r.data) {
             setBulkStates((prev) => ({ ...prev, [bulkKey]: r.data }));
           }
@@ -284,6 +369,10 @@ export default function App() {
           // Content script not yet loaded
         }
       }
+    } else {
+      setActiveTabId(null);
+      setActiveTabUrl(null);
+      setPageProbeState("unknown");
     }
   }
 
@@ -305,7 +394,7 @@ export default function App() {
     try {
       const [tab] = await chrome.tabs.query({
         active: true,
-        currentWindow: true,
+        lastFocusedWindow: true,
       });
       if (!tab?.id) throw new Error("No active tab");
       const message = { type: bulkScrapeMessage(key, mode), payload: {} };
@@ -342,7 +431,7 @@ export default function App() {
     try {
       const [tab] = await chrome.tabs.query({
         active: true,
-        currentWindow: true,
+        lastFocusedWindow: true,
       });
       if (!tab?.id) throw new Error("No active tab");
       const message =
@@ -365,6 +454,23 @@ export default function App() {
       setWwBulkError(messageForError(err));
     } finally {
       setWwBulkInFlight(null);
+      setWwBulkProgress(null);
+    }
+  }
+
+  async function handleWwBulkCancel() {
+    try {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        lastFocusedWindow: true,
+      });
+      if (!tab?.id) return;
+      // The content script holds the AbortController; this just trips it.
+      // The in-flight handleWwBulkScrape's `await chrome.tabs.sendMessage`
+      // will resolve normally with whatever partial result was collected.
+      await chrome.tabs.sendMessage(tab.id, { type: "WW_BULK_CANCEL" });
+    } catch {
+      // best-effort
     }
   }
 
@@ -443,6 +549,28 @@ export default function App() {
     window.close();
   }
 
+  async function handleScanCurrentPage() {
+    setPageScanInFlight(true);
+    setPageScanError(null);
+    try {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        lastFocusedWindow: true,
+      });
+      if (!tab?.id) throw new Error("No active tab");
+      if (!canInjectIntoUrl(tab.url)) {
+        throw new Error("This browser page cannot be scanned.");
+      }
+      await injectContentScripts(tab.id);
+      await wait(250);
+      await checkPageStatus();
+    } catch (err) {
+      setPageScanError(messageForPageScanError(err));
+    } finally {
+      setPageScanInFlight(false);
+    }
+  }
+
   /**
    * Resolves the configured Slothing API base URL, preferring the value we
    * cached at first paint (`apiBaseUrl`) and falling back to a fresh
@@ -473,7 +601,7 @@ export default function App() {
   function supportedTabLabel(): string | null {
     const url = surfaceContext?.tab.url || activeTabUrl || undefined;
     if (!url || !hasContentScriptHost(url)) return null;
-    if (/waterlooworks\.uwaterloo\.ca/.test(url)) return "WaterlooWorks";
+    if (isWaterlooWorksUrl(url)) return "WaterlooWorks";
     if (/linkedin\.com/.test(url)) return "LinkedIn";
     if (/indeed\.com/.test(url)) return "Indeed";
     if (/greenhouse\.io/.test(url)) return "Greenhouse";
@@ -612,10 +740,25 @@ export default function App() {
     !detectedJob &&
     !showWwBulk &&
     detectedBulkSources.length === 0 &&
+    pageProbeState !== "checking" &&
     pageProbeState !== "needs-refresh" &&
     !supportedSite;
+  // On a WW list page the bulk card already conveys "we know what this page
+  // is"; the per-job "No job detected" status card becomes pure noise. Only
+  // render the status card when we have something useful to say about a
+  // specific job/form/workspace, OR when no bulk source has matched.
+  //
+  // Also suppress while a bulk scrape is in flight — the orchestrator opens
+  // posting modals as part of its walk, and surfacing "Job detected: <last
+  // row>" would confuse the user into thinking they navigated there.
   const hasPageStatus =
-    !!detectedJob || !!pageStatus?.hasForm || pageProbeState === "ready";
+    !wwBulkInFlight &&
+    (!!detectedJob ||
+      !!pageStatus?.hasForm ||
+      workspaceVisible ||
+      (pageProbeState === "ready" &&
+        !showWwBulk &&
+        detectedBulkSources.length === 0));
   const currentTabTitle = workspaceVisible
     ? "Job workspace active"
     : detectedJob
@@ -624,7 +767,9 @@ export default function App() {
         ? "Application detected"
         : pageProbeState === "ready"
           ? "No job detected"
-          : "Unsupported page";
+          : pageProbeState === "checking"
+            ? "Scanning page"
+            : "Unsupported page";
 
   return (
     <div className="popup">
@@ -681,10 +826,29 @@ export default function App() {
               <span className="status-eyebrow">Current tab</span>
               <span className="status-title">Page needs refresh</span>
             </div>
-            <button className="btn block" onClick={handleRefreshTab}>
-              Refresh tab
-            </button>
+            <div className="status-actions">
+              <button
+                className="btn primary"
+                onClick={handleScanCurrentPage}
+                disabled={pageScanInFlight}
+              >
+                {pageScanInFlight ? "Scanning…" : "Scan this page"}
+              </button>
+              <button className="btn" onClick={handleRefreshTab}>
+                Refresh tab
+              </button>
+            </div>
+            {pageScanError && <p className="inline-error">{pageScanError}</p>}
           </article>
+        )}
+
+        {pageProbeState === "checking" && (
+          <div className="idle">
+            <p className="idle-title">Scanning current tab</p>
+            <p className="idle-sub">
+              Checking this page for jobs, lists, and application forms.
+            </p>
+          </div>
         )}
 
         {hasPageStatus && (
@@ -754,10 +918,12 @@ export default function App() {
             sourceLabel="WaterlooWorks"
             detectedCount={wwState.rowCount}
             busy={wwBulkInFlight}
+            progress={wwBulkProgress}
             lastResult={wwBulkResult}
             lastError={wwBulkError}
             onScrapeVisible={() => handleWwBulkScrape("visible")}
             onScrapePaginated={() => handleWwBulkScrape("paginated")}
+            onCancel={handleWwBulkCancel}
             onViewTracker={handleViewReviewQueue}
           />
         )}
@@ -786,19 +952,32 @@ export default function App() {
           <div className="idle">
             <p className="idle-title">Unsupported page</p>
             <p className="idle-sub">
-              Open a supported job posting or application page.
+              Slothing is not running on this tab. Scan once, or open a
+              supported job page.
             </p>
+            <button
+              className="btn block"
+              onClick={handleScanCurrentPage}
+              disabled={pageScanInFlight}
+            >
+              {pageScanInFlight ? "Scanning…" : "Scan this page"}
+            </button>
+            {pageScanError && <p className="inline-error">{pageScanError}</p>}
           </div>
         )}
 
-        {!hasPageStatus && !nothingDetected && supportedSite && (
-          <div className="idle">
-            <p className="idle-title">{supportedSite} is supported</p>
-            <p className="idle-sub">
-              Scanning this tab for a job posting or application form.
-            </p>
-          </div>
-        )}
+        {!hasPageStatus &&
+          !nothingDetected &&
+          supportedSite &&
+          !showWwBulk &&
+          detectedBulkSources.length === 0 && (
+            <div className="idle">
+              <p className="idle-title">{supportedSite} is supported</p>
+              <p className="idle-sub">
+                Scanning this tab for a job posting or application form.
+              </p>
+            </div>
+          )}
 
         <div className="quick-row">
           <button className="quick" onClick={handleOpenDashboard}>
@@ -834,4 +1013,185 @@ export default function App() {
       </footer>
     </div>
   );
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function sendTabMessageWithTimeout<T>(
+  tabId: number,
+  message: unknown,
+  timeoutMs: number,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const timeoutId = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error("Slothing did not hear back from this page."));
+    }, timeoutMs);
+
+    const settle = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
+      fn();
+    };
+
+    try {
+      // Firefox's chrome.* WebExtension methods require their native `this`
+      // binding. Calling an extracted `sendMessage` reference throws an
+      // "Illegal invocation" TypeError (or silently fails), which left the
+      // popup stuck in its initial "checking" state because nothing ever
+      // reached the content script. Invoke via the namespace, or — when
+      // passing it through here — bind explicitly.
+      const callback = (response: T) => {
+        const lastError = chrome.runtime.lastError;
+        settle(() => {
+          if (lastError) reject(new Error(lastError.message));
+          else resolve(response);
+        });
+      };
+      const maybePromise = chrome.tabs.sendMessage(
+        tabId,
+        message,
+        callback,
+      ) as void | Promise<T>;
+      if (
+        maybePromise &&
+        typeof (maybePromise as Promise<T>).then === "function"
+      ) {
+        (maybePromise as Promise<T>).then(
+          (response) => settle(() => resolve(response)),
+          (err) => settle(() => reject(err)),
+        );
+      }
+    } catch (err) {
+      settle(() => reject(err));
+    }
+  });
+}
+
+function canInjectIntoUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  return /^(https?|file):\/\//i.test(url);
+}
+
+async function injectContentScripts(tabId: number): Promise<void> {
+  if (chrome.scripting?.executeScript) {
+    await chrome.scripting
+      .insertCSS({
+        target: { tabId },
+        files: ["content.css"],
+      })
+      .catch(() => undefined);
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ["sharedUi.js"],
+    });
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ["content.js"],
+    });
+    return;
+  }
+
+  const tabs = chrome.tabs as FirefoxTabsInjectionApi;
+
+  await callTabsInjection(tabs, "insertCSS", tabId, "content.css", true);
+  await callTabsInjection(tabs, "executeScript", tabId, "sharedUi.js");
+  await callTabsInjection(tabs, "executeScript", tabId, "content.js");
+}
+
+type FirefoxTabsInjectionApi = typeof chrome.tabs & {
+  insertCSS?: FirefoxInjectionMethod;
+  executeScript?: FirefoxInjectionMethod;
+};
+
+type FirefoxInjectionMethod = (
+  tabId: number,
+  details: { file: string },
+  callback?: () => void,
+) => void | Promise<unknown>;
+
+function callTabsInjection(
+  tabs: FirefoxTabsInjectionApi,
+  method: "insertCSS" | "executeScript",
+  tabId: number,
+  file: string,
+  optional = false,
+): Promise<void> {
+  const fn = tabs[method];
+  if (!fn) {
+    return optional
+      ? Promise.resolve()
+      : Promise.reject(new Error("This browser cannot scan the current page."));
+  }
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const settle = (err?: unknown) => {
+      if (settled) return;
+      settled = true;
+      if (err) {
+        if (optional) resolve();
+        else reject(toPageScanError(err));
+        return;
+      }
+      const lastError = chrome.runtime.lastError;
+      if (lastError && !optional) {
+        reject(new Error(lastError.message));
+        return;
+      }
+      resolve();
+    };
+
+    try {
+      // Firefox's chrome.* WebExtension methods require their native `this`
+      // binding. Calling an extracted `executeScript` function throws a
+      // TypeError, which previously surfaced as a misleading "Network error".
+      const result = fn.call(tabs, tabId, { file }, () => settle());
+      if (result && typeof (result as Promise<unknown>).then === "function") {
+        (result as Promise<unknown>).then(() => settle(), settle);
+      }
+    } catch (err) {
+      settle(err);
+    }
+  });
+}
+
+function toPageScanError(err: unknown): Error {
+  const raw = err instanceof Error ? err.message : String(err || "");
+  if (/permission|access|privilege|not allowed|cannot access/i.test(raw)) {
+    return new Error(
+      "Firefox blocked access to this tab. Refresh it and scan again.",
+    );
+  }
+  if (/executeScript|insertCSS|not a function|interface/i.test(raw)) {
+    return new Error(
+      "Firefox could not inject Slothing into this tab. Refresh it and scan again.",
+    );
+  }
+  return err instanceof Error
+    ? err
+    : new Error(raw || "Could not scan this page.");
+}
+
+function messageForPageScanError(err: unknown): string {
+  const normalized = toPageScanError(err);
+  if (err instanceof TypeError && normalized === err) {
+    return "Firefox could not inject Slothing into this tab. Refresh it and scan again.";
+  }
+  return messageForError(normalized);
+}
+
+function isWaterlooWorksUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  try {
+    return /^waterlooworks[-.a-z0-9]*\.uwaterloo\.ca$/i.test(
+      new URL(url).hostname,
+    );
+  } catch {
+    return /waterlooworks/i.test(url);
+  }
 }

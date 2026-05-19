@@ -47,14 +47,47 @@ const FIELD_LABELS = {
 } as const;
 
 type FieldKey = keyof typeof FIELD_LABELS;
+
+/**
+ * Collapse all whitespace runs in a single-value field down to a single space.
+ * WaterlooWorks pads its rendered text with `\n\t\t…\n\t\t\t\t\t\t` blocks so
+ * the raw textContent looks like `"May 19, 2026\n\t\t\t\t\n\t\t\t\t\t9:00 AM"`.
+ * Don't use for the description; only for inline fields like deadline.
+ */
+function normalizeInline(value: string | undefined): string | undefined {
+  if (!value) return value;
+  const collapsed = value.replace(/\s+/g, " ").trim();
+  return collapsed.length > 0 ? collapsed : undefined;
+}
+
+/**
+ * Parse the first integer out of a WaterlooWorks field value. The "Number
+ * of Job Openings" field is "1" / "3" / "10" on its own line; some employers
+ * write "1 (Co-op)" or " 2 " so we tolerate surrounding text/whitespace.
+ */
+function parseIntField(value: string | undefined): number | undefined {
+  if (!value) return undefined;
+  const match = value.match(/-?\d+/);
+  if (!match) return undefined;
+  const n = Number.parseInt(match[0], 10);
+  return Number.isFinite(n) ? n : undefined;
+}
 type FieldBag = Partial<Record<FieldKey, string>>;
 
 export class WaterlooWorksScraper extends BaseScraper {
   readonly source = "waterlooworks";
-  readonly urlPatterns = [/waterlooworks\.uwaterloo\.ca/];
+  readonly urlPatterns = [
+    /(^|\.)waterlooworks\.uwaterloo\.ca$/i,
+    /^waterlooworks[-.a-z0-9]*\.uwaterloo\.ca$/i,
+  ];
 
   canHandle(url: string): boolean {
-    return this.urlPatterns.some((p) => p.test(url));
+    try {
+      const host = new URL(url).hostname;
+      return this.urlPatterns.some((p) => p.test(host));
+    } catch {
+      return /waterlooworks/i.test(url);
+    }
   }
 
   async scrapeJobListing(): Promise<ScrapedJob | null> {
@@ -115,10 +148,23 @@ export class WaterlooWorksScraper extends BaseScraper {
       salary: this.condenseSalary(fields.salary),
       type: this.detectJobType(fields.jobType || description) || "internship",
       remote: this.detectRemoteFromFields(fields, location, description),
-      url: window.location.href,
+      // Encode the posting's WW ID in the URL so the user can deep-link back
+      // to it. WW renders postings as SPA modals (no canonical URL), so the
+      // content script picks up the `#postingId=<id>` hash on load and
+      // auto-clicks the matching row to re-open the modal. Falls back to
+      // the bare jobs.htm URL when sourceJobId is unknown.
+      url: sourceJobId
+        ? `${window.location.origin}${window.location.pathname}#postingId=${sourceJobId}`
+        : window.location.href,
       source: this.source,
       sourceJobId,
-      deadline: fields.deadline,
+      deadline: normalizeInline(fields.deadline),
+      // Posting-level metadata from the modal. WW exposes "Number of Job
+      // Openings" as a single-line int, "Level" as a multi-line list
+      // (e.g. "Junior, Intermediate"), and "Work Term" as "2026 - Fall".
+      openings: parseIntField(fields.openings),
+      level: normalizeInline(fields.level),
+      workTerm: normalizeInline(fields.workTerm),
     };
   }
 
@@ -380,9 +426,21 @@ export class WaterlooWorksScraper extends BaseScraper {
     description: string,
   ): boolean {
     const arrangement = (fields.employmentArrangement || "").toLowerCase();
-    if (/remote|virtual|work from home|distributed/.test(arrangement))
-      return true;
-    if (/hybrid/.test(arrangement)) return true; // hybrid implies some remote
+    // WaterlooWorks has a structured "Employment Location Arrangement" field
+    // (matched in FIELD_LABELS) that is the authoritative source of truth
+    // for remote vs. in-person. When it's present, trust it exclusively —
+    // free-text scanning of the description has too many false positives
+    // (job descriptions casually mention "remote teams", "remote work
+    // allowed during exam periods", "remote, hybrid, or in-person" boilerplate).
+    if (arrangement) {
+      if (/remote|virtual|work from home|distributed/.test(arrangement)) {
+        return true;
+      }
+      if (/hybrid/.test(arrangement)) return true;
+      // "On-site", "In-person", "Onsite" → not remote.
+      return false;
+    }
+    // Fall back to free-text scanning only when WW didn't expose the field.
     return this.detectRemote(location || "") || this.detectRemote(description);
   }
 

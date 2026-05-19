@@ -275,7 +275,7 @@ export default function OptionsApp() {
         </div>
       </section>
 
-      <section className="settings-card compact-card">
+      <section className="settings-card compact-card learning-card">
         <div className="section-head">
           <h2>Learning</h2>
           <SaveStatusBadge status={settingsStatus} />
@@ -338,7 +338,7 @@ export default function OptionsApp() {
         </div>
       </section>
 
-      <section className="settings-card compact-card">
+      <section className="settings-card compact-card notifications-card">
         <div className="section-head">
           <h2>Notifications</h2>
           <SaveStatusBadge status={settingsStatus} />

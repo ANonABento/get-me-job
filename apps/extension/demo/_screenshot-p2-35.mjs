@@ -83,7 +83,7 @@ const FIXTURE_HTML = `<!DOCTYPE html>
     line-height: 1.5;
   }
   header { margin-bottom: 24px; }
-  h1 { font-size: 22px; margin: 0 0 6px; color: #134e4a; }
+  h1 { font-size: 22px; margin: 0 0 6px; color: #1a1530; }
   .meta { color: #5b6770; font-size: 13px; }
   form {
     background: white;

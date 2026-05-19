@@ -20,7 +20,7 @@ pnpm --filter @slothing/extension build:chrome   # → apps/extension/dist/
 pnpm --filter @slothing/extension build:firefox  # → apps/extension/dist-firefox/
 ```
 
-The build pipeline pulls icons from `icons/source/slothing.svg` (a branded compass design), renders them at 16/32/48/128 via `sharp`, and copies them into `src/assets/icons/`, `dist/icons/`, and `dist-firefox/icons/` automatically. All four PNGs stay under 4KB. UI surfaces use the web app brand assets from `apps/web/public/brand/`; webpack resizes and copies `slothing-mark.png` and `slothing-logo.png` into `dist/brand/` and `dist-firefox/brand/`.
+The build pipeline pulls the spiral mark from `apps/web/public/brand/slothing-mark.png`, removes the connected matte background, renders transparent 16/32/48/128 PNGs via `sharp`, and copies them into `src/assets/icons/`, `dist/icons/`, and `dist-firefox/icons/` automatically. UI surfaces use the same web app brand assets from `apps/web/public/brand/`; webpack copies a transparent `slothing-mark.png` plus a resized `slothing-logo.png` into `dist/brand/` and `dist-firefox/brand/`.
 
 ### Load in Chrome
 
@@ -151,7 +151,7 @@ All extension endpoints use token auth via `X-Extension-Token` header:
 
 | Endpoint                                | Method | Purpose                                                      |
 | --------------------------------------- | ------ | ------------------------------------------------------------ |
-| `/api/extension/auth`                   | POST   | Generate token (uses NextAuth session)                          |
+| `/api/extension/auth`                   | POST   | Generate token (uses NextAuth session)                       |
 | `/api/extension/auth`                   | DELETE | Revoke token(s)                                              |
 | `/api/extension/auth/verify`            | GET    | Validate token                                               |
 | `/api/extension/profile`                | GET    | Fetch profile with computed fields                           |
@@ -223,7 +223,7 @@ pnpm --filter @slothing/extension build:firefox  # Production build (Firefox -> 
 pnpm --filter @slothing/extension type-check     # TypeScript validation (strict: false)
 pnpm --filter @slothing/extension lint           # tsc --noEmit
 pnpm --filter @slothing/extension test:run       # Vitest one-shot
-pnpm --filter @slothing/extension generate-icons # Regenerate placeholder icons
+pnpm --filter @slothing/extension generate-icons # Regenerate extension icons
 ```
 
 ### Adding a New Scraper

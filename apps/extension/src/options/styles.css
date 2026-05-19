@@ -39,27 +39,41 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto,
-    Oxygen, Ubuntu, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Oxygen,
+    Ubuntu, sans-serif;
   font-size: 13px;
   line-height: 1.45;
   color: var(--text);
-  background: var(--bg);
+  background:
+    radial-gradient(
+      circle at 18% 0%,
+      rgba(184, 112, 74, 0.1),
+      transparent 28rem
+    ),
+    linear-gradient(180deg, rgba(255, 250, 239, 0.58), transparent 22rem),
+    var(--bg);
   -webkit-font-smoothing: antialiased;
 }
 
 .options-container {
-  max-width: 1060px;
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 18px 20px 28px;
+  padding: 20px 20px 32px;
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  align-items: start;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.9fr);
+  grid-template-areas:
+    "header header header"
+    "connection autofill learning"
+    "tracking autofill about"
+    "notifications notifications about"
+    "saved saved saved";
+  align-items: stretch;
+  gap: 14px;
 }
 
 header {
-  grid-column: 1 / -1;
+  grid-area: header;
   margin-bottom: 2px;
   display: flex;
   align-items: center;
@@ -70,7 +84,7 @@ header {
   width: 34px;
   height: 34px;
   display: block;
-  border-radius: 8px;
+  border-radius: 0;
   object-fit: cover;
   flex-shrink: 0;
 }
@@ -91,24 +105,41 @@ header {
 section {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  padding: 14px 16px;
+  border-radius: 8px;
+  padding: 16px 18px;
   margin-bottom: 0;
-  grid-column: span 4;
+  min-height: 112px;
+  box-shadow: 0 12px 30px rgba(26, 21, 48, 0.06);
+  display: flex;
+  flex-direction: column;
 }
 
-.connection-card,
-.autofill-card,
+.connection-card {
+  grid-area: connection;
+}
+
+.autofill-card {
+  grid-area: autofill;
+}
+
+.learning-card {
+  grid-area: learning;
+}
+
 .tracking-card {
-  grid-column: span 4;
+  grid-area: tracking;
+}
+
+.notifications-card {
+  grid-area: notifications;
 }
 
 .saved-answers-card {
-  grid-column: 1 / -1;
+  grid-area: saved;
 }
 
 .about-card {
-  grid-column: span 4;
+  grid-area: about;
 }
 
 section h2 {
@@ -355,15 +386,26 @@ section h2 {
 @media (max-width: 900px) {
   .options-container {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "connection"
+      "autofill"
+      "learning"
+      "tracking"
+      "notifications"
+      "about"
+      "saved";
   }
 
   section,
   .connection-card,
   .autofill-card,
+  .learning-card,
   .tracking-card,
+  .notifications-card,
   .about-card,
   .saved-answers-card {
-    grid-column: 1 / -1;
+    min-height: 0;
   }
 
   .answers-list {

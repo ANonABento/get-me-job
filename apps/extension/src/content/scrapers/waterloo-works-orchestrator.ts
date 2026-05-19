@@ -34,16 +34,35 @@ export type OrchestratorOptions = {
   // Called after each row attempt with cumulative progress. Used to drive the
   // popup progress UI.
   onProgress?: (p: OrchestratorProgress) => void;
+  // Abort the in-flight scrape between rows / pages. The popup wires its
+  // "Stop" button to an AbortController and forwards the signal here.
+  signal?: AbortSignal;
+  // Pre-scrape dedupe filter. Rows whose ID is in this set are skipped
+  // without opening their modal — saves the bulk of per-row time on
+  // re-scrapes. Populated by the background from the user's already-
+  // imported posting IDs for this source.
+  skipSourceJobIds?: Set<string>;
+  // Streaming import: flush every N scraped jobs via onChunk so the
+  // review queue fills live instead of one big-bang at the end. Each
+  // batch is independent — partial scrapes survive a crash.
+  chunkSize?: number;
+  onChunk?: (chunk: ScrapedJob[]) => Promise<void>;
 };
 
 const DEFAULT_THROTTLE_MS = 500;
 const ROW_SELECTORS = [
   "table.data-viewer-table tbody tr.table__row--body",
   "table.data-viewer-table tbody tr",
+  ".data-viewer-table [role='row']",
   "table tbody tr.table__row--body",
   "table tbody tr",
+  "[role='rowgroup'] [role='row']",
+  "[role='table'] [role='row']",
+  ".table__row--body",
+  ".table__row",
 ] as const;
-const ROW_TITLE_LINK_SELECTOR = "td a[href='javascript:void(0)']";
+const ROW_TITLE_CONTROL_SELECTOR =
+  "td a, td button, [role='cell'] a, [role='cell'] button";
 const POSTING_PANEL_SELECTOR = ".dashboard-header__posting-title";
 const NEXT_PAGE_SELECTOR = 'a.pagination__link[aria-label="Go to next page"]';
 
@@ -62,27 +81,71 @@ export function getWaterlooWorksRows(): HTMLElement[] {
     if (rows.length > 0) return dedupeElements(rows);
   }
 
-  const linkRows = Array.from(
-    document.querySelectorAll<HTMLAnchorElement>(
-      "table a[href='javascript:void(0)'], table button",
+  // Fallback: walk up from each plausible job-title control to the nearest
+  // row-like ancestor. Doesn't require <table> markup — covers grid + list
+  // variants WW has used over the years.
+  const controls = Array.from(
+    document.querySelectorAll<HTMLElement>(
+      "a[href='javascript:void(0)'], td a, td button, [role='cell'] a, [role='cell'] button",
     ),
-  )
-    .map((el) => el.closest<HTMLElement>("tr"))
+  );
+  const rowAncestors = controls
+    .map((el) => findRowAncestor(el))
     .filter((row): row is HTMLElement => !!row)
     .filter(isLikelyPostingRow);
-  return dedupeElements(linkRows);
+  return dedupeElements(rowAncestors);
 }
 
-export function getWaterlooWorksNextPageLink(): HTMLAnchorElement | null {
+const ROW_ANCESTOR_SELECTOR =
+  "tr, [role='row'], li, .table__row, .table__row--body, [class*='posting-row'], [class*='job-row'], [class*='listing-row']";
+
+function findRowAncestor(el: HTMLElement): HTMLElement | null {
+  return el.closest<HTMLElement>(ROW_ANCESTOR_SELECTOR);
+}
+
+export function getWaterlooWorksNextPageLink(): HTMLElement | null {
   return (
-    document.querySelector<HTMLAnchorElement>(NEXT_PAGE_SELECTOR) ||
-    Array.from(document.querySelectorAll<HTMLAnchorElement>("a, button"))
-      .filter((el): el is HTMLAnchorElement => el instanceof HTMLAnchorElement)
-      .find((el) =>
-        /next/i.test(el.getAttribute("aria-label") || el.textContent || ""),
-      ) ||
+    document.querySelector<HTMLElement>(NEXT_PAGE_SELECTOR) ||
+    Array.from(document.querySelectorAll<HTMLElement>("a, button")).find((el) =>
+      /next/i.test(el.getAttribute("aria-label") || el.textContent || ""),
+    ) ||
     null
   );
+}
+
+/**
+ * Read the (sourceJobId, applicants) pair off a list row before we click it
+ * open. Both come from the table cells — the modal does NOT show applicant
+ * count, so this is our only chance to capture it. The orchestrator merges
+ * these into the scraped job after scrape returns.
+ */
+export function readWaterlooWorksRowMeta(row: HTMLElement): {
+  sourceJobId?: string;
+  applicants?: number;
+} {
+  const cells = Array.from(
+    row.querySelectorAll<HTMLElement>(
+      ":scope > td, :scope > th, :scope > [role='cell']",
+    ),
+  );
+  const intCells: number[] = [];
+  for (const cell of cells) {
+    const text = (cell.textContent || "").trim();
+    // Reject anything that isn't a bare integer — guards against "$2,000",
+    // "20+", "Junior, Intermediate", etc.
+    if (/^[0-9]{1,7}$/.test(text)) {
+      const n = Number.parseInt(text, 10);
+      if (Number.isFinite(n)) intCells.push(n);
+    }
+  }
+  // WW posting IDs are 5-6 digit numbers (~471xxx in 2026). The first cell
+  // that fits is the ID; the remaining short ints belong to openings/apps.
+  // The Apps column is the rightmost short int, so we pick the last one.
+  const sourceJobId = intCells.find((n) => n >= 10000)?.toString();
+  const shortInts = intCells.filter((n) => n < 10000);
+  const applicants =
+    shortInts.length > 0 ? shortInts[shortInts.length - 1] : undefined;
+  return { sourceJobId, applicants };
 }
 
 function isLikelyPostingRow(row: HTMLElement): boolean {
@@ -95,11 +158,37 @@ function isLikelyPostingRow(row: HTMLElement): boolean {
   ) {
     return false;
   }
-  if (row.querySelector("th")) return false;
-  if (row.querySelector(ROW_TITLE_LINK_SELECTOR)) return true;
+  // Skip true header rows only. WaterlooWorks (and any accessible table)
+  // puts a `<th scope="row">` on the row-header cell of every body row, so
+  // a naive `querySelector("th")` rejection silently drops every real row.
+  if (isHeaderRow(row)) return false;
+  if (row.querySelector(ROW_TITLE_CONTROL_SELECTOR)) return true;
   if (row.querySelector("a, button")) return text.length > 8;
   const cells = row.querySelectorAll("td, [role='cell']");
   return cells.length >= 2 && text.length > 12;
+}
+
+/**
+ * A row is a real "header row" only if it lives in <thead>, or if all its
+ * own cells are <th> (no <td>s mixed in). Body rows that use
+ * `<th scope="row">` for the ID column alongside data <td>s are NOT headers.
+ */
+function isHeaderRow(row: HTMLElement): boolean {
+  // Walk up from the row to the enclosing table; if we pass through <thead>
+  // first, this row is a column-header row.
+  let parent: HTMLElement | null = row.parentElement;
+  while (parent && parent.tagName !== "TABLE") {
+    if (parent.tagName === "THEAD") return true;
+    if (parent.tagName === "TBODY" || parent.tagName === "TFOOT") break;
+    parent = parent.parentElement;
+  }
+  // Inspect direct cell children. A row composed entirely of <th> is a
+  // header row even if it lives in <tbody> (e.g. legacy markup).
+  const directCells = Array.from(row.children).filter(
+    (c) => c.tagName === "TD" || c.tagName === "TH",
+  );
+  if (directCells.length === 0) return false;
+  return directCells.every((c) => c.tagName === "TH");
 }
 
 function normalizeText(value: string): string {
@@ -152,6 +241,7 @@ export class WaterlooWorksOrchestrator {
     let pageIndex = 1;
 
     while (pageIndex <= maxPages && allJobs.length < maxJobs) {
+      if (opts.signal?.aborted) break;
       const { jobs, stopReason } = await this.scrapeCurrentPage({
         scrapedSoFar: allJobs.length,
         pageIndex,
@@ -160,7 +250,7 @@ export class WaterlooWorksOrchestrator {
       });
       allJobs.push(...jobs);
 
-      if (stopReason === "cap-hit") break;
+      if (stopReason === "cap-hit" || stopReason === "aborted") break;
 
       // Try to go to the next page
       const advanced = await this.goToNextPage(throttle);
@@ -185,7 +275,10 @@ export class WaterlooWorksOrchestrator {
     pageIndex: number;
     opts: OrchestratorOptions;
     errors: string[];
-  }): Promise<{ jobs: ScrapedJob[]; stopReason?: "cap-hit" }> {
+  }): Promise<{
+    jobs: ScrapedJob[];
+    stopReason?: "cap-hit" | "aborted";
+  }> {
     const { scrapedSoFar, pageIndex, opts, errors } = args;
     const maxJobs = opts.maxJobs ?? 200;
     const throttle = opts.throttleMs ?? DEFAULT_THROTTLE_MS;
@@ -194,6 +287,9 @@ export class WaterlooWorksOrchestrator {
     const jobs: ScrapedJob[] = [];
 
     for (let i = 0; i < rows.length; i++) {
+      if (opts.signal?.aborted) {
+        return { jobs, stopReason: "aborted" };
+      }
       if (scrapedSoFar + jobs.length >= maxJobs) {
         return { jobs, stopReason: "cap-hit" };
       }
@@ -203,11 +299,35 @@ export class WaterlooWorksOrchestrator {
       const row = liveRows[i];
       if (!row) break;
 
-      const titleLink = row.querySelector<HTMLAnchorElement>(
-        ROW_TITLE_LINK_SELECTOR,
+      const titleControl = row.querySelector<HTMLElement>(
+        ROW_TITLE_CONTROL_SELECTOR,
       );
-      const expectedTitle = titleLink?.textContent?.trim();
-      if (!titleLink) continue;
+      const expectedTitle = titleControl?.textContent?.trim();
+      if (!titleControl) continue;
+
+      // Capture row-only metadata BEFORE clicking — the modal hides the
+      // table so once we open it we lose access to applicants count + the
+      // row's ID cell. We merge these into the scraped job after.
+      const rowMeta = readWaterlooWorksRowMeta(row);
+
+      // Pre-scrape dedupe: skip rows whose posting ID is already in the
+      // caller's "already imported" set. Saves a panel click + waitFor +
+      // scrape per skip, which is the bulk of the per-row time.
+      if (
+        rowMeta.sourceJobId &&
+        opts.skipSourceJobIds?.has(rowMeta.sourceJobId)
+      ) {
+        opts.onProgress?.({
+          scrapedCount: scrapedSoFar + jobs.length,
+          attemptedCount: scrapedSoFar + i + 1,
+          currentPage: pageIndex,
+          totalRowsOnPage: liveRows.length,
+          lastTitle: `(skipped: already imported) ${expectedTitle}`,
+          done: false,
+          errors,
+        });
+        continue;
+      }
 
       // Capture the panel's current title so we can detect when the new
       // posting's content has actually rendered (the panel may already be
@@ -216,7 +336,7 @@ export class WaterlooWorksOrchestrator {
         .querySelector(POSTING_PANEL_SELECTOR + " h2")
         ?.textContent?.trim();
 
-      titleLink.click();
+      titleControl.click();
 
       const opened = await waitFor(
         () => !!document.querySelector(POSTING_PANEL_SELECTOR),
@@ -262,7 +382,32 @@ export class WaterlooWorksOrchestrator {
           `row ${i} (${expectedTitle}): ${String(err).slice(0, 200)}`,
         );
       }
-      if (job) jobs.push(job);
+      if (job) {
+        // Merge row-only metadata: applicants is never in the modal, and
+        // sourceJobId from the row is a useful fallback if the modal
+        // header parse missed it.
+        if (
+          typeof rowMeta.applicants === "number" &&
+          job.applicants === undefined
+        ) {
+          job.applicants = rowMeta.applicants;
+        }
+        if (!job.sourceJobId && rowMeta.sourceJobId) {
+          job.sourceJobId = rowMeta.sourceJobId;
+        }
+        jobs.push(job);
+        // Optional streaming flush — hands off accumulated jobs to the
+        // caller (runWwBulkScrape) every N jobs so the import can land
+        // in chunks instead of one big batch at the end.
+        if (
+          opts.onChunk &&
+          opts.chunkSize &&
+          jobs.length > 0 &&
+          jobs.length % opts.chunkSize === 0
+        ) {
+          await opts.onChunk(jobs.slice(jobs.length - opts.chunkSize));
+        }
+      }
 
       opts.onProgress?.({
         scrapedCount: scrapedSoFar + jobs.length,
@@ -283,8 +428,7 @@ export class WaterlooWorksOrchestrator {
   }
 
   private async goToNextPage(throttleMs: number): Promise<boolean> {
-    const nextBtn =
-      document.querySelector<HTMLAnchorElement>(NEXT_PAGE_SELECTOR);
+    const nextBtn = getWaterlooWorksNextPageLink();
     if (!nextBtn || isHidden(nextBtn)) return false;
 
     // Capture the first row's signature to detect when the page has changed.

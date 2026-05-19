@@ -21,6 +21,42 @@ interface JobRow {
   deadline?: string;
   notes?: string;
   created_at?: string;
+  source?: string;
+  source_job_id?: string;
+  openings?: number;
+  applicants?: number;
+  level?: string;
+  work_term?: string;
+}
+
+// Additive migration for the extension-import metadata. Each ALTER is
+// wrapped so a re-run on a DB that already has the column is a no-op.
+let jobsExtensionFieldsEnsured = false;
+function ensureJobsExtensionFields(): void {
+  if (jobsExtensionFieldsEnsured) return;
+  const exec = (db as unknown as { exec?: (sql: string) => void }).exec;
+  if (typeof exec !== "function") {
+    jobsExtensionFieldsEnsured = true;
+    return;
+  }
+  const statements = [
+    "ALTER TABLE jobs ADD COLUMN source TEXT",
+    "ALTER TABLE jobs ADD COLUMN source_job_id TEXT",
+    "ALTER TABLE jobs ADD COLUMN openings INTEGER",
+    "ALTER TABLE jobs ADD COLUMN applicants INTEGER",
+    "ALTER TABLE jobs ADD COLUMN level TEXT",
+    "ALTER TABLE jobs ADD COLUMN work_term TEXT",
+    "CREATE INDEX IF NOT EXISTS idx_jobs_user_source_job ON jobs(user_id, source, source_job_id)",
+  ];
+  for (const statement of statements) {
+    try {
+      exec.call(db, statement);
+    } catch (error) {
+      const message = (error as Error).message.toLowerCase();
+      if (!message.includes("duplicate column")) throw error;
+    }
+  }
+  jobsExtensionFieldsEnsured = true;
 }
 
 export interface CreatedAtCursor {
@@ -65,6 +101,12 @@ function mapRowToJob(row: JobRow): JobDescription {
     deadline: row.deadline,
     notes: row.notes,
     createdAt: row.created_at || nowIso(),
+    source: row.source,
+    sourceJobId: row.source_job_id,
+    openings: typeof row.openings === "number" ? row.openings : undefined,
+    applicants: typeof row.applicants === "number" ? row.applicants : undefined,
+    level: row.level,
+    workTerm: row.work_term,
   };
 }
 
@@ -141,16 +183,54 @@ export function getJobByUrl(
   return mapRowToJob(row);
 }
 
+/**
+ * Lookup by (source, sourceJobId) — the natural key for extension imports.
+ * Used by the dedupe pre-scrape filter so we can skip rows whose posting
+ * has already been imported.
+ */
+export function getJobBySource(
+  source: string,
+  sourceJobId: string,
+  userId: string,
+): JobDescription | null {
+  ensureJobsExtensionFields();
+  const row = db
+    .prepare(
+      "SELECT * FROM jobs WHERE source = ? AND source_job_id = ? AND user_id = ?",
+    )
+    .get(source, sourceJobId, userId) as JobRow | undefined;
+  if (!row) return null;
+  return mapRowToJob(row);
+}
+
+/**
+ * Return every (source, sourceJobId) the user has already imported for the
+ * given source. Drives the orchestrator's pre-row dupe filter so we never
+ * click into a posting we've seen.
+ */
+export function listSourceJobIds(source: string, userId: string): string[] {
+  ensureJobsExtensionFields();
+  const rows = db
+    .prepare(
+      "SELECT source_job_id AS id FROM jobs WHERE source = ? AND user_id = ? AND source_job_id IS NOT NULL",
+    )
+    .all(source, userId) as { id: string | null }[];
+  return rows
+    .map((r) => r.id)
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+}
+
 // Create job
 export function createJob(
   job: Omit<JobDescription, "id" | "createdAt">,
   userId: string,
 ): JobDescription {
+  ensureJobsExtensionFields();
   const id = generateId();
   db.prepare(
     `
-    INSERT INTO jobs (id, title, company, location, type, remote, salary, description, requirements_json, responsibilities_json, keywords_json, url, status, applied_at, deadline, notes, user_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO jobs (id, title, company, location, type, remote, salary, description, requirements_json, responsibilities_json, keywords_json, url, status, applied_at, deadline, notes, source, source_job_id, openings, applicants, level, work_term, user_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
   ).run(
     id,
@@ -169,6 +249,12 @@ export function createJob(
     job.appliedAt || null,
     job.deadline || null,
     job.notes || null,
+    job.source || null,
+    job.sourceJobId || null,
+    typeof job.openings === "number" ? job.openings : null,
+    typeof job.applicants === "number" ? job.applicants : null,
+    job.level || null,
+    job.workTerm || null,
     userId,
   );
   return getJob(id, userId)!;

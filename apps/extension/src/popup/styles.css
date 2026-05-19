@@ -48,8 +48,9 @@
 html,
 body {
   width: min(360px, 100vw);
-  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto,
-    Oxygen, Ubuntu, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Oxygen,
+    Ubuntu, sans-serif;
   font-size: 14px;
   line-height: 1.45;
   color: var(--text);
@@ -231,6 +232,29 @@ body {
   background: var(--paper);
 }
 
+.bulk-source {
+  gap: 8px;
+  padding: 10px;
+}
+
+.bulk-source-head,
+.bulk-action-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.bulk-action-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.bulk-action-row .btn {
+  min-width: 0;
+  padding-inline: 8px;
+  white-space: nowrap;
+}
+
 .status-card {
   display: flex;
   flex-direction: column;
@@ -251,6 +275,16 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
+}
+
+.status-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.status-actions .btn {
+  min-width: 0;
 }
 
 .status-copy {
@@ -366,11 +400,8 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  background-image: linear-gradient(
-      45deg,
-      transparent 50%,
-      var(--text-muted) 50%
-    ),
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
     linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
   background-position:
     calc(100% - 9px) center,
@@ -602,6 +633,38 @@ body {
 
 .bulk-duplicates {
   flex-basis: 100%;
+}
+
+.bulk-progress {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--page-2);
+}
+
+.bulk-progress-summary {
+  grid-column: 1;
+  margin: 0;
+  font-feature-settings: "tnum";
+}
+
+.bulk-progress-title {
+  grid-column: 1 / 2;
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 11px;
+  min-width: 0;
+}
+
+.bulk-progress-stop {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  justify-self: end;
 }
 
 .check {

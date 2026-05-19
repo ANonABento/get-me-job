@@ -6,7 +6,7 @@
 
 - Chrome Manifest V3 extension with webpack build pipeline
 - TypeScript config, CSS extraction, HTML templates
-- Auto-generated placeholder icons (16/32/48/128px)
+- Auto-generated transparent spiral-mark icons (16/32/48/128px)
 
 ### Phase 2: Database & API
 

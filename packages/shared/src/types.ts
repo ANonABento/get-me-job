@@ -111,6 +111,17 @@ export interface JobDescription {
   createdAt: string;
   linkedResumeId?: string;
   linkedCoverLetterId?: string;
+  // Extension-imported posting metadata. `source` is the scraper key
+  // ("waterloo_works"), `sourceJobId` is the platform's posting ID — together
+  // the natural key the bulk-scrape uses for dedupe. Posting-level metadata
+  // (openings/applicants/level/workTerm) is platform-agnostic but currently
+  // populated only by the WaterlooWorks scraper.
+  source?: string;
+  sourceJobId?: string;
+  openings?: number;
+  applicants?: number;
+  level?: string;
+  workTerm?: string;
 }
 
 export interface JobMatch {

@@ -202,6 +202,18 @@ export class SlothingAPIClient {
     });
   }
 
+  /**
+   * Returns the user's already-imported sourceJobIds for a given source.
+   * Drives the bulk-scrape pre-row dupe filter — orchestrator skips rows
+   * whose ID is in this set.
+   */
+  async listSourceJobIds(source: string): Promise<string[]> {
+    const response = await this.authenticatedFetch<{ ids: string[] }>(
+      `/api/extension/source-ids?source=${encodeURIComponent(source)}`,
+    );
+    return response.ids ?? [];
+  }
+
   async trackApplied(payload: TrackedApplicationPayload): Promise<{
     opportunityId: string;
     deduped: boolean;

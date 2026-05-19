@@ -36,6 +36,12 @@ export const extensionOpportunitySchema = z.object({
   status: z.enum(["pending", "applied"]).optional().default("pending"),
   appliedAt: z.string().datetime().optional(),
   notes: z.string().trim().max(5000).optional(),
+  // Posting-level metadata surfaced by the WaterlooWorks scraper. All
+  // optional — other sources won't populate these.
+  openings: z.number().int().positive().optional(),
+  applicants: z.number().int().nonnegative().optional(),
+  level: optionalString,
+  workTerm: optionalString,
 });
 
 export type ExtensionOpportunityInput = z.infer<
@@ -127,6 +133,21 @@ export function buildJobFromExtension(
       status === "applied" ? opportunity.appliedAt || nowIso() : undefined,
     deadline: opportunity.deadline,
     notes: buildExtensionNotes(opportunity),
+    // Pass extension-imported metadata into structured columns instead of
+    // dumping it into `notes`. Old rows still have it in notes for legacy
+    // reasons; new rows go straight into the typed columns.
+    source: opportunity.source,
+    sourceJobId: opportunity.sourceJobId,
+    openings:
+      typeof opportunity.openings === "number"
+        ? opportunity.openings
+        : undefined,
+    applicants:
+      typeof opportunity.applicants === "number"
+        ? opportunity.applicants
+        : undefined,
+    level: opportunity.level,
+    workTerm: opportunity.workTerm,
   };
 }
 

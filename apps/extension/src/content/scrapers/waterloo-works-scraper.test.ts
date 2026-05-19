@@ -34,6 +34,11 @@ describe("WaterlooWorksScraper (modern UI)", () => {
         "https://waterlooworks.uwaterloo.ca/myAccount/co-op/full/jobs.htm",
       ),
     ).toBe(true);
+    expect(
+      s.canHandle(
+        "https://waterlooworks-staging.uwaterloo.ca/myAccount/co-op/full/jobs.htm",
+      ),
+    ).toBe(true);
     expect(s.canHandle("https://example.com")).toBe(false);
   });
 
@@ -51,8 +56,46 @@ describe("WaterlooWorksScraper (modern UI)", () => {
     expect(job!.location).toBe("Toronto, Ontario, Canada");
     expect(job!.type).toBe("internship");
     expect(job!.deadline).toContain("June 15");
+    // Deadline should be a single-line value, not raw textContent with
+    // embedded tabs/newlines (WW pads its rendered text with both).
+    expect(job!.deadline).not.toMatch(/[\n\t]/);
     expect(job!.salary).toMatch(/28-32|CAD/);
     expect(job!.remote).toBe(true); // "Hybrid" arrangement
+    // sourceJobId is encoded in the URL so the opportunities view can
+    // deep-link back to the modal via the #postingId hash hook.
+    expect(job!.url).toContain("#postingId=469433");
+  });
+
+  it("respects the structured arrangement field over free-text description", async () => {
+    // WW exposes "Employment Location Arrangement" as a structured field.
+    // When it says "On-site", we should not flag remote even if the
+    // description mentions remote work elsewhere.
+    document.body.className = "new-student__posting-search";
+    document.body.innerHTML = `
+      <section>
+        <div class="dashboard-header__posting-title"><h2>Onsite job</h2><i>fiber_manual_record</i> 999001</div>
+        <div class="tag__key-value-list js--question--container">
+          <span class="label">Job Title:</span><div class="value">Onsite job</div>
+        </div>
+        <div class="tag__key-value-list js--question--container">
+          <span class="label">Organization:</span><div class="value">Acme Co</div>
+        </div>
+        <div class="tag__key-value-list js--question--container">
+          <span class="label">Job Summary:</span>
+          <div class="value">
+            <p>Standard onsite role. We do not support remote work.
+            Some teams have remote folks occasionally.</p>
+          </div>
+        </div>
+        <div class="tag__key-value-list js--question--container">
+          <span class="label">Employment Location Arrangement:</span>
+          <div class="value">On-site</div>
+        </div>
+      </section>
+    `;
+    const job = await new WaterlooWorksScraper().scrapeJobListing();
+    expect(job).not.toBeNull();
+    expect(job!.remote).toBe(false);
   });
 
   it("description concatenates summary + responsibilities + skills sections", async () => {

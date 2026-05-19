@@ -25,6 +25,15 @@ export interface BulkScrapeResult {
   errors: string[];
 }
 
+export interface BulkProgress {
+  scrapedCount: number;
+  attemptedCount: number;
+  currentPage: number;
+  totalRowsOnPage: number;
+  lastTitle?: string;
+  errors: string[];
+}
+
 export interface BulkSourceCardProps {
   /** Human-readable source name shown in the card header & badge ("Greenhouse"). */
   sourceLabel: string;
@@ -32,6 +41,8 @@ export interface BulkSourceCardProps {
   detectedCount: number;
   /** Which mode (if any) is currently running. `null` when idle. */
   busy: BulkScrapeMode | null;
+  /** Live progress snapshot while busy. `null` between rows / when idle. */
+  progress?: BulkProgress | null;
   /** Last completed result for this source (renders the imported/attempted line). */
   lastResult: BulkScrapeResult | null;
   /** Error string from the last failed attempt, if any. */
@@ -40,6 +51,8 @@ export interface BulkSourceCardProps {
   onScrapeVisible: () => void;
   /** Called when the user clicks "Scrape filtered set" (paginated mode). */
   onScrapePaginated: () => void;
+  /** Called when the user clicks the "Stop" button while a scrape is in flight. */
+  onCancel?: () => void;
   /** Optional: rendered as a deep-link when the result has imports > 0. */
   onViewTracker?: () => void;
 }
@@ -49,26 +62,31 @@ export function BulkSourceCard(props: BulkSourceCardProps) {
     sourceLabel,
     detectedCount,
     busy,
+    progress,
     lastResult,
     lastError,
     onScrapeVisible,
     onScrapePaginated,
+    onCancel,
     onViewTracker,
   } = props;
 
   const disabled = busy !== null || detectedCount === 0;
 
   return (
-    <article className="card" data-bulk-source={sourceLabel.toLowerCase()}>
-      <header className="card-head">
-        <span className="card-title">{sourceLabel} list</span>
+    <article
+      className="card bulk-source"
+      data-bulk-source={sourceLabel.toLowerCase()}
+    >
+      <header className="bulk-source-head">
+        <span className="card-title">{sourceLabel}</span>
         <span className="badge">
           {detectedCount} row{detectedCount === 1 ? "" : "s"}
         </span>
       </header>
-      <div className="action-grid">
+      <div className="bulk-action-row">
         <button
-          className="btn primary full"
+          className="btn primary"
           onClick={onScrapeVisible}
           disabled={disabled}
         >
@@ -77,7 +95,7 @@ export function BulkSourceCard(props: BulkSourceCardProps) {
             : `Scrape ${detectedCount} visible`}
         </button>
         <button
-          className="btn full"
+          className="btn"
           onClick={onScrapePaginated}
           disabled={disabled}
           title={`Walks every page in your current filter set; capped at 200 jobs.`}
@@ -85,6 +103,37 @@ export function BulkSourceCard(props: BulkSourceCardProps) {
           {busy === "paginated" ? "Walking pages…" : "Scrape filtered set"}
         </button>
       </div>
+      {busy && (
+        <div className="bulk-progress">
+          <p className="inline-note bulk-progress-summary">
+            {progress
+              ? `Scraped ${progress.scrapedCount}/${progress.totalRowsOnPage}` +
+                (busy === "paginated" && progress.currentPage > 1
+                  ? ` · page ${progress.currentPage}`
+                  : "") +
+                (progress.errors.length > 0
+                  ? ` · ${progress.errors.length} error${progress.errors.length === 1 ? "" : "s"}`
+                  : "")
+              : "Starting…"}
+          </p>
+          {progress?.lastTitle && (
+            <p
+              className="inline-note bulk-progress-title clip"
+              title={progress.lastTitle}
+            >
+              {progress.lastTitle}
+            </p>
+          )}
+          {onCancel && (
+            <button
+              className="btn ghost tight bulk-progress-stop"
+              onClick={onCancel}
+            >
+              Stop
+            </button>
+          )}
+        </div>
+      )}
       {lastResult && (
         <div className="bulk-result">
           <p className="inline-note">

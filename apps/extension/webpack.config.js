@@ -4,6 +4,7 @@ const CopyPlugin = require("copy-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const sharp = require("sharp");
+const { renderTransparentBrandMark } = require("./scripts/brand-mark-image");
 
 const isProduction = process.env.NODE_ENV === "production";
 const target = process.env.TARGET || "chrome"; // 'chrome' or 'firefox'
@@ -90,13 +91,18 @@ module.exports = {
         { from: manifestFile, to: "manifest.json" },
         { from: "src/assets/icons", to: "icons", noErrorOnMissing: true },
         {
-          from: path.resolve(__dirname, "../web/public/brand/slothing-mark.png"),
+          from: path.resolve(
+            __dirname,
+            "../web/public/brand/slothing-mark.png",
+          ),
           to: "brand/slothing-mark.png",
-          transform: (content) =>
-            sharp(content).resize(64, 64).png({ compressionLevel: 9 }).toBuffer(),
+          transform: (content) => renderTransparentBrandMark(content, 64),
         },
         {
-          from: path.resolve(__dirname, "../web/public/brand/slothing-logo.png"),
+          from: path.resolve(
+            __dirname,
+            "../web/public/brand/slothing-logo.png",
+          ),
           to: "brand/slothing-logo.png",
           transform: (content) =>
             sharp(content)

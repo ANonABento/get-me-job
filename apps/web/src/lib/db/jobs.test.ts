@@ -210,6 +210,15 @@ describe("Job Database Functions", () => {
         null,
         null,
         null,
+        // Extension-import metadata: source, source_job_id, openings,
+        // applicants, level, work_term. All null for inputs that don't
+        // populate them.
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
         TEST_USER_ID,
       );
       expect(result.id).toBe("test-id-123");
@@ -271,6 +280,12 @@ describe("Job Database Functions", () => {
         '["key"]',
         "https://job.com",
         "saved",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
         null,
         null,
         null,

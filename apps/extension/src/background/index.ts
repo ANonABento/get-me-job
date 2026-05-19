@@ -1,5 +1,14 @@
 // Background service worker for Slothing extension
 
+// Firefox's `chrome.*` compat is callback-based, so `await chrome.tabs.query(...)`
+// resolves to `undefined`. Alias global `chrome` to polyfilled `browser` so all
+// `chrome.*` calls below return Promises on both Firefox and Chrome.
+import browser from "webextension-polyfill";
+if (typeof globalThis !== "undefined") {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).chrome = browser;
+}
+
 import type {
   ChatPortMessage,
   ChatStreamStartPayload,
@@ -74,6 +83,11 @@ async function handleMessage(
 
     case "IMPORT_JOBS_BATCH":
       return handleImportJobsBatch(message.payload as ScrapedJob[]);
+
+    case "GET_IMPORTED_SOURCE_JOB_IDS":
+      return handleGetImportedSourceJobIds(
+        (message.payload as { source?: string } | undefined)?.source,
+      );
 
     case "TRACK_APPLIED":
       return handleTrackApplied(message.payload as TrackedApplicationPayload);
@@ -169,10 +183,50 @@ async function handleMessage(
       }
     }
 
+    case "WW_BULK_PROGRESS": {
+      // Content script emits progress on every row + the terminal done:true
+      // event. We mirror the latest payload in memory (so the popup can
+      // rehydrate on open) and re-broadcast it as WW_BULK_PROGRESS_FANOUT
+      // for any currently-open popup to consume via its onMessage listener.
+      const payload = message.payload as
+        | { done?: boolean; [k: string]: unknown }
+        | undefined;
+      if (payload?.done === true) {
+        latestBulkProgress.delete("waterlooworks");
+      } else if (payload) {
+        latestBulkProgress.set("waterlooworks", payload);
+      }
+      // Broadcast — popup listens for the FANOUT type. Wrapped in try because
+      // sendMessage rejects with "Receiving end does not exist" when no
+      // popup is open, which is fine.
+      void chrome.runtime
+        .sendMessage({
+          type: "WW_BULK_PROGRESS_FANOUT",
+          payload,
+        })
+        .catch(() => undefined);
+      return { success: true };
+    }
+
+    case "GET_BULK_PROGRESS": {
+      // Popup asks for the latest snapshot on mount. Returns null when
+      // nothing is in flight.
+      const ww = latestBulkProgress.get("waterlooworks") ?? null;
+      return { success: true, data: { ww } };
+    }
+
     default:
       return { success: false, error: `Unknown message type: ${message.type}` };
   }
 }
+
+// In-flight bulk-scrape snapshot, keyed by source. Background page in MV2
+// is persistent so a Map is fine; if we migrate to MV3 we'll need to move
+// this into chrome.storage.session.
+const latestBulkProgress = new Map<
+  string,
+  { done?: boolean; [k: string]: unknown }
+>();
 
 async function handleTailorFromPage(
   payload: TailorFromPagePayload | ScrapedJob,
@@ -411,6 +465,21 @@ async function handleImportJobsBatch(
     const client = await getAPIClient();
     const result = await client.importJobsBatch(jobs);
     return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+async function handleGetImportedSourceJobIds(
+  source: string | undefined,
+): Promise<ExtensionResponse> {
+  if (!source) {
+    return { success: false, error: "source is required" };
+  }
+  try {
+    const client = await getAPIClient();
+    const ids = await client.listSourceJobIds(source);
+    return { success: true, data: { ids } };
   } catch (error) {
     return { success: false, error: (error as Error).message };
   }

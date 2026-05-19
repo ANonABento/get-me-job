@@ -53,7 +53,7 @@ describe("BulkSourceCard", () => {
       />,
     );
     expect(container.querySelector(".card-title")?.textContent).toBe(
-      "Greenhouse list",
+      "Greenhouse",
     );
     expect(container.querySelector(".badge")?.textContent?.trim()).toBe(
       "23 rows",

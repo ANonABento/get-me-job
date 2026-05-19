@@ -9,6 +9,7 @@ import {
   createJob,
   countJobsByStatus,
   getJobByUrl,
+  getJobBySource,
   updateJobStatus,
 } from "@/lib/db/jobs";
 import { createNotification } from "@/lib/db/notifications";
@@ -48,6 +49,33 @@ export async function POST(request: NextRequest) {
     const dedupedIds: string[] = [];
 
     for (const opportunity of parseResult.opportunities) {
+      // Dedupe by (source, sourceJobId) before URL — the natural key from
+      // the platform (e.g. WaterlooWorks "471268"). URL is fallback because
+      // some sources (older imports, non-WW) lack a posting ID.
+      const existingBySource =
+        opportunity.source && opportunity.sourceJobId
+          ? getJobBySource(
+              opportunity.source,
+              opportunity.sourceJobId,
+              authResult.userId,
+            )
+          : null;
+      if (existingBySource) {
+        if (opportunity.status === "applied") {
+          const updatedJob = updateJobStatus(
+            existingBySource.id,
+            "applied",
+            existingBySource.appliedAt || opportunity.appliedAt,
+            authResult.userId,
+          );
+          importedJobs.push(updatedJob || existingBySource);
+        } else {
+          importedJobs.push(existingBySource);
+        }
+        dedupedIds.push(existingBySource.id);
+        continue;
+      }
+
       if (opportunity.status === "applied" && opportunity.url) {
         const existingJob = getJobByUrl(opportunity.url, authResult.userId);
         if (existingJob) {

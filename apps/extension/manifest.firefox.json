@@ -27,6 +27,7 @@
     "*://*.lever.co/*",
     "*://jobs.lever.co/*",
     "*://waterlooworks.uwaterloo.ca/*",
+    "*://*.uwaterloo.ca/*",
     "*://*.workdayjobs.com/*",
     "*://*.myworkdayjobs.com/*",
     "https://slothing.work/*",
@@ -38,9 +39,7 @@
     "http://127.0.0.1:3000/*",
     "http://127.0.0.1:3001/*"
   ],
-  "optional_permissions": [
-    "webNavigation"
-  ],
+  "optional_permissions": ["webNavigation"],
   "background": {
     "scripts": ["background.js"],
     "type": "module"
@@ -55,6 +54,7 @@
         "*://*.lever.co/*",
         "*://jobs.lever.co/*",
         "*://waterlooworks.uwaterloo.ca/*",
+        "*://*.uwaterloo.ca/*",
         "*://*.workdayjobs.com/*",
         "*://*.myworkdayjobs.com/*",
         "https://slothing.work/*",

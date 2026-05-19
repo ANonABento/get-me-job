@@ -124,6 +124,14 @@ export interface ScrapedJob {
   deadline?: string;
   postedAt?: string;
   keywords?: string[];
+  // Posting-level metadata. `openings` and `applicants` are integer counts;
+  // `level` and `workTerm` are free-text because WaterlooWorks exposes them
+  // as multi-value lists ("Junior, Intermediate", "2026 - Fall"). Other
+  // sources can leave these undefined.
+  openings?: number;
+  applicants?: number;
+  level?: string;
+  workTerm?: string;
 }
 
 export interface PageSnapshot {
@@ -240,6 +248,10 @@ export type MessageType =
   | "WW_SCRAPE_ALL_VISIBLE"
   | "WW_SCRAPE_ALL_PAGINATED"
   | "WW_BULK_PROGRESS"
+  | "WW_BULK_PROGRESS_FANOUT"
+  | "WW_BULK_CANCEL"
+  | "GET_BULK_PROGRESS"
+  | "GET_IMPORTED_SOURCE_JOB_IDS"
   // P3/#39 — Generic bulk-scrape orchestrators for public ATS hosts.
   | "BULK_GREENHOUSE_GET_PAGE_STATE"
   | "BULK_GREENHOUSE_SCRAPE_VISIBLE"

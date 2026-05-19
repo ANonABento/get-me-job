@@ -1,5 +1,14 @@
 // Content script entry point for Slothing extension
 
+// Firefox's `chrome.*` compat is callback-based, so `await chrome.tabs.query(...)`
+// resolves to `undefined`. Alias global `chrome` to polyfilled `browser` so all
+// `chrome.*` calls below return Promises on both Firefox and Chrome.
+import browser from "webextension-polyfill";
+if (typeof globalThis !== "undefined") {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).chrome = browser;
+}
+
 // Import styles for content script
 import "./ui/styles.css";
 
@@ -56,6 +65,9 @@ const autofilledForms = new WeakSet<HTMLFormElement>();
 let scrapedJob: ScrapedJob | null = null;
 let jobDetectedForUrl: string | null = null;
 let profileLoadPromise: Promise<ExtensionProfile | null> | null = null;
+// In-flight WaterlooWorks bulk-scrape controller. Held at module scope so
+// the WW_BULK_CANCEL message handler can abort whichever scrape is running.
+let currentWwBulkController: AbortController | null = null;
 const sidebarController = new JobPageSidebarController();
 const correctionsTracker = new CorrectionsTracker();
 // P3 / #36 #37 — wires Workday + Greenhouse multi-step handlers. The
@@ -94,6 +106,57 @@ submitWatcher.attach();
 // Re-scan on dynamic content changes
 const observer = new MutationObserver(debounce(scanPage, 500));
 observer.observe(document.body, { childList: true, subtree: true });
+
+// Deep-link to a specific WaterlooWorks posting via `#postingId=<id>` hash.
+// Opportunity rows in Slothing's UI link to URLs the scraper minted in this
+// format (since WW postings are SPA modals with no canonical URL of their
+// own). When the user lands on such a URL we wait for the row to appear,
+// then click it to open the corresponding posting modal.
+void openWwPostingFromHash();
+window.addEventListener("hashchange", () => {
+  void openWwPostingFromHash();
+});
+
+async function openWwPostingFromHash() {
+  if (!/waterlooworks[-.a-z0-9]*\.uwaterloo\.ca$/i.test(location.hostname)) {
+    return;
+  }
+  const match = location.hash.match(/postingId=([0-9]+)/);
+  if (!match) return;
+  const postingId = match[1];
+  // The WW list is rendered async; poll up to ~10s for the row to appear.
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    const link = findWwRowLinkForId(postingId);
+    if (link) {
+      link.click();
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 250));
+  }
+}
+
+function findWwRowLinkForId(postingId: string): HTMLElement | null {
+  // Every body row carries an ID cell. The cell text is the posting's WW ID.
+  // Walk the cells, then go back to the row, then find its title control.
+  const cells = document.querySelectorAll<HTMLElement>(
+    "tr.table__row--body td, tr.table__row--body th, [role='row'] [role='cell']",
+  );
+  for (const cell of cells) {
+    if (cell.textContent?.trim() === postingId) {
+      const row = cell.closest<HTMLElement>(
+        "tr, [role='row'], li, .table__row, .table__row--body",
+      );
+      if (!row) continue;
+      const link =
+        row.querySelector<HTMLElement>(
+          "td a[href='javascript:void(0)'], td a, td button, [role='cell'] a, [role='cell'] button",
+        ) || null;
+      if (link) return link;
+    }
+  }
+  return null;
+}
 
 async function scanPage() {
   // Detect forms
@@ -261,6 +324,14 @@ async function handleMessage(message: { type: string; payload?: unknown }) {
         ...(message.payload as object),
       });
 
+    case "WW_BULK_CANCEL":
+      // Popup's "Stop" button forwards this. We hold the AbortController
+      // for whichever bulk scrape is currently in flight (visible OR
+      // paginated) so cancelling is just `.abort()` — the orchestrator
+      // checks the signal between rows / pages and returns gracefully.
+      currentWwBulkController?.abort();
+      return { success: true };
+
     // P3/#39 — Generic bulk-scrape orchestrators for public ATS hosts.
     case "BULK_GREENHOUSE_GET_PAGE_STATE":
       return getBulkSourcePageState("greenhouse");
@@ -333,7 +404,9 @@ async function getSurfaceContext(): Promise<PageSurfaceContext> {
 }
 
 function isWaterlooWorks(): boolean {
-  return /waterlooworks\.uwaterloo\.ca/.test(window.location.href);
+  return /^waterlooworks[-.a-z0-9]*\.uwaterloo\.ca$/i.test(
+    window.location.hostname,
+  );
 }
 
 function getWwPageState() {
@@ -348,18 +421,25 @@ function getWwPageState() {
   const currentPage = document
     .querySelector<HTMLAnchorElement>("a.pagination__link.active")
     ?.textContent?.trim();
-  const hasDetail = !!document.querySelector(
-    ".dashboard-header__posting-title",
-  );
+  const hasDetail = Array.from(
+    document.querySelectorAll<HTMLElement>(".dashboard-header__posting-title"),
+  ).some(isVisibleElement);
   return {
     success: true,
     data: {
-      kind: hasDetail ? "detail" : rows.length > 0 ? "list" : "other",
+      kind: rows.length > 0 ? "list" : hasDetail ? "detail" : "other",
       rowCount: rows.length,
       hasNextPage: !!nextBtn && !nextBtn.classList.contains("disabled"),
       currentPage,
     },
   };
+}
+
+function isVisibleElement(el: HTMLElement): boolean {
+  if (el.hidden || el.getAttribute("aria-hidden") === "true") return false;
+  const style = window.getComputedStyle(el);
+  if (style.display === "none" || style.visibility === "hidden") return false;
+  return !!(el.offsetParent || el.getClientRects().length > 0);
 }
 
 // P3/#39 — Generic bulk-source plumbing for Greenhouse/Lever/Workday.
@@ -568,6 +648,8 @@ async function runBulkSourceScrape(
   };
 }
 
+const BULK_SCRAPE_CHUNK_SIZE = 5;
+
 async function runWwBulkScrape(opts: {
   paginated: boolean;
   maxJobs?: number;
@@ -576,9 +658,59 @@ async function runWwBulkScrape(opts: {
   if (!isWaterlooWorks()) {
     return { success: false, error: "Not a WaterlooWorks page" };
   }
+  // Abort any previous scrape and install our controller. The popup's
+  // "Stop" button sends WW_BULK_CANCEL which calls .abort() on this.
+  currentWwBulkController?.abort();
+  const controller = new AbortController();
+  currentWwBulkController = controller;
   const orchestrator = new WaterlooWorksOrchestrator();
   let errors: string[] = [];
   let pages = 1;
+  let aborted = false;
+
+  // Ask the background for posting IDs we've already imported. The
+  // orchestrator skips those rows entirely (no modal open, no scrape).
+  // Best-effort — failures fall back to "no filter" so we still scrape.
+  let skipSourceJobIds: Set<string> | undefined;
+  try {
+    const resp = await sendMessage<{ ids: string[] }>({
+      type: "GET_IMPORTED_SOURCE_JOB_IDS",
+      payload: { source: "waterloo_works" },
+    } as never);
+    if (resp.success && Array.isArray(resp.data?.ids)) {
+      skipSourceJobIds = new Set(resp.data.ids);
+    }
+  } catch {
+    // Background unavailable — proceed without dedupe filter.
+  }
+
+  // Aggregate import stats across streaming chunks.
+  let importedTotal = 0;
+  let attemptedTotal = 0;
+  const dedupedIdsAll: string[] = [];
+
+  const onChunk = async (chunk: ScrapedJob[]) => {
+    if (chunk.length === 0) return;
+    attemptedTotal += chunk.length;
+    try {
+      const importResp = await sendMessage<{
+        imported: number;
+        opportunityIds: string[];
+        pendingCount: number;
+        dedupedIds?: string[];
+      }>(Messages.importJobsBatch(chunk));
+      if (importResp.success && importResp.data) {
+        importedTotal += importResp.data.imported ?? 0;
+        if (importResp.data.dedupedIds) {
+          dedupedIdsAll.push(...importResp.data.dedupedIds);
+        }
+      }
+    } catch {
+      // Best-effort — a single chunk failure shouldn't abort the whole
+      // scrape. Errors flow through onProgress.errors.
+    }
+  };
+
   const onProgress = (p: {
     scrapedCount: number;
     attemptedCount: number;
@@ -589,51 +721,69 @@ async function runWwBulkScrape(opts: {
   }) => {
     pages = p.currentPage;
     errors = p.errors;
-    // Fire-and-forget progress event to the background, which can fan it out
-    // to the popup if open.
+    // Fire-and-forget progress event to the background, which mirrors it
+    // (for popup rehydrate) and re-broadcasts to the open popup if any.
     sendMessage({
       type: "WW_BULK_PROGRESS",
       payload: p,
     } as never).catch(() => undefined);
   };
-  const jobs = opts.paginated
-    ? await orchestrator.scrapeAllPaginated({
-        onProgress,
-        maxJobs: opts.maxJobs,
-        maxPages: opts.maxPages,
-      })
-    : await orchestrator.scrapeAllVisible({ onProgress });
+  let jobs: ScrapedJob[];
+  try {
+    jobs = opts.paginated
+      ? await orchestrator.scrapeAllPaginated({
+          onProgress,
+          maxJobs: opts.maxJobs,
+          maxPages: opts.maxPages,
+          signal: controller.signal,
+          skipSourceJobIds,
+          chunkSize: BULK_SCRAPE_CHUNK_SIZE,
+          onChunk,
+        })
+      : await orchestrator.scrapeAllVisible({
+          onProgress,
+          signal: controller.signal,
+          skipSourceJobIds,
+          chunkSize: BULK_SCRAPE_CHUNK_SIZE,
+          onChunk,
+        });
+    aborted = controller.signal.aborted;
+    // Flush any trailing partial chunk (jobs.length not a multiple of N).
+    const remainder = jobs.length % BULK_SCRAPE_CHUNK_SIZE;
+    if (remainder > 0) {
+      await onChunk(jobs.slice(jobs.length - remainder));
+    }
+  } finally {
+    if (currentWwBulkController === controller) {
+      currentWwBulkController = null;
+    }
+    // Always emit a terminal `done:true` event so the popup's progress UI
+    // clears, regardless of which mode ran (scrapeAllPaginated emits its
+    // own done event, scrapeAllVisible does not — wire both here).
+    sendMessage({
+      type: "WW_BULK_PROGRESS",
+      payload: {
+        scrapedCount: 0,
+        attemptedCount: 0,
+        currentPage: pages,
+        totalRowsOnPage: 0,
+        done: true,
+        errors,
+      },
+    } as never).catch(() => undefined);
+  }
 
-  if (jobs.length === 0) {
-    return {
-      success: true,
-      data: { imported: 0, attempted: 0, pages, errors },
-    };
-  }
-  // Hand off to background to bulk-import to Slothing.
-  const importResp = await sendMessage<{
-    imported: number;
-    opportunityIds: string[];
-    pendingCount: number;
-    dedupedIds?: string[];
-  }>(Messages.importJobsBatch(jobs));
-  if (!importResp.success) {
-    return {
-      success: false,
-      error: importResp.error || "Bulk import failed",
-    };
-  }
   return {
     success: true,
     data: {
-      imported: importResp.data?.imported ?? jobs.length,
-      attempted: jobs.length,
+      imported: importedTotal,
+      attempted: attemptedTotal,
       pages,
-      duplicateCount:
-        importResp.data?.dedupedIds?.length ??
-        Math.max(0, jobs.length - (importResp.data?.imported ?? jobs.length)),
-      dedupedIds: importResp.data?.dedupedIds,
+      duplicateCount: dedupedIdsAll.length,
+      dedupedIds: dedupedIdsAll,
+      skipped: skipSourceJobIds ? skipSourceJobIds.size : 0,
       errors,
+      aborted,
     },
   };
 }
