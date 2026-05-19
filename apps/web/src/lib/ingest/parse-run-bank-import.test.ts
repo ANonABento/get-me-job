@@ -68,6 +68,7 @@ const structured: ParsedResumeV2Result = {
         id: "exp-1",
         company: "Acme",
         title: "Engineer",
+        url: "https://acme.example/jobs",
         location: "Austin, TX",
         startDate: "Jan 2020",
         endDate: "Present",
@@ -120,8 +121,15 @@ describe("buildParseRunBankEntries", () => {
         [1, 10, 20, 220, 34],
         [1, 10, 40, 160, 54],
       ],
+      sourceHeaderBbox: [
+        [1, 10, 20, 220, 34],
+        [1, 10, 40, 160, 54],
+      ],
       matchMethod: "parser-v2",
     });
+    expect(entries[0].content.url).toBe("https://acme.example/jobs");
+    expect(entries[0].content.description).toBeUndefined();
+    expect(entries[0].content.childCount).toBe(1);
     expect(entries[0].content.sourceRef).toEqual({
       documentId: "doc-1",
       artifactId: "artifact-1",
@@ -196,6 +204,10 @@ describe("buildParseRunBankEntries", () => {
       sourceArtifactId: "artifact-1",
       sourceParseRunId: "run-1",
       sourceSpanIds: ["p1-l001", "p1-l002"],
+      sourceHeaderBbox: [
+        [1, 10, 20, 220, 34],
+        [1, 10, 40, 160, 54],
+      ],
       sourceQuality: "exact",
       matchMethod: "parser-v2",
       confidenceScore: 0.9,

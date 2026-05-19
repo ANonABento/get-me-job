@@ -99,6 +99,7 @@ function entryWithSource(
     parentId?: string;
     componentType?: string;
     componentOrder?: number;
+    sourceHeaderBbox?: SourceBbox[];
   },
   context: {
     parseRun: DocumentParseRun;
@@ -112,6 +113,9 @@ function entryWithSource(
     input.sourceQuality,
   );
   const content = editedContent(input.id ?? "", input.content, context.edits);
+  const sourceHeaderBbox =
+    input.sourceHeaderBbox ??
+    (input.parentId ? undefined : metadata.sourceBbox);
   return {
     id: input.id,
     category: input.category,
@@ -135,6 +139,7 @@ function entryWithSource(
     componentOrder: input.componentOrder,
     matchMethod: "parser-v2",
     confidenceScore: input.confidenceScore,
+    sourceHeaderBbox,
     ...metadata,
   };
 }
@@ -195,11 +200,13 @@ export function buildParseRunBankEntries({
             content: {
               company: exp.company,
               title: exp.title,
+              url: exp.url,
               location: exp.location,
               startDate: exp.startDate,
               endDate: exp.endDate,
               current: exp.current,
-              description: exp.description,
+              description:
+                exp.highlights.length > 0 ? undefined : exp.description,
               highlights: [],
               childCount: exp.highlights.length,
               skills: exp.skills,
@@ -209,6 +216,11 @@ export function buildParseRunBankEntries({
             sourceSpanIds: exp.sourceSpanIds,
             sourceQuality: exp.sourceQuality,
             confidenceScore: 0.9,
+            sourceHeaderBbox: sourceMetadata(
+              sourceMap,
+              exp.sourceSpanIds,
+              exp.sourceQuality,
+            ).sourceBbox,
           },
           context,
         ),
@@ -308,7 +320,8 @@ export function buildParseRunBankEntries({
             category: "project",
             content: {
               name: project.name,
-              description: project.description,
+              description:
+                project.highlights.length > 0 ? undefined : project.description,
               url: project.url,
               technologies: project.technologies,
               highlights: [],
@@ -321,6 +334,11 @@ export function buildParseRunBankEntries({
             sourceSpanIds: project.sourceSpanIds,
             sourceQuality: project.sourceQuality,
             confidenceScore: 0.9,
+            sourceHeaderBbox: sourceMetadata(
+              sourceMap,
+              project.sourceSpanIds,
+              project.sourceQuality,
+            ).sourceBbox,
           },
           context,
         ),
