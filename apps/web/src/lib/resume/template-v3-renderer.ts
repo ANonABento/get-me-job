@@ -126,15 +126,16 @@ function renderNode(
       typographyStyle(node.style, node.textAlign),
       absoluteBoxStyle(node.box),
     ]);
-    if (!style && !node.box) return content;
-    return `<p class="v3-text${node.box ? " v3-absolute-node" : ""}"${style}>${content}</p>`;
+    if (!style && !node.box)
+      return `<span${nodeDebugAttrs(node)}>${content}</span>`;
+    return `<p class="v3-text${node.box ? " v3-absolute-node" : ""}"${nodeDebugAttrs(node)}${style}>${content}</p>`;
   }
   if (node.kind === "list") {
     const items = node.slotId
       ? listValuesForSlot(node.slotId, resume, template)
       : node.items;
     if (!items.length) return "";
-    return renderList(items, node.marker, node.style);
+    return renderList(items, node.marker, node.style, nodeDebugAttrs(node));
   }
   if (node.kind === "section") {
     const style = mergedStyleAttr([
@@ -142,7 +143,7 @@ function renderNode(
       typographyStyle(node.style),
       absoluteBoxStyle(node.box),
     ]);
-    return `<h2 class="v3-section-title${node.box ? " v3-absolute-node" : ""}"${style}>${escapeHtml(node.title)}</h2>`;
+    return `<h2 class="v3-section-title${node.box ? " v3-absolute-node" : ""}"${nodeDebugAttrs(node)}${style}>${escapeHtml(node.title)}</h2>`;
   }
   const text = escapeHtml(node.text);
   const content = node.href
@@ -153,7 +154,7 @@ function renderNode(
     typographyStyle(node.style, node.textAlign),
     absoluteBoxStyle(node.box),
   ]);
-  return `<p class="v3-text${node.box ? " v3-absolute-node" : ""}"${style}>${content}</p>`;
+  return `<p class="v3-text${node.box ? " v3-absolute-node" : ""}"${nodeDebugAttrs(node)}${style}>${content}</p>`;
 }
 
 function renderTable(
@@ -177,7 +178,7 @@ function renderTable(
     boxCss(table.box),
     tableAlignmentCss(table.alignment),
   ].filter(Boolean);
-  return `<table class="v3-table"${style.length ? ` style="${style.join(";")}"` : ""}>${colgroup}<tbody>${table.rows
+  return `<table class="v3-table"${nodeDebugAttrs(table)}${style.length ? ` style="${style.join(";")}"` : ""}>${colgroup}<tbody>${table.rows
     .map((row, index) =>
       renderTableRowAt(table.rows, index, resume, template, table),
     )
@@ -280,7 +281,7 @@ function renderConcreteRow(
     row.fill ? fillCss(row.fill) : "",
     borderCss(row.borders),
   ].filter(Boolean);
-  return `<tr class="v3-table-row"${style.length ? ` style="${style.join(";")}"` : ""}>${row.cells
+  return `<tr class="v3-table-row"${nodeDebugAttrs(row)}${style.length ? ` style="${style.join(";")}"` : ""}>${row.cells
     .map((cell, cellIndex) =>
       renderCell(cell, resume, template, table, repeat, rowIndex, cellIndex),
     )
@@ -311,7 +312,7 @@ function renderCell(
   const content = cell.nodes
     .map((node) => renderRepeatedNode(node, resume, template, repeat))
     .join("");
-  return `<td class="v3-cell"${cell.colSpan ? ` colspan="${cell.colSpan}"` : ""}${cell.rowSpan ? ` rowspan="${cell.rowSpan}"` : ""}${style.length ? ` style="${style.join(";")}"` : ""}>${content}</td>`;
+  return `<td class="v3-cell"${nodeDebugAttrs(cell)}${cell.colSpan ? ` colspan="${cell.colSpan}"` : ""}${cell.rowSpan ? ` rowspan="${cell.rowSpan}"` : ""}${style.length ? ` style="${style.join(";")}"` : ""}>${content}</td>`;
 }
 
 function renderRepeatedNode(
@@ -328,7 +329,12 @@ function renderRepeatedNode(
     const value = slot ? slotValue(slot.path, resume, repeat.item) : [];
     const items = Array.isArray(value) ? value : value ? [value] : node.items;
     if (!items.length) return "";
-    return renderList(items.map(String), node.marker, node.style);
+    return renderList(
+      items.map(String),
+      node.marker,
+      node.style,
+      nodeDebugAttrs(node),
+    );
   }
   if (node.kind !== "slot") return renderNode(node, resume, template);
   const slot = template.slots.find((candidate) => candidate.id === node.slotId);
@@ -351,8 +357,9 @@ function renderList(
   items: string[],
   marker: "disc" | "decimal" | "dash" | "none",
   style?: Partial<TypographyTokenV3>,
+  debugAttrs = "",
 ): string {
-  return `<ul class="v3-list marker-${marker}"${typographyStyleAttr(style)}>${items
+  return `<ul class="v3-list marker-${marker}"${debugAttrs}${typographyStyleAttr(style)}>${items
     .map((item) => `<li>${escapeHtml(item)}</li>`)
     .join("")}</ul>`;
 }
@@ -573,6 +580,16 @@ function absoluteBoxStyle(box?: {
 function mergedStyleAttr(styles: string[]): string {
   const style = styles.filter(Boolean).join(";");
   return style ? ` style="${style}"` : "";
+}
+
+function nodeDebugAttrs(
+  node: Pick<TemplateNodeV3, "id" | "sourceRef">,
+): string {
+  const attrs = [`data-v3-node-id="${escapeHtml(node.id)}"`];
+  if (node.sourceRef?.sourceId) {
+    attrs.push(`data-source-id="${escapeHtml(node.sourceRef.sourceId)}"`);
+  }
+  return ` ${attrs.join(" ")}`;
 }
 
 const defaultCellPadding: BoxEdges = {

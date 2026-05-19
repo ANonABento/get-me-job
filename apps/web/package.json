@@ -17,6 +17,7 @@
     "check:translations:generator": "tsx scripts/translate-messages.ts --self-test",
     "check:translations:strict": "tsx scripts/check-translations.ts --strict-placeholders",
     "check:production": "tsx scripts/check-production-readiness.ts",
+    "dogfood:template": "tsx scripts/verify-visual-template-import.ts",
     "translate:messages": "tsx scripts/translate-messages.ts",
     "type-check": "tsc -p tsconfig.typecheck.json --noEmit",
     "test": "pnpm check:translations && vitest",

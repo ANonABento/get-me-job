@@ -141,6 +141,139 @@ describe("template migration source extraction", () => {
     );
   });
 
+  it("normalizes duplicated DOCX table grids and keeps only prototype repeat rows", () => {
+    const source = {
+      sourceType: "docx" as const,
+      filename: "master-resume.docx",
+      pages: [{ id: "page-1", number: 1, widthPt: 612, heightPt: 792 }],
+      rawText:
+        "EXPERIENCE\nEngineer | 2024\nBuilt imports\nDesigner | 2023\nBuilt previews",
+      diagnostics: [],
+      blocks: [
+        {
+          id: "block-1",
+          pageId: "page-1",
+          type: "table-row" as const,
+          text: "EXPERIENCE",
+          cells: ["EXPERIENCE"],
+          tableMetadata: {
+            id: "table-1",
+            widthPt: 540,
+            columns: [360, 180, 360, 180],
+          },
+          cellMetadata: [{ text: "EXPERIENCE", gridSpan: 2 }],
+        },
+        {
+          id: "block-2",
+          pageId: "page-1",
+          type: "table-row" as const,
+          text: "Engineer | 2024",
+          cells: ["Engineer", "2024"],
+          tableMetadata: {
+            id: "table-1",
+            widthPt: 540,
+            columns: [360, 180, 360, 180],
+          },
+          cellMetadata: [
+            { text: "Engineer", widthPt: 360 },
+            { text: "2024", widthPt: 180 },
+          ],
+        },
+        {
+          id: "block-3",
+          pageId: "page-1",
+          type: "table-row" as const,
+          text: "Built imports",
+          cells: ["Built imports"],
+          tableMetadata: {
+            id: "table-1",
+            widthPt: 540,
+            columns: [360, 180, 360, 180],
+          },
+          cellMetadata: [
+            {
+              text: "Built imports",
+              widthPt: 540,
+              blocks: [
+                {
+                  id: "cell-block-1",
+                  type: "list-item" as const,
+                  text: "Built imports",
+                  runs: [{ text: "Built imports" }],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: "block-4",
+          pageId: "page-1",
+          type: "table-row" as const,
+          text: "Designer | 2023",
+          cells: ["Designer", "2023"],
+          tableMetadata: {
+            id: "table-1",
+            widthPt: 540,
+            columns: [360, 180, 360, 180],
+          },
+          cellMetadata: [
+            { text: "Designer", widthPt: 360 },
+            { text: "2023", widthPt: 180 },
+          ],
+        },
+        {
+          id: "block-5",
+          pageId: "page-1",
+          type: "table-row" as const,
+          text: "Built previews",
+          cells: ["Built previews"],
+          tableMetadata: {
+            id: "table-1",
+            widthPt: 540,
+            columns: [360, 180, 360, 180],
+          },
+          cellMetadata: [
+            {
+              text: "Built previews",
+              widthPt: 540,
+              blocks: [
+                {
+                  id: "cell-block-2",
+                  type: "list-item" as const,
+                  text: "Built previews",
+                  runs: [{ text: "Built previews" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const templateV3 = createDocumentTemplateV3FromSourceIR(
+      "template-v3",
+      "DOCX Repeat",
+      source,
+    );
+    const table = templateV3.regions[0]?.nodes.find(
+      (node) => node.kind === "table",
+    );
+
+    expect(table && table.kind === "table" ? table.columns : []).toEqual([
+      { widthPt: 360 },
+      { widthPt: 180 },
+    ]);
+    expect(
+      table && table.kind === "table" ? table.rows.map((row) => row.id) : [],
+    ).toEqual(["row-block-1", "row-block-2", "row-block-3"]);
+    expect(templateV3.repeatGroups).toEqual([
+      expect.objectContaining({
+        collection: "experiences",
+        nodeIds: ["row-block-2", "row-block-3"],
+      }),
+    ]);
+  });
+
   it("maps common LaTeX resume macros into semantic resume sections", async () => {
     const tex = String.raw`
       \documentclass[letterpaper]{article}
@@ -1240,20 +1373,20 @@ describe("template migration source extraction", () => {
             expect.objectContaining({ textAlign: "right" }),
           ],
         }),
-        expect.objectContaining({
-          cells: [
-            expect.objectContaining({
-              sourceRef: expect.objectContaining({
-                text: "Frontend Engineer",
-              }),
-            }),
-            expect.objectContaining({
-              sourceRef: expect.objectContaining({ text: "2020 - 2023" }),
-            }),
-          ],
-        }),
       ],
     });
+    expect(table && table.kind === "table" ? table.rows : []).toHaveLength(1);
+    expect(templateV3.repeatGroups).toEqual([
+      expect.objectContaining({
+        collection: "experiences",
+        nodeIds: ["row-block-2"],
+        sourceRefs: expect.arrayContaining([
+          expect.objectContaining({
+            text: "Frontend Engineer | 2020 - 2023",
+          }),
+        ]),
+      }),
+    ]);
   });
 
   it("preserves source table column widths on reusable V2 blocks", () => {

@@ -1,5 +1,4 @@
 import type { LLMConfig } from "@/types";
-import { getSlothingBentoRouterClient } from "@/lib/llm/bentorouter-client";
 import type { SlothingBentoTaskId } from "@/lib/llm/bentorouter-tasks";
 import {
   DEFAULT_LLM_TIMEOUT_MS,
@@ -117,6 +116,8 @@ export class LLMClient {
     let fullContent = "";
 
     if (task) {
+      const { getSlothingBentoRouterClient } =
+        await import("@/lib/llm/bentorouter-client");
       for await (const chunk of getSlothingBentoRouterClient().stream({
         task,
         messages,
@@ -187,6 +188,8 @@ export class LLMClient {
     task: SlothingBentoTaskId,
     temperature: number,
   ): Promise<string> {
+    const { getSlothingBentoRouterClient } =
+      await import("@/lib/llm/bentorouter-client");
     const result = await getSlothingBentoRouterClient().run({
       task,
       messages,

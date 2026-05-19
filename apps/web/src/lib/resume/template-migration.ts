@@ -14,6 +14,7 @@ import {
   type BorderSet,
   type BoxEdges,
   type DocumentTemplateV3,
+  type TemplateNodeV3,
   type TemplateTable,
   type TemplateTableCell,
   type TemplateTableRow,
@@ -1501,6 +1502,46 @@ function inferTableColumnWidths(tableRows: SourceBlock[]): number[] {
     .filter((width) => width > 0);
 }
 
+function normalizeTableColumns(
+  columns: Array<number | undefined>,
+  tableWidthPt?: number,
+): Array<number | undefined> {
+  if (!tableWidthPt || columns.length < 2) return columns;
+  const total = sumDefinedNumbers(columns);
+  if (total <= tableWidthPt * 1.2) return columns;
+
+  for (
+    let prefixLength = 1;
+    prefixLength <= columns.length / 2;
+    prefixLength += 1
+  ) {
+    if (columns.length % prefixLength !== 0) continue;
+    const prefix = columns.slice(0, prefixLength);
+    const prefixTotal = sumDefinedNumbers(prefix);
+    if (
+      Math.abs(prefixTotal - tableWidthPt) > Math.max(1, tableWidthPt * 0.03)
+    ) {
+      continue;
+    }
+    let repeats = true;
+    for (let index = prefixLength; index < columns.length; index += 1) {
+      const expected = prefix[index % prefixLength] ?? 0;
+      const actual = columns[index] ?? 0;
+      if (Math.abs(expected - actual) > 0.5) {
+        repeats = false;
+        break;
+      }
+    }
+    if (repeats) return prefix;
+  }
+
+  return columns;
+}
+
+function sumDefinedNumbers(values: Array<number | undefined>): number {
+  return values.reduce<number>((sum, value) => sum + (value ?? 0), 0);
+}
+
 function applyColumnGeometryHints(
   template: DocumentTemplateV2,
   boxes: Array<NonNullable<SourceBlock["bbox"]>>,
@@ -1772,10 +1813,11 @@ function buildTemplateV3Table(
   initialSection = "",
 ): TemplateTable {
   const tableMetadata = rows[0]?.tableMetadata;
-  const columns = (
+  const columns = normalizeTableColumns(
     tableMetadata?.columns?.length
       ? tableMetadata.columns
-      : inferTableColumnWidths(rows)
+      : inferTableColumnWidths(rows),
+    tableMetadata?.widthPt,
   ).map((widthPt) => (widthPt ? { widthPt } : {}));
   const verticalMergeLayout = analyzeVerticalMerges(rows);
   let section = initialSection;
@@ -2257,10 +2299,21 @@ function buildTemplateV3RepeatGroups(
       "projects",
       "education",
     ] as const) {
-      const rows = table.rows.filter((row) =>
+      const collectionRows = table.rows.filter((row) =>
         rowUsesCollection(row, collection),
       );
-      if (!rows.length) continue;
+      if (!collectionRows.length) continue;
+      const chunks = collectionRowChunks(collectionRows, collection);
+      const rows = chunks[0] ?? collectionRows;
+      const duplicateRows = new Set(
+        chunks
+          .slice(1)
+          .flat()
+          .map((row) => row.id),
+      );
+      if (duplicateRows.size) {
+        table.rows = table.rows.filter((row) => !duplicateRows.has(row.id));
+      }
       const id =
         tables.length === 1
           ? `repeat-${collection}`
@@ -2271,7 +2324,7 @@ function buildTemplateV3RepeatGroups(
         collection,
         nodeIds: rows.map((row) => row.id),
         emptyBehavior: "hide",
-        sourceRefs: rows
+        sourceRefs: collectionRows
           .map((row) => row.sourceRef)
           .filter((ref): ref is NonNullable<typeof ref> => Boolean(ref)),
       });
@@ -2280,18 +2333,68 @@ function buildTemplateV3RepeatGroups(
   return groups;
 }
 
+function collectionRowChunks(
+  rows: TemplateTableRow[],
+  collection: "experiences" | "projects" | "education",
+): TemplateTableRow[][] {
+  const chunks: TemplateTableRow[][] = [];
+  let current: TemplateTableRow[] = [];
+  for (const row of rows) {
+    if (rowStartsCollectionItem(row, collection) && current.length) {
+      chunks.push(current);
+      current = [];
+    }
+    current.push(row);
+  }
+  if (current.length) chunks.push(current);
+  return chunks;
+}
+
+function rowStartsCollectionItem(
+  row: TemplateTableRow,
+  collection: "experiences" | "projects" | "education",
+): boolean {
+  return row.cells.some((cell) =>
+    cell.nodes.some((node) =>
+      nodeUsesCollectionSlot(node, collection, { includeListSlots: false }),
+    ),
+  );
+}
+
 function rowUsesCollection(
   row: TemplateTableRow,
   collection: "experiences" | "projects" | "education",
 ): boolean {
   return row.cells.some((cell) =>
-    cell.nodes.some((node) => {
-      if ((node.kind === "slot" || node.kind === "list") && node.slotId) {
-        return node.slotId.includes(collection);
-      }
-      return false;
-    }),
+    cell.nodes.some((node) =>
+      nodeUsesCollectionSlot(node, collection, { includeListSlots: true }),
+    ),
   );
+}
+
+function nodeUsesCollectionSlot(
+  node: TemplateNodeV3,
+  collection: "experiences" | "projects" | "education",
+  options: { includeListSlots: boolean },
+): boolean {
+  if (node.kind === "slot" && node.slotId.includes(collection)) return true;
+  if (
+    options.includeListSlots &&
+    node.kind === "list" &&
+    node.slotId?.includes(collection)
+  ) {
+    return true;
+  }
+  if (node.kind === "table") {
+    return node.rows.some((row) => rowUsesCollection(row, collection));
+  }
+  if (node.kind === "row") return rowUsesCollection(node, collection);
+  if (node.kind === "cell") {
+    return node.nodes.some((child) =>
+      nodeUsesCollectionSlot(child, collection, options),
+    );
+  }
+  return false;
 }
 
 function rowRole(row: SourceBlock): TemplateTableRow["role"] {
