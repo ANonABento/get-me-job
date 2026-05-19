@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PdfPreview } from "./pdf-preview";
 
@@ -64,5 +64,47 @@ describe("PdfPreview", () => {
     expect(screen.getByText("7")).toBeInTheDocument();
     expect(screen.getByText("Missing spans")).toBeInTheDocument();
     expect(screen.getByText("Partial spans")).toBeInTheDocument();
+  });
+
+  it("switches back to the PDF tab when navigating to a highlight", () => {
+    let navigator: ((entryId: string) => void) | null = null;
+    render(
+      <PdfPreview
+        documentId="doc-1"
+        filename="resume.pdf"
+        highlights={[
+          {
+            entryId: "exp-1",
+            category: "experience",
+            sourceQuality: "exact",
+            bboxes: [[2, 10, 20, 110, 40]],
+          },
+        ]}
+        selectedEntryId="exp-1"
+        onSelectEntry={vi.fn()}
+        sourceText="Jake Ryan"
+        onRegisterNavigator={(registeredNavigator) => {
+          navigator = registeredNavigator;
+          return () => {
+            navigator = null;
+          };
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Source" }));
+    expect(screen.getByRole("button", { name: "Source" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    act(() => {
+      navigator?.("exp-1");
+    });
+
+    expect(screen.getByRole("button", { name: "PDF" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 });

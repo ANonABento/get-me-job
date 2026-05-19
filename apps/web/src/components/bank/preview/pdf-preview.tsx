@@ -129,6 +129,9 @@ export function PdfPreview({
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [activeTab, setActiveTab] = useState<PdfPreviewTab>("pdf");
   const [pageNumber, setPageNumber] = useState(1);
+  const [pendingScrollEntryId, setPendingScrollEntryId] = useState<
+    string | null
+  >(null);
   const [zoom, setZoom] = useState(1);
   const [previewWidth, setPreviewWidth] = useState(0);
   const previewViewportRef = useRef<HTMLDivElement | null>(null);
@@ -254,6 +257,7 @@ export function PdfPreview({
       if (!target || target.bboxes.length === 0) return;
       setActiveTab("pdf");
       setPageNumber(target.bboxes[0][0]);
+      setPendingScrollEntryId(entryId);
     },
     [highlights],
   );
@@ -267,6 +271,7 @@ export function PdfPreview({
     .map((h) => ({
       entryId: h.entryId,
       category: h.category,
+      sourceQuality: h.sourceQuality,
       bboxes: h.bboxes.filter((b) => b[0] === pageNumber),
     }))
     .filter((h) => h.bboxes.length > 0);
@@ -285,6 +290,41 @@ export function PdfPreview({
     ? diagnostic.partialRootSourceSpans.length +
       diagnostic.partialBulletSourceSpans.length
     : 0;
+
+  useEffect(() => {
+    if (
+      activeTab !== "pdf" ||
+      state.status !== "ready" ||
+      !pendingScrollEntryId ||
+      !currentPageDimensions
+    ) {
+      return;
+    }
+
+    const viewport = previewViewportRef.current;
+    const target = pageHighlights.find(
+      (highlight) => highlight.entryId === pendingScrollEntryId,
+    );
+    const bbox = target?.bboxes[0];
+    if (!viewport || !bbox) return;
+
+    const [, x0, y0, x1, y1] = bbox;
+    const centerX = ((x0 + x1) / 2) * renderScale;
+    const centerY = ((y0 + y1) / 2) * renderScale;
+    viewport.scrollTo({
+      left: Math.max(0, centerX - viewport.clientWidth / 2),
+      top: Math.max(0, centerY - viewport.clientHeight / 2),
+      behavior: "smooth",
+    });
+    setPendingScrollEntryId(null);
+  }, [
+    activeTab,
+    currentPageDimensions,
+    pageHighlights,
+    pendingScrollEntryId,
+    renderScale,
+    state.status,
+  ]);
 
   function tabButton(tab: PdfPreviewTab, label: string) {
     const selected = activeTab === tab;

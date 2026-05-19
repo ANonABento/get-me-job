@@ -3223,10 +3223,14 @@ function UploadReviewEntries({
             entry,
             isReviewRootEntry(entry),
           );
+          const sourceQuality =
+            entry.sourceQuality ??
+            (entry.matchMethod === "fuzzy" ? "fuzzy" : undefined);
           return bboxes
             ? {
                 entryId: entry.id,
                 category: entry.category,
+                ...(sourceQuality ? { sourceQuality } : {}),
                 bboxes,
               }
             : null;

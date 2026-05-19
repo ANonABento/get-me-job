@@ -864,5 +864,9 @@ Next implementation slices:
 29. Add PDF preview tabs for the parser-v2 review workspace so PDF uploads can
     switch between rendered PDF, raw source text, and parser diagnostics.
     Done in the PDF preview source tabs slice.
-30. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+30. Make PDF highlights source-quality aware and focus the overlay on the
+    selected component; exact, partial, and fuzzy citations render differently,
+    and "Jump to highlight" scrolls toward the selected source span. Done in
+    the source-quality highlight slice.
+31. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.

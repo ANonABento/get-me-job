@@ -3,18 +3,21 @@
 import type { BankCategory } from "@/types";
 import { cn } from "@/lib/utils";
 
+export type HighlightSourceQuality =
+  | "exact"
+  | "partial"
+  | "fuzzy"
+  | "missing";
+
 export interface HighlightInput {
   entryId: string;
   category: BankCategory;
+  sourceQuality?: HighlightSourceQuality;
   bboxes: [number, number, number, number, number][];
 }
 
 interface HighlightLayerProps {
-  highlights: Array<{
-    entryId: string;
-    category: BankCategory;
-    bboxes: [number, number, number, number, number][];
-  }>;
+  highlights: HighlightInput[];
   selectedEntryId: string | null;
   onSelectEntry: (entryId: string) => void;
   pageWidth: number;
@@ -87,15 +90,59 @@ const CATEGORY_PALETTE: Record<
   },
 };
 
+const QUALITY_STYLE: Record<
+  Exclude<HighlightSourceQuality, "missing">,
+  {
+    fillAlpha: number;
+    idleAlpha: number;
+    outlineStyle: "solid" | "dashed";
+    outlineWidth: number;
+    outlineOverride?: string;
+  }
+> = {
+  exact: {
+    fillAlpha: 1,
+    idleAlpha: 1,
+    outlineStyle: "solid",
+    outlineWidth: 2,
+  },
+  partial: {
+    fillAlpha: 0.78,
+    idleAlpha: 0.75,
+    outlineStyle: "dashed",
+    outlineWidth: 2,
+  },
+  fuzzy: {
+    fillAlpha: 0.62,
+    idleAlpha: 0.72,
+    outlineStyle: "dashed",
+    outlineWidth: 2,
+    outlineOverride: "rgb(245, 158, 11)",
+  },
+};
+
+function withAlpha(color: string, multiplier: number): string {
+  const match = color.match(
+    /^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([0-9.]+)\)$/,
+  );
+  if (!match) return color;
+  const [, r, g, b, alpha] = match;
+  return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, Number(alpha) * multiplier))})`;
+}
+
 export function HighlightLayer({
   highlights,
   selectedEntryId,
   onSelectEntry,
   renderScale,
 }: HighlightLayerProps) {
+  const visibleHighlights = selectedEntryId
+    ? highlights.filter((highlight) => highlight.entryId === selectedEntryId)
+    : highlights;
+
   return (
     <div className="absolute inset-0 pointer-events-none" aria-hidden="false">
-      {highlights.flatMap((highlight) =>
+      {visibleHighlights.flatMap((highlight) =>
         highlight.bboxes.map((bbox, index) => {
           const [, x0, y0, x1, y1] = bbox;
           const left = x0 * renderScale;
@@ -105,6 +152,13 @@ export function HighlightLayer({
           const selected = selectedEntryId === highlight.entryId;
           const palette =
             CATEGORY_PALETTE[highlight.category] ?? CATEGORY_PALETTE.bullet;
+          const sourceQuality =
+            highlight.sourceQuality && highlight.sourceQuality !== "missing"
+              ? highlight.sourceQuality
+              : "exact";
+          const quality = QUALITY_STYLE[sourceQuality];
+          const outlineColor =
+            quality.outlineOverride ?? (selected ? palette.outline : "transparent");
           return (
             <button
               key={`${highlight.entryId}-${index}`}
@@ -118,16 +172,18 @@ export function HighlightLayer({
                 top,
                 width,
                 height,
-                backgroundColor: selected ? palette.fill : palette.idleFill,
-                outlineColor: selected ? palette.outline : "transparent",
-                outlineStyle: "solid",
-                outlineWidth: selected ? 2 : 1,
+                backgroundColor: selected
+                  ? withAlpha(palette.fill, quality.fillAlpha)
+                  : withAlpha(palette.idleFill, quality.idleAlpha),
+                outlineColor,
+                outlineStyle: quality.outlineStyle,
+                outlineWidth: selected ? quality.outlineWidth : 1,
               }}
               className={cn(
                 "absolute pointer-events-auto rounded-sm transition-[outline-color,outline-width] duration-150",
                 "focus-visible:outline-2 focus-visible:outline-ring",
               )}
-              aria-label={`Select component highlighted at ${Math.round(left)}, ${Math.round(top)}`}
+              aria-label={`Select ${sourceQuality} source highlight at ${Math.round(left)}, ${Math.round(top)}`}
               aria-current={selected ? "true" : undefined}
             />
           );
