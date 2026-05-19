@@ -4,6 +4,7 @@ import { generateId } from "@/lib/utils";
 import type {
   DocumentSourceMap,
   SourceLine,
+  SourceLink as SourceMapLink,
   SourceMapPage,
 } from "@/lib/ingest/types";
 
@@ -126,16 +127,28 @@ function pagesJsonForSourceMap(sourceMap: DocumentSourceMap): string {
 function sourceMapFromPagesJson(
   pagesJson: string,
   rawText: string,
+  links: SourceLink[] = [],
 ): DocumentSourceMap {
   const storedPages = JSON.parse(pagesJson || "[]") as StoredSourceMapPage[];
   return {
     pages: storedPages.map(({ lines: _lines, ...page }) => page),
     lines: storedPages.flatMap((page) => page.lines ?? []),
     rawText,
+    links: sourceMapLinksFromArtifactLinks(links),
   };
 }
 
+function sourceMapLinksFromArtifactLinks(links: SourceLink[]): SourceMapLink[] {
+  return links.filter(
+    (link): link is SourceMapLink =>
+      typeof link.page === "number" &&
+      Array.isArray(link.bbox) &&
+      link.bbox.length === 5,
+  );
+}
+
 function mapArtifactRow(row: DocumentArtifactRow): DocumentArtifact {
+  const links = JSON.parse(row.links_json || "[]") as SourceLink[];
   return {
     id: row.id,
     documentId: row.document_id,
@@ -145,8 +158,8 @@ function mapArtifactRow(row: DocumentArtifactRow): DocumentArtifact {
     failureReason: row.failure_reason ?? undefined,
     rawText: row.raw_text,
     normalizedText: row.normalized_text,
-    sourceMap: sourceMapFromPagesJson(row.pages_json, row.raw_text),
-    links: JSON.parse(row.links_json || "[]") as SourceLink[],
+    sourceMap: sourceMapFromPagesJson(row.pages_json, row.raw_text, links),
+    links,
     ocrUsed: Boolean(row.ocr_used),
     createdAt: row.created_at,
   };
@@ -239,4 +252,27 @@ export function listDocumentArtifacts(
     )
     .all(documentId, userId) as DocumentArtifactRow[];
   return rows.map(mapArtifactRow);
+}
+
+export function deleteDocumentArtifactsByDocumentIds(
+  documentIds: string[],
+  userId: string,
+): number {
+  if (documentIds.length === 0) return 0;
+  ensureDocumentArtifactsSchema();
+
+  const uniqueDocumentIds = Array.from(new Set(documentIds));
+  const deleteArtifact = db.prepare(
+    "DELETE FROM document_artifacts WHERE document_id = ? AND user_id = ?",
+  );
+
+  const transaction = db.transaction(() => {
+    let deleted = 0;
+    for (const documentId of uniqueDocumentIds) {
+      deleted += deleteArtifact.run(documentId, userId).changes;
+    }
+    return deleted;
+  });
+
+  return transaction();
 }

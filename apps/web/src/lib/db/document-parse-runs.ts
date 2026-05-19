@@ -210,3 +210,26 @@ export function listDocumentParseRuns(
     .all(documentId, userId) as DocumentParseRunRow[];
   return rows.map(mapParseRunRow);
 }
+
+export function deleteDocumentParseRunsByDocumentIds(
+  documentIds: string[],
+  userId: string,
+): number {
+  if (documentIds.length === 0) return 0;
+  ensureDocumentParseRunsSchema();
+
+  const uniqueDocumentIds = Array.from(new Set(documentIds));
+  const deleteParseRun = db.prepare(
+    "DELETE FROM document_parse_runs WHERE document_id = ? AND user_id = ?",
+  );
+
+  const transaction = db.transaction(() => {
+    let deleted = 0;
+    for (const documentId of uniqueDocumentIds) {
+      deleted += deleteParseRun.run(documentId, userId).changes;
+    }
+    return deleted;
+  });
+
+  return transaction();
+}

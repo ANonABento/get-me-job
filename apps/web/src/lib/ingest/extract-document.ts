@@ -1,6 +1,7 @@
 import { extractTextFromDocx } from "@/lib/parser/pdf";
 import { extractTextWithOCR, needsOCRFallback } from "@/lib/parser/ocr";
-import { buildPdfSourceMap } from "./pdf-source-map";
+import { extractPdfPositions } from "@/lib/parse/pdf-positions";
+import { buildPdfSourceMapFromPositions } from "./pdf-source-map";
 import type {
   DocumentSourceMap,
   SourceBbox,
@@ -23,7 +24,11 @@ export interface ExtractDocumentSourceMapInput {
 export interface ExtractDocumentSourceMapResult {
   sourceMap: DocumentSourceMap;
   extractorVersion: string;
-  links: [];
+  links: Array<{
+    url: string;
+    page: number;
+    bbox: [number, number, number, number, number];
+  }>;
   ocrUsed: boolean;
 }
 
@@ -103,21 +108,34 @@ export async function extractDocumentSourceMap(
   input: ExtractDocumentSourceMapInput,
 ): Promise<ExtractDocumentSourceMapResult> {
   if (isPdf(input)) {
-    const sourceMap = await buildPdfSourceMap(input.buffer);
-    if (!needsOCRFallback(sourceMap.rawText)) {
+    const positions = await extractPdfPositions(input.buffer, {
+      includeJunk: true,
+    });
+    const sourceMap = buildPdfSourceMapFromPositions(positions);
+    if (needsOCRFallback(sourceMap.rawText)) {
       return {
-        sourceMap,
-        extractorVersion: PDF_SOURCE_MAP_EXTRACTOR_VERSION,
+        sourceMap: textSourceMap(await extractTextWithOCR(input.buffer)),
+        extractorVersion: PDF_OCR_SOURCE_MAP_EXTRACTOR_VERSION,
         links: [],
-        ocrUsed: false,
+        ocrUsed: true,
       };
     }
-
+    const links = positions.links.map((link) => ({
+      url: link.url,
+      page: link.page,
+      bbox: [link.page, link.x0, link.y0, link.x1, link.y1] as [
+        number,
+        number,
+        number,
+        number,
+        number,
+      ],
+    }));
     return {
-      sourceMap: textSourceMap(await extractTextWithOCR(input.buffer)),
-      extractorVersion: PDF_OCR_SOURCE_MAP_EXTRACTOR_VERSION,
-      links: [],
-      ocrUsed: true,
+      sourceMap: { ...sourceMap, links },
+      extractorVersion: PDF_SOURCE_MAP_EXTRACTOR_VERSION,
+      links,
+      ocrUsed: false,
     };
   }
 

@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  buildPdfSourceMap: vi.fn(),
+  extractPdfPositions: vi.fn(),
   extractTextWithOCR: vi.fn(),
   extractTextFromDocx: vi.fn(),
 }));
 
-vi.mock("./pdf-source-map", () => ({
-  buildPdfSourceMap: mocks.buildPdfSourceMap,
+vi.mock("@/lib/parse/pdf-positions", () => ({
+  extractPdfPositions: mocks.extractPdfPositions,
 }));
 
 vi.mock("@/lib/parser/ocr", async (importOriginal) => {
@@ -35,21 +35,20 @@ describe("extractDocumentSourceMap", () => {
   });
 
   it("uses pdf source-map extraction when the PDF has enough text", async () => {
-    const sourceMap = {
-      pages: [{ page: 1, width: 612, height: 792, lineIds: ["p1-l001"] }],
-      lines: [
+    mocks.extractPdfPositions.mockResolvedValue({
+      items: [
         {
-          id: "p1-l001",
-          page: 1,
           text: "This resume has enough extracted text to avoid OCR fallback.",
-          tokenIds: [],
-          tokens: [],
-          bbox: { page: 1, x0: 0, y0: 0, x1: 100, y1: 12 },
+          page: 1,
+          x0: 72,
+          y0: 48,
+          x1: 400,
+          y1: 60,
         },
       ],
-      rawText: "This resume has enough extracted text to avoid OCR fallback.",
-    };
-    mocks.buildPdfSourceMap.mockResolvedValue(sourceMap);
+      links: [],
+      pageDimensions: [{ page: 1, width: 612, height: 792 }],
+    });
 
     const result = await extractDocumentSourceMap({
       buffer: Buffer.from("%PDF"),
@@ -57,20 +56,16 @@ describe("extractDocumentSourceMap", () => {
       mimeType: "application/pdf",
     });
 
-    expect(result).toEqual({
-      sourceMap,
-      extractorVersion: PDF_SOURCE_MAP_EXTRACTOR_VERSION,
-      links: [],
-      ocrUsed: false,
-    });
+    expect(result.extractorVersion).toBe(PDF_SOURCE_MAP_EXTRACTOR_VERSION);
+    expect(result.ocrUsed).toBe(false);
     expect(mocks.extractTextWithOCR).not.toHaveBeenCalled();
   });
 
   it("falls back to OCR source text when PDF geometry text is too short", async () => {
-    mocks.buildPdfSourceMap.mockResolvedValue({
-      pages: [{ page: 1, width: 612, height: 792, lineIds: [] }],
-      lines: [],
-      rawText: "",
+    mocks.extractPdfPositions.mockResolvedValue({
+      items: [],
+      links: [],
+      pageDimensions: [{ page: 1, width: 612, height: 792 }],
     });
     mocks.extractTextWithOCR.mockResolvedValue("Jake Ryan\nEngineer at Acme");
 
@@ -92,6 +87,53 @@ describe("extractDocumentSourceMap", () => {
       id: "p1-l001",
       page: 1,
     });
+  });
+
+  it("preserves PDF link annotations on parser-v2 artifacts", async () => {
+    mocks.extractPdfPositions.mockResolvedValue({
+      items: [
+        {
+          text: "Kevin Jiang Portfolio with enough surrounding text to skip OCR fallback path entirely.",
+          page: 1,
+          x0: 72,
+          y0: 48,
+          x1: 400,
+          y1: 60,
+        },
+      ],
+      links: [
+        {
+          url: "https://example.com/portfolio",
+          page: 1,
+          x0: 72,
+          y0: 48,
+          x1: 180,
+          y1: 60,
+        },
+      ],
+      pageDimensions: [{ page: 1, width: 612, height: 792 }],
+    });
+
+    const result = await extractDocumentSourceMap({
+      buffer: Buffer.from("%PDF"),
+      filename: "resume.pdf",
+      mimeType: "application/pdf",
+    });
+
+    expect(result.sourceMap.links).toEqual([
+      {
+        url: "https://example.com/portfolio",
+        page: 1,
+        bbox: [1, 72, 48, 180, 60],
+      },
+    ]);
+    expect(result.links).toEqual([
+      {
+        url: "https://example.com/portfolio",
+        page: 1,
+        bbox: [1, 72, 48, 180, 60],
+      },
+    ]);
   });
 
   it("builds source maps for plain text without OCR", async () => {
