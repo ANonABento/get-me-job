@@ -1,117 +1,151 @@
-import { Sparkles } from "lucide-react";
-
+import Image from "next/image";
 import { Link } from "@/i18n/navigation";
+import { MonoCap } from "@/components/landing/primitives";
 import { nowDate } from "@/lib/format/time";
-const footerLinks = {
-  product: [
-    { name: "Features", href: "#features" },
-    { name: "How It Works", href: "#how-it-works" },
-    { name: "Pricing", href: "/pricing" },
-  ],
-  resources: [
-    { name: "ATS Scanner", href: "/ats-scanner" },
-    { name: "Browser Extension", href: "/extension" },
-    { name: "Blog", href: "/blog" },
-  ],
-  legal: [
-    { name: "Privacy Policy", href: "/privacy" },
-    { name: "Terms of Service", href: "/terms" },
-  ],
-};
+
+/**
+ * Editorial marketing footer — paper band, four columns, mono-cap
+ * section labels, version line. Matches the landing PR (#277)'s
+ * `LandingFooter` so every marketing route shares the same chrome.
+ *
+ * Anchor links (#features etc.) only resolve on the landing page.
+ * Browsers no-op them on other routes, which is the expected fallback.
+ */
+
+const PRODUCT_LINKS: ReadonlyArray<[string, string]> = [
+  ["Features", "#features"],
+  ["How it works", "#how-it-works"],
+  ["Pricing", "/pricing"],
+  ["Extension", "/extension"],
+];
+
+const RESOURCES_LINKS: ReadonlyArray<[string, string]> = [
+  ["ATS scanner", "/ats-scanner"],
+  ["Compare", "/vs"],
+  ["Blog", "/blog"],
+];
+
+const OPEN_SOURCE_LINKS: ReadonlyArray<[string, string]> = [
+  ["GitHub", "https://github.com/ANonABento/slothing"],
+  ["Self-host docs", "/docs/self-host"],
+  ["License", "/docs/license"],
+  ["Roadmap", "https://github.com/ANonABento/slothing/projects"],
+];
+
+const LEGAL_LINKS: ReadonlyArray<[string, string]> = [
+  ["Privacy", "/privacy"],
+  ["Terms", "/terms"],
+];
 
 export function Footer() {
+  const year = nowDate().getFullYear();
+
   return (
-    <footer className="border-t bg-card">
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        <div className="grid md:grid-cols-4 gap-8">
-          {/* Brand */}
+    <footer className="border-t border-rule bg-page">
+      <div className="mx-auto w-full max-w-[1480px] px-5 py-12 md:px-10 md:py-16">
+        <div className="grid gap-10 md:grid-cols-[1.2fr_repeat(3,1fr)]">
           <div className="md:col-span-1">
-            <Link href="/" className="flex items-center gap-3 mb-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl gradient-bg text-primary-foreground font-bold text-lg shadow-md">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <span className="text-lg font-bold gradient-text">Slothing</span>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2.5 font-display text-[18px] font-bold tracking-tight text-ink"
+            >
+              <Image
+                src="/brand/slothing-mark.png"
+                alt=""
+                width={28}
+                height={28}
+                className="h-7 w-7"
+              />
+              Slothing
             </Link>
-            <p className="text-sm text-muted-foreground">
-              Your AI-powered resume intelligence platform. Build tailored
-              resumes from your career history.
+            <p className="mt-3 max-w-[28ch] text-[13px] leading-5 text-ink-3">
+              A calmer way to job hunt. Free and open source.
             </p>
           </div>
 
-          {/* Product Links */}
-          <div>
-            <h3 className="font-semibold mb-4">Product</h3>
-            <ul className="space-y-2">
-              {footerLinks.product.map((link) => (
-                <li key={link.name}>
-                  {link.href.startsWith("#") ? (
-                    <a
-                      href={link.href}
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {link.name}
-                    </a>
-                  ) : (
-                    <Link
-                      href={link.href}
-                      prefetch={false}
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {link.name}
-                    </Link>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Resources Links */}
-          <div>
-            <h3 className="font-semibold mb-4">Resources</h3>
-            <ul className="space-y-2">
-              {footerLinks.resources.map((link) => (
-                <li key={link.name}>
-                  <Link
-                    href={link.href}
-                    prefetch={false}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Legal Links */}
-          <div>
-            <h3 className="font-semibold mb-4">Legal</h3>
-            <ul className="space-y-2">
-              {footerLinks.legal.map((link) => (
-                <li key={link.name}>
-                  <Link
-                    href={link.href}
-                    prefetch={false}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <FooterCol title="Product" links={PRODUCT_LINKS} />
+          <FooterCol title="Resources" links={RESOURCES_LINKS} />
+          <FooterCol title="Open source" links={OPEN_SOURCE_LINKS} />
         </div>
 
-        {/* Bottom Bar */}
-        <div className="mt-12 pt-8 border-t flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">
-            © {nowDate().getFullYear()} Slothing. All rights reserved.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Built for job seekers who value their time.
-          </p>
+        <div className="mt-10 flex flex-col items-start justify-between gap-4 border-t border-rule pt-6 text-[12.5px] text-ink-3 md:flex-row md:items-center">
+          <div className="flex flex-wrap items-center gap-4">
+            <span>© {year} Slothing</span>
+            <span aria-hidden className="text-ink-3/40">
+              ·
+            </span>
+            <div className="flex flex-wrap gap-3">
+              {LEGAL_LINKS.map(([label, href]) => (
+                <Link
+                  key={label}
+                  href={href}
+                  prefetch={false}
+                  className="text-ink-3 hover:text-ink"
+                >
+                  {label}
+                </Link>
+              ))}
+            </div>
+          </div>
+          <MonoCap>v0.5 · cream · rust · outfit · soft</MonoCap>
         </div>
       </div>
     </footer>
+  );
+}
+
+function FooterCol({
+  title,
+  links,
+}: {
+  title: string;
+  links: ReadonlyArray<[string, string]>;
+}) {
+  return (
+    <div>
+      <h3 className="font-mono text-mono-cap uppercase text-ink-3">{title}</h3>
+      <ul className="mt-3 space-y-2 text-[13.5px]">
+        {links.map(([label, href]) => {
+          const external = href.startsWith("http");
+          if (external) {
+            return (
+              <li key={label}>
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-ink-2 transition-colors hover:text-ink"
+                >
+                  {label}
+                </a>
+              </li>
+            );
+          }
+          if (href.startsWith("#")) {
+            return (
+              <li key={label}>
+                <a
+                  href={href}
+                  className="text-ink-2 transition-colors hover:text-ink"
+                >
+                  {label}
+                </a>
+              </li>
+            );
+          }
+          return (
+            <li key={label}>
+              <Link
+                href={href}
+                prefetch={false}
+                className="text-ink-2 transition-colors hover:text-ink"
+              >
+                {label}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
