@@ -1,6 +1,15 @@
 "use client";
 
-import { Settings } from "lucide-react";
+import { Suspense, useCallback, useEffect, useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+  BrainCircuit,
+  CreditCard,
+  Database,
+  Plug,
+  Settings,
+  SlidersHorizontal,
+} from "lucide-react";
 import { SettingsSkeleton } from "@/components/skeletons/settings-skeleton";
 import { BillingSection } from "@/components/settings/billing-section";
 import { AiTaskRoutingSection } from "@/components/settings/ai-task-routing-section";
@@ -22,44 +31,91 @@ import { LocaleSection } from "@/components/settings/locale-section";
 import { OllamaWarning } from "@/components/settings/ollama-warning";
 import { OpportunityReviewSection } from "@/components/settings/opportunity-review-section";
 import { PromptVariantsSection } from "@/components/settings/prompt-variants-section";
-import {
-  SettingsNav,
-  type SettingsNavItem,
-} from "@/components/settings/settings-nav";
 import { ThemeSection } from "@/components/settings/theme-section";
 import { WhatAiPowers } from "@/components/settings/what-ai-powers";
-import { AppPage, PageContent, PageHeader } from "@/components/ui/page-layout";
+import {
+  AppPage,
+  PageContent,
+  PageHeader,
+  PagePanel,
+} from "@/components/ui/page-layout";
+import { cn } from "@/lib/utils";
 import { useDataIO } from "./use-data-io";
 import { useLLMSettings } from "./use-llm-settings";
 import { useTranslations } from "next-intl";
 
-// Section IDs are kept in module scope so the nav + section anchors
-// share a single source of truth. Edit here when adding/removing
-// sections; tests assert on these ids.
-const SECTION_IDS = {
-  account: "account",
-  appearance: "appearance",
-  integrations: "integrations",
-  aiKeys: "ai-keys",
-  data: "data",
-  aiTasks: "ai-tasks",
-  plan: "plan-usage",
-  danger: "danger",
-} as const;
+type SettingsTabId = "general" | "integrations" | "ai" | "data" | "billing";
 
-const NAV_ITEMS: ReadonlyArray<SettingsNavItem> = [
-  { id: SECTION_IDS.account, label: "Account" },
-  { id: SECTION_IDS.appearance, label: "Appearance" },
-  { id: SECTION_IDS.integrations, label: "Integrations" },
-  { id: SECTION_IDS.aiKeys, label: "AI keys" },
-  { id: SECTION_IDS.aiTasks, label: "AI tasks" },
-  { id: SECTION_IDS.data, label: "Data" },
-  { id: SECTION_IDS.plan, label: "Plan & usage" },
-  { id: SECTION_IDS.danger, label: "Danger zone", destructive: true },
+const SETTINGS_TABS: ReadonlyArray<{
+  id: SettingsTabId;
+  label: string;
+  description: string;
+  icon: typeof SlidersHorizontal;
+}> = [
+  {
+    id: "general",
+    label: "General",
+    description: "Language, region, and appearance.",
+    icon: SlidersHorizontal,
+  },
+  {
+    id: "integrations",
+    label: "Integrations",
+    description: "Connected services and automation.",
+    icon: Plug,
+  },
+  {
+    id: "ai",
+    label: "AI",
+    description: "Providers, prompts, and task routing.",
+    icon: BrainCircuit,
+  },
+  {
+    id: "data",
+    label: "Data",
+    description: "Exports, imports, and account data controls.",
+    icon: Database,
+  },
+  {
+    id: "billing",
+    label: "Billing",
+    description: "Plan and usage.",
+    icon: CreditCard,
+  },
 ];
 
+const HASH_TAB_MAP: Record<string, SettingsTabId> = {
+  account: "general",
+  appearance: "general",
+  integrations: "integrations",
+  "ai-keys": "ai",
+  "ai-tasks": "ai",
+  data: "data",
+  danger: "data",
+  "plan-usage": "billing",
+};
+
+function normalizeSettingsTab(value: string | null | undefined): SettingsTabId {
+  if (!value) return "general";
+  const lowered = value.toLowerCase();
+  return SETTINGS_TABS.some((tab) => tab.id === lowered)
+    ? (lowered as SettingsTabId)
+    : "general";
+}
+
 export default function SettingsPage() {
+  return (
+    <Suspense fallback={<SettingsSkeleton />}>
+      <SettingsPageInner />
+    </Suspense>
+  );
+}
+
+function SettingsPageInner() {
   const t = useTranslations("settings");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const llmSettings = useLLMSettings();
   const dataIO = useDataIO();
   const selectedProvider = PROVIDERS.find(
@@ -68,6 +124,28 @@ export default function SettingsPage() {
   const hasProvider =
     selectedProvider?.requiresKey === false ||
     Boolean(llmSettings.config.apiKey?.trim());
+  const activeTab = useMemo(
+    () => normalizeSettingsTab(searchParams?.get("tab")),
+    [searchParams],
+  );
+  const activeTabConfig = SETTINGS_TABS.find((tab) => tab.id === activeTab);
+
+  const setActiveTab = useCallback(
+    (nextTab: SettingsTabId) => {
+      const params = new URLSearchParams(searchParams?.toString() ?? "");
+      params.set("tab", nextTab);
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+
+  useEffect(() => {
+    const hash = window.location.hash.replace(/^#/, "");
+    const mappedTab = HASH_TAB_MAP[hash];
+    if (mappedTab && mappedTab !== activeTab) {
+      setActiveTab(mappedTab);
+    }
+  }, [activeTab, setActiveTab]);
 
   if (llmSettings.loading) {
     return <SettingsSkeleton />;
@@ -84,135 +162,124 @@ export default function SettingsPage() {
       />
 
       <PageContent width="wide">
-        <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
-          <SettingsNav items={NAV_ITEMS} />
-
-          <div className="space-y-6">
-            <section
-              id={SECTION_IDS.account}
-              aria-labelledby={`${SECTION_IDS.account}-h`}
-              className="scroll-mt-24 space-y-4"
+        <div className="space-y-5">
+          <PagePanel className="!p-2">
+            <div
+              role="tablist"
+              aria-label="Settings categories"
+              className="flex gap-1 overflow-x-auto whitespace-nowrap md:flex-wrap md:overflow-x-visible md:whitespace-normal"
             >
-              <h2 id={`${SECTION_IDS.account}-h`} className="sr-only">
-                Account
-              </h2>
-              <LocaleSection />
-              <LanguageSection />
-            </section>
+              {SETTINGS_TABS.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = tab.id === activeTab;
 
-            <section
-              id={SECTION_IDS.appearance}
-              aria-labelledby={`${SECTION_IDS.appearance}-h`}
-              className="scroll-mt-24 space-y-4"
-            >
-              <h2 id={`${SECTION_IDS.appearance}-h`} className="sr-only">
-                Appearance
-              </h2>
-              <ThemeSection />
-            </section>
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    id={`settings-tab-${tab.id}`}
+                    aria-selected={isActive}
+                    aria-controls={`settings-panel-${tab.id}`}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      "flex min-h-11 shrink-0 items-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    <Icon className="h-4 w-4" aria-hidden />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </PagePanel>
 
-            <section
-              id={SECTION_IDS.integrations}
-              aria-labelledby={`${SECTION_IDS.integrations}-h`}
-              className="scroll-mt-24 space-y-4"
-            >
-              <h2 id={`${SECTION_IDS.integrations}-h`} className="sr-only">
-                Integrations
+          <div
+            id={`settings-panel-${activeTab}`}
+            role="tabpanel"
+            aria-labelledby={`settings-tab-${activeTab}`}
+            className="min-w-0 space-y-4"
+          >
+            <div className="space-y-1">
+              <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground">
+                {activeTabConfig?.label}
               </h2>
-              <GoogleIntegration />
-              <GmailAutoStatusSection />
-              <OpportunityReviewSection />
-            </section>
+              <p className="text-sm text-muted-foreground">
+                {activeTabConfig?.description}
+              </p>
+            </div>
 
-            <section
-              id={SECTION_IDS.aiKeys}
-              aria-labelledby={`${SECTION_IDS.aiKeys}-h`}
-              className="scroll-mt-24 space-y-4"
-            >
-              <h2 id={`${SECTION_IDS.aiKeys}-h`} className="sr-only">
-                AI keys
-              </h2>
-              <ByokExplainer />
-              <LLMProviderSelector
-                provider={llmSettings.config.provider}
-                apiKey={llmSettings.config.apiKey}
-                onProviderChange={llmSettings.updateConfig}
-              />
-              {llmSettings.config.provider === "ollama" && <OllamaWarning />}
-              <div className="grid gap-6 lg:grid-cols-2">
-                <LLMProviderConfig
-                  config={llmSettings.config}
-                  selectedProvider={selectedProvider}
-                  models={llmSettings.availableModels}
-                  saving={llmSettings.saving}
-                  testing={llmSettings.testing}
-                  hasChanges={llmSettings.hasChanges}
-                  testResult={llmSettings.testResult}
-                  onConfigChange={llmSettings.updateConfig}
-                  onSave={() => void llmSettings.saveSettings()}
-                  onTestConnection={() => void llmSettings.testConnection()}
-                />
-                <WhatAiPowers />
+            {activeTab === "general" && (
+              <div className="space-y-4">
+                <LocaleSection />
+                <LanguageSection />
+                <ThemeSection />
               </div>
-              <PromptVariantsSection />
-              <HelpCards />
-              <EvalHealthSection />
-            </section>
+            )}
 
-            <section
-              id={SECTION_IDS.aiTasks}
-              aria-labelledby={`${SECTION_IDS.aiTasks}-h`}
-              className="scroll-mt-24 space-y-4"
-            >
-              <h2 id={`${SECTION_IDS.aiTasks}-h`} className="sr-only">
-                AI tasks
-              </h2>
-              <SlothingBentoRouterAdminSection />
-              <AiTaskRoutingSection hasProvider={hasProvider} />
-            </section>
+            {activeTab === "integrations" && (
+              <div className="space-y-4">
+                <GoogleIntegration />
+                <GmailAutoStatusSection />
+                <OpportunityReviewSection />
+              </div>
+            )}
 
-            <section
-              id={SECTION_IDS.data}
-              aria-labelledby={`${SECTION_IDS.data}-h`}
-              className="scroll-mt-24 space-y-4"
-            >
-              <h2 id={`${SECTION_IDS.data}-h`} className="sr-only">
-                Data
-              </h2>
-              <DataManagement
-                exporting={dataIO.exporting}
-                importing={dataIO.importing}
-                importResult={dataIO.importResult}
-                showImportPreview={dataIO.showImportPreview}
-                onExport={(type) => void dataIO.exportData(type)}
-                onImportFile={dataIO.handleFileImport}
-                onFullImportPreview={dataIO.handleFullImportPreview}
-                onConfirmFullImport={dataIO.confirmFullImport}
-                onCancelImportPreview={dataIO.clearImportPreview}
-              />
-            </section>
+            {activeTab === "ai" && (
+              <div className="space-y-4">
+                <ByokExplainer />
+                <LLMProviderSelector
+                  provider={llmSettings.config.provider}
+                  apiKey={llmSettings.config.apiKey}
+                  onProviderChange={llmSettings.updateConfig}
+                />
+                {llmSettings.config.provider === "ollama" && <OllamaWarning />}
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <LLMProviderConfig
+                    config={llmSettings.config}
+                    selectedProvider={selectedProvider}
+                    models={llmSettings.availableModels}
+                    saving={llmSettings.saving}
+                    testing={llmSettings.testing}
+                    hasChanges={llmSettings.hasChanges}
+                    testResult={llmSettings.testResult}
+                    onConfigChange={llmSettings.updateConfig}
+                    onSave={() => void llmSettings.saveSettings()}
+                    onTestConnection={() => void llmSettings.testConnection()}
+                  />
+                  <WhatAiPowers />
+                </div>
+                <PromptVariantsSection />
+                <HelpCards />
+                <EvalHealthSection />
+                <SlothingBentoRouterAdminSection />
+                <AiTaskRoutingSection hasProvider={hasProvider} />
+              </div>
+            )}
 
-            <section
-              id={SECTION_IDS.plan}
-              aria-labelledby={`${SECTION_IDS.plan}-h`}
-              className="scroll-mt-24 space-y-4"
-            >
-              <h2 id={`${SECTION_IDS.plan}-h`} className="sr-only">
-                Plan & usage
-              </h2>
-              <BillingSection />
-            </section>
+            {activeTab === "data" && (
+              <div className="space-y-4">
+                <DataManagement
+                  exporting={dataIO.exporting}
+                  importing={dataIO.importing}
+                  importResult={dataIO.importResult}
+                  showImportPreview={dataIO.showImportPreview}
+                  onExport={(type) => void dataIO.exportData(type)}
+                  onImportFile={dataIO.handleFileImport}
+                  onFullImportPreview={dataIO.handleFullImportPreview}
+                  onConfirmFullImport={dataIO.confirmFullImport}
+                  onCancelImportPreview={dataIO.clearImportPreview}
+                />
+                <div className="border-t border-destructive/20 pt-4">
+                  <DangerZoneSection />
+                </div>
+              </div>
+            )}
 
-            <section
-              id={SECTION_IDS.danger}
-              aria-labelledby={`${SECTION_IDS.danger}-h`}
-              className="scroll-mt-24 space-y-4"
-            >
-              <h2 id={`${SECTION_IDS.danger}-h`} className="sr-only">
-                Danger zone
-              </h2>
-              <DangerZoneSection />
-            </section>
+            {activeTab === "billing" && <BillingSection />}
           </div>
         </div>
       </PageContent>
