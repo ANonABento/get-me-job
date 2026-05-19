@@ -1,4 +1,5 @@
 import { chromium } from "playwright";
+import { readFileSync, writeFileSync } from "fs";
 import type { TailoredResume } from "@/lib/resume/generator";
 import type {
   DocumentTemplateV3,
@@ -75,6 +76,18 @@ export interface VisualTemplateVerificationReport {
     code: string;
     message: string;
   }>;
+}
+
+export interface VisualTemplateImageComparison {
+  referencePath: string;
+  renderedPath: string;
+  diffPath?: string;
+  widthPx: number;
+  heightPx: number;
+  meanAbsoluteDiff: number;
+  rootMeanSquareDiff: number;
+  changedPixelRatio: number;
+  similarity: number;
 }
 
 export function collectVisualTemplateSourceMetrics(
@@ -200,6 +213,151 @@ export function buildVisualTemplateStressResume(
     certifications: base.certifications ?? [],
     awards: base.awards ?? [],
   };
+}
+
+export async function compareVisualTemplateImages({
+  referencePath,
+  renderedPath,
+  diffPath,
+}: {
+  referencePath: string;
+  renderedPath: string;
+  diffPath?: string;
+}): Promise<VisualTemplateImageComparison> {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage({
+    viewport: { width: 1200, height: 1200 },
+  });
+  try {
+    await page.evaluate("globalThis.__name = (fn) => fn");
+    const result = await page.evaluate(
+      async ({
+        referenceUrl,
+        renderedUrl,
+      }: {
+        referenceUrl: string;
+        renderedUrl: string;
+      }) => {
+        async function loadImage(src: string): Promise<HTMLImageElement> {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.src = src;
+          await img.decode();
+          return img;
+        }
+
+        const [reference, rendered] = await Promise.all([
+          loadImage(referenceUrl),
+          loadImage(renderedUrl),
+        ]);
+        const width = reference.naturalWidth;
+        const height = reference.naturalHeight;
+        const referenceCanvas = document.createElement("canvas");
+        const renderedCanvas = document.createElement("canvas");
+        const diffCanvas = document.createElement("canvas");
+        referenceCanvas.width = width;
+        renderedCanvas.width = width;
+        diffCanvas.width = width;
+        referenceCanvas.height = height;
+        renderedCanvas.height = height;
+        diffCanvas.height = height;
+        const referenceContext = referenceCanvas.getContext("2d");
+        const renderedContext = renderedCanvas.getContext("2d");
+        const diffContext = diffCanvas.getContext("2d");
+        if (!referenceContext || !renderedContext || !diffContext) {
+          throw new Error("Canvas is unavailable for image comparison");
+        }
+
+        for (const context of [referenceContext, renderedContext]) {
+          context.fillStyle = "#ffffff";
+          context.fillRect(0, 0, width, height);
+        }
+        referenceContext.drawImage(reference, 0, 0, width, height);
+        renderedContext.drawImage(rendered, 0, 0, width, height);
+
+        const referencePixels = referenceContext.getImageData(
+          0,
+          0,
+          width,
+          height,
+        );
+        const renderedPixels = renderedContext.getImageData(
+          0,
+          0,
+          width,
+          height,
+        );
+        const diffPixels = diffContext.createImageData(width, height);
+        let absoluteDiff = 0;
+        let squaredDiff = 0;
+        let changed = 0;
+        const channelCount = width * height * 3;
+        for (let index = 0; index < referencePixels.data.length; index += 4) {
+          const red = Math.abs(
+            referencePixels.data[index] - renderedPixels.data[index],
+          );
+          const green = Math.abs(
+            referencePixels.data[index + 1] - renderedPixels.data[index + 1],
+          );
+          const blue = Math.abs(
+            referencePixels.data[index + 2] - renderedPixels.data[index + 2],
+          );
+          const average = (red + green + blue) / 3;
+          absoluteDiff += red + green + blue;
+          squaredDiff += red * red + green * green + blue * blue;
+          if (average > 35) changed += 1;
+          diffPixels.data[index] = Math.min(255, red * 4);
+          diffPixels.data[index + 1] = Math.min(255, green * 4);
+          diffPixels.data[index + 2] = Math.min(255, blue * 4);
+          diffPixels.data[index + 3] = 255;
+        }
+        diffContext.putImageData(diffPixels, 0, 0);
+        const meanAbsoluteDiff = absoluteDiff / channelCount;
+        return {
+          widthPx: width,
+          heightPx: height,
+          meanAbsoluteDiff,
+          rootMeanSquareDiff: Math.sqrt(squaredDiff / channelCount),
+          changedPixelRatio: changed / (width * height),
+          similarity: 1 - meanAbsoluteDiff / 255,
+          diffDataUrl: diffCanvas.toDataURL("image/png"),
+        };
+      },
+      {
+        referenceUrl: pngDataUrl(referencePath),
+        renderedUrl: pngDataUrl(renderedPath),
+      },
+    );
+
+    if (diffPath) {
+      writeFileSync(
+        diffPath,
+        Buffer.from(
+          result.diffDataUrl.replace(/^data:image\/png;base64,/, ""),
+          "base64",
+        ),
+      );
+    }
+
+    return {
+      referencePath,
+      renderedPath,
+      diffPath,
+      widthPx: result.widthPx,
+      heightPx: result.heightPx,
+      meanAbsoluteDiff: result.meanAbsoluteDiff,
+      rootMeanSquareDiff: result.rootMeanSquareDiff,
+      changedPixelRatio: result.changedPixelRatio,
+      similarity: result.similarity,
+    };
+  } finally {
+    await page.close();
+    await browser.close();
+  }
+}
+
+function pngDataUrl(filename: string): string {
+  return `data:image/png;base64,${readFileSync(filename).toString("base64")}`;
 }
 
 async function measureRenderedTemplate(

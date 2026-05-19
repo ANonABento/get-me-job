@@ -1,19 +1,23 @@
 #!/usr/bin/env tsx
 
-import { mkdirSync, readFileSync, writeFileSync } from "fs";
+import { execFileSync } from "child_process";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
 import { createTemplateMigrationDraft } from "@/lib/resume/template-migration";
 import { generateResumeHTMLV3 } from "@/lib/resume/template-v3-renderer";
 import {
   buildVisualTemplateStressResume,
+  compareVisualTemplateImages,
   verifyVisualTemplateRender,
 } from "@/lib/resume/template-visual-verification";
 
 interface Args {
   source: string;
+  reference?: string;
   outDir: string;
   mode: "source" | "stress" | "both";
   strict: boolean;
+  strictVisual: boolean;
 }
 
 async function main() {
@@ -36,6 +40,11 @@ async function main() {
   writeJson(path.join(args.outDir, "source-resume.json"), draft.resume);
   writeJson(path.join(args.outDir, "migration-fidelity.json"), draft.fidelity);
 
+  const referencePath = resolveReferencePath(sourcePath, args.reference);
+  const referenceImagePath = referencePath
+    ? rasterizeReference(referencePath, args.outDir)
+    : null;
+
   const modes =
     args.mode === "both" ? (["source", "stress"] as const) : [args.mode];
   const reports = [];
@@ -54,8 +63,22 @@ async function main() {
       template: draft.templateV3,
       screenshotPath,
     });
+    const imageComparison =
+      mode === "source" && referenceImagePath
+        ? await compareVisualTemplateImages({
+            referencePath: referenceImagePath,
+            renderedPath: screenshotPath,
+            diffPath: path.join(args.outDir, "source-diff.png"),
+          })
+        : null;
     writeJson(path.join(args.outDir, `${mode}-report.json`), report);
-    reports.push({ mode, report, htmlPath, screenshotPath });
+    if (imageComparison) {
+      writeJson(
+        path.join(args.outDir, `${mode}-image-comparison.json`),
+        imageComparison,
+      );
+    }
+    reports.push({ mode, report, htmlPath, screenshotPath, imageComparison });
   }
 
   const summary = {
@@ -63,19 +86,32 @@ async function main() {
     outDir: args.outDir,
     sourceType: draft.sourceType,
     templateName: draft.templateV3.name,
-    reports: reports.map(({ mode, report, htmlPath, screenshotPath }) => ({
-      mode,
-      htmlPath,
-      screenshotPath,
-      estimatedPages: report.render.estimatedPages,
-      overflowElements: report.render.overflow.elementCount,
-      rightOverflowPx: report.render.overflow.rightPx,
-      bottomOverflowPx: report.render.overflow.bottomPx,
-      sourceLineCoverage: report.render.sourceLineCoverage,
-      repeatedLineCount: report.render.duplicates.repeatedLineCount,
-      averageAbsoluteDriftPx: report.render.absoluteDrift.averageDeltaPx,
-      findings: report.findings,
-    })),
+    reference: referencePath,
+    referenceImagePath,
+    reports: reports.map(
+      ({ mode, report, htmlPath, screenshotPath, imageComparison }) => ({
+        mode,
+        htmlPath,
+        screenshotPath,
+        estimatedPages: report.render.estimatedPages,
+        overflowElements: report.render.overflow.elementCount,
+        rightOverflowPx: report.render.overflow.rightPx,
+        bottomOverflowPx: report.render.overflow.bottomPx,
+        sourceLineCoverage: report.render.sourceLineCoverage,
+        repeatedLineCount: report.render.duplicates.repeatedLineCount,
+        averageAbsoluteDriftPx: report.render.absoluteDrift.averageDeltaPx,
+        imageComparison: imageComparison
+          ? {
+              diffPath: imageComparison.diffPath,
+              meanAbsoluteDiff: imageComparison.meanAbsoluteDiff,
+              rootMeanSquareDiff: imageComparison.rootMeanSquareDiff,
+              changedPixelRatio: imageComparison.changedPixelRatio,
+              similarity: imageComparison.similarity,
+            }
+          : null,
+        findings: report.findings,
+      }),
+    ),
   };
   writeJson(path.join(args.outDir, "summary.json"), summary);
 
@@ -88,14 +124,22 @@ async function main() {
     console.log(
       `[visual-template] ${item.mode}: pages=${item.estimatedPages} overflow=${item.overflowElements} repeated=${item.repeatedLineCount} coverage=${Math.round(
         item.sourceLineCoverage * 100,
-      )}% drift=${item.averageAbsoluteDriftPx.toFixed(1)}px findings=${worst}`,
+      )}% drift=${item.averageAbsoluteDriftPx.toFixed(1)}px${item.imageComparison ? ` imageDiff=${item.imageComparison.meanAbsoluteDiff.toFixed(1)} changed=${Math.round(item.imageComparison.changedPixelRatio * 100)}%` : ""} findings=${worst}`,
     );
   }
 
   const hasErrors = reports.some(({ report }) =>
     report.findings.some((finding) => finding.severity === "error"),
   );
-  if (args.strict && hasErrors) process.exit(1);
+  const hasVisualErrors = reports.some(
+    ({ imageComparison }) =>
+      imageComparison &&
+      (imageComparison.meanAbsoluteDiff > 32 ||
+        imageComparison.changedPixelRatio > 0.42),
+  );
+  if ((args.strict && hasErrors) || (args.strictVisual && hasVisualErrors)) {
+    process.exit(1);
+  }
 }
 
 function parseArgs(argv: string[]): Args {
@@ -109,6 +153,7 @@ function parseArgs(argv: string[]): Args {
   }
   const outIndex = argv.findIndex((arg) => arg === "--out");
   const modeIndex = argv.findIndex((arg) => arg === "--mode");
+  const referenceIndex = argv.findIndex((arg) => arg === "--reference");
   const defaultOut = path.join(
     process.cwd(),
     ".dogfood",
@@ -123,10 +168,44 @@ function parseArgs(argv: string[]): Args {
   }
   return {
     source,
+    reference: referenceIndex >= 0 ? argv[referenceIndex + 1] : undefined,
     outDir: path.resolve(outIndex >= 0 ? argv[outIndex + 1] : defaultOut),
     mode,
     strict: argv.includes("--strict"),
+    strictVisual: argv.includes("--strict-visual"),
   };
+}
+
+function resolveReferencePath(
+  sourcePath: string,
+  referenceArg: string | undefined,
+): string | null {
+  if (referenceArg) return path.resolve(referenceArg);
+  if (path.extname(sourcePath).toLowerCase() === ".pdf") return sourcePath;
+  const siblingPdf = sourcePath.replace(/\.[^.]+$/, ".pdf");
+  return existsSync(siblingPdf) ? siblingPdf : null;
+}
+
+function rasterizeReference(referencePath: string, outDir: string): string {
+  const ext = path.extname(referencePath).toLowerCase();
+  if (ext === ".png") return referencePath;
+  if (ext !== ".pdf") {
+    throw new Error(`Unsupported visual reference type: ${referencePath}`);
+  }
+  const outputPrefix = path.join(outDir, "source-reference");
+  execFileSync("pdftoppm", [
+    "-png",
+    "-singlefile",
+    "-f",
+    "1",
+    "-l",
+    "1",
+    "-r",
+    "96",
+    referencePath,
+    outputPrefix,
+  ]);
+  return `${outputPrefix}.png`;
 }
 
 function writeJson(filename: string, value: unknown): void {

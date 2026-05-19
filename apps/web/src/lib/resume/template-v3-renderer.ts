@@ -350,7 +350,7 @@ function renderSlot(
   const value = slotValue(slot.path, resume, repeatedItem, occurrence);
   if (Array.isArray(value))
     return value.map((item) => escapeHtml(item)).join(", ");
-  return escapeHtml(String(value || slot.fallback || ""));
+  return escapeHtml(String(value || ""));
 }
 
 function renderList(

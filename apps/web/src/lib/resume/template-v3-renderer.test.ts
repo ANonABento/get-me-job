@@ -58,6 +58,27 @@ describe("DocumentTemplateV3 renderer", () => {
     expect(html).toContain("font-style:italic");
     expect(html).toContain("marker-decimal");
   });
+
+  it("does not reuse slot-level fallbacks for missing collection occurrences", () => {
+    const html = generateResumeHTMLV3(
+      {
+        ...sampleResume,
+        experiences: [
+          {
+            title: "Engineer",
+            company: "Lab",
+            dates: "2026",
+            highlights: ["Only real highlight"],
+          },
+        ],
+      },
+      occurrenceFallbackTemplate,
+    );
+
+    expect(html).toContain("Only real highlight");
+    expect(html).toContain("Original second line");
+    expect(html).not.toContain("Original first line");
+  });
 });
 
 const sampleResume: TailoredResume = {
@@ -315,4 +336,44 @@ const repeatTemplate: DocumentTemplateV3 = {
       sourceRefs: [{ sourceId: "block-3" }, { sourceId: "block-5" }],
     },
   ],
+};
+
+const occurrenceFallbackTemplate: DocumentTemplateV3 = {
+  ...sampleTemplate,
+  regions: [
+    {
+      id: "region-page-frame",
+      role: "page-frame",
+      flow: "block",
+      nodes: [
+        {
+          kind: "slot",
+          id: "highlight-1",
+          slotId: "slot-highlights",
+          slotOccurrence: 0,
+          fallback: "Original first line",
+        },
+        {
+          kind: "slot",
+          id: "highlight-2",
+          slotId: "slot-highlights",
+          slotOccurrence: 5,
+          fallback: "Original second line",
+        },
+      ],
+    },
+  ],
+  slots: [
+    {
+      id: "slot-highlights",
+      path: "experiences[].highlights[]",
+      role: "list",
+      sourceRefs: [
+        { sourceId: "block-1", text: "Original first line" },
+        { sourceId: "block-2", text: "Original second line" },
+      ],
+      fallback: "Original first line",
+    },
+  ],
+  repeatGroups: [],
 };

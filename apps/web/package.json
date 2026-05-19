@@ -18,6 +18,7 @@
     "check:translations:strict": "tsx scripts/check-translations.ts --strict-placeholders",
     "check:production": "tsx scripts/check-production-readiness.ts",
     "dogfood:template": "tsx scripts/verify-visual-template-import.ts",
+    "dogfood:template:suite": "tsx scripts/run-visual-template-dogfood-suite.ts",
     "translate:messages": "tsx scripts/translate-messages.ts",
     "type-check": "tsc -p tsconfig.typecheck.json --noEmit",
     "test": "pnpm check:translations && vitest",
