@@ -1,11 +1,19 @@
 import { headers } from "next/headers";
-import { CalendarDays, ChevronLeft, Clock3, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarDays,
+  Clock3,
+  Sparkles,
+} from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { CSP_NONCE_HEADER } from "@/lib/security/headers";
 import { getAlternateLanguages, getMetadataBase } from "@/lib/seo";
 import { formatDateAbsolute } from "@/lib/format/time";
 import { Link as LocalizedLink } from "@/i18n/navigation";
+import { EditorialProse } from "@/components/landing/EditorialProse";
+import { MonoCap } from "@/components/landing/primitives";
 import {
   getBlogPostBySlug,
   getBlogPostUrls,
@@ -89,74 +97,7 @@ export default function BlogPostPage({
   }
 
   return (
-    <main id="main-content" className="mx-auto max-w-3xl px-6 py-16">
-      <header className="space-y-5 border-b pb-8">
-        <LocalizedLink
-          href="/blog"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Back to blog
-        </LocalizedLink>
-
-        <h1 className="text-4xl font-bold leading-tight tracking-tight">
-          {post.title}
-        </h1>
-        <p className="text-sm leading-6 text-muted-foreground">
-          {post.description}
-        </p>
-        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <CalendarDays className="h-3.5 w-3.5" />
-            {formatDateAbsolute(post.publishedDate, params.locale)}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Clock3 className="h-3.5 w-3.5" />
-            {post.readMinutes} min read
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Sparkles className="h-3.5 w-3.5" />
-            {post.audience}
-          </span>
-        </div>
-
-        <a
-          href={`#main-content`}
-          className="text-xs inline-block text-muted-foreground"
-          aria-label={`SEO guide: ${post.slug}`}
-        >
-          permalink
-        </a>
-      </header>
-
-      <article className="prose prose-neutral dark:prose-invert max-w-none pt-10">
-        {post.sections.map((section: BlogSection) => (
-          <section key={section.heading} className="not-prose">
-            <h2>{section.heading}</h2>
-            <p>{section.body}</p>
-            {section.bullets ? (
-              <ul>
-                {section.bullets.map((bullet: string) => (
-                  <li key={bullet}>{bullet}</li>
-                ))}
-              </ul>
-            ) : null}
-          </section>
-        ))}
-      </article>
-
-      <section className="mt-12 rounded-lg border p-6">
-        <h2 className="text-2xl font-semibold">From this guide</h2>
-        <p className="mt-3 text-sm text-muted-foreground">{post.ctaHeadline}</p>
-        <p className="mt-2 text-sm text-muted-foreground">{post.ctaText}</p>
-        <LocalizedLink
-          href={post.ctaHref}
-          className="mt-4 inline-flex text-sm font-medium text-primary hover:underline"
-        >
-          Go to tool
-        </LocalizedLink>
-      </section>
-
+    <>
       <script
         {...(nonce ? { nonce } : {})}
         type="application/ld+json"
@@ -165,6 +106,81 @@ export default function BlogPostPage({
           __html: JSON.stringify(buildBlogPostingJsonLd(post, params.locale)),
         }}
       />
-    </main>
+
+      {/* Post header */}
+      <section className="border-b border-rule bg-page">
+        <div className="mx-auto w-full max-w-prose px-5 pb-10 pt-10 md:px-10 md:pb-12 md:pt-16">
+          <LocalizedLink
+            href="/blog"
+            className="inline-flex items-center gap-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.16em] text-brand transition-colors hover:text-brand-dark"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+            Back to blog
+          </LocalizedLink>
+
+          <h1 className="mt-6 font-display text-[clamp(32px,4vw,52px)] font-extrabold leading-[1.04] tracking-display text-ink">
+            {post.title}
+          </h1>
+          <p className="mt-5 text-[16.5px] leading-[1.55] text-ink-2">
+            {post.description}
+          </p>
+          <div className="mt-6 flex flex-wrap gap-4 border-t border-rule pt-5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-3">
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays className="h-3 w-3" aria-hidden />
+              {formatDateAbsolute(post.publishedDate, params.locale)}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Clock3 className="h-3 w-3" aria-hidden />
+              {post.readMinutes} min read
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Sparkles className="h-3 w-3" aria-hidden />
+              {post.audience}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* Body */}
+      <section className="bg-page py-12 md:py-16">
+        <EditorialProse>
+          {post.sections.map((section: BlogSection) => (
+            <div key={section.heading}>
+              <h2>{section.heading}</h2>
+              <p>{section.body}</p>
+              {section.bullets ? (
+                <ul>
+                  {section.bullets.map((bullet: string) => (
+                    <li key={bullet}>{bullet}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ))}
+        </EditorialProse>
+      </section>
+
+      {/* From this guide */}
+      <section className="border-t border-rule bg-paper py-12 md:py-16">
+        <div className="mx-auto w-full max-w-prose px-5 md:px-10">
+          <div className="rounded-2xl border border-rule bg-page p-6 shadow-paper-card md:p-8">
+            <MonoCap className="text-brand">From this guide</MonoCap>
+            <h2 className="mt-2 font-display text-[clamp(20px,2.2vw,28px)] font-extrabold leading-tight tracking-display text-ink">
+              {post.ctaHeadline}
+            </h2>
+            <p className="mt-3 text-[14.5px] leading-6 text-ink-2">
+              {post.ctaText}
+            </p>
+            <LocalizedLink
+              href={post.ctaHref}
+              className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-ink px-5 py-3 text-[14px] font-semibold text-page transition-opacity hover:opacity-90"
+            >
+              Go to tool
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </LocalizedLink>
+          </div>
+        </div>
+      </section>
+    </>
   );
 }
