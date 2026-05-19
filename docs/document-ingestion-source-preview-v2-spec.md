@@ -876,5 +876,8 @@ Next implementation slices:
     missing documents, empty extracted text, non-fatal bank population, AI
     fallback/refund, and parser-v2 context creation. Done in the parse
     compatibility coverage slice.
-33. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+33. Carry source-map `sourceRefs` through the parser-v2 review context loader so
+    client review UI state has direct access to component source IDs, source
+    quality, and cited text. Done in the client source refs slice.
+34. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.

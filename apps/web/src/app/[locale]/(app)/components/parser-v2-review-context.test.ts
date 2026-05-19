@@ -25,6 +25,21 @@ describe("loadParserV2ReviewContext", () => {
       .mockResolvedValueOnce(
         jsonResponse({
           sourceText: "Jake Ryan",
+          sourceRefs: [
+            {
+              componentId: "exp-1",
+              category: "experience",
+              sourceSpanIds: ["p1-l001"],
+              sourceQuality: "exact",
+              sourceText: ["Jake Ryan"],
+            },
+            {
+              componentId: "bad-ref",
+              category: "experience",
+              sourceSpanIds: [123],
+              sourceQuality: "exact",
+            },
+          ],
           diagnostic: {
             lineCount: 12,
             parsedRoots: {
@@ -60,6 +75,15 @@ describe("loadParserV2ReviewContext", () => {
       artifactId: "artifact-1",
       parseRunId: "run-1",
       sourceText: "Jake Ryan",
+      sourceRefs: [
+        {
+          componentId: "exp-1",
+          category: "experience",
+          sourceSpanIds: ["p1-l001"],
+          sourceQuality: "exact",
+          sourceText: ["Jake Ryan"],
+        },
+      ],
       diagnostic: expect.objectContaining({ lineCount: 12 }),
       entries: [
         {
@@ -113,6 +137,7 @@ describe("loadParserV2ReviewContext", () => {
       status: "ready",
       artifactId: "artifact-1",
       sourceText: "Raw text",
+      sourceRefs: [],
       diagnostic: null,
       entries: [],
     });

@@ -14,12 +14,22 @@ export interface ParserV2ReviewDiagnostic {
   partialBulletSourceSpans: string[];
 }
 
+export interface ParserV2ReviewSourceRef {
+  componentId: string;
+  category: string;
+  sourceSpanIds: string[];
+  sourceQuality: "exact" | "partial" | "missing";
+  parentId?: string;
+  sourceText: string[];
+}
+
 export type ParserV2ReviewContext =
   | {
       status: "ready";
       artifactId?: string;
       parseRunId?: string;
       sourceText: string;
+      sourceRefs: ParserV2ReviewSourceRef[];
       diagnostic: ParserV2ReviewDiagnostic | null;
       entries: BankEntry[];
     }
@@ -72,6 +82,45 @@ function diagnosticFromPayload(
 
 function entriesFromPayload(value: unknown): BankEntry[] {
   return Array.isArray(value) ? (value as BankEntry[]) : [];
+}
+
+function sourceRefsFromPayload(value: unknown): ParserV2ReviewSourceRef[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const ref = item as Record<string, unknown>;
+    if (
+      typeof ref.componentId !== "string" ||
+      typeof ref.category !== "string" ||
+      !Array.isArray(ref.sourceSpanIds) ||
+      !ref.sourceSpanIds.every((id) => typeof id === "string") ||
+      !(
+        ref.sourceQuality === "exact" ||
+        ref.sourceQuality === "partial" ||
+        ref.sourceQuality === "missing"
+      )
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        componentId: ref.componentId,
+        category: ref.category,
+        sourceSpanIds: ref.sourceSpanIds,
+        sourceQuality: ref.sourceQuality,
+        parentId:
+          typeof ref.parentId === "string" && ref.parentId.trim()
+            ? ref.parentId
+            : undefined,
+        sourceText: Array.isArray(ref.sourceText)
+          ? ref.sourceText.filter(
+              (line): line is string => typeof line === "string",
+            )
+          : [],
+      },
+    ];
+  });
 }
 
 export async function loadParserV2ReviewContext(
@@ -139,6 +188,7 @@ export async function loadParserV2ReviewContext(
         typeof sourceMapData.sourceText === "string"
           ? sourceMapData.sourceText
           : "",
+      sourceRefs: sourceRefsFromPayload(sourceMapData.sourceRefs),
       diagnostic: diagnosticFromPayload(sourceMapData.diagnostic),
       entries,
     };
