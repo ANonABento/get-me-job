@@ -1,3 +1,5 @@
+import type { BankEntry } from "@/types";
+
 export interface ParserV2ReviewDiagnostic {
   lineCount: number;
   parsedRoots: {
@@ -19,6 +21,7 @@ export type ParserV2ReviewContext =
       parseRunId?: string;
       sourceText: string;
       diagnostic: ParserV2ReviewDiagnostic | null;
+      entries: BankEntry[];
     }
   | {
       status: "unavailable";
@@ -67,6 +70,10 @@ function diagnosticFromPayload(
     : null;
 }
 
+function entriesFromPayload(value: unknown): BankEntry[] {
+  return Array.isArray(value) ? (value as BankEntry[]) : [];
+}
+
 export async function loadParserV2ReviewContext(
   documentId: string,
 ): Promise<ParserV2ReviewContext> {
@@ -110,6 +117,20 @@ export async function loadParserV2ReviewContext(
       );
     }
 
+    let entries: BankEntry[] = [];
+    if (parseRunId) {
+      const previewResponse = await fetch(
+        `/api/bank/imports/${encodeURIComponent(parseRunId)}/preview`,
+      );
+      const previewData = await jsonOrNull(previewResponse);
+      if (!previewResponse.ok) {
+        throw new Error(
+          responseError(previewData, "Parser-v2 review preview unavailable"),
+        );
+      }
+      entries = entriesFromPayload(previewData.entries);
+    }
+
     return {
       status: "ready",
       artifactId,
@@ -119,6 +140,7 @@ export async function loadParserV2ReviewContext(
           ? sourceMapData.sourceText
           : "",
       diagnostic: diagnosticFromPayload(sourceMapData.diagnostic),
+      entries,
     };
   } catch (error) {
     return {

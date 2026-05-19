@@ -806,5 +806,10 @@ Next implementation slices:
     This gives the UI a server-owned conversion path before replacing legacy
     persisted bank rows in the review modal. Done in the import-preview route
     slice.
-15. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+15. Switch resume upload reviews to parser-v2 draft entries when parser-v2
+    preview data is available, keep edits/deletes local during review, and
+    commit the accepted draft through `/api/bank/imports/:parseRunId/commit` on
+    Done. Legacy persisted bank review remains the fallback when parser-v2
+    context is unavailable. Done in the parser-v2 draft review slice.
+16. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.

@@ -169,6 +169,8 @@ interface UploadReviewState {
   entries: BankEntry[];
   parserV2Context?: ParserV2ReviewContext;
   parserV2Loading?: boolean;
+  parserV2Draft?: boolean;
+  legacyEntryIds?: string[];
 }
 
 type DisplayMode = "category" | "source";
@@ -773,6 +775,47 @@ export function BankComponentsTab({
   }
 
   async function handleCreateChild(parent: BankEntry, description: string) {
+    if (uploadReview?.parserV2Draft) {
+      const existingChildren = getChildEntriesFor(parent, uploadReview.entries);
+      const content = buildChildContentForParent(
+        parent,
+        description,
+        existingChildren.length,
+      );
+      const created: BankEntry = {
+        id: `${parent.id}:manual:${Date.now()}`,
+        userId: parent.userId,
+        category: "bullet",
+        content,
+        sourceDocumentId: parent.sourceDocumentId,
+        sourceArtifactId: parent.sourceArtifactId,
+        sourceParseRunId: parent.sourceParseRunId,
+        sourceQuality: "missing",
+        matchMethod: "manual",
+        confidenceScore: 1,
+        createdAt: nowIso(),
+      };
+      const nextChildCount = existingChildren.length + 1;
+      setUploadReview((prev) =>
+        prev
+          ? {
+              ...prev,
+              entries: prev.entries
+                .map((entry) =>
+                  entry.id === parent.id
+                    ? {
+                        ...entry,
+                        content: withChildCount(entry, nextChildCount),
+                      }
+                    : entry,
+                )
+                .concat(created),
+            }
+          : prev,
+      );
+      return;
+    }
+
     const existingChildren = getChildEntriesFor(parent, entries);
     const content = buildChildContentForParent(
       parent,
@@ -1185,6 +1228,7 @@ export function BankComponentsTab({
             mimeType: uploadData.document?.mimeType || file.type,
             entries: reviewEntries,
             parserV2Loading: docType === "resume",
+            legacyEntryIds: reviewEntries.map((entry) => entry.id),
           });
           if (docType === "resume") {
             void loadParserV2ReviewContext(documentId).then((context) => {
@@ -1194,6 +1238,14 @@ export function BankComponentsTab({
                       ...prev,
                       parserV2Context: context,
                       parserV2Loading: false,
+                      entries:
+                        context.status === "ready" && context.entries.length > 0
+                          ? context.entries
+                          : prev.entries,
+                      parserV2Draft:
+                        context.status === "ready" && context.entries.length > 0
+                          ? true
+                          : prev.parserV2Draft,
                     }
                   : prev,
               );
@@ -1311,6 +1363,20 @@ export function BankComponentsTab({
     id: string,
     content: Record<string, unknown>,
   ) {
+    if (uploadReview?.parserV2Draft) {
+      setUploadReview((prev) =>
+        prev
+          ? {
+              ...prev,
+              entries: prev.entries.map((entry) =>
+                entry.id === id ? { ...entry, content } : entry,
+              ),
+            }
+          : prev,
+      );
+      return;
+    }
+
     await handleUpdate(id, content);
     setUploadReview((prev) =>
       prev
@@ -1325,6 +1391,20 @@ export function BankComponentsTab({
   }
 
   function handleReviewDelete(id: string) {
+    if (uploadReview?.parserV2Draft) {
+      setUploadReview((prev) =>
+        prev
+          ? {
+              ...prev,
+              entries: prev.entries.filter(
+                (entry) => entry.id !== id && getParentId(entry) !== id,
+              ),
+            }
+          : prev,
+      );
+      return;
+    }
+
     void handleDelete(id);
     setUploadReview((prev) =>
       prev
@@ -1357,12 +1437,15 @@ export function BankComponentsTab({
     if (!confirmed) return;
 
     try {
+      const deleteIds = uploadReview.parserV2Draft
+        ? (uploadReview.legacyEntryIds ?? [])
+        : importedEntries.map((entry) => entry.id);
       await Promise.all(
-        importedEntries.map((entry) =>
-          fetch(`/api/bank/${entry.id}`, { method: "DELETE" }),
+        deleteIds.map((id) =>
+          fetch(`/api/bank/${encodeURIComponent(id)}`, { method: "DELETE" }),
         ),
       );
-      const ids = new Set(importedEntries.map((entry) => entry.id));
+      const ids = new Set(deleteIds);
       setEntries((prev) => prev.filter((entry) => !ids.has(entry.id)));
       setAllEntries((prev) => prev.filter((entry) => !ids.has(entry.id)));
       closeUploadReview();
@@ -1382,6 +1465,23 @@ export function BankComponentsTab({
     existingEntry: BankEntry,
     parsedChildren: BankEntry[],
   ) {
+    if (uploadReview?.parserV2Draft) {
+      const removeIds = new Set([
+        parsedEntry.id,
+        ...parsedChildren.map((entry) => entry.id),
+      ]);
+      setUploadReview((prev) =>
+        prev
+          ? {
+              ...prev,
+              entries: prev.entries.filter((entry) => !removeIds.has(entry.id)),
+            }
+          : prev,
+      );
+      addToast({ type: "info", title: "Duplicate discarded" });
+      return;
+    }
+
     const existingChildren = getChildEntriesFor(existingEntry, allEntries);
     const descriptions = new Set(
       existingChildren.map((child) =>
@@ -1468,7 +1568,10 @@ export function BankComponentsTab({
     if (!description) return;
 
     const oldParentId = getParentId(bullet);
-    const existingTargetChildren = allEntries.filter(
+    const attachmentEntries = uploadReview?.parserV2Draft
+      ? uploadReview.entries
+      : allEntries;
+    const existingTargetChildren = attachmentEntries.filter(
       (entry) => getParentId(entry) === parent.id && entry.id !== bullet.id,
     );
     const content = buildChildContentForParent(
@@ -1476,6 +1579,20 @@ export function BankComponentsTab({
       description,
       existingTargetChildren.length,
     );
+
+    if (uploadReview?.parserV2Draft) {
+      setUploadReview((prev) =>
+        prev
+          ? {
+              ...prev,
+              entries: prev.entries.map((entry) =>
+                entry.id === bullet.id ? { ...entry, content } : entry,
+              ),
+            }
+          : prev,
+      );
+      return;
+    }
 
     try {
       const res = await fetch(`/api/bank/${bullet.id}`, {
@@ -1543,6 +1660,77 @@ export function BankComponentsTab({
         fallbackDescription: "Please try attaching the bullet again.",
       });
       await handleDataRefresh({ silent: true });
+    }
+  }
+
+  async function finishUploadReview() {
+    if (!uploadReview?.parserV2Draft) {
+      closeUploadReview();
+      return;
+    }
+
+    const context = uploadReview.parserV2Context;
+    if (context?.status !== "ready" || !context.parseRunId) {
+      closeUploadReview();
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/bank/imports/${encodeURIComponent(context.parseRunId)}/commit`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            acceptedComponentIds: uploadReview.entries.map((entry) => entry.id),
+            edits: Object.fromEntries(
+              uploadReview.entries.map((entry) => [entry.id, entry.content]),
+            ),
+          }),
+        },
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.error || "Could not commit parser-v2 review");
+      }
+
+      const manualDraftEntries = uploadReview.entries.filter(
+        (entry) => entry.matchMethod === "manual",
+      );
+      for (const entry of manualDraftEntries) {
+        const createResponse = await fetch("/api/bank", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            category: entry.category,
+            content: entry.content,
+            sourceDocumentId: entry.sourceDocumentId,
+            sourceSection:
+              typeof entry.content.sourceSection === "string"
+                ? entry.content.sourceSection
+                : entry.category,
+            confidenceScore: entry.confidenceScore,
+          }),
+        });
+        const createData = await createResponse.json().catch(() => null);
+        if (!createResponse.ok) {
+          throw new Error(
+            createData?.error || "Could not save manually added component",
+          );
+        }
+      }
+
+      await handleDataRefresh({ silent: true });
+      closeUploadReview();
+      addToast({
+        type: "success",
+        title: `Saved ${data?.inserted ?? uploadReview.entries.length} reviewed components.`,
+      });
+    } catch (err) {
+      showErrorToast(err, {
+        title: "Could not save parser-v2 review",
+        fallbackDescription: "Please retry or keep editing this upload.",
+      });
     }
   }
 
@@ -1835,7 +2023,7 @@ export function BankComponentsTab({
                           : "Check with AI"}
                       </Button>
                     ) : null}
-                    <Button size="sm" onClick={closeUploadReview}>
+                    <Button size="sm" onClick={() => void finishUploadReview()}>
                       {dialogsT("review.done")}
                     </Button>
                   </div>

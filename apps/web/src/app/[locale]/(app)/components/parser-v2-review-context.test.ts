@@ -39,6 +39,20 @@ describe("loadParserV2ReviewContext", () => {
             partialBulletSourceSpans: [],
           },
         }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          entries: [
+            {
+              id: "exp-1",
+              userId: "user-1",
+              category: "experience",
+              content: { title: "Engineer" },
+              confidenceScore: 0.9,
+              createdAt: "2026-05-18T10:00:00.000Z",
+            },
+          ],
+        }),
       );
 
     await expect(loadParserV2ReviewContext("doc 1")).resolves.toEqual({
@@ -47,6 +61,16 @@ describe("loadParserV2ReviewContext", () => {
       parseRunId: "run-1",
       sourceText: "Jake Ryan",
       diagnostic: expect.objectContaining({ lineCount: 12 }),
+      entries: [
+        {
+          id: "exp-1",
+          userId: "user-1",
+          category: "experience",
+          content: { title: "Engineer" },
+          confidenceScore: 0.9,
+          createdAt: "2026-05-18T10:00:00.000Z",
+        },
+      ],
     });
 
     expect(fetch).toHaveBeenNthCalledWith(1, "/api/documents/doc%201/extract", {
@@ -64,6 +88,7 @@ describe("loadParserV2ReviewContext", () => {
       3,
       "/api/documents/doc%201/source-map?parseRunId=run-1",
     );
+    expect(fetch).toHaveBeenNthCalledWith(4, "/api/bank/imports/run-1/preview");
   });
 
   it("returns unavailable context when extraction fails", async () => {
@@ -89,7 +114,9 @@ describe("loadParserV2ReviewContext", () => {
       artifactId: "artifact-1",
       sourceText: "Raw text",
       diagnostic: null,
+      entries: [],
     });
     expect(fetch).toHaveBeenNthCalledWith(3, "/api/documents/doc-1/source-map");
+    expect(fetch).toHaveBeenCalledTimes(3);
   });
 });
