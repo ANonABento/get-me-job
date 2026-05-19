@@ -113,62 +113,88 @@ export function getWaterlooWorksNextPageLink(): HTMLElement | null {
   );
 }
 
+// One-shot debug guard. Logs the first row's cell layout once per
+// page-load so a real-DOM scrape leaves a breadcrumb in the console
+// without spamming the log per-row. Reset when the module re-loads.
+let rowMetaDebugLogged = false;
+
 /**
  * Read the (sourceJobId, applicants) pair off a list row before we click it
  * open. Both come from the table cells — the modal does NOT show applicant
  * count, so this is our only chance to capture it. The orchestrator merges
  * these into the scraped job after scrape returns.
+ *
+ * Stricter than the previous version (which mis-fired on title cells that
+ * contained 6+ digits embedded in text). Rules:
+ *
+ *   - sourceJobId: a cell whose trimmed text is *just* a 6-digit number,
+ *     optionally prefixed by a status-bullet glyph ("●" / "•" / "*") or
+ *     other non-digit decoration. Cells with mixed text like
+ *     "Co-op - 13092" or "Hourly $50,000" don't qualify.
+ *   - applicants: the rightmost cell whose trimmed text is *just* a
+ *     1-4 digit integer. Won't double-count the ID cell.
+ *
+ * Cells holding the job title link/button are excluded — they often
+ * contain digits embedded in text.
  */
 export function readWaterlooWorksRowMeta(row: HTMLElement): {
   sourceJobId?: string;
   applicants?: number;
 } {
-  // Walk every direct-or-nested cell. Live WW wraps cell content in
-  // additional spans (`<td><span>471268</span></td>`) and sometimes
-  // prefixes IDs with a status bullet (`● 471268`), so direct-child +
-  // strict `^[0-9]+$` matching misses every real row. Instead, collect
-  // each cell's text and extract integer tokens from it.
   const cells = Array.from(
     row.querySelectorAll<HTMLElement>("td, th, [role='cell']"),
-  ).filter((cell) => cell.closest("tr, [role='row']") === row);
-
-  const cellInts: Array<{ value: number; cellIndex: number }> = [];
-  cells.forEach((cell, cellIndex) => {
-    const text = (cell.textContent || "").replace(/\s+/g, " ").trim();
-    if (!text) return;
-    // Cells like "Waterloo" / "Junior, Intermediate" should not contribute
-    // an integer. We extract digit-only tokens delimited by non-digits,
-    // and require the cell to be MOSTLY numeric (>=70% of non-space chars
-    // are digits) so "Apps: 51" works but "Hourly $50,000" doesn't seed
-    // a fake "50000" ID.
-    const tokens = text.match(/\d{1,7}/g) ?? [];
-    if (tokens.length === 0) return;
-    const digitChars = text.replace(/\D/g, "").length;
-    const nonSpaceChars = text.replace(/\s+/g, "").length;
-    if (nonSpaceChars > 0 && digitChars / nonSpaceChars < 0.5) return;
-    for (const token of tokens) {
-      const n = Number.parseInt(token, 10);
-      if (Number.isFinite(n)) cellInts.push({ value: n, cellIndex });
-    }
-  });
-
-  // WW posting IDs in 2026 are 6-digit numbers in the ~46xxxx-47xxxx
-  // range. The first int >= 10000 in row order is the ID.
-  const sourceJobId = cellInts
-    .find((entry) => entry.value >= 10000)
-    ?.value.toString();
-  // Applicants is the rightmost short integer; openings is also a short
-  // int but earlier in the row. If the same cell already produced the
-  // source ID, don't count it again as applicants.
-  const shortInts = cellInts.filter(
-    (entry) =>
-      entry.value < 10000 &&
-      entry.value >= 0 &&
-      entry.value.toString() !== sourceJobId,
   );
-  const applicants =
-    shortInts.length > 0 ? shortInts[shortInts.length - 1].value : undefined;
-  return { sourceJobId, applicants };
+
+  let sourceJobId: string | undefined;
+  let lastShortInt: number | undefined;
+  const debugCells: Array<{ text: string; matched: string | null }> = [];
+
+  for (const cell of cells) {
+    // Skip the title cell — its anchor/button text frequently contains
+    // years or numeric codes that would otherwise be picked up here.
+    if (
+      cell.querySelector(
+        "a[href='javascript:void(0)'], a.overflow--ellipsis, button",
+      )
+    ) {
+      debugCells.push({
+        text: (cell.textContent || "").replace(/\s+/g, " ").trim().slice(0, 60),
+        matched: "skipped:title-cell",
+      });
+      continue;
+    }
+
+    const text = (cell.textContent || "").replace(/\s+/g, " ").trim();
+    if (!text) continue;
+    // Strip a single decorative non-digit prefix (status bullet, etc.)
+    // before testing. This catches "● 471268" → "471268". We don't
+    // strip ALL non-digits — that would let "Co-op - 471268" through.
+    const stripped = text.replace(/^[^0-9]{0,3}\s*/, "");
+
+    let matched: string | null = null;
+    if (!sourceJobId && /^\d{6,7}$/.test(stripped)) {
+      sourceJobId = stripped;
+      matched = `id:${stripped}`;
+    } else if (/^\d{1,4}$/.test(stripped)) {
+      const n = Number.parseInt(stripped, 10);
+      if (Number.isFinite(n)) {
+        lastShortInt = n;
+        matched = `shortInt:${n}`;
+      }
+    }
+    debugCells.push({ text: text.slice(0, 60), matched });
+  }
+
+  if (!rowMetaDebugLogged) {
+    rowMetaDebugLogged = true;
+    console.log("[Slothing][WW] row-meta first-row diagnostic", {
+      cells: debugCells,
+      result: { sourceJobId, applicants: lastShortInt },
+      rowHtml: row.outerHTML.slice(0, 800),
+    });
+  }
+
+  return { sourceJobId, applicants: lastShortInt };
 }
 
 function isLikelyPostingRow(row: HTMLElement): boolean {

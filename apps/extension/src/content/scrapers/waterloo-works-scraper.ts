@@ -65,6 +65,19 @@ function normalizeInline(value: string | undefined): string | undefined {
  * of Job Openings" field is "1" / "3" / "10" on its own line; some employers
  * write "1 (Co-op)" or " 2 " so we tolerate surrounding text/whitespace.
  */
+/**
+ * Returns the header element's textContent with every H2 descendant
+ * stripped out. The H2 carries the title which often contains years
+ * ("Fall 2026"), embedded codes ("Co-op - 13092"), or year-ranges
+ * — none of which are the posting's WaterlooWorks ID. The header's
+ * own text (bullet glyph + ID + status pills) is what we want.
+ */
+function collectTextOutsideH2(header: Element): string {
+  const clone = header.cloneNode(true) as Element;
+  for (const h2 of Array.from(clone.querySelectorAll("h2"))) h2.remove();
+  return (clone.textContent || "").replace(/\s+/g, " ").trim();
+}
+
 function parseIntField(value: string | undefined): number | undefined {
   if (!value) return undefined;
   const match = value.match(/-?\d+/);
@@ -231,13 +244,23 @@ export class WaterlooWorksScraper extends BaseScraper {
     const header = document.querySelector(".dashboard-header__posting-title");
     if (header) {
       const h2Text = header.querySelector("h2")?.textContent?.trim();
-      const idMatch = (header.textContent || "").match(/\b(\d{4,10})\b/);
+      // Search ONLY the header's text outside the H2 (which contains the
+      // title and frequently has years like "Fall 2026" or codes like
+      // "Co-op - 13092" that the old `\d{4,10}` regex picked up by
+      // accident). WaterlooWorks posting IDs in 2026 are 6-digit numbers
+      // (~46xxxx-47xxxx range); require exactly 6 digits to avoid
+      // matching years (4 digits), short codes (5), or concatenated
+      // garbage (8+). If WW ever expands the ID width this regex will
+      // miss new postings — change the test in waterloo-works-scraper
+      // .test.ts when that happens.
+      const headerTextOutsideH2 = collectTextOutsideH2(header);
+      const idMatch = headerTextOutsideH2.match(/\b(\d{6,7})\b/);
       const company = this.findHeaderCompany(header, h2Text);
       return { sourceJobId: idMatch?.[1], title: h2Text, company };
     }
 
     const lines = this.visibleLines();
-    const idMatch = this.visibleText().match(/\b(\d{4,10})\b/);
+    const idMatch = this.visibleText().match(/\b(\d{6,7})\b/);
     const heading = Array.from(document.querySelectorAll("h1,h2,h3"))
       .map((el) => el.textContent?.trim() || "")
       .find(
