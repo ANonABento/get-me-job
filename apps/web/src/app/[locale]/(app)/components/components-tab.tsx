@@ -105,6 +105,7 @@ import {
   type ParserV2ReviewContext,
   type ParserV2ReviewDiagnostic,
 } from "./parser-v2-review-context";
+import { shouldAdoptParserV2DraftEntries } from "./upload-review-parser-v2-adoption";
 import { cn } from "@/lib/utils";
 import {
   getBankEntryParentId,
@@ -1232,23 +1233,30 @@ export function BankComponentsTab({
           });
           if (docType === "resume") {
             void loadParserV2ReviewContext(documentId).then((context) => {
-              setUploadReview((prev) =>
-                prev && prev.documentId === documentId
-                  ? {
-                      ...prev,
-                      parserV2Context: context,
-                      parserV2Loading: false,
-                      entries:
-                        context.status === "ready" && context.entries.length > 0
-                          ? context.entries
-                          : prev.entries,
-                      parserV2Draft:
-                        context.status === "ready" && context.entries.length > 0
-                          ? true
-                          : prev.parserV2Draft,
-                    }
-                  : prev,
-              );
+              setUploadReview((prev) => {
+                if (!prev || prev.documentId !== documentId) return prev;
+                let nextEntries = prev.entries;
+                let parserV2Draft = prev.parserV2Draft;
+
+                if (context.status === "ready") {
+                  const adoption = shouldAdoptParserV2DraftEntries({
+                    legacyEntries: reviewEntries,
+                    parserV2Entries: context.entries,
+                  });
+                  if (adoption.adopt) {
+                    nextEntries = context.entries;
+                    parserV2Draft = true;
+                  }
+                }
+
+                return {
+                  ...prev,
+                  parserV2Context: context,
+                  parserV2Loading: false,
+                  entries: nextEntries,
+                  parserV2Draft,
+                };
+              });
             });
           }
           openedReview = true;
