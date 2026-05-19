@@ -91,7 +91,7 @@ vi.mock("@/lib/parser/smart-parser", () => ({
 
 import { POST } from "./route";
 
-function uploadRequest(file: File, url = "http://localhost/api/upload") {
+function uploadRequest(file: File | null, url = "http://localhost/api/upload") {
   const formData = {
     get: vi.fn().mockReturnValue(file),
   };
@@ -211,6 +211,17 @@ describe("upload route dedupe flow", () => {
       error: expect.stringContaining("Invalid file type"),
     });
     expect(mocks.saveDocument).not.toHaveBeenCalled();
+  });
+
+  it("rejects requests without a file", async () => {
+    const response = await POST(uploadRequest(null));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "No file provided",
+    });
+    expect(mocks.saveDocument).not.toHaveBeenCalled();
+    expect(mocks.extractTextFromFile).not.toHaveBeenCalled();
   });
 
   it("rejects invalid force query values", async () => {

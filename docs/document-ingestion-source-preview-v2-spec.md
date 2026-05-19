@@ -818,5 +818,9 @@ Next implementation slices:
 17. Extract the parser-v2 document upload validation/dedupe/persistence into a
     shared service so compatibility routes can wrap the same boundary without
     duplicating file handling. Done in the upload service-boundary slice.
-18. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+18. Move legacy `/api/upload` file validation, magic-byte checking, and hash
+    calculation onto the shared upload service while preserving its existing
+    extraction, classification, bank ingestion, profile auto-promotion, and
+    legacy response behavior. Done in the legacy upload validation slice.
+19. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.

@@ -7,7 +7,6 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir, unlink } from "fs/promises";
-import crypto from "crypto";
 import path from "path";
 import { parseSearchParams } from "@/lib/api-utils";
 import { generateId } from "@/lib/utils";
@@ -47,12 +46,11 @@ import {
 } from "@/lib/db/profile-bank";
 import { isLLMConfigured } from "@/lib/llm/is-configured";
 import type { ParsedDocumentData } from "@/types";
+import { PATHS } from "@/lib/constants";
 import {
-  MAX_FILE_SIZE_BYTES,
-  ALLOWED_MIME_TYPES,
-  validateFileMagicBytes,
-  PATHS,
-} from "@/lib/constants";
+  DocumentUploadError,
+  readValidatedUploadFile,
+} from "@/lib/ingest/document-upload";
 import { sanitizeFilename } from "@/lib/upload/filename";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { mergeParsedProfileForAutoPromote } from "@/lib/profile/auto-promote";
@@ -130,48 +128,25 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
-    }
-
     log.debug("upload", "file received");
 
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      const maxMB = MAX_FILE_SIZE_BYTES / (1024 * 1024);
+    let buffer: Buffer;
+    let fileHash: string;
+    try {
+      const validated = await readValidatedUploadFile(file);
+      buffer = validated.buffer;
+      fileHash = validated.fileHash;
+      log.debug("upload", "magic bytes validated", { valid: true });
+    } catch (error) {
+      if (error instanceof DocumentUploadError) {
+        return NextResponse.json(
+          { error: error.publicMessage },
+          { status: error.status },
+        );
+      }
       return NextResponse.json(
-        { error: `File too large. Maximum size is ${maxMB}MB` },
-        { status: 400 },
-      );
-    }
-
-    // Validate MIME type
-    if (
-      !ALLOWED_MIME_TYPES.includes(
-        file.type as (typeof ALLOWED_MIME_TYPES)[number],
-      )
-    ) {
-      return NextResponse.json(
-        { error: "Invalid file type. Allowed types: PDF, DOCX, and TXT" },
-        { status: 400 },
-      );
-    }
-
-    // Read file bytes for magic byte validation
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const fileHash = crypto.createHash("sha256").update(buffer).digest("hex");
-
-    // Validate magic bytes match claimed MIME type
-    const magicBytesValid = validateFileMagicBytes(buffer, file.type);
-    log.debug("upload", "magic bytes validated", { valid: magicBytesValid });
-    if (!magicBytesValid) {
-      return NextResponse.json(
-        {
-          error:
-            "File content does not match its type. Please upload a valid document.",
-        },
-        { status: 400 },
+        { error: "Invalid upload file" },
+        { status: 500 },
       );
     }
 

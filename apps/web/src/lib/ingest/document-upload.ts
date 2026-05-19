@@ -57,6 +57,11 @@ export interface PersistDocumentUploadResult {
   duplicate: boolean;
 }
 
+export interface ValidatedUploadFile {
+  buffer: Buffer;
+  fileHash: string;
+}
+
 export function parseDocumentUploadType(
   value: FormDataEntryValue | null,
 ): DocumentType {
@@ -96,25 +101,34 @@ function validateUploadFile(file: File | null): asserts file is File {
   }
 }
 
+export async function readValidatedUploadFile(
+  file: File | null,
+): Promise<ValidatedUploadFile> {
+  validateUploadFile(file);
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  if (!validateFileMagicBytes(buffer, file.type)) {
+    throw new DocumentUploadError(
+      "invalid_magic_bytes",
+      "File content does not match its type. Please upload a valid document.",
+    );
+  }
+
+  return {
+    buffer,
+    fileHash: crypto.createHash("sha256").update(buffer).digest("hex"),
+  };
+}
+
 export async function persistDocumentUpload({
   file,
   userId,
   documentType,
 }: PersistDocumentUploadInput): Promise<PersistDocumentUploadResult> {
-  validateUploadFile(file);
-
   let writtenFilePath: string | undefined;
 
   try {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    if (!validateFileMagicBytes(buffer, file.type)) {
-      throw new DocumentUploadError(
-        "invalid_magic_bytes",
-        "File content does not match its type. Please upload a valid document.",
-      );
-    }
-
-    const fileHash = crypto.createHash("sha256").update(buffer).digest("hex");
+    const { buffer, fileHash } = await readValidatedUploadFile(file);
     const existing = getDocumentByFileHash(fileHash, userId);
     if (existing) {
       return { document: existing, duplicate: true };
