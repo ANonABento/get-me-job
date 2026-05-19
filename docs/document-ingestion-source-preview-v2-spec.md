@@ -811,5 +811,9 @@ Next implementation slices:
     commit the accepted draft through `/api/bank/imports/:parseRunId/commit` on
     Done. Legacy persisted bank review remains the fallback when parser-v2
     context is unavailable. Done in the parser-v2 draft review slice.
-16. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+16. Add `POST /api/documents/upload` as the parser-v2 upload boundary: validate
+    and persist the source document, dedupe by user/file hash, and return
+    extraction/parse/source-map next URLs without parsing or bank side effects.
+    Done in the parser-v2 upload route slice.
+17. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.
