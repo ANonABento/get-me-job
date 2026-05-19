@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   getProfile: vi.fn(),
   updateProfile: vi.fn(),
   getLLMConfig: vi.fn(),
+  saveDocumentArtifact: vi.fn(),
   deleteSourceDocuments: vi.fn(),
   listBankEntriesPaginated: vi.fn(),
   updateBankEntryForUser: vi.fn(),
@@ -24,6 +25,7 @@ const mocks = vi.hoisted(() => ({
   findSourceLinksForBboxes: vi.fn(),
   classifyDocument: vi.fn(),
   smartParseResume: vi.fn(),
+  extractDocumentSourceMap: vi.fn(),
   isLLMConfigured: vi.fn(),
 }));
 
@@ -47,6 +49,7 @@ vi.mock("@/lib/db", () => ({
   getProfile: mocks.getProfile,
   updateProfile: mocks.updateProfile,
   getLLMConfig: mocks.getLLMConfig,
+  saveDocumentArtifact: mocks.saveDocumentArtifact,
 }));
 
 vi.mock("@/lib/llm/is-configured", () => ({
@@ -87,6 +90,10 @@ vi.mock("@/lib/parser/document-classifier", () => ({
 
 vi.mock("@/lib/parser/smart-parser", () => ({
   smartParseResume: mocks.smartParseResume,
+}));
+
+vi.mock("@/lib/ingest/extract-document", () => ({
+  extractDocumentSourceMap: mocks.extractDocumentSourceMap,
 }));
 
 import { POST } from "./route";
@@ -139,6 +146,30 @@ describe("upload route dedupe flow", () => {
     mocks.getLLMConfig.mockReturnValue(null);
     mocks.isLLMConfigured.mockReturnValue(false);
     mocks.extractTextFromFile.mockResolvedValue("resume text");
+    mocks.extractDocumentSourceMap.mockResolvedValue({
+      sourceMap: {
+        pages: [{ page: 1, width: 612, height: 792, lineIds: ["p1-l001"] }],
+        lines: [
+          {
+            id: "p1-l001",
+            page: 1,
+            text: "resume text",
+            tokenIds: [],
+            tokens: [],
+            bbox: { page: 1, x0: 0, y0: 0, x1: 100, y1: 14 },
+          },
+        ],
+        rawText: "resume text",
+      },
+      extractorVersion: "pdf-source-map-v1",
+      links: [],
+      ocrUsed: false,
+    });
+    mocks.saveDocumentArtifact.mockReturnValue({
+      id: "artifact-1",
+      documentId: "doc-generated",
+      sourceMap: { lines: [{ id: "p1-l001" }] },
+    });
     mocks.classifyDocument.mockResolvedValue("resume");
     mocks.smartParseResume.mockResolvedValue({
       profile: {
@@ -351,6 +382,47 @@ describe("upload route dedupe flow", () => {
       "test-resume.pdf",
       null,
     );
+  });
+
+  it("persists a parser-v2 source artifact after saving the legacy document row", async () => {
+    const response = await POST(uploadRequest(pdfFile()));
+
+    expect(response.status).toBe(200);
+    expect(mocks.extractDocumentSourceMap).toHaveBeenCalledWith({
+      buffer: expect.any(Buffer),
+      filename: "test-resume.pdf",
+      mimeType: "application/pdf",
+    });
+    expect(mocks.saveDocumentArtifact).toHaveBeenCalledWith(
+      expect.objectContaining({
+        documentId: expect.any(String),
+        userId: "user-1",
+        extractorVersion: "pdf-source-map-v1",
+        status: "ready",
+        links: [],
+        ocrUsed: false,
+      }),
+    );
+  });
+
+  it("keeps legacy upload successful when parser-v2 artifact extraction fails", async () => {
+    const errorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    mocks.extractDocumentSourceMap.mockRejectedValueOnce(
+      new Error("source map unavailable"),
+    );
+
+    const response = await POST(uploadRequest(pdfFile()));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      entriesCreated: 1,
+    });
+    expect(mocks.saveDocument).toHaveBeenCalled();
+    expect(mocks.populateBankFromProfile).toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 
   it("routes the classifier through the user's configured LLM provider", async () => {

@@ -17,6 +17,7 @@ import {
   getProfile,
   updateProfile,
   getLLMConfig,
+  saveDocumentArtifact,
 } from "@/lib/db";
 import { extractTextFromFile } from "@/lib/parser/pdf";
 import { classifyDocument } from "@/lib/parser/document-classifier";
@@ -54,6 +55,7 @@ import {
 import { sanitizeFilename } from "@/lib/upload/filename";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { mergeParsedProfileForAutoPromote } from "@/lib/profile/auto-promote";
+import { extractDocumentSourceMap } from "@/lib/ingest/extract-document";
 import { uploadQuerySchema } from "@/lib/schemas";
 import { log } from "@/lib/log";
 
@@ -108,6 +110,41 @@ function buildExtractedTextPreview(extractedText: string): string {
     .replace(/[\u0000-\u001f\u007f-\u009f]/g, " ")
     .replace(/\s+/g, " ")
     .trim()}...`;
+}
+
+async function persistParserV2Artifact(input: {
+  documentId: string;
+  userId: string;
+  filename: string;
+  mimeType: string;
+  buffer: Buffer;
+}) {
+  try {
+    const extracted = await extractDocumentSourceMap({
+      buffer: input.buffer,
+      filename: input.filename,
+      mimeType: input.mimeType,
+    });
+    const artifact = saveDocumentArtifact({
+      documentId: input.documentId,
+      userId: input.userId,
+      extractorVersion: extracted.extractorVersion,
+      status: "ready",
+      sourceMap: extracted.sourceMap,
+      links: extracted.links,
+      ocrUsed: extracted.ocrUsed,
+    });
+    log.debug("upload", "parser-v2 artifact saved", {
+      documentId: input.documentId,
+      artifactId: artifact.id,
+      lineCount: artifact.sourceMap.lines.length,
+    });
+  } catch (error) {
+    console.error(
+      "[upload] Parser-v2 artifact extraction failed:",
+      error instanceof Error ? error.stack : error,
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -325,6 +362,14 @@ export async function POST(request: NextRequest) {
       }
       throw err;
     }
+
+    await persistParserV2Artifact({
+      documentId: id,
+      userId: authResult.userId,
+      filename: safeFilename,
+      mimeType: file.type,
+      buffer,
+    });
 
     // Ingest into knowledge bank — writes to profile_bank table (what the UI reads)
     let entriesCreated = 0;

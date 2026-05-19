@@ -830,5 +830,10 @@ Next implementation slices:
     when a source artifact already exists, returning optional parser-v2 context
     while preserving legacy profile auto-promotion, bank population, AI mode,
     and response compatibility. Done in the legacy parse bridge slice.
-21. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+21. Persist a parser-v2 source artifact best-effort during legacy `/api/upload`
+    after the document row is saved, so follow-up `/api/parse` calls can create
+    parser-v2 parse runs without waiting for the review UI to call extraction.
+    Artifact extraction failures remain non-fatal to legacy upload behavior.
+    Done in the legacy upload artifact bridge slice.
+22. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.
