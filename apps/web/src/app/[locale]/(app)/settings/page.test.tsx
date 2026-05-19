@@ -1,27 +1,30 @@
-import { render, screen, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import SettingsPage from "./page";
 import messages from "@/messages/en.json";
 
 const mocks = vi.hoisted(() => ({
+  pathname: "/settings",
+  replace: vi.fn(),
+  searchParams: new URLSearchParams(),
   useDataIO: vi.fn(),
   useLLMSettings: vi.fn(),
 }));
 
-// jsdom doesn't ship IntersectionObserver. Stub it so the scroll-spy
-// nav can mount without throwing.
-class StubIntersectionObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-  takeRecords() {
-    return [];
-  }
-  root = null;
-  rootMargin = "";
-  thresholds = [];
-}
+vi.mock("next/navigation", () => ({
+  usePathname: () => mocks.pathname,
+  useRouter: () => ({
+    replace: mocks.replace,
+  }),
+  useSearchParams: () => mocks.searchParams,
+}));
 
 vi.mock("./use-data-io", () => ({
   useDataIO: mocks.useDataIO,
@@ -154,7 +157,9 @@ function mockSettingsPage(provider = "openai") {
   });
 }
 
-function renderSettingsPage() {
+function renderSettingsPage(search = "") {
+  mocks.searchParams = new URLSearchParams(search);
+
   return render(
     <NextIntlClientProvider locale="en" messages={messages}>
       <SettingsPage />
@@ -163,16 +168,9 @@ function renderSettingsPage() {
 }
 
 describe("SettingsPage", () => {
-  beforeAll(() => {
-    // jsdom shim — SettingsNav uses IntersectionObserver for scroll spy.
-    Object.defineProperty(window, "IntersectionObserver", {
-      writable: true,
-      value: StubIntersectionObserver,
-    });
-  });
-
   beforeEach(() => {
     vi.clearAllMocks();
+    window.location.hash = "";
     mockSettingsPage();
   });
 
@@ -190,9 +188,43 @@ describe("SettingsPage", () => {
     expect(content).not.toBeNull();
   });
 
-  it("keeps every settings section in the reorganized layout", () => {
+  it("renders the category tabs and opens General by default", () => {
     renderSettingsPage();
 
+    const tablist = screen.getByRole("tablist", {
+      name: /settings categories/i,
+    });
+    for (const label of ["General", "Integrations", "AI", "Data", "Billing"]) {
+      expect(within(tablist).getByRole("tab", { name: label })).toBeVisible();
+    }
+
+    expect(screen.getByRole("tab", { name: "General" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByTestId("locale-section")).toBeInTheDocument();
+    expect(screen.getByTestId("language-section")).toBeInTheDocument();
+    expect(screen.getByTestId("theme-section")).toBeInTheDocument();
+    expect(screen.queryByTestId("google-integration")).not.toBeInTheDocument();
+  });
+
+  it("keeps every settings section in the reorganized tab panels", () => {
+    const { unmount: unmountGeneral } = renderSettingsPage();
+    expect(screen.getByTestId("theme-section")).toBeInTheDocument();
+    expect(screen.getByTestId("locale-section")).toBeInTheDocument();
+    expect(screen.getByTestId("language-section")).toBeInTheDocument();
+    unmountGeneral();
+
+    const { unmount: unmountIntegrations } =
+      renderSettingsPage("tab=integrations");
+    expect(screen.getByTestId("google-integration")).toBeInTheDocument();
+    expect(screen.getByTestId("gmail-auto-status-section")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("opportunity-review-section"),
+    ).toBeInTheDocument();
+    unmountIntegrations();
+
+    const { unmount: unmountAi } = renderSettingsPage("tab=ai");
     expect(screen.getByTestId("llm-provider-selector")).toBeInTheDocument();
     expect(screen.getByTestId("llm-provider-config")).toHaveTextContent(
       "OpenAI Configuration",
@@ -207,75 +239,65 @@ describe("SettingsPage", () => {
     expect(screen.getByTestId("prompt-variants-section")).toBeInTheDocument();
     expect(screen.getByTestId("help-cards")).toBeInTheDocument();
     expect(screen.getByTestId("eval-health-section")).toBeInTheDocument();
-    expect(screen.getByTestId("billing-section")).toBeInTheDocument();
-    expect(screen.getByTestId("theme-section")).toBeInTheDocument();
-    expect(screen.getByTestId("locale-section")).toBeInTheDocument();
-    expect(screen.getByTestId("language-section")).toBeInTheDocument();
-    expect(
-      screen.getByTestId("opportunity-review-section"),
-    ).toBeInTheDocument();
+    unmountAi();
+
+    const { unmount: unmountData } = renderSettingsPage("tab=data");
     expect(screen.getByTestId("data-management")).toBeInTheDocument();
-    expect(screen.getByTestId("google-integration")).toBeInTheDocument();
-    expect(screen.getByTestId("gmail-auto-status-section")).toBeInTheDocument();
     expect(screen.getByTestId("danger-zone-section")).toBeInTheDocument();
+    unmountData();
+
+    renderSettingsPage("tab=billing");
+    expect(screen.getByTestId("billing-section")).toBeInTheDocument();
   });
 
-  it("renders the vertical settings nav with anchor links to every section", () => {
+  it("updates the URL query when a tab is selected", () => {
     renderSettingsPage();
 
-    const nav = screen.getByRole("navigation", { name: /settings sections/i });
-    expect(nav).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "AI" }));
 
-    const linkLabels = [
-      "Account",
-      "Appearance",
-      "Integrations",
-      "AI keys",
-      "AI tasks",
-      "Data",
-      "Plan & usage",
-      "Danger zone",
-    ];
-    for (const label of linkLabels) {
-      expect(
-        within(nav).getByRole("link", { name: new RegExp(`^${label}`, "i") }),
-      ).toBeInTheDocument();
-    }
-
-    // Every nav link should have a matching section[id] anchor.
-    const hrefs = [
-      "#account",
-      "#appearance",
-      "#integrations",
-      "#ai-keys",
-      "#ai-tasks",
-      "#data",
-      "#plan-usage",
-      "#danger",
-    ];
-    for (const href of hrefs) {
-      const id = href.slice(1);
-      expect(document.getElementById(id)).not.toBeNull();
-    }
+    expect(mocks.replace).toHaveBeenCalledWith("/settings?tab=ai", {
+      scroll: false,
+    });
   });
 
-  it("shows the Ollama warning only for Ollama and keeps it inside the AI keys section", () => {
+  it("falls back to General for an invalid tab query", () => {
+    renderSettingsPage("tab=unknown");
+
+    expect(screen.getByRole("tab", { name: "General" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByTestId("locale-section")).toBeInTheDocument();
+  });
+
+  it("maps old section hashes to their new tabs", async () => {
+    window.location.hash = "#ai-keys";
+
+    renderSettingsPage();
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith("/settings?tab=ai", {
+        scroll: false,
+      });
+    });
+  });
+
+  it("shows the Ollama warning only for Ollama and keeps it inside the AI tab panel", () => {
     mockSettingsPage("ollama");
 
-    const { unmount } = renderSettingsPage();
+    const { unmount } = renderSettingsPage("tab=ai");
 
     expect(screen.getByText("Make sure Ollama is running")).toBeInTheDocument();
 
-    const aiSection = document.getElementById("ai-keys");
-    expect(aiSection).not.toBeNull();
+    const aiPanel = screen.getByRole("tabpanel");
     expect(
-      within(aiSection as HTMLElement).getByText("Make sure Ollama is running"),
+      within(aiPanel).getByText("Make sure Ollama is running"),
     ).toBeInTheDocument();
 
     unmount();
     vi.clearAllMocks();
     mockSettingsPage("anthropic");
-    renderSettingsPage();
+    renderSettingsPage("tab=ai");
 
     expect(
       screen.queryByText("Make sure Ollama is running"),
