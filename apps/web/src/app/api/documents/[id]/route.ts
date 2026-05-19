@@ -5,9 +5,9 @@
  * @response DocumentDeleteResponse from @/types/api
  */
 import { NextRequest, NextResponse } from "next/server";
-import { unlink } from "fs/promises";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { deleteDocument } from "@/lib/db";
+import { deleteStoredDocumentFiles } from "@/lib/ingest/document-file-cleanup";
 
 export const dynamic = "force-dynamic";
 
@@ -27,12 +27,7 @@ export async function DELETE(
       );
     }
 
-    // Try to delete file (don't fail if file doesn't exist)
-    try {
-      await unlink(path);
-    } catch {
-      // File may not exist
-    }
+    await deleteStoredDocumentFiles([{ id: params.id, path }]);
 
     return NextResponse.json({ success: true });
   } catch (error) {

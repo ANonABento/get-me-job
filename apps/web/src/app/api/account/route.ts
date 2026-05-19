@@ -23,7 +23,7 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
-    const result = deleteAccountData(authResult.userId);
+    const result = await deleteAccountData(authResult.userId);
     return NextResponse.json({ ok: true, deleted: result });
   } catch (error) {
     console.error("Account deletion failed:", error);

@@ -531,6 +531,30 @@ export interface DeleteSourceDocumentsResult {
   chunksDeleted: number;
 }
 
+export interface SourceDocumentFileRef {
+  id: string;
+  path: string | null;
+}
+
+export function getSourceDocumentFiles(
+  documentIds: string[],
+  userId: string,
+): SourceDocumentFileRef[] {
+  if (documentIds.length === 0) return [];
+
+  const uniqueDocumentIds = Array.from(new Set(documentIds));
+  const query = db.prepare(
+    "SELECT id, path FROM documents WHERE id = ? AND user_id = ?",
+  );
+
+  return uniqueDocumentIds.flatMap((documentId) => {
+    const row = query.get(documentId, userId) as
+      | SourceDocumentFileRef
+      | undefined;
+    return row ? [row] : [];
+  });
+}
+
 export function deleteSourceDocument(
   documentId: string,
   userId: string,

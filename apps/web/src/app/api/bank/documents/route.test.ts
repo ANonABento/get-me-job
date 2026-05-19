@@ -5,7 +5,9 @@ const mocks = vi.hoisted(() => ({
   requireAuth: vi.fn(),
   isAuthError: vi.fn(),
   getSourceDocuments: vi.fn(),
+  getSourceDocumentFiles: vi.fn(),
   deleteSourceDocuments: vi.fn(),
+  deleteStoredDocumentFiles: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -15,7 +17,12 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("@/lib/db/profile-bank", () => ({
   getSourceDocuments: mocks.getSourceDocuments,
+  getSourceDocumentFiles: mocks.getSourceDocumentFiles,
   deleteSourceDocuments: mocks.deleteSourceDocuments,
+}));
+
+vi.mock("@/lib/ingest/document-file-cleanup", () => ({
+  deleteStoredDocumentFiles: mocks.deleteStoredDocumentFiles,
 }));
 
 import { DELETE, GET } from "./route";
@@ -33,6 +40,11 @@ describe("bank documents route", () => {
     vi.clearAllMocks();
     mocks.requireAuth.mockResolvedValue({ userId: "user-1" });
     mocks.isAuthError.mockReturnValue(false);
+    mocks.getSourceDocumentFiles.mockReturnValue([]);
+    mocks.deleteStoredDocumentFiles.mockResolvedValue({
+      filesDeleted: 0,
+      fileDeletionErrors: 0,
+    });
   });
 
   it("lists source documents for the authenticated user", async () => {
@@ -76,6 +88,11 @@ describe("bank documents route", () => {
       ["doc-1", "doc-2"],
       "user-1",
     );
+    expect(mocks.getSourceDocumentFiles).toHaveBeenCalledWith(
+      ["doc-1", "doc-2"],
+      "user-1",
+    );
+    expect(mocks.deleteStoredDocumentFiles).toHaveBeenCalledWith([]);
     await expect(response.json()).resolves.toEqual({
       success: true,
       documentsDeleted: 2,

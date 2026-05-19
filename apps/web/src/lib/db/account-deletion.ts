@@ -1,9 +1,15 @@
 import db from "./legacy";
+import {
+  deleteStoredDocumentFiles,
+  type DocumentFileCleanupResult,
+  type StoredDocumentFileRef,
+} from "@/lib/ingest/document-file-cleanup";
 
 export interface AccountDeletionResult {
   userId: string;
   deletedRows: Record<string, number>;
   totalDeletedRows: number;
+  fileCleanup: DocumentFileCleanupResult;
 }
 
 interface DeleteStatement {
@@ -177,8 +183,17 @@ const USER_SCOPED_DELETES: DeleteStatement[] = [
   { table: "user", sql: "DELETE FROM `user` WHERE id = ?" },
 ];
 
-export function deleteAccountData(userId: string): AccountDeletionResult {
+function getUserDocumentFiles(userId: string): StoredDocumentFileRef[] {
+  return db
+    .prepare("SELECT id, path FROM documents WHERE user_id = ?")
+    .all(userId) as StoredDocumentFileRef[];
+}
+
+export async function deleteAccountData(
+  userId: string,
+): Promise<AccountDeletionResult> {
   const deletedRows: Record<string, number> = {};
+  const documentFiles = getUserDocumentFiles(userId);
 
   db.transaction(() => {
     for (const statement of USER_SCOPED_DELETES) {
@@ -196,7 +211,9 @@ export function deleteAccountData(userId: string): AccountDeletionResult {
     0,
   );
 
-  return { userId, deletedRows, totalDeletedRows };
+  const fileCleanup = await deleteStoredDocumentFiles(documentFiles);
+
+  return { userId, deletedRows, totalDeletedRows, fileCleanup };
 }
 
 function tableExists(tableName: string): boolean {

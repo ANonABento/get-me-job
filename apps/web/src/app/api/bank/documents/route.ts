@@ -9,8 +9,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import {
   deleteSourceDocuments,
+  getSourceDocumentFiles,
   getSourceDocuments,
 } from "@/lib/db/profile-bank";
+import { deleteStoredDocumentFiles } from "@/lib/ingest/document-file-cleanup";
 
 export const dynamic = "force-dynamic";
 
@@ -76,7 +78,9 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    const files = getSourceDocumentFiles(documentIds, authResult.userId);
     const result = deleteSourceDocuments(documentIds, authResult.userId);
+    await deleteStoredDocumentFiles(files);
     return NextResponse.json({ success: true, ...result });
   } catch (error) {
     console.error("Delete source documents error:", error);

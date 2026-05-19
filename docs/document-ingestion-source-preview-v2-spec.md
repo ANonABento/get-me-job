@@ -850,5 +850,9 @@ Next implementation slices:
     gate, checking artifact readiness before billing and persisting raw cited
     AI JSON plus citation validation warnings as an AI parse run. Done in the
     AI parse-run route slice.
-26. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+26. Harden document-file retention on deletion by evicting in-memory PDF
+    preview cache entries and unlinking stored upload files from document,
+    source-document, bulk source-document, and account deletion paths. Done in
+    the document retention cleanup slice.
+27. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.

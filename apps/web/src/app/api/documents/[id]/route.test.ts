@@ -8,6 +8,13 @@ vi.mock("@/lib/db", () =>
   globalThis.__contractRouteMocks!.createContractModuleMock("@/lib/db"),
 );
 
+vi.mock("@/lib/ingest/document-file-cleanup", () => ({
+  deleteStoredDocumentFiles: vi.fn().mockResolvedValue({
+    filesDeleted: 1,
+    fileDeletionErrors: 0,
+  }),
+}));
+
 import { DELETE } from "./route";
 import {
   expectRouteResponseContract,

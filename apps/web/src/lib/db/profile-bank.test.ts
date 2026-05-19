@@ -29,6 +29,7 @@ import {
   updateBankEntryPositions,
   deleteBankEntry,
   getSourceDocuments,
+  getSourceDocumentFiles,
   deleteSourceDocument,
   deleteSourceDocuments,
 } from "./profile-bank";
@@ -799,6 +800,38 @@ describe("Profile Bank DB Functions", () => {
       deleteSourceDocument("doc-1", "user-123");
 
       expect(mockRun).toHaveBeenCalledWith("doc-1", "user-123");
+    });
+  });
+
+  describe("getSourceDocumentFiles", () => {
+    it("returns stored file refs for owned source documents", () => {
+      const mockGet = vi
+        .fn()
+        .mockReturnValueOnce({ id: "doc-1", path: "/tmp/doc-1.pdf" })
+        .mockReturnValueOnce(undefined)
+        .mockReturnValueOnce({ id: "doc-2", path: "/tmp/doc-2.pdf" });
+      (db.prepare as Mock).mockReturnValue({ get: mockGet });
+
+      const result = getSourceDocumentFiles(
+        ["doc-1", "missing", "doc-2", "doc-1"],
+        "user-123",
+      );
+
+      expect(result).toEqual([
+        { id: "doc-1", path: "/tmp/doc-1.pdf" },
+        { id: "doc-2", path: "/tmp/doc-2.pdf" },
+      ]);
+      expect(mockGet).toHaveBeenCalledTimes(3);
+      expect(mockGet).toHaveBeenNthCalledWith(1, "doc-1", "user-123");
+      expect(mockGet).toHaveBeenNthCalledWith(2, "missing", "user-123");
+      expect(mockGet).toHaveBeenNthCalledWith(3, "doc-2", "user-123");
+    });
+
+    it("does not query when no ids are provided", () => {
+      const result = getSourceDocumentFiles([], TEST_USER_ID);
+
+      expect(result).toEqual([]);
+      expect(db.prepare).not.toHaveBeenCalled();
     });
   });
 
