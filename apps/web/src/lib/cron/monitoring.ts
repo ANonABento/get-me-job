@@ -48,6 +48,10 @@ export const CRON_MONITOR_TARGETS: CronMonitorTarget[] = [
   },
   { cron: "digest.daily", schedule: "0 8 * * *", staleAfterMs: 36 * HOUR },
   { cron: "cleanup", schedule: "0 3 * * *", staleAfterMs: 36 * HOUR },
+  // Bucket G.1 — daily FX-rate refresh from frankfurter.app. Falls back
+  // to FALLBACK_RATES + the previous cache when fetch fails, so 36h is
+  // a comfortable staleness threshold.
+  { cron: "currency-rates", schedule: "0 4 * * *", staleAfterMs: 36 * HOUR },
 ];
 
 export function summarizeCronHealth(

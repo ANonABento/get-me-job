@@ -340,32 +340,43 @@ UI (F.1): drag-and-drop chunk reorderer with two columns (Desktop / Mobile). Dis
 
 ---
 
-### Bucket G — Pay normalization (P2)
+### Bucket G — Pay normalization (P2) — **SHIPPED**
 
-**Decision**: When a salary is parsed (existing `parseSalaryRange` in `apps/web/src/lib/opportunities.ts`), store both the raw values and an `inferredUnit` (`hourly`/`monthly`/`annual`) inferred from context ("per hour", "/yr", "monthly", etc.). Add a converter that re-renders salary in the user's preferred unit + currency.
+**Status (May 2026)**: G core + G.1 currency conversion both live.
+
+**Decision**: Parsed `inferred_pay_{unit,min,max,currency}` columns on `jobs`, populated by `parsePayString(salary)` at import time (`apps/web/src/lib/extension-opportunities.ts`). Renderer + sort comparators consume them via `formatOpportunityPay` and `approxAnnualPay`. Currency conversion (G.1) ships as a daily FX cron.
 
 **Conversion knowledge**:
 - 1 hour × 40 hr/wk × 52 wk/yr = 2080 hr/yr (annual conversion)
 - 1 month × 12 = annual
-- Currency rates: pull daily from `exchangerate.host` (free), cache in `currency_rates` table 24h
+- Currency rates: pull daily from **`frankfurter.app`** (no API key, ECB reference rates — exchangerate.host was the original choice but now needs an API key). Cache in `currency_rates(base, target, rate, fetched_at)` for 24h. Fallback: `FALLBACK_RATES` constant covers first-boot before the cron has run.
 
-**Files**:
-- `apps/web/src/lib/opportunities/pay.ts` — new, `inferPayUnit(text)`, `normalizeToUnit(amount, fromUnit, toUnit)`, `convertCurrency(amount, from, to)`
-- `apps/web/src/lib/db/currency-rates.ts` — new, cache table
-- `apps/web/src/app/api/cron/currency-rates/route.ts` — new daily cron
-- `apps/web/src/lib/db/schema.ts` — add `currency_rates` table + `inferred_pay_unit`, `inferred_pay_amount`, `inferred_pay_currency` columns to `jobs`
-- `apps/web/src/lib/opportunities.ts` — populate inferred fields during `jobToOpportunity`
-- `apps/web/src/components/opportunities/review-queue.tsx` — render normalized salary
+**Files (final)**:
+- `apps/web/src/lib/opportunities/pay.ts` — `inferPayUnit`, `parsePayString`, `normalizeToAnnual`, `normalizeFromAnnual`, `convertPay`, `convertCurrencyAmount`, `formatPay`, `formatParsedPay`, `formatOpportunityPay`
+- `apps/web/src/lib/db/currency-rates.ts` — `getAllRates`, `upsertRate`, `getRate`, `FALLBACK_RATES`
+- `apps/web/src/lib/cron/currency-rates.ts` — `refreshCurrencyRates(deps)` testable cron body
+- `apps/web/src/app/api/cron/currency-rates/route.ts` — daily cron entry point (registered in `apps/web/vercel.json` at `0 4 * * *`)
+- `apps/web/src/app/api/currency-rates/route.ts` — public read endpoint for the renderer
+- `apps/web/src/lib/db/jobs.ts` — additive ALTERs for `inferred_pay_unit / inferred_pay_min / inferred_pay_max / inferred_pay_currency`
+- `apps/web/src/lib/extension-opportunities.ts` — populates inferred fields during `buildJobFromExtension`
+- `apps/web/src/lib/opportunities.ts` — `jobToOpportunity` exposes inferred fields
+- `apps/web/src/lib/opportunities/sort.ts` — `highest-pay` / `lowest-pay` use `convertCurrencyAmount` via `SortContext`
+- `apps/web/src/components/opportunities/review-queue.tsx` — salary line renders `formatOpportunityPay(activeJob, payDisplayUnit, { targetCurrency, rates })` with raw `salaryMin/Max` fallback
+- `apps/web/src/components/settings/opportunity-preferences-section.tsx` — "Pay display" section (unit + currency dropdowns)
+- `packages/shared/src/schemas.ts` — `PAY_NORMALIZATION_UNITS`, `PAY_NORMALIZATION_CURRENCIES`, `inferredPay*` fields on `Opportunity` interface
 
-**Defaults**:
-- Unit: `annual`
-- Currency: `USD`
+**Operational notes**:
+- The cron is best-effort: a frankfurter outage logs to `cron_runs` (cron name `currency-rates`) but doesn't 5xx. Renderer falls back to `FALLBACK_RATES` until the next successful run.
+- To manually trigger in prod: `curl -H "Authorization: Bearer $CRON_SECRET" https://slothing.work/api/cron/currency-rates`.
+- The supported-currency list mirrors `PAY_NORMALIZATION_CURRENCIES` — adding a currency = extend that constant; the cron picks it up on the next run.
 
-**Acceptance**:
-- [ ] "$23.05 per hour" with default annual+USD renders as "~$47,944/yr"
-- [ ] "CAD $8,000 to $10,000 per month" with annual+CAD renders as "CAD $96k-$120k/yr"
-- [ ] Postings without parseable salary show "Salary not listed"
-- [ ] Currency conversion uses ≤24h-cached rates; cron updates daily
+**Defaults**: unit `annual`, currency `USD`.
+
+**Acceptance** (all ✅):
+- [x] "$23.05 per hour" with default annual+USD renders as "~$47,944/yr"
+- [x] "CAD $8,000 to $10,000 per month" with annual+CAD renders as "CAD $96k-$120k/yr"
+- [x] Postings without parseable salary fall back to the raw `salary` string
+- [x] Currency conversion uses cached rates from `currency_rates`; cron updates daily
 
 ---
 

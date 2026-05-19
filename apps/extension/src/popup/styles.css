@@ -635,6 +635,62 @@ body {
   flex-basis: 100%;
 }
 
+/* RCA #56 — per-row failure panel. Amber rule on the left because
+   partial failure ≠ broken; the user's scrape mostly succeeded. */
+.bulk-failed {
+  flex-basis: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--warn);
+  background: var(--bg-2);
+  border-radius: 4px;
+}
+
+.bulk-failed-toggle {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--brand, var(--ink));
+  cursor: pointer;
+  text-decoration: underline;
+  font: inherit;
+}
+
+.bulk-failed-hint {
+  margin: 4px 0;
+  font-size: 11px;
+}
+
+.bulk-failed-list {
+  margin: 6px 0;
+  padding: 0;
+  list-style: none;
+  max-height: 220px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+.bulk-failed-list li {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1px;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--rule);
+}
+
+.bulk-failed-list li:last-child {
+  border-bottom: 0;
+}
+
+.bulk-failed-title {
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.bulk-failed-reason {
+  font-size: 11px;
+}
+
 .bulk-limits {
   margin: 6px 0 0;
   font-size: 11px;

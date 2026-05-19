@@ -6,8 +6,11 @@ const mocks = vi.hoisted(() => ({
   createJob: vi.fn(),
   countJobsByStatus: vi.fn(),
   getJobByUrl: vi.fn(),
+  getJobBySource: vi.fn(),
+  updateJob: vi.fn(),
   updateJobStatus: vi.fn(),
   createNotification: vi.fn(),
+  getViewPreferences: vi.fn(),
 }));
 
 vi.mock("@/lib/extension-auth", () => ({
@@ -18,11 +21,17 @@ vi.mock("@/lib/db/jobs", () => ({
   createJob: mocks.createJob,
   countJobsByStatus: mocks.countJobsByStatus,
   getJobByUrl: mocks.getJobByUrl,
+  getJobBySource: mocks.getJobBySource,
+  updateJob: mocks.updateJob,
   updateJobStatus: mocks.updateJobStatus,
 }));
 
 vi.mock("@/lib/db/notifications", () => ({
   createNotification: mocks.createNotification,
+}));
+
+vi.mock("@/lib/db/opportunity-view-preferences", () => ({
+  getViewPreferences: mocks.getViewPreferences,
 }));
 
 import { POST } from "./route";
@@ -52,6 +61,8 @@ describe("opportunities from-extension route", () => {
     });
     mocks.countJobsByStatus.mockReturnValue(4);
     mocks.getJobByUrl.mockReturnValue(null);
+    mocks.getJobBySource.mockReturnValue(null);
+    mocks.getViewPreferences.mockReturnValue(null);
   });
 
   it("creates a pending opportunity and notification for a single scraped job", async () => {
@@ -76,6 +87,7 @@ describe("opportunities from-extension route", () => {
       opportunityIds: ["job-1"],
       pendingCount: 4,
       dedupedIds: [],
+      failed: [],
     });
     expect(mocks.createJob).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -124,6 +136,7 @@ describe("opportunities from-extension route", () => {
       opportunityIds: ["job-1", "job-2"],
       pendingCount: 4,
       dedupedIds: [],
+      failed: [],
     });
     expect(mocks.createJob).toHaveBeenCalledTimes(2);
     expect(mocks.createNotification).toHaveBeenCalledWith(
@@ -153,14 +166,51 @@ describe("opportunities from-extension route", () => {
     expect(mocks.createJob).not.toHaveBeenCalled();
   });
 
-  it("rejects invalid scraped job payloads", async () => {
+  it("reports invalid rows in the failed[] array without rejecting the batch", async () => {
+    // Per-row validation (RCA #56): a single row missing `company` should
+    // come back in `failed[]`, not cause a 400. The batch can still
+    // import other rows if any were valid.
     const response = await POST(jsonRequest({ title: "Frontend Engineer" }));
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(201);
     const body = await response.json();
-    expect(body.error).toBe("Validation failed");
+    expect(body.imported).toBe(0);
+    expect(body.failed).toHaveLength(1);
+    expect(body.failed[0]).toMatchObject({
+      index: 0,
+      title: "Frontend Engineer",
+      errors: expect.arrayContaining([
+        expect.objectContaining({ field: "company" }),
+      ]),
+    });
     expect(mocks.createJob).not.toHaveBeenCalled();
-    expect(mocks.createNotification).not.toHaveBeenCalled();
+  });
+
+  it("imports the good rows in a mixed-validity batch", async () => {
+    mocks.getJobByUrl.mockReturnValue(null);
+    mocks.getJobBySource.mockReturnValue(null);
+    mocks.countJobsByStatus.mockReturnValue(4);
+    mocks.createJob.mockImplementation((job: { title: string }) => ({
+      ...job,
+      id: `job-${job.title}`,
+    }));
+
+    const response = await POST(
+      jsonRequest({
+        jobs: [
+          { title: "Good Job", company: "Acme" },
+          { title: "", company: "Bad Co" }, // empty title
+          { title: "Another Good", company: "Beta" },
+        ],
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    const body = await response.json();
+    expect(body.imported).toBe(2);
+    expect(body.failed).toHaveLength(1);
+    expect(body.failed[0]).toMatchObject({ index: 1, company: "Bad Co" });
+    expect(mocks.createJob).toHaveBeenCalledTimes(2);
   });
 
   it("returns a client error for malformed JSON", async () => {
@@ -203,6 +253,7 @@ describe("opportunities from-extension route", () => {
       opportunityIds: ["job-1"],
       pendingCount: 4,
       dedupedIds: ["job-1"],
+      failed: [],
     });
     expect(mocks.createJob).not.toHaveBeenCalled();
     expect(mocks.updateJobStatus).toHaveBeenCalledWith(
@@ -236,6 +287,7 @@ describe("opportunities from-extension route", () => {
       opportunityIds: ["job-1"],
       pendingCount: 4,
       dedupedIds: [],
+      failed: [],
     });
     expect(mocks.createJob).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -11,8 +11,14 @@ import type {
   ImportDefaultStatus,
   OpportunityAutoTagRule,
   OpportunitySortId,
+  PayNormalizationCurrency,
+  PayNormalizationUnit,
 } from "@slothing/shared/schemas";
-import { opportunityAutoTagRuleSchema } from "@slothing/shared/schemas";
+import {
+  PAY_NORMALIZATION_CURRENCIES,
+  PAY_NORMALIZATION_UNITS,
+  opportunityAutoTagRuleSchema,
+} from "@slothing/shared/schemas";
 
 export type DisplayDensity = "comfortable" | "compact";
 
@@ -44,6 +50,9 @@ export interface OpportunityViewPreferences {
   autoImportEnabled: boolean;
   defaultImportStatus: ImportDefaultStatus;
   autoTagRules: OpportunityAutoTagRule[];
+  // Pay normalization (bucket G)
+  payNormalizationUnit: PayNormalizationUnit;
+  payNormalizationCurrency: PayNormalizationCurrency;
 }
 
 export const DEFAULT_VIEW_PREFERENCES: OpportunityViewPreferences = {
@@ -58,6 +67,8 @@ export const DEFAULT_VIEW_PREFERENCES: OpportunityViewPreferences = {
   autoImportEnabled: false,
   defaultImportStatus: "pending",
   autoTagRules: [],
+  payNormalizationUnit: "annual",
+  payNormalizationCurrency: "USD",
 };
 
 interface OpportunityViewPreferencesRow {
@@ -73,6 +84,8 @@ interface OpportunityViewPreferencesRow {
   auto_import_enabled?: number | boolean;
   default_import_status?: string;
   auto_tag_rules_json?: string;
+  pay_normalization_unit?: string;
+  pay_normalization_currency?: string;
 }
 
 let preferencesSchemaEnsured = false;
@@ -103,6 +116,9 @@ function ensurePreferencesSchema(): void {
     "ALTER TABLE opportunity_view_preferences ADD COLUMN auto_import_enabled INTEGER",
     "ALTER TABLE opportunity_view_preferences ADD COLUMN default_import_status TEXT",
     "ALTER TABLE opportunity_view_preferences ADD COLUMN auto_tag_rules_json TEXT",
+    // Bucket G — pay normalization display preferences.
+    "ALTER TABLE opportunity_view_preferences ADD COLUMN pay_normalization_unit TEXT",
+    "ALTER TABLE opportunity_view_preferences ADD COLUMN pay_normalization_currency TEXT",
   ];
   for (const statement of statements) {
     try {
@@ -119,6 +135,9 @@ function ensurePreferencesSchema(): void {
   }
   preferencesSchemaEnsured = true;
 }
+
+const PAY_UNIT_SET = new Set<string>(PAY_NORMALIZATION_UNITS);
+const PAY_CURRENCY_SET = new Set<string>(PAY_NORMALIZATION_CURRENCIES);
 
 function mergeWithDefaults(
   row: OpportunityViewPreferencesRow | undefined,
@@ -152,6 +171,15 @@ function mergeWithDefaults(
       (row.default_import_status as ImportDefaultStatus | undefined) ??
       DEFAULT_VIEW_PREFERENCES.defaultImportStatus,
     autoTagRules: parseRules(row.auto_tag_rules_json),
+    payNormalizationUnit:
+      row.pay_normalization_unit && PAY_UNIT_SET.has(row.pay_normalization_unit)
+        ? (row.pay_normalization_unit as PayNormalizationUnit)
+        : DEFAULT_VIEW_PREFERENCES.payNormalizationUnit,
+    payNormalizationCurrency:
+      row.pay_normalization_currency &&
+      PAY_CURRENCY_SET.has(row.pay_normalization_currency)
+        ? (row.pay_normalization_currency as PayNormalizationCurrency)
+        : DEFAULT_VIEW_PREFERENCES.payNormalizationCurrency,
   };
 }
 
@@ -221,8 +249,9 @@ export function setViewPreferences(
       scrape_throttle_ms, scrape_chunk_size, scrape_max_jobs,
       scrape_max_pages, scrape_dedupe_enabled,
       auto_import_enabled, default_import_status, auto_tag_rules_json,
+      pay_normalization_unit, pay_normalization_currency,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(user_id) DO UPDATE SET
       display_density = excluded.display_density,
       default_sort_id = excluded.default_sort_id,
@@ -235,6 +264,8 @@ export function setViewPreferences(
       auto_import_enabled = excluded.auto_import_enabled,
       default_import_status = excluded.default_import_status,
       auto_tag_rules_json = excluded.auto_tag_rules_json,
+      pay_normalization_unit = excluded.pay_normalization_unit,
+      pay_normalization_currency = excluded.pay_normalization_currency,
       updated_at = CURRENT_TIMESTAMP`,
   ).run(
     userId,
@@ -249,6 +280,8 @@ export function setViewPreferences(
     merged.autoImportEnabled ? 1 : 0,
     merged.defaultImportStatus,
     JSON.stringify(merged.autoTagRules),
+    merged.payNormalizationUnit,
+    merged.payNormalizationCurrency,
   );
   return merged;
 }

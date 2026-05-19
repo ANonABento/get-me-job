@@ -195,6 +195,13 @@ export class SlothingAPIClient {
     imported: number;
     opportunityIds: string[];
     pendingCount: number;
+    dedupedIds?: string[];
+    failed?: Array<{
+      sourceJobId?: string;
+      title?: string;
+      company?: string;
+      errors: Array<{ field: string; message: string }>;
+    }>;
   }> {
     return this.authenticatedFetch("/api/opportunities/from-extension", {
       method: "POST",

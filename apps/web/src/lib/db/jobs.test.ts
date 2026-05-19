@@ -219,6 +219,12 @@ describe("Job Database Functions", () => {
         null,
         null,
         null,
+        // Bucket G inferred pay (unit/min/max/currency) — all null when
+        // the input has no salary string to parse.
+        null,
+        null,
+        null,
+        null,
         TEST_USER_ID,
       );
       expect(result.id).toBe("test-id-123");
@@ -285,6 +291,11 @@ describe("Job Database Functions", () => {
         null,
         null,
         null,
+        null,
+        null,
+        null,
+        null,
+        // Bucket G — inferred pay columns (unit/min/max/currency).
         null,
         null,
         null,

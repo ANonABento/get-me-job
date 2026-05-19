@@ -726,6 +726,16 @@ async function runWwBulkScrape(opts: {
   let importedTotal = 0;
   let attemptedTotal = 0;
   const dedupedIdsAll: string[] = [];
+  // RCA #56 — per-row validation failures from the server. The popup's
+  // result card surfaces these so users know exactly which postings
+  // didn't make it (and why) instead of silently losing rows in the
+  // 881 → 681 gap we shipped in v0.4.
+  const failedAll: Array<{
+    sourceJobId?: string;
+    title?: string;
+    company?: string;
+    errors: Array<{ field: string; message: string }>;
+  }> = [];
 
   const onChunk = async (chunk: ScrapedJob[]) => {
     if (chunk.length === 0) return;
@@ -736,16 +746,53 @@ async function runWwBulkScrape(opts: {
         opportunityIds: string[];
         pendingCount: number;
         dedupedIds?: string[];
+        failed?: Array<{
+          sourceJobId?: string;
+          title?: string;
+          company?: string;
+          errors: Array<{ field: string; message: string }>;
+        }>;
       }>(Messages.importJobsBatch(chunk));
       if (importResp.success && importResp.data) {
         importedTotal += importResp.data.imported ?? 0;
         if (importResp.data.dedupedIds) {
           dedupedIdsAll.push(...importResp.data.dedupedIds);
         }
+        if (importResp.data.failed && importResp.data.failed.length > 0) {
+          failedAll.push(...importResp.data.failed);
+        }
+      } else if (!importResp.success) {
+        // Whole-chunk import failure (network, 5xx, auth). Synthesize a
+        // failure entry per row so the user sees something instead of a
+        // silent gap. Use the chunk index in the run as the identity
+        // when sourceJobId is missing — easier to find in DevTools.
+        for (const job of chunk) {
+          failedAll.push({
+            sourceJobId: job.sourceJobId,
+            title: job.title,
+            company: job.company,
+            errors: [
+              {
+                field: "_chunk",
+                message:
+                  importResp.error ||
+                  "Chunk import failed (network or server error)",
+              },
+            ],
+          });
+        }
       }
-    } catch {
+    } catch (err) {
       // Best-effort — a single chunk failure shouldn't abort the whole
-      // scrape. Errors flow through onProgress.errors.
+      // scrape. Synthesize per-row failures so the popup can show them.
+      for (const job of chunk) {
+        failedAll.push({
+          sourceJobId: job.sourceJobId,
+          title: job.title,
+          company: job.company,
+          errors: [{ field: "_chunk", message: String(err).slice(0, 200) }],
+        });
+      }
     }
   };
 
@@ -824,6 +871,7 @@ async function runWwBulkScrape(opts: {
       skipped: skipSourceJobIds ? skipSourceJobIds.size : 0,
       errors,
       aborted,
+      failed: failedAll,
     },
   };
 }

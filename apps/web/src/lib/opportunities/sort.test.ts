@@ -58,6 +58,64 @@ describe("sortOpportunities", () => {
     ]);
   });
 
+  it("highest-pay converts currencies before comparing when ctx provides rates", () => {
+    // CAD 130k/yr * 0.735 ≈ 95.5k USD — lower than the USD 100k posting
+    // even though the raw CAD number is bigger.
+    const rates = {
+      USD: { CAD: 1.36, USD: 1 },
+      CAD: { USD: 0.735, CAD: 1 },
+    };
+    const list = [
+      makeJob({
+        id: "cad-130k",
+        inferredPayUnit: "annual",
+        inferredPayMin: 130_000,
+        inferredPayCurrency: "CAD",
+      }),
+      makeJob({
+        id: "usd-100k",
+        inferredPayUnit: "annual",
+        inferredPayMin: 100_000,
+        inferredPayCurrency: "USD",
+      }),
+    ];
+    expect(
+      sortOpportunities(list, "highest-pay", {
+        payTargetCurrency: "USD",
+        currencyRates: rates,
+      }).map((o) => o.id),
+    ).toEqual(["usd-100k", "cad-130k"]);
+  });
+
+  it("highest-pay normalizes hourly via 2080 hr/yr when inferred fields present", () => {
+    // "$60/hr" → 124.8k/yr should outrank a $100k/yr annual posting.
+    const list = [
+      makeJob({
+        id: "annual-100k",
+        inferredPayUnit: "annual",
+        inferredPayMin: 100_000,
+        inferredPayCurrency: "USD",
+      }),
+      makeJob({
+        id: "hourly-60",
+        inferredPayUnit: "hourly",
+        inferredPayMin: 60,
+        inferredPayCurrency: "USD",
+      }),
+      makeJob({
+        id: "monthly-7k",
+        inferredPayUnit: "monthly",
+        inferredPayMin: 7_000,
+        inferredPayCurrency: "USD",
+      }),
+    ];
+    expect(sortOpportunities(list, "highest-pay").map((o) => o.id)).toEqual([
+      "hourly-60", // 124,800/yr
+      "annual-100k", // 100,000/yr
+      "monthly-7k", // 84,000/yr
+    ]);
+  });
+
   it("lowest-pay is the inverse and still puts no-salary last", () => {
     const list = [
       makeJob({ id: "high", salaryMin: 100_000 }),

@@ -122,6 +122,14 @@ export interface JobDescription {
   applicants?: number;
   level?: string;
   workTerm?: string;
+  // Bucket G — parsed/inferred pay from `salary`. Stored alongside the raw
+  // string so the renderer can show normalized amounts while keeping the
+  // original visible (tooltip / diff). All four are undefined when parsing
+  // failed or when the row predates the migration.
+  inferredPayUnit?: "hourly" | "monthly" | "annual";
+  inferredPayMin?: number;
+  inferredPayMax?: number;
+  inferredPayCurrency?: string;
 }
 
 export interface JobMatch {

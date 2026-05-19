@@ -27,6 +27,10 @@ interface JobRow {
   applicants?: number;
   level?: string;
   work_term?: string;
+  inferred_pay_unit?: string;
+  inferred_pay_min?: number;
+  inferred_pay_max?: number;
+  inferred_pay_currency?: string;
 }
 
 // Additive migration for the extension-import metadata. Each ALTER is
@@ -46,6 +50,13 @@ function ensureJobsExtensionFields(): void {
     "ALTER TABLE jobs ADD COLUMN applicants INTEGER",
     "ALTER TABLE jobs ADD COLUMN level TEXT",
     "ALTER TABLE jobs ADD COLUMN work_term TEXT",
+    // Bucket G — inferred pay from the salary string. Stored alongside
+    // the raw `salary` text so the renderer can show normalized
+    // amounts while the original stays available for tooltips/diffing.
+    "ALTER TABLE jobs ADD COLUMN inferred_pay_unit TEXT",
+    "ALTER TABLE jobs ADD COLUMN inferred_pay_min REAL",
+    "ALTER TABLE jobs ADD COLUMN inferred_pay_max REAL",
+    "ALTER TABLE jobs ADD COLUMN inferred_pay_currency TEXT",
     "CREATE INDEX IF NOT EXISTS idx_jobs_user_source_job ON jobs(user_id, source, source_job_id)",
   ];
   for (const statement of statements) {
@@ -107,6 +118,21 @@ function mapRowToJob(row: JobRow): JobDescription {
     applicants: typeof row.applicants === "number" ? row.applicants : undefined,
     level: row.level,
     workTerm: row.work_term,
+    inferredPayUnit:
+      row.inferred_pay_unit === "hourly" ||
+      row.inferred_pay_unit === "monthly" ||
+      row.inferred_pay_unit === "annual"
+        ? row.inferred_pay_unit
+        : undefined,
+    inferredPayMin:
+      typeof row.inferred_pay_min === "number"
+        ? row.inferred_pay_min
+        : undefined,
+    inferredPayMax:
+      typeof row.inferred_pay_max === "number"
+        ? row.inferred_pay_max
+        : undefined,
+    inferredPayCurrency: row.inferred_pay_currency,
   };
 }
 
@@ -229,8 +255,8 @@ export function createJob(
   const id = generateId();
   db.prepare(
     `
-    INSERT INTO jobs (id, title, company, location, type, remote, salary, description, requirements_json, responsibilities_json, keywords_json, url, status, applied_at, deadline, notes, source, source_job_id, openings, applicants, level, work_term, user_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO jobs (id, title, company, location, type, remote, salary, description, requirements_json, responsibilities_json, keywords_json, url, status, applied_at, deadline, notes, source, source_job_id, openings, applicants, level, work_term, inferred_pay_unit, inferred_pay_min, inferred_pay_max, inferred_pay_currency, user_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
   ).run(
     id,
@@ -255,6 +281,10 @@ export function createJob(
     typeof job.applicants === "number" ? job.applicants : null,
     job.level || null,
     job.workTerm || null,
+    job.inferredPayUnit || null,
+    typeof job.inferredPayMin === "number" ? job.inferredPayMin : null,
+    typeof job.inferredPayMax === "number" ? job.inferredPayMax : null,
+    job.inferredPayCurrency || null,
     userId,
   );
   return getJob(id, userId)!;

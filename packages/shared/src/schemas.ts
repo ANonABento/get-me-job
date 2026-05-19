@@ -104,6 +104,22 @@ export type AutoTagTriggerType = (typeof AUTO_TAG_TRIGGER_TYPES)[number];
 export const IMPORT_DEFAULT_STATUSES = ["pending", "saved"] as const;
 export type ImportDefaultStatus = (typeof IMPORT_DEFAULT_STATUSES)[number];
 
+// Bucket G — pay normalization display preferences. The renderer
+// converts each opportunity's inferred pay into the user's chosen
+// unit/currency before showing it. Currency conversion follow-up
+// (bucket G.1) — until that ships, non-matching currencies render as
+// the source currency with a prefix.
+export const PAY_NORMALIZATION_UNITS = ["hourly", "monthly", "annual"] as const;
+export type PayNormalizationUnit = (typeof PAY_NORMALIZATION_UNITS)[number];
+export const PAY_NORMALIZATION_CURRENCIES = [
+  "USD",
+  "CAD",
+  "EUR",
+  "GBP",
+] as const;
+export type PayNormalizationCurrency =
+  (typeof PAY_NORMALIZATION_CURRENCIES)[number];
+
 export type OpportunityType = (typeof OPPORTUNITY_TYPES)[number];
 export type OpportunitySource = (typeof OPPORTUNITY_SOURCES)[number];
 export type OpportunityRemoteType = (typeof OPPORTUNITY_REMOTE_TYPES)[number];
@@ -203,6 +219,13 @@ export interface Opportunity {
   salaryMin?: number;
   salaryMax?: number;
   salaryCurrency?: string;
+  // Bucket G — parsed/inferred pay from the raw `salary` string at import
+  // time. The renderer + highest/lowest-pay comparators prefer these when
+  // present; falls back to the raw string + heuristic midpoint otherwise.
+  inferredPayUnit?: PayNormalizationUnit;
+  inferredPayMin?: number;
+  inferredPayMax?: number;
+  inferredPayCurrency?: string;
   benefits?: string[];
   deadline?: string;
   additionalInfo?: string;

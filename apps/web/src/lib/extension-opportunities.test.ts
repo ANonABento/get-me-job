@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildJobFromExtension,
   buildPendingJobFromExtension,
+  parseExtensionOpportunitiesPerRow,
   parseExtensionOpportunityPayload,
 } from "./extension-opportunities";
 
@@ -105,6 +106,65 @@ describe("buildPendingJobFromExtension", () => {
       url: undefined,
       notes: "Source: linkedin\nSource job ID: abc-123\nPosted at: 2026-04-29",
     });
+  });
+});
+
+describe("parseExtensionOpportunitiesPerRow", () => {
+  it("keeps good rows when one row fails validation", () => {
+    const result = parseExtensionOpportunitiesPerRow({
+      jobs: [
+        { title: "Frontend Engineer", company: "Acme" },
+        { title: "", company: "Beta" }, // invalid — empty title
+        { title: "Backend Engineer", company: "Gamma" },
+      ],
+    });
+
+    expect(result.valid).toHaveLength(2);
+    expect(result.valid.map((j) => j.company)).toEqual(["Acme", "Gamma"]);
+    expect(result.invalid).toHaveLength(1);
+    expect(result.invalid[0]).toMatchObject({
+      index: 1,
+      company: "Beta",
+    });
+    expect(result.invalid[0].errors[0].field).toBe("title");
+  });
+
+  it("captures identity fields from the raw row when validation fails", () => {
+    const result = parseExtensionOpportunitiesPerRow({
+      opportunities: [
+        {
+          title: "x".repeat(600), // exceeds 500 cap
+          company: "Acme",
+          sourceJobId: "471268",
+        },
+      ],
+    });
+
+    expect(result.valid).toHaveLength(0);
+    expect(result.invalid).toHaveLength(1);
+    expect(result.invalid[0]).toMatchObject({
+      index: 0,
+      company: "Acme",
+      sourceJobId: "471268",
+    });
+    // Title is sliced to 200 chars for display purposes — full string
+    // is in the raw payload, but the identity slice keeps it readable.
+    expect(result.invalid[0].title?.length).toBeLessThanOrEqual(200);
+  });
+
+  it("accepts a single-opportunity payload without a wrapper", () => {
+    const result = parseExtensionOpportunitiesPerRow({
+      title: "Frontend Engineer",
+      company: "Acme",
+    });
+    expect(result.valid).toHaveLength(1);
+    expect(result.invalid).toHaveLength(0);
+  });
+
+  it("returns empty valid + a single invalid for a malformed wrapper", () => {
+    const result = parseExtensionOpportunitiesPerRow({ jobs: "not-an-array" });
+    expect(result.valid).toHaveLength(0);
+    expect(result.invalid).toHaveLength(0);
   });
 });
 

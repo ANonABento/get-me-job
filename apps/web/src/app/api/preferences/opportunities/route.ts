@@ -15,6 +15,8 @@ import {
   VISIBLE_BADGE_KEYS,
 } from "@/lib/db/opportunity-view-preferences";
 import {
+  PAY_NORMALIZATION_CURRENCIES,
+  PAY_NORMALIZATION_UNITS,
   importDefaultStatusSchema,
   opportunityAutoTagRuleSchema,
   opportunitySortIdSchema,
@@ -35,6 +37,8 @@ const updatePreferencesSchema = z
     autoImportEnabled: z.boolean(),
     defaultImportStatus: importDefaultStatusSchema,
     autoTagRules: z.array(opportunityAutoTagRuleSchema).max(50),
+    payNormalizationUnit: z.enum(PAY_NORMALIZATION_UNITS),
+    payNormalizationCurrency: z.enum(PAY_NORMALIZATION_CURRENCIES),
   })
   .partial();
 

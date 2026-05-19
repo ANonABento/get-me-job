@@ -46,6 +46,10 @@ describe("summarizeCronHealth", () => {
           cron: "digest.daily",
           finishedAt: "2026-05-18T03:00:00.000Z",
         }),
+        cronRun({
+          cron: "currency-rates",
+          finishedAt: "2026-05-18T03:00:00.000Z",
+        }),
       ],
       now,
     );

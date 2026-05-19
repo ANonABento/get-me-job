@@ -112,6 +112,18 @@ vi.mock("@/components/settings/opportunity-review-section", () => ({
   ),
 }));
 
+vi.mock("@/components/settings/opportunity-preferences-section", () => ({
+  OpportunityPreferencesSection: () => (
+    <section data-testid="opportunity-preferences-section" />
+  ),
+}));
+
+vi.mock("@/components/settings/import-behavior-section", () => ({
+  ImportBehaviorSection: () => (
+    <section data-testid="import-behavior-section" />
+  ),
+}));
+
 vi.mock("@/components/settings/data-management", () => ({
   DataManagement: () => <section data-testid="data-management" />,
 }));

@@ -12,9 +12,22 @@
 // Visual tokens come from `popup/styles.css` (paper/ink/rust palette).
 // No hardcoded colors, no inline color styles.
 
-import React from "react";
+import React, { useState } from "react";
 
 export type BulkScrapeMode = "visible" | "paginated";
+
+/**
+ * Per-row validation failure surfaced from the import endpoint. Each
+ * entry is one posting the server couldn't accept — typically because
+ * a single field violated the Zod cap (description, title, etc.).
+ * Aggregated across all chunks in a single scrape run.
+ */
+export interface BulkScrapeFailure {
+  sourceJobId?: string;
+  title?: string;
+  company?: string;
+  errors: Array<{ field: string; message: string }>;
+}
 
 export interface BulkScrapeResult {
   imported: number;
@@ -23,6 +36,10 @@ export interface BulkScrapeResult {
   duplicateCount?: number;
   dedupedIds?: string[];
   errors: string[];
+  // Per-row validation failures from the server (RCA #56). Empty array
+  // means every row that reached the server validated; non-empty means
+  // the popup should surface a "N failed" line + expandable details.
+  failed?: BulkScrapeFailure[];
 }
 
 export interface BulkProgress {
@@ -166,6 +183,9 @@ export function BulkSourceCard(props: BulkSourceCardProps) {
             {lastResult.duplicateCount
               ? ` · ${lastResult.duplicateCount} duplicates`
               : ""}
+            {lastResult.failed && lastResult.failed.length > 0
+              ? ` · ${lastResult.failed.length} failed`
+              : ""}
             {lastResult.errors.length > 0 &&
               ` · ${lastResult.errors.length} errors`}
           </p>
@@ -174,6 +194,9 @@ export function BulkSourceCard(props: BulkSourceCardProps) {
               Duplicates: {lastResult.dedupedIds.join(", ")}
             </p>
           ) : null}
+          {lastResult.failed && lastResult.failed.length > 0 && (
+            <FailedRowsPanel failed={lastResult.failed} />
+          )}
           {lastResult.imported > 0 && onViewTracker && (
             <button className="success-link" onClick={onViewTracker}>
               View tracker →
@@ -183,6 +206,87 @@ export function BulkSourceCard(props: BulkSourceCardProps) {
       )}
       {lastError && <p className="inline-error">{lastError}</p>}
     </article>
+  );
+}
+
+/**
+ * Collapsible details for per-row import failures. Renders one line per
+ * failed posting with title/company + the first field-level reason
+ * (typically "description too long (62k chars)"). "Copy as JSON" puts
+ * the full payload on the clipboard so the user can paste it into a
+ * GitHub issue or our triage Slack channel.
+ *
+ * Amber, not red — partial failure ≠ broken scrape.
+ */
+function FailedRowsPanel({
+  failed,
+}: {
+  failed: NonNullable<BulkScrapeResult["failed"]>;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const copyJson = async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(failed, null, 2));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard write can fail in MV2 popups without user gesture
+      // semantics. Swallow — the user can still expand and read.
+    }
+  };
+
+  return (
+    <div className="bulk-failed">
+      <button
+        type="button"
+        className="link inline-link bulk-failed-toggle"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+      >
+        {expanded ? "Hide details ▴" : "Show details ▾"}
+      </button>
+      {expanded && (
+        <>
+          <p className="inline-note bulk-failed-hint">
+            Likely cause: the posting had a field longer than our import limit
+            (description, title, requirements). The schema has been relaxed in
+            newer builds, so re-running &quot;Scrape all&quot; may recover
+            these.
+          </p>
+          <ul className="bulk-failed-list">
+            {failed.slice(0, 50).map((row, i) => {
+              const label = row.title || row.sourceJobId || `Row ${i + 1}`;
+              const company = row.company ? ` – ${row.company}` : "";
+              const firstError = row.errors[0];
+              const reason = firstError
+                ? `${firstError.field}: ${firstError.message}`
+                : "validation error";
+              return (
+                <li key={`${row.sourceJobId ?? "n"}-${i}`} title={reason}>
+                  <span className="bulk-failed-title clip">
+                    {label}
+                    {company}
+                  </span>
+                  <span className="bulk-failed-reason inline-note">
+                    {reason}
+                  </span>
+                </li>
+              );
+            })}
+            {failed.length > 50 && (
+              <li className="inline-note">
+                … and {failed.length - 50} more (see Copy as JSON)
+              </li>
+            )}
+          </ul>
+          <button type="button" className="btn ghost tight" onClick={copyJson}>
+            {copied ? "Copied!" : "Copy as JSON"}
+          </button>
+        </>
+      )}
+    </div>
   );
 }
 

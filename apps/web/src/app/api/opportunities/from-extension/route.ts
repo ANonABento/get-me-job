@@ -16,7 +16,8 @@ import {
 import { createNotification } from "@/lib/db/notifications";
 import {
   buildJobFromExtension,
-  parseExtensionOpportunityPayload,
+  parseExtensionOpportunitiesPerRow,
+  type PerRowParseFailure,
 } from "@/lib/extension-opportunities";
 import { getViewPreferences } from "@/lib/db/opportunity-view-preferences";
 import { applyAutoTagRules } from "@/lib/opportunities/auto-tag";
@@ -39,17 +40,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const parseResult = parseExtensionOpportunityPayload(rawData);
+    // Per-row validation — one bad row no longer kills its chunk-mates.
+    // The popup surfaces the `failed` array to the user; the route still
+    // returns 201 even when partial because that's the truth (some rows
+    // imported, others didn't).
+    const parseResult = parseExtensionOpportunitiesPerRow(rawData);
 
-    if (!parseResult.success) {
+    if (parseResult.valid.length === 0 && parseResult.invalid.length === 0) {
       return NextResponse.json(
-        { error: "Validation failed", errors: parseResult.errors },
+        {
+          error:
+            "Empty payload — expected `jobs` or `opportunities` array (or single opportunity).",
+        },
         { status: 400 },
       );
     }
 
     const importedJobs: JobDescription[] = [];
     const dedupedIds: string[] = [];
+    const failed: PerRowParseFailure[] = [...parseResult.invalid];
 
     // Bucket E — auto-tag rules. Loaded once per request so a 50-job
     // batch doesn't do 50 SELECTs against preferences.
@@ -62,7 +71,7 @@ export async function POST(request: NextRequest) {
     })();
     const autoTagRules = preferences?.autoTagRules ?? [];
 
-    for (const opportunity of parseResult.opportunities) {
+    for (const opportunity of parseResult.valid) {
       // Dedupe by (source, sourceJobId) before URL — the natural key from
       // the platform (e.g. WaterlooWorks "471268"). URL is fallback because
       // some sources (older imports, non-WW) lack a posting ID.
@@ -155,19 +164,24 @@ export async function POST(request: NextRequest) {
 
     const pendingCount = countJobsByStatus("pending", authResult.userId);
 
-    if (importedJobs.length > 0) {
-      const appliedCount = parseResult.opportunities.filter(
+    if (importedJobs.length > 0 || failed.length > 0) {
+      const appliedCount = parseResult.valid.filter(
         (opportunity) => opportunity.status === "applied",
       ).length;
 
       createNotification(
         {
           type: "info",
-          title: notificationTitle(importedJobs.length, appliedCount),
+          title: notificationTitle(
+            importedJobs.length,
+            appliedCount,
+            failed.length,
+          ),
           message: notificationMessage(
             importedJobs,
             pendingCount,
             appliedCount,
+            failed.length,
           ),
           link: appliedCount > 0 ? "/opportunities" : "/opportunities/review",
         },
@@ -181,6 +195,9 @@ export async function POST(request: NextRequest) {
         opportunityIds: importedJobs.map((job) => job.id),
         pendingCount,
         dedupedIds,
+        // Per-row validation failures — the popup uses this to surface a
+        // "Z failed" line + expandable list. Empty when every row parsed.
+        failed,
       },
       { status: 201 },
     );
@@ -196,7 +213,14 @@ export async function POST(request: NextRequest) {
 function notificationTitle(
   importedCount: number,
   appliedCount: number,
+  failedCount: number,
 ): string {
+  if (importedCount === 0 && failedCount > 0) {
+    return failedCount === 1
+      ? "Couldn't import 1 posting"
+      : `Couldn't import ${failedCount} postings`;
+  }
+
   if (appliedCount > 0) {
     return importedCount === 1
       ? "Tracked application"
@@ -212,15 +236,31 @@ function notificationMessage(
   importedJobs: Array<{ title: string; company: string }>,
   pendingCount: number,
   appliedCount: number,
+  failedCount: number,
 ): string {
-  if (appliedCount > 0) {
+  // Build the base success/applied sentence first.
+  let base: string;
+  if (importedJobs.length === 0) {
+    base = "";
+  } else if (appliedCount > 0) {
     const firstJob = importedJobs[0];
-    return importedJobs.length === 1
-      ? `Tracked application: ${firstJob.title} at ${firstJob.company}.`
-      : `${appliedCount} submitted applications were added to Opportunities.`;
+    base =
+      importedJobs.length === 1
+        ? `Tracked application: ${firstJob.title} at ${firstJob.company}.`
+        : `${appliedCount} submitted applications were added to Opportunities.`;
+  } else if (importedJobs.length === 1) {
+    base = `${importedJobs[0].title} at ${importedJobs[0].company} was added to Pending.`;
+  } else {
+    base = `${pendingCount} pending opportunities are ready to review.`;
   }
 
-  return importedJobs.length === 1
-    ? `${importedJobs[0].title} at ${importedJobs[0].company} was added to Pending.`
-    : `${pendingCount} pending opportunities are ready to review.`;
+  if (failedCount > 0) {
+    const tail =
+      failedCount === 1
+        ? "1 posting was skipped — open the extension popup for details."
+        : `${failedCount} postings were skipped — open the extension popup for details.`;
+    return base ? `${base} ${tail}` : tail;
+  }
+
+  return base;
 }

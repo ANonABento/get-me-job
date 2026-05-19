@@ -19,7 +19,10 @@ import type { Opportunity } from "@/types/opportunity";
 import type {
   OpportunityPreset,
   OpportunitySortId,
+  PayNormalizationCurrency,
+  PayNormalizationUnit,
 } from "@slothing/shared/schemas";
+import type { CurrencyRateMap } from "@/lib/opportunities/pay";
 import { useA11yTranslations } from "@/lib/i18n/use-a11y-translations";
 import { sortOpportunities } from "@/lib/opportunities/sort";
 
@@ -29,6 +32,17 @@ interface OpportunitiesResponse {
 
 interface PresetsResponse {
   presets?: OpportunityPreset[];
+}
+
+interface OpportunityPreferencesResponse {
+  preferences?: {
+    payNormalizationUnit?: PayNormalizationUnit;
+    payNormalizationCurrency?: PayNormalizationCurrency;
+  };
+}
+
+interface CurrencyRatesResponse {
+  rates?: CurrencyRateMap;
 }
 
 export default function OpportunityReviewPage() {
@@ -48,17 +62,29 @@ export default function OpportunityReviewPage() {
     useState<OpportunitySortId>("most-recent");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [savingPreset, setSavingPreset] = useState(false);
+  const [payDisplayUnit, setPayDisplayUnit] =
+    useState<PayNormalizationUnit>("annual");
+  const [payDisplayCurrency, setPayDisplayCurrency] =
+    useState<PayNormalizationCurrency>("USD");
+  const [currencyRates, setCurrencyRates] = useState<CurrencyRateMap>({});
   const { confirm: confirmDelete, dialog: confirmDialog } = useConfirmDialog();
 
   const fetchPageData = useCallback(async () => {
     setLoading(true);
     try {
-      const [settingsResponse, jobsResponse, presetsResponse] =
-        await Promise.all([
-          fetch("/api/settings"),
-          fetch("/api/opportunities"),
-          fetch("/api/opportunity-presets?scope=review"),
-        ]);
+      const [
+        settingsResponse,
+        jobsResponse,
+        presetsResponse,
+        preferencesResponse,
+        ratesResponse,
+      ] = await Promise.all([
+        fetch("/api/settings"),
+        fetch("/api/opportunities"),
+        fetch("/api/opportunity-presets?scope=review"),
+        fetch("/api/preferences/opportunities"),
+        fetch("/api/currency-rates"),
+      ]);
       const settingsData = await readJsonResponse<SettingsResponse>(
         settingsResponse,
         "Failed to load settings",
@@ -71,10 +97,30 @@ export default function OpportunityReviewPage() {
         presetsResponse,
         "Failed to load presets",
       );
+      const preferencesData =
+        await readJsonResponse<OpportunityPreferencesResponse>(
+          preferencesResponse,
+          "Failed to load preferences",
+        );
+      const ratesData = await readJsonResponse<CurrencyRatesResponse>(
+        ratesResponse,
+        "Failed to load currency rates",
+      );
 
       setEnabled(settingsData.opportunityReview?.enabled ?? true);
       setJobs(jobsData.opportunities || []);
       setPresets(presetsData.presets || []);
+      if (preferencesData.preferences?.payNormalizationUnit) {
+        setPayDisplayUnit(preferencesData.preferences.payNormalizationUnit);
+      }
+      if (preferencesData.preferences?.payNormalizationCurrency) {
+        setPayDisplayCurrency(
+          preferencesData.preferences.payNormalizationCurrency,
+        );
+      }
+      if (ratesData.rates) {
+        setCurrencyRates(ratesData.rates);
+      }
     } catch (error) {
       showErrorToast(error, {
         title: "Could not load review queue",
@@ -122,8 +168,11 @@ export default function OpportunityReviewPage() {
       }
       return true;
     });
-    return sortOpportunities(filtered, effectiveSortId);
-  }, [jobs, activePreset, effectiveSortId]);
+    return sortOpportunities(filtered, effectiveSortId, {
+      payTargetCurrency: payDisplayCurrency,
+      currencyRates,
+    });
+  }, [jobs, activePreset, effectiveSortId, payDisplayCurrency, currencyRates]);
 
   const applyPreset = (preset: OpportunityPreset) => {
     setActivePresetId(preset.id);
@@ -291,6 +340,9 @@ export default function OpportunityReviewPage() {
         updating={updating}
         onStatusChange={updateJobStatus}
         onApplyNow={applyNow}
+        payDisplayUnit={payDisplayUnit}
+        payDisplayCurrency={payDisplayCurrency}
+        currencyRates={currencyRates}
       />
       <SavePresetDialog
         open={saveDialogOpen}

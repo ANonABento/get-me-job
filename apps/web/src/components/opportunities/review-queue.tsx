@@ -24,6 +24,10 @@ import { cn } from "@/lib/utils";
 import type { Opportunity } from "@/types/opportunity";
 
 import { toNullableEpoch } from "@/lib/format/time";
+import {
+  formatOpportunityPay,
+  type CurrencyRateMap,
+} from "@/lib/opportunities/pay";
 import { useA11yTranslations } from "@/lib/i18n/use-a11y-translations";
 type QueueAction = "save" | "dismiss" | "apply";
 
@@ -82,6 +86,16 @@ interface OpportunityReviewQueueProps {
     status: Opportunity["status"],
   ) => Promise<void>;
   onApplyNow: (job: Opportunity) => Promise<void>;
+  // Bucket G — when set, the salary line renders the inferred pay in
+  // this unit (e.g. "$62k/yr" for a "$30/hr" posting). Defaults to
+  // "annual" so the queue ranks the same way the sort comparator does.
+  payDisplayUnit?: "hourly" | "monthly" | "annual";
+  // Bucket G.1 — the user's preferred display currency + the FX-rate
+  // map. When omitted, salary renders in its source currency
+  // (back-compat). `currencyRates` is the cached map from the daily
+  // /api/cron/currency-rates run.
+  payDisplayCurrency?: string;
+  currencyRates?: CurrencyRateMap;
 }
 
 export function OpportunityReviewQueue({
@@ -89,6 +103,9 @@ export function OpportunityReviewQueue({
   updating,
   onStatusChange,
   onApplyNow,
+  payDisplayUnit = "annual",
+  payDisplayCurrency,
+  currencyRates,
 }: OpportunityReviewQueueProps) {
   const format = useFormatter();
   const a11yT = useA11yTranslations();
@@ -209,7 +226,14 @@ export function OpportunityReviewQueue({
   const location = [activeJob.city, activeJob.province, activeJob.country]
     .filter(Boolean)
     .join(", ");
-  const salary =
+  // Bucket G — prefer the inferred-pay fields normalized to the user's
+  // chosen unit. Fall back to the legacy salaryMin/salaryMax range
+  // formatter for rows that predate the inferred-pay migration.
+  const normalizedPay = formatOpportunityPay(activeJob, payDisplayUnit, {
+    targetCurrency: payDisplayCurrency,
+    rates: currencyRates,
+  });
+  const legacySalary =
     activeJob.salaryMin != null || activeJob.salaryMax != null
       ? [activeJob.salaryMin, activeJob.salaryMax]
           .filter((value): value is number => value != null)
@@ -222,6 +246,11 @@ export function OpportunityReviewQueue({
           )
           .join(" - ")
       : null;
+  const salary = normalizedPay ?? legacySalary;
+  // Original raw string from the source posting — exposed in a title
+  // attribute so curious users can see the unrounded amount + unit hint.
+  const salaryTooltip =
+    normalizedPay && legacySalary ? legacySalary : undefined;
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -347,7 +376,7 @@ export function OpportunityReviewQueue({
                         {location}
                       </span>
                     )}
-                    {salary && <span>{salary}</span>}
+                    {salary && <span title={salaryTooltip}>{salary}</span>}
                     {activeJob.deadline && (
                       <span>Deadline {activeJob.deadline}</span>
                     )}

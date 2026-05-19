@@ -6,6 +6,11 @@
  */
 import type { OpportunitySortId } from "@slothing/shared/schemas";
 import type { Opportunity } from "@/types/opportunity";
+import {
+  convertCurrencyAmount,
+  normalizeToAnnual,
+  type CurrencyRateMap,
+} from "@/lib/opportunities/pay";
 
 /**
  * Per-call context that some comparators need but aren't on the opportunity
@@ -19,6 +24,12 @@ export interface SortContext {
   // (not in scope for P0); when undefined, `ai-recommended` falls back to
   // `most-recent`.
   recommendationScores?: Record<string, number>;
+  // Bucket G.1 — when provided, highest/lowest-pay comparators convert
+  // each posting's inferred pay to this currency before ranking. Without
+  // it, comparisons happen in each posting's native currency (which
+  // mixes CAD apples and EUR oranges).
+  payTargetCurrency?: string;
+  currencyRates?: CurrencyRateMap;
 }
 
 export interface SortOption {
@@ -131,17 +142,63 @@ function parseDeadlineTs(deadline?: string): number | undefined {
   return Number.isFinite(ts) ? ts : undefined;
 }
 
-// Annualized USD-equivalent for cross-postings ranking. Conservative —
-// uses salaryMin when both bounds present (worst-case for the candidate).
-// Bucket G in opportunity-customization-spec will replace this with a
-// proper normalize/convert pipeline; for P0 it's good enough to rank.
-function approxAnnualPay(opportunity: Opportunity): number | undefined {
-  const min = opportunity.salaryMin;
-  const max = opportunity.salaryMax;
-  if (min === undefined && max === undefined) return undefined;
-  // Use the midpoint when both are present; otherwise whichever exists.
-  if (min !== undefined && max !== undefined) return (min + max) / 2;
-  return min ?? max;
+// Annualized amount for cross-postings ranking. Prefers the inferred-pay
+// fields (parsed at import time with unit awareness — see bucket G) so a
+// "$30/hr" posting ranks alongside a "$50,000/yr" posting after a 2080×
+// annualization. Falls back to the legacy salaryMin/salaryMax midpoint
+// for rows that predate the inferred-pay migration.
+//
+// G.1 — when the SortContext carries a target currency + rate map, the
+// final annual amount is also converted so CAD postings rank in the
+// same currency as USD ones.
+function approxAnnualPay(
+  opportunity: Opportunity,
+  ctx: SortContext,
+): number | undefined {
+  let baseAnnual: number | undefined;
+  let sourceCurrency: string | undefined;
+
+  if (
+    opportunity.inferredPayUnit &&
+    typeof opportunity.inferredPayMin === "number"
+  ) {
+    const min = normalizeToAnnual(
+      opportunity.inferredPayMin,
+      opportunity.inferredPayUnit,
+    );
+    const max =
+      typeof opportunity.inferredPayMax === "number"
+        ? normalizeToAnnual(
+            opportunity.inferredPayMax,
+            opportunity.inferredPayUnit,
+          )
+        : undefined;
+    baseAnnual = max !== undefined ? (min + max) / 2 : min;
+    sourceCurrency = opportunity.inferredPayCurrency;
+  } else {
+    const min = opportunity.salaryMin;
+    const max = opportunity.salaryMax;
+    if (min === undefined && max === undefined) return undefined;
+    if (min !== undefined && max !== undefined) baseAnnual = (min + max) / 2;
+    else baseAnnual = min ?? max;
+    sourceCurrency = opportunity.salaryCurrency;
+  }
+
+  if (baseAnnual === undefined) return undefined;
+  if (
+    ctx.payTargetCurrency &&
+    sourceCurrency &&
+    sourceCurrency !== ctx.payTargetCurrency &&
+    ctx.currencyRates
+  ) {
+    return convertCurrencyAmount(
+      baseAnnual,
+      sourceCurrency,
+      ctx.payTargetCurrency,
+      ctx.currencyRates,
+    );
+  }
+  return baseAnnual;
 }
 
 function applicantRatio(opportunity: Opportunity): number | undefined {
@@ -183,16 +240,16 @@ const COMPARATORS: Record<OpportunitySortId, Comparator> = {
     if (sentinel !== null) return sentinel;
     return (ta as number) - (tb as number);
   },
-  "highest-pay": (a, b) => {
-    const pa = approxAnnualPay(a);
-    const pb = approxAnnualPay(b);
+  "highest-pay": (a, b, ctx) => {
+    const pa = approxAnnualPay(a, ctx);
+    const pb = approxAnnualPay(b, ctx);
     const sentinel = nullsLast(pa, pb);
     if (sentinel !== null) return sentinel;
     return (pb as number) - (pa as number);
   },
-  "lowest-pay": (a, b) => {
-    const pa = approxAnnualPay(a);
-    const pb = approxAnnualPay(b);
+  "lowest-pay": (a, b, ctx) => {
+    const pa = approxAnnualPay(a, ctx);
+    const pb = approxAnnualPay(b, ctx);
     const sentinel = nullsLast(pa, pb);
     if (sentinel !== null) return sentinel;
     return (pa as number) - (pb as number);

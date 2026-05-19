@@ -26,6 +26,12 @@ import { useErrorToast } from "@/hooks/use-error-toast";
 import { readJsonResponse } from "@/lib/http";
 import { SORT_OPTIONS } from "@/lib/opportunities/sort";
 import { cn } from "@/lib/utils";
+import {
+  PAY_NORMALIZATION_CURRENCIES,
+  PAY_NORMALIZATION_UNITS,
+  type PayNormalizationCurrency,
+  type PayNormalizationUnit,
+} from "@slothing/shared/schemas";
 
 const VISIBLE_BADGE_KEYS = [
   "applicants",
@@ -59,7 +65,15 @@ interface Preferences {
   scrapeMaxJobs: number;
   scrapeMaxPages: number;
   scrapeDedupeEnabled: boolean;
+  payNormalizationUnit: PayNormalizationUnit;
+  payNormalizationCurrency: PayNormalizationCurrency;
 }
+
+const PAY_UNIT_LABELS: Record<PayNormalizationUnit, string> = {
+  hourly: "Hourly ($/hr)",
+  monthly: "Monthly ($/mo)",
+  annual: "Annual ($/yr)",
+};
 
 export function OpportunityPreferencesSection() {
   const [preferences, setPreferences] = useState<Preferences | null>(null);
@@ -290,6 +304,69 @@ export function OpportunityPreferencesSection() {
             />
             Skip postings already imported (recommended)
           </label>
+        </div>
+
+        <hr className="border-border" />
+
+        {/* Pay display — bucket G */}
+        <div>
+          <Label className="text-sm font-medium">Pay display</Label>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Normalize salary across postings. Hourly amounts annualize at 2,080
+            hr/yr; monthly at 12 mo/yr. Currency conversion follow-up — for now,
+            non-matching currencies render with their source prefix (e.g.
+            &quot;CAD $48k/yr&quot;).
+          </p>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 max-w-md">
+            <div>
+              <Label className="text-xs" htmlFor="pay-unit">
+                Show pay as
+              </Label>
+              <Select
+                value={preferences.payNormalizationUnit}
+                onValueChange={(next) =>
+                  void patch({
+                    payNormalizationUnit: next as PayNormalizationUnit,
+                  })
+                }
+              >
+                <SelectTrigger id="pay-unit" className="mt-1 h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAY_NORMALIZATION_UNITS.map((unit) => (
+                    <SelectItem key={unit} value={unit}>
+                      {PAY_UNIT_LABELS[unit]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs" htmlFor="pay-currency">
+                Preferred currency
+              </Label>
+              <Select
+                value={preferences.payNormalizationCurrency}
+                onValueChange={(next) =>
+                  void patch({
+                    payNormalizationCurrency: next as PayNormalizationCurrency,
+                  })
+                }
+              >
+                <SelectTrigger id="pay-currency" className="mt-1 h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAY_NORMALIZATION_CURRENCIES.map((currency) => (
+                    <SelectItem key={currency} value={currency}>
+                      {currency}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
 
         {saving && <p className="text-xs text-muted-foreground">Saving…</p>}
