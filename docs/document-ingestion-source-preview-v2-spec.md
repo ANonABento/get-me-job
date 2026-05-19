@@ -835,5 +835,8 @@ Next implementation slices:
     parser-v2 parse runs without waiting for the review UI to call extraction.
     Artifact extraction failures remain non-fatal to legacy upload behavior.
     Done in the legacy upload artifact bridge slice.
-22. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+22. Reject parser-v2 parse-run creation from failed extraction artifacts so a
+    persisted failure marker cannot become a ready parse run. Done in the
+    failed-artifact parse-run hardening slice.
+23. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.

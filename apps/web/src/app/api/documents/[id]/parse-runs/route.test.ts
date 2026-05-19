@@ -172,6 +172,29 @@ describe("/api/documents/[id]/parse-runs", () => {
     });
   });
 
+  it("does not create a parse run from a failed artifact", async () => {
+    mocks.getLatestDocumentArtifact.mockReturnValue({
+      id: "artifact-failed",
+      documentId: "doc-1",
+      status: "failed",
+      failureReason: "Unsupported document type",
+      sourceMap: { pages: [], lines: [], rawText: "" },
+    });
+
+    const response = await invokeRouteHandler(
+      POST,
+      jsonRequest("http://localhost/api/documents/doc-1/parse-runs", {}),
+      routeContext({ id: "doc-1" }),
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      error: "Document artifact is not ready",
+    });
+    expect(mocks.parseResumeV2FromSourceMap).not.toHaveBeenCalled();
+    expect(mocks.saveDocumentParseRun).not.toHaveBeenCalled();
+  });
+
   it("treats an empty POST body as default basic mode", async () => {
     mocks.getLatestDocumentArtifact.mockReturnValue({
       id: "artifact-1",

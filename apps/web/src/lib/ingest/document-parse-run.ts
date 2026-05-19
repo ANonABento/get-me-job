@@ -39,6 +39,9 @@ export function createBasicDocumentParseRun({
     if (!artifact || artifact.documentId !== documentId) {
       throw new DocumentParseRunError("Document artifact not found", 404);
     }
+    if (artifact.status === "failed") {
+      throw new DocumentParseRunError("Document artifact is not ready", 409);
+    }
 
     const structured = parseResumeV2FromSourceMap(artifact.sourceMap);
     const warnings: ParseWarning[] = structured.warnings.map((message) => ({
