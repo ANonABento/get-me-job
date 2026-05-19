@@ -815,5 +815,8 @@ Next implementation slices:
     and persist the source document, dedupe by user/file hash, and return
     extraction/parse/source-map next URLs without parsing or bank side effects.
     Done in the parser-v2 upload route slice.
-17. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+17. Extract the parser-v2 document upload validation/dedupe/persistence into a
+    shared service so compatibility routes can wrap the same boundary without
+    duplicating file handling. Done in the upload service-boundary slice.
+18. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.
