@@ -838,5 +838,9 @@ Next implementation slices:
 22. Reject parser-v2 parse-run creation from failed extraction artifacts so a
     persisted failure marker cannot become a ready parse run. Done in the
     failed-artifact parse-run hardening slice.
-23. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+23. Add AI source-cited parser prompt/validation helpers that build annotated
+    source-line prompts, validate returned `sourceSpanIds` against artifact
+    line IDs, classify citation quality, and warn on unsupported cited values.
+    Done in the AI citation validation foundation slice.
+24. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.
