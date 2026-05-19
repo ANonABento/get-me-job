@@ -9,13 +9,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import Image from "next/image";
-import { getLocale } from "next-intl/server";
-import { headers } from "next/headers";
 
 import { ExtensionInstallButtons } from "@/components/marketing/extension-install-buttons";
-import { MarketingSection } from "@/components/marketing/section";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { getCurrentUserId } from "@/lib/auth";
 import {
@@ -23,12 +18,22 @@ import {
   getExtensionLaunchState,
 } from "@/lib/extension/install";
 import { getA11yTranslations } from "@/lib/i18n/get-a11y-translations";
-import { getLocalizedPageMetadata, getMetadataBase } from "@/lib/seo";
-import { CSP_NONCE_HEADER } from "@/lib/security/headers";
+import { getLocalizedPageMetadata } from "@/lib/seo";
+import { FaqList } from "@/components/landing/FaqList";
+import { MonoCap } from "@/components/landing/primitives";
 
 export function generateMetadata({ params }: { params: { locale: string } }) {
   return getLocalizedPageMetadata("extension", params.locale);
 }
+
+/**
+ * /extension landing page — editorial rebuild.
+ *
+ * Preserves all load-bearing content (the H1, "Less copying, more deciding"
+ * H2, ExtensionInstallButtons launch state, FAQ items, privacy posture,
+ * /extension/connect deep link) while migrating the chrome onto editorial
+ * tokens and primitives shipped in Phase 0.
+ */
 
 const featureBlocks = [
   {
@@ -72,6 +77,21 @@ const steps = [
   },
 ] as const;
 
+const PRIVACY_PILLARS = [
+  [
+    "Active tab + supported sites",
+    "Runs on the job sites you visit (LinkedIn, Indeed, Greenhouse, Lever, Workday, Waterloo Works) so it can show the capture popup and detect listings. It does not run on other pages.",
+  ],
+  [
+    "Local storage",
+    "Stores your Slothing connection token on your device using the browser's extension storage. The token is sent only to Slothing when you capture or sync.",
+  ],
+  [
+    "No Gmail permission",
+    "The extension does not request Gmail access. Gmail recruiter import runs in the Slothing web app under your Google sign-in, not in the extension.",
+  ],
+] as const;
+
 const faqs = [
   {
     question: "Which browsers are supported?",
@@ -101,211 +121,219 @@ export default async function ExtensionLandingPage() {
   const launchCopy = getExtensionLaunchCopy(getExtensionLaunchState());
 
   return (
-    <main className="pt-24">
-      <section className="mx-auto grid max-w-6xl gap-10 px-6 py-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:py-20">
-        <div>
-          <Badge variant="secondary" className="mb-5">
-            {launchCopy.label}
-          </Badge>
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-            Capture jobs from any site, instantly.
-          </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
-            The Slothing browser extension turns any LinkedIn, Indeed, or
-            company careers page into a one-click save.
-          </p>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
-            {launchCopy.description}
-          </p>
-          <div className="mt-8">
-            <ExtensionInstallButtons variant="primary" />
+    <>
+      {/* Hero */}
+      <section className="border-b border-rule bg-page">
+        <div className="mx-auto w-full max-w-[1480px] px-5 pb-12 pt-7 md:px-10 md:pb-16 md:pt-12 lg:pb-20">
+          <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-14">
+            <div className="flex max-w-[640px] flex-col">
+              <span className="inline-flex items-center gap-2.5 self-start rounded-full border border-rule bg-paper py-1 pl-1 pr-3 text-[12.5px] text-ink-2">
+                <span className="rounded-full bg-brand-soft px-2 py-0.5 font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em] text-brand-dark">
+                  Beta
+                </span>
+                {launchCopy.label}
+              </span>
+              <h1 className="mt-5 max-w-[15ch] font-display text-[clamp(40px,5.4vw,72px)] font-extrabold leading-[0.98] tracking-display text-ink">
+                Capture jobs from any site, instantly.
+              </h1>
+              <p className="mt-5 max-w-[520px] text-[16.5px] leading-[1.55] text-ink-2">
+                The Slothing browser extension turns any LinkedIn, Indeed, or
+                company careers page into a one-click save.
+              </p>
+              <p className="mt-3 max-w-[520px] text-[14px] leading-6 text-ink-3">
+                {launchCopy.description}
+              </p>
+              <div className="mt-7">
+                <ExtensionInstallButtons variant="primary" />
+              </div>
+            </div>
+
+            <HeroMockup
+              ariaLabel={a11yT("extensionPopoverPreviewOnAJobPosting")}
+            />
           </div>
         </div>
-
-        <HeroMockup ariaLabel={a11yT("extensionPopoverPreviewOnAJobPosting")} />
       </section>
 
-      <MarketingSection
+      {/* Features */}
+      <section
         id="features"
-        padding="compact"
-        background="subtle-card"
-        borderTop
+        className="border-t border-rule bg-paper py-16 md:py-20"
       >
-        <div className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase text-primary">
-            What it does
-          </p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight">
-            Less copying, more deciding
-          </h2>
-        </div>
-        <div className="mt-10 space-y-6">
-          {featureBlocks.map((feature, index) => {
-            const Icon = feature.icon;
-            const reversed = index % 2 === 1;
+        <div className="mx-auto w-full max-w-[1480px] px-5 md:px-10">
+          <div className="mb-10 flex flex-col gap-2">
+            <MonoCap className="text-brand">What it does</MonoCap>
+            <h2 className="max-w-[22ch] font-display text-[clamp(28px,3vw,40px)] font-extrabold leading-tight tracking-display text-ink">
+              Less copying, more deciding
+            </h2>
+          </div>
 
-            return (
-              <article
-                key={feature.title}
-                className="grid gap-6 rounded-lg border bg-background p-6 shadow-sm md:grid-cols-2 md:items-center"
-              >
-                <div className={reversed ? "md:order-2" : undefined}>
-                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Icon className="h-5 w-5" />
+          <div className="space-y-5">
+            {featureBlocks.map((feature, index) => {
+              const Icon = feature.icon;
+              const reversed = index % 2 === 1;
+              return (
+                <article
+                  key={feature.title}
+                  className="grid gap-6 rounded-2xl border border-rule bg-page p-6 shadow-paper-card md:grid-cols-2 md:items-center md:p-8"
+                >
+                  <div className={reversed ? "md:order-2" : undefined}>
+                    <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-brand-soft text-brand">
+                      <Icon className="h-5 w-5" aria-hidden />
+                    </div>
+                    <h3 className="font-display text-[22px] font-extrabold leading-tight tracking-display text-ink">
+                      {feature.title}
+                    </h3>
+                    <p className="mt-3 text-[14.5px] leading-6 text-ink-2">
+                      {feature.description}
+                    </p>
                   </div>
-                  <h3 className="text-2xl font-semibold">{feature.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                    {feature.description}
-                  </p>
-                </div>
-                <div className="rounded-lg border bg-muted/40 p-5">
-                  <FeatureVisual
-                    src={feature.screenshot}
-                    ariaLabel={feature.visualLabel}
-                  />
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      </MarketingSection>
-
-      <MarketingSection id="how-it-works" padding="compact">
-        <h2 className="text-3xl font-bold tracking-tight">How it works</h2>
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {steps.map((step, index) => (
-            <article key={step.title} className="rounded-lg border p-6">
-              <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                {index + 1}
-              </div>
-              <h3 className="text-xl font-semibold">{step.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {step.description}
-              </p>
-            </article>
-          ))}
-        </div>
-      </MarketingSection>
-
-      <MarketingSection
-        padding="compact"
-        background="subtle-card"
-        borderY
-        innerClassName="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-start"
-      >
-        <div>
-          <ShieldCheck className="h-10 w-10 text-primary" />
-          <h2 className="mt-4 text-3xl font-bold tracking-tight">
-            Privacy and trust
-          </h2>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Captured job data goes to your Slothing account over HTTPS. We
-            don&apos;t sell or share it. See the Privacy Policy linked below for
-            details.
-          </p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {[
-            [
-              "Active tab + supported sites",
-              "Runs on the job sites you visit (LinkedIn, Indeed, Greenhouse, Lever, Workday, Waterloo Works) so it can show the capture popup and detect listings. It does not run on other pages.",
-            ],
-            [
-              "Local storage",
-              "Stores your Slothing connection token on your device using the browser's extension storage. The token is sent only to Slothing when you capture or sync.",
-            ],
-            [
-              "No Gmail permission",
-              "The extension does not request Gmail access. Gmail recruiter import runs in the Slothing web app under your Google sign-in, not in the extension.",
-            ],
-          ].map(([title, description]) => (
-            <div key={title} className="rounded-lg border bg-background p-5">
-              <h3 className="font-semibold">{title}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {description}
-              </p>
-            </div>
-          ))}
-        </div>
-        <div className="lg:col-start-2">
-          <div className="flex flex-wrap gap-3 text-sm font-medium">
-            <Link href="/privacy" className="text-primary hover:underline">
-              Privacy Policy
-            </Link>
-            <Link href="/terms" className="text-primary hover:underline">
-              Terms of Service
-            </Link>
+                  <div className="rounded-xl border border-rule bg-paper p-4">
+                    <Image
+                      src={feature.screenshot}
+                      alt={feature.visualLabel}
+                      width={960}
+                      height={600}
+                      sizes="(min-width: 768px) 50vw, 100vw"
+                      className="aspect-[8/5] w-full rounded-lg border border-rule bg-page object-cover"
+                    />
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </div>
-      </MarketingSection>
+      </section>
 
-      <MarketingSection padding="compact" width="prose">
-        <h2 className="text-3xl font-bold tracking-tight">FAQ</h2>
-        <div className="mt-6 divide-y rounded-lg border">
-          {faqs.map((faq) => (
-            <details key={faq.question} className="group p-5">
-              <summary className="cursor-pointer list-none font-semibold">
-                {faq.question}
-              </summary>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                {faq.answer}
-              </p>
-            </details>
-          ))}
-        </div>
-      </MarketingSection>
-
-      <MarketingSection
-        padding="compact"
-        borderTop
-        width="narrow"
-        innerClassName="flex flex-col items-center text-center"
+      {/* How it works */}
+      <section
+        id="how-it-works"
+        className="border-t border-rule bg-page py-16 md:py-20"
       >
-        <Sparkles className="h-10 w-10 text-primary" />
-        <h2 className="mt-4 text-3xl font-bold tracking-tight">
-          Start capturing while you browse
-        </h2>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
-          Install the extension now, then send the next promising role straight
-          to Slothing.
-        </p>
-        <div className="mt-7">
-          <ExtensionInstallButtons variant="primary" />
+        <div className="mx-auto w-full max-w-[1480px] px-5 md:px-10">
+          <div className="mb-10 flex flex-col gap-2">
+            <MonoCap className="text-brand">Three steps</MonoCap>
+            <h2 className="max-w-[18ch] font-display text-[clamp(28px,3vw,40px)] font-extrabold leading-tight tracking-display text-ink">
+              How it works
+            </h2>
+          </div>
+          <div className="grid gap-5 md:grid-cols-3">
+            {steps.map((step, index) => (
+              <article
+                key={step.title}
+                className="rounded-2xl border border-rule bg-paper p-6 shadow-paper-card md:p-7"
+              >
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-ink font-display text-[15px] font-extrabold text-page">
+                  {index + 1}
+                </span>
+                <h3 className="mt-5 font-display text-[20px] font-extrabold leading-tight text-ink">
+                  {step.title}
+                </h3>
+                <p className="mt-2 text-[14px] leading-6 text-ink-2">
+                  {step.description}
+                </p>
+              </article>
+            ))}
+          </div>
         </div>
-        {userId ? (
-          <Button asChild variant="link" className="mt-4">
-            <Link href="/extension/connect">
-              Already installed? Connect it <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-        ) : null}
-        <div className="mt-8 flex flex-wrap justify-center gap-3 text-xs text-muted-foreground">
-          <span>Version 0.1</span>
-          <a href="mailto:support@slothing.work" className="hover:underline">
-            support@slothing.work
-          </a>
-        </div>
-      </MarketingSection>
-    </main>
-  );
-}
+      </section>
 
-function FeatureVisual({
-  src,
-  ariaLabel,
-}: {
-  src: (typeof featureBlocks)[number]["screenshot"];
-  ariaLabel: string;
-}) {
-  return (
-    <Image
-      src={src}
-      alt={ariaLabel}
-      width={960}
-      height={600}
-      sizes="(min-width: 768px) 50vw, 100vw"
-      className="aspect-[8/5] w-full rounded-lg border bg-background object-cover shadow-sm"
-    />
+      {/* Privacy + trust */}
+      <section className="border-y border-rule bg-paper py-16 md:py-20">
+        <div className="mx-auto w-full max-w-[1480px] px-5 md:px-10">
+          <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+            <div>
+              <ShieldCheck className="h-10 w-10 text-brand" aria-hidden />
+              <h2 className="mt-4 font-display text-[clamp(28px,3vw,40px)] font-extrabold leading-tight tracking-display text-ink">
+                Privacy and trust
+              </h2>
+              <p className="mt-3 max-w-[44ch] text-[14.5px] leading-6 text-ink-2">
+                Captured job data goes to your Slothing account over HTTPS. We
+                don&apos;t sell or share it. See the Privacy Policy linked below
+                for details.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3 text-[14px] font-medium">
+                <Link
+                  href="/privacy"
+                  className="text-brand hover:text-brand-dark"
+                >
+                  Privacy Policy
+                </Link>
+                <Link
+                  href="/terms"
+                  className="text-brand hover:text-brand-dark"
+                >
+                  Terms of Service
+                </Link>
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              {PRIVACY_PILLARS.map(([title, description]) => (
+                <div
+                  key={title}
+                  className="rounded-2xl border border-rule bg-page p-5 shadow-paper-card"
+                >
+                  <h3 className="font-display text-[16px] font-bold text-ink">
+                    {title}
+                  </h3>
+                  <p className="mt-2 text-[13.5px] leading-6 text-ink-2">
+                    {description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="border-t border-rule bg-page py-16 md:py-20">
+        <div className="mx-auto w-full max-w-[1480px] px-5 md:px-10">
+          <div className="mb-8 flex flex-col gap-2">
+            <MonoCap className="text-brand">Common questions</MonoCap>
+            <h2 className="font-display text-[clamp(28px,3vw,40px)] font-extrabold leading-tight tracking-display text-ink">
+              FAQ
+            </h2>
+          </div>
+          <FaqList
+            items={faqs.map((faq) => ({ q: faq.question, a: faq.answer }))}
+            columns={2}
+          />
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="border-t border-rule bg-paper py-16 md:py-20">
+        <div className="mx-auto w-full max-w-[820px] px-5 text-center md:px-10">
+          <Sparkles className="mx-auto h-10 w-10 text-brand" aria-hidden />
+          <h2 className="mt-4 font-display text-[clamp(28px,3vw,40px)] font-extrabold leading-tight tracking-display text-ink">
+            Start capturing while you browse
+          </h2>
+          <p className="mx-auto mt-3 max-w-prose text-[14.5px] leading-6 text-ink-2">
+            Install the extension now, then send the next promising role
+            straight to Slothing.
+          </p>
+          <div className="mt-7">
+            <ExtensionInstallButtons variant="primary" />
+          </div>
+          {userId ? (
+            <Link
+              href="/extension/connect"
+              className="mt-5 inline-flex items-center gap-1.5 text-[13.5px] font-medium text-brand hover:text-brand-dark"
+            >
+              Already installed? Connect it{" "}
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
+          ) : null}
+          <div className="mt-8 flex flex-wrap justify-center gap-3 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-3">
+            <span>Version 0.1</span>
+            <a href="mailto:support@slothing.work" className="hover:text-ink-2">
+              support@slothing.work
+            </a>
+          </div>
+        </div>
+      </section>
+    </>
   );
 }
 
@@ -313,40 +341,50 @@ function HeroMockup({ ariaLabel }: { ariaLabel: string }) {
   return (
     <div
       role="img"
-      className="relative min-h-[420px] rounded-lg border bg-card p-4 shadow-xl"
       aria-label={ariaLabel}
+      className="relative min-h-[420px] rounded-2xl border border-rule bg-paper p-4 shadow-paper-elevated"
     >
-      <div className="mb-4 flex items-center gap-2 border-b pb-3">
-        <span className="h-3 w-3 rounded-full bg-destructive/70" />
-        <span className="h-3 w-3 rounded-full bg-warning/70" />
-        <span className="h-3 w-3 rounded-full bg-success/70" />
-        <span className="ml-3 h-8 flex-1 rounded-lg bg-muted" />
+      {/* Browser-frame chrome */}
+      <div className="mb-4 flex items-center gap-2 border-b border-rule pb-3">
+        <span className="h-2.5 w-2.5 rounded-full bg-brand-soft" />
+        <span className="h-2.5 w-2.5 rounded-full bg-brand-soft" />
+        <span className="h-2.5 w-2.5 rounded-full bg-brand-soft" />
+        <span className="ml-2 h-7 flex-1 rounded-md bg-page" />
       </div>
       <div className="grid gap-4 md:grid-cols-[1fr_220px]">
-        <div className="space-y-4 rounded-lg border bg-background p-5">
-          <div className="h-5 w-28 rounded bg-primary/20" />
-          <div className="h-8 w-3/4 rounded bg-foreground/15" />
-          <div className="h-4 w-44 rounded bg-muted" />
-          <div className="space-y-2 pt-4">
-            <div className="h-3 rounded bg-muted" />
-            <div className="h-3 rounded bg-muted" />
-            <div className="h-3 w-5/6 rounded bg-muted" />
+        {/* Mocked job posting body */}
+        <div className="space-y-4 rounded-xl border border-rule bg-page p-5">
+          <div className="h-4 w-28 rounded-sm bg-brand-soft" />
+          <div className="h-7 w-3/4 rounded-sm bg-rule-strong-bg" />
+          <div className="h-3 w-44 rounded-sm bg-rule-strong-bg" />
+          <div className="space-y-2 pt-3">
+            <div className="h-2.5 rounded-sm bg-rule-strong-bg" />
+            <div className="h-2.5 rounded-sm bg-rule-strong-bg" />
+            <div className="h-2.5 w-5/6 rounded-sm bg-rule-strong-bg" />
           </div>
         </div>
-        <div className="rounded-lg border border-primary/20 bg-background p-4 shadow-lg">
+        {/* Mocked extension popover */}
+        <div className="rounded-xl border border-brand bg-page p-4 shadow-paper-card">
           <div className="flex items-center gap-2">
-            <Database className="h-5 w-5 text-primary" />
-            <span className="font-semibold">Save to Slothing</span>
+            <Database className="h-5 w-5 text-brand" aria-hidden />
+            <span className="font-display text-[14px] font-bold text-ink">
+              Save to Slothing
+            </span>
           </div>
-          <div className="mt-4 space-y-3 text-sm">
+          <ul className="mt-4 space-y-2.5 text-[13px] text-ink-2">
             {["Frontend Engineer", "Acme Labs", "Remote"].map((item) => (
-              <div key={item} className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-success" />
+              <li key={item} className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-brand" aria-hidden />
                 <span>{item}</span>
-              </div>
+              </li>
             ))}
-          </div>
-          <Button className="mt-5 w-full">Capture role</Button>
+          </ul>
+          <button
+            type="button"
+            className="mt-5 w-full rounded-full bg-ink py-2 text-[13px] font-semibold text-page transition-opacity hover:opacity-90"
+          >
+            Capture role
+          </button>
         </div>
       </div>
     </div>
