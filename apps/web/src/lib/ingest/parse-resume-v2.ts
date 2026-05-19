@@ -15,13 +15,16 @@ import type {
   ParsedProjectV2,
   ParsedResumeV2Result,
   ParsedSkillV2,
+  SourceGroundedText,
   SourceLine,
+  SourceLink,
   SourceQuality,
 } from "./types";
 import { sourceQualityForSpanIds } from "./source-spans";
 
 type SectionName =
   | "contact"
+  | "summary"
   | "education"
   | "experience"
   | "projects"
@@ -36,11 +39,18 @@ const SECTION_PATTERNS: Array<{
   type: Exclude<SectionName, "contact">;
   pattern: RegExp;
 }> = [
-  { type: "education", pattern: /^education$/i },
-  { type: "experience", pattern: /^experience$/i },
-  { type: "projects", pattern: /^projects$/i },
-  { type: "skills", pattern: /^(technical\s+skills|skills)$/i },
+  {
+    type: "summary",
+    pattern: /^(summary|profile|professional\s+summary|about)\b/i,
+  },
+  { type: "education", pattern: /^education\b/i },
+  { type: "experience", pattern: /^experience\b/i },
+  { type: "projects", pattern: /^projects\b/i },
+  { type: "skills", pattern: /^(technical\s+skills|skills)\b/i },
 ];
+
+const INLINE_URL_REGEX =
+  /\b(?:https?:\/\/[^\s|,;)]+|www\.[^\s|,;)]+|(?:github|gitlab)\.com\/[^\s|,;)]+|(?:[a-z0-9-]+\.)+[a-z]{2,}\/[^\s|,;)]+)/i;
 
 function stableId(
   prefix: string,
@@ -56,6 +66,10 @@ function stableId(
 
 function normalizeText(text: string): string {
   return text.replace(/[’]/g, "'").replace(/\s+/g, " ").trim();
+}
+
+function stripUrlText(text: string): string {
+  return normalizeText(text.replace(INLINE_URL_REGEX, " "));
 }
 
 function textWithoutBullet(text: string): string {
@@ -106,6 +120,59 @@ function sectionTypeForLine(
   );
 }
 
+function bboxIntersectsLine(link: SourceLink, line: SourceLine): boolean {
+  const [page, x0, y0, x1, y1] = link.bbox;
+  if (page !== line.page) return false;
+  const overlapX = Math.max(
+    0,
+    Math.min(x1, line.bbox.x1) - Math.max(x0, line.bbox.x0),
+  );
+  const overlapY = Math.max(
+    0,
+    Math.min(y1, line.bbox.y1) - Math.max(y0, line.bbox.y0),
+  );
+  if (overlapX <= 0 || overlapY <= 0) return false;
+  const lineArea =
+    Math.max(1, line.bbox.x1 - line.bbox.x0) *
+    Math.max(1, line.bbox.y1 - line.bbox.y0);
+  const linkArea = Math.max(1, x1 - x0) * Math.max(1, y1 - y0);
+  const overlapArea = overlapX * overlapY;
+  return overlapArea / Math.min(lineArea, linkArea) >= 0.2;
+}
+
+function linksForLine(
+  sourceMap: DocumentSourceMap,
+  line: SourceLine,
+): SourceLink[] {
+  return (sourceMap.links ?? []).filter((link) =>
+    bboxIntersectsLine(link, line),
+  );
+}
+
+function firstUrlForLine(
+  sourceMap: DocumentSourceMap,
+  line: SourceLine,
+): string | undefined {
+  return (
+    line.text.match(INLINE_URL_REGEX)?.[0] ??
+    linksForLine(sourceMap, line)[0]?.url
+  );
+}
+
+function contactUrlFields(urls: string[]): {
+  linkedin?: string;
+  github?: string;
+  website?: string;
+} {
+  const fields: { linkedin?: string; github?: string; website?: string } = {};
+  for (const url of urls) {
+    if (/linkedin\.com\/in\//i.test(url)) fields.linkedin ??= url;
+    else if (/github\.com\//i.test(url)) fields.github ??= url;
+    else fields.website ??= url;
+  }
+  return fields;
+}
+
 function sectionLineMap(
   lines: SourceLine[],
 ): Map<Exclude<SectionName, "contact">, number> {
@@ -117,17 +184,23 @@ function sectionLineMap(
   return indexes;
 }
 
-function sliceSection(
+function sliceSections(
   lines: SourceLine[],
-  indexes: Map<Exclude<SectionName, "contact">, number>,
   type: Exclude<SectionName, "contact">,
 ): SourceLine[] {
-  const start = indexes.get(type);
-  if (start === undefined) return [];
-  const nextStart = [...indexes.values()]
-    .filter((index) => index > start)
-    .sort((a, b) => a - b)[0];
-  return lines.slice(start + 1, nextStart ?? lines.length);
+  const ranges: SourceLine[] = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    if (sectionTypeForLine(lines[i]) !== type) continue;
+    for (let j = i + 1; j < lines.length; j += 1) {
+      if (sectionTypeForLine(lines[j])) {
+        i = j - 1;
+        break;
+      }
+      ranges.push(lines[j]);
+      if (j === lines.length - 1) i = j;
+    }
+  }
+  return ranges;
 }
 
 function parseContact(
@@ -141,15 +214,35 @@ function parseContact(
   const text = contactLines.map((line) => line.text).join("\n");
   const { contact } = extractContact(text);
   const sourceSpanIds = contactLines.map((line) => line.id);
+  const linkedContact = contactUrlFields(
+    contactLines.flatMap((line) =>
+      linksForLine(sourceMap, line).map((link) => link.url),
+    ),
+  );
   return {
     name: contact.name,
     email: contact.email,
     phone: contact.phone?.trim(),
     location: contact.location,
-    linkedin: contact.linkedin,
-    github: contact.github,
-    website: contact.website,
+    linkedin: contact.linkedin ?? linkedContact.linkedin,
+    github: contact.github ?? linkedContact.github,
+    website: contact.website ?? linkedContact.website,
     confidence: contact.confidence,
+    sourceSpanIds,
+    sourceQuality: sourceQualityForSpanIds(sourceMap, sourceSpanIds),
+  };
+}
+
+function parseSummary(
+  sourceMap: DocumentSourceMap,
+  lines: SourceLine[],
+): SourceGroundedText | undefined {
+  const sourceLines = lines.filter((line) => line.text.trim());
+  const text = normalizeText(sourceLines.map((line) => line.text).join(" "));
+  if (!text) return undefined;
+  const sourceSpanIds = sourceLines.map((line) => line.id);
+  return {
+    text,
     sourceSpanIds,
     sourceQuality: sourceQualityForSpanIds(sourceMap, sourceSpanIds),
   };
@@ -185,6 +278,8 @@ function parseEducationDegreeAndField(line: string): {
 
 const SINGLE_DATE_REGEX =
   /\b(?:Expected\s+)?(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sept?(?:ember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(?:\d{4}|\d{2}X{2})\b/i;
+const DEGREE_LIKE_REGEX =
+  /\b(?:Bachelor(?:'s)?|Master(?:'s)?|Associate(?:'s)?|Doctor(?:ate)?|Ph\.?D\.?|B\.?S\.?|B\.?A\.?|M\.?S\.?|M\.?A\.?|MBA|M\.?Eng\.?|B\.?Eng\.?|BMath|BASc|B\.A\.Sc\.?)\b/i;
 
 function extractDateText(text: string): string {
   return extractDateRange(text) || text.match(SINGLE_DATE_REGEX)?.[0] || "";
@@ -232,7 +327,47 @@ function parseEducation(
   for (let i = 0; i < lines.length; i += 1) {
     const schoolLine = lines[i];
     const degreeLine = lines[i + 1];
-    if (!schoolLine || !degreeLine) continue;
+    if (!schoolLine) continue;
+
+    const singleLineParts = lineParts(schoolLine);
+    const singleLineDateText =
+      extractDateText(singleLineParts.right) ||
+      extractDateText(schoolLine.text);
+    if (singleLineDateText && DEGREE_LIKE_REGEX.test(schoolLine.text)) {
+      const segments = stripDateText(
+        singleLineParts.left || schoolLine.text,
+        singleLineDateText,
+      )
+        .replace(/[🔗]/gu, "")
+        .split(/\s*\|\s*|\s+[—–-]\s+/)
+        .map((segment) => segment.trim())
+        .filter(Boolean);
+      const degreeIndex = segments.findIndex((segment) =>
+        DEGREE_LIKE_REGEX.test(segment),
+      );
+
+      if (degreeIndex > 0) {
+        const degreeText = segments[degreeIndex];
+        const { degree, field } = parseEducationDegreeAndField(degreeText);
+        const { start, end } = splitDateText(singleLineDateText);
+        const sourceSpanIds = [schoolLine.id];
+        education.push({
+          id: stableId("edu", sourceSpanIds, `${segments[0]}:${degree}`),
+          institution: segments.slice(0, degreeIndex).join(" — "),
+          location: segments.slice(degreeIndex + 1).join(" — ") || undefined,
+          degree,
+          field,
+          startDate: start || undefined,
+          endDate: end || undefined,
+          highlights: [],
+          sourceSpanIds,
+          sourceQuality: sourceQuality(sourceMap, sourceSpanIds),
+        });
+        continue;
+      }
+    }
+
+    if (!degreeLine) continue;
 
     const schoolParts = lineParts(schoolLine);
     const degreeParts = lineParts(degreeLine);
@@ -331,6 +466,23 @@ function looksLikeTitle(text: string): boolean {
   );
 }
 
+function parseInlineExperienceHeader(text: string): {
+  title: string;
+  company: string;
+  location?: string;
+} | null {
+  const parts = normalizeText(text)
+    .split(/\s+[—–-]\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length < 2 || !looksLikeTitle(parts[0])) return null;
+  return {
+    title: parts[0],
+    company: parts[1],
+    location: parts.slice(2).join(" — ") || undefined,
+  };
+}
+
 function parseExperiences(
   sourceMap: DocumentSourceMap,
   lines: SourceLine[],
@@ -344,34 +496,46 @@ function parseExperiences(
     if (!hasDateRange(line.text)) continue;
 
     const headerParts = lineParts(line);
-    const companyLine = lines[i + 1];
-    const companyParts = companyLine
-      ? lineParts(companyLine)
+    const maybeDetailLine = lines[i + 1];
+    const hasSeparateDetailLine = Boolean(
+      maybeDetailLine?.text &&
+      !isBulletLine(maybeDetailLine) &&
+      !hasDateRange(maybeDetailLine.text) &&
+      !sectionTypeForLine(maybeDetailLine),
+    );
+    const detailLine = hasSeparateDetailLine ? maybeDetailLine : undefined;
+    const detailParts = detailLine
+      ? lineParts(detailLine)
       : { left: "", right: "" };
     const dateText = extractDateRange(headerParts.right || line.text);
     const { start, end } = splitDateRange(dateText);
-    const sourceSpanIds = companyLine ? [line.id, companyLine.id] : [line.id];
+    const sourceSpanIds = detailLine ? [line.id, detailLine.id] : [line.id];
     const headerLeft = normalizeText(
       headerParts.left || line.text.replace(dateText, ""),
     );
-    const detailLeft = normalizeText(companyParts.left || "");
+    const detailLeft = normalizeText(detailParts.left || "");
+    const inlineHeader = parseInlineExperienceHeader(headerLeft);
     const headerLooksLikeTitle = looksLikeTitle(headerLeft);
     const detailLooksLikeTitle = looksLikeTitle(detailLeft);
     const title =
-      !headerLooksLikeTitle && detailLooksLikeTitle ? detailLeft : headerLeft;
+      inlineHeader?.title ??
+      (!headerLooksLikeTitle && detailLooksLikeTitle ? detailLeft : headerLeft);
     const company =
-      !headerLooksLikeTitle && detailLooksLikeTitle ? headerLeft : detailLeft;
-    const location = normalizeText(companyParts.right || "");
+      inlineHeader?.company ??
+      (!headerLooksLikeTitle && detailLooksLikeTitle ? headerLeft : detailLeft);
+    const location =
+      inlineHeader?.location ?? normalizeText(detailParts.right || "");
     const { highlights, nextIndex } = parseGroundedBullets(
       sourceMap,
       lines,
-      companyLine && !hasDateRange(companyLine.text) ? i + 2 : i + 1,
+      detailLine ? i + 2 : i + 1,
     );
 
     experiences.push({
       id: stableId("exp", sourceSpanIds, `${title}:${company}`),
       company: company || "Unknown",
       title,
+      url: firstUrlForLine(sourceMap, line),
       location: location || undefined,
       startDate: start,
       endDate: end,
@@ -393,6 +557,30 @@ function splitTechnologies(value: string): string[] {
     .split(/\s*,\s*/)
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function parseProjectHeaderText(
+  sourceMap: DocumentSourceMap,
+  line: SourceLine,
+  dateText: string,
+): {
+  name: string;
+  url?: string;
+  technologies: string[];
+} {
+  const url = firstUrlForLine(sourceMap, line);
+  const cleaned = stripUrlText(stripDateText(line.text, dateText))
+    .replace(/[🔗]/gu, "")
+    .replace(/\s*\|\s*$/, "");
+  const [namePart = line.text, ...technologyParts] = cleaned
+    .split(/\s*\|\s*/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return {
+    name: namePart,
+    url,
+    technologies: technologyParts.flatMap(splitTechnologies),
+  };
 }
 
 function parseProjects(
@@ -438,16 +626,19 @@ function parseProjects(
     if (!isProjectHeader) continue;
     pushCurrent();
     const parts = lineParts(line);
-    const [namePart, technologiesPart = ""] = parts.left
-      .split(/\s*\|\s*/)
-      .map((part) => part.trim());
     const dateText = extractDateRange(parts.right || line.text);
     const { start, end } = splitDateText(dateText);
+    const { name, url, technologies } = parseProjectHeaderText(
+      sourceMap,
+      line,
+      dateText,
+    );
     current = {
-      id: stableId("proj", [line.id], namePart),
-      name: namePart,
+      id: stableId("proj", [line.id], name),
+      name,
       description: "",
-      technologies: splitTechnologies(technologiesPart),
+      url,
+      technologies,
       highlights: [],
       startDate: start || undefined,
       endDate: end || undefined,
@@ -506,21 +697,20 @@ export function parseResumeV2FromSourceMap(
     lines,
     Number.isFinite(firstSectionIndex) ? firstSectionIndex : lines.length,
   );
+  const summary = parseSummary(sourceMap, sliceSections(lines, "summary"));
   const education = parseEducation(
     sourceMap,
-    sliceSection(lines, indexes, "education"),
+    sliceSections(lines, "education"),
   );
   const experiences = parseExperiences(
     sourceMap,
-    sliceSection(lines, indexes, "experience"),
+    sliceSections(lines, "experience"),
   );
-  const projects = parseProjects(
-    sourceMap,
-    sliceSection(lines, indexes, "projects"),
-  );
-  const skills = parseSkills(sourceMap, sliceSection(lines, indexes, "skills"));
+  const projects = parseProjects(sourceMap, sliceSections(lines, "projects"));
+  const skills = parseSkills(sourceMap, sliceSections(lines, "skills"));
   const profile = {
     contact,
+    summary,
     experiences,
     education,
     skills,
