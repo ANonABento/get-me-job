@@ -140,6 +140,7 @@ export function Dropzone({
       try {
         const formData = new FormData();
         formData.append("file", filesToUpload[i].file);
+        formData.append("type", "resume");
 
         // Simulate progress updates
         const progressInterval = setInterval(() => {
@@ -152,7 +153,7 @@ export function Dropzone({
           );
         }, 100);
 
-        let response = await fetch("/api/upload", {
+        let response = await fetch("/api/documents/upload/review", {
           method: "POST",
           body: formData,
         });
@@ -170,7 +171,7 @@ export function Dropzone({
             throw new Error("Upload canceled");
           }
 
-          response = await fetch("/api/upload?force=true", {
+          response = await fetch("/api/documents/upload/review?force=true", {
             method: "POST",
             body: formData,
           });

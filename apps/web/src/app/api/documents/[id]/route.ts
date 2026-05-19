@@ -7,7 +7,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { unlink } from "fs/promises";
 import { requireAuth, isAuthError } from "@/lib/auth";
-import { deleteDocument } from "@/lib/db";
+import {
+  deleteBankEntriesBySource,
+  deleteDocument,
+  deleteDocumentArtifactsByDocumentIds,
+  deleteDocumentParseRunsByDocumentIds,
+} from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +24,9 @@ export async function DELETE(
   if (isAuthError(authResult)) return authResult;
 
   try {
+    deleteBankEntriesBySource(params.id, authResult.userId);
+    deleteDocumentParseRunsByDocumentIds([params.id], authResult.userId);
+    deleteDocumentArtifactsByDocumentIds([params.id], authResult.userId);
     const path = deleteDocument(params.id, authResult.userId);
     if (!path) {
       return NextResponse.json(

@@ -698,16 +698,110 @@ Eventually:
 - `/api/parse` should become a thin wrapper around `parse-runs`.
 - Fuzzy matching should be removed from the main ingestion path.
 
+## Parser V2 Single-System Migration Plan
+
+The target state is one parser-backed ingestion pipeline for resume uploads.
+Legacy routes can remain as compatibility wrappers, but first-party Components
+UI should stop doing a legacy upload followed by a second parser-v2 pass.
+
+### Target Product Flow
+
+```text
+User drops/selects resume
+        |
+        v
+POST /api/documents/upload/review
+  - validate file size/type/magic bytes
+  - dedupe by user + file hash
+  - on force=true, replace prior document + parser artifacts/runs/bank rows
+  - persist source document bytes + document row
+        |
+        v
+Extract source artifact
+  - read stored file
+  - build parser-v2 source map
+  - persist document_artifacts row
+        |
+        v
+Create parser-v2 parse run
+  - deterministic mode by default
+  - AI mode only when user explicitly clicks "Check with AI"
+  - persist document_parse_runs row
+        |
+        v
+Materialize review entries
+  - convert parse-run output to BankEntry-shaped draft components
+  - keep edits/deletes/reordering local in the review modal
+  - render PDF/source/diagnostics from the same artifact + parse run
+        |
+        +-------------------------------+
+        |                               |
+        v                               v
+User clicks Done                 User clicks Discard
+        |                               |
+        v                               v
+POST /api/bank/imports/:runId/commit    DELETE /api/documents/:id
+  - accept selected draft ids            - remove draft document
+  - apply modal edits                    - remove artifacts + parse runs
+  - write profile_bank rows              - remove no bank rows unless a
+  - store source refs/bboxes               previous commit exists
+  - auto-promote profile fields
+        |
+        v
+Refresh Components table from committed profile_bank rows
+```
+
+### Route Ownership
+
+- `POST /api/documents/upload/review` is the first-party resume upload boundary
+  for Components. It returns the document, artifact, parse run, source-map
+  review context, and draft entries in one response.
+- `POST /api/documents/[id]/parse-runs` remains the explicit parser-v2 parse
+  route. The review endpoint may call the same service internally; the UI uses
+  this route later only for "Check with AI".
+- `GET /api/bank/imports/[parseRunId]/preview` remains read-only and safe to
+  call for rehydrating a review from an existing parse run.
+- `POST /api/bank/imports/[parseRunId]/commit` is the only route that writes
+  parser-v2 parsed components into `profile_bank`.
+- `POST /api/upload` and `POST /api/parse` stay available only for legacy or
+  external callers, but should wrap the shared services instead of owning
+  separate parsing behavior.
+
+### Migration Requirements
+
+1. The Components upload button and drag overlay must call the parser-v2 review
+   boundary, not `/api/upload`.
+2. Upload should not create `profile_bank` rows before the review modal opens.
+   Draft components are client state until Done.
+3. Done must commit through the parser-v2 import route and request profile
+   auto-promotion from the parser-v2 structured profile.
+4. Discard must clean parser-v2 draft documents, artifacts, and parse runs.
+5. Duplicate replacement must delete the old source document, stored file,
+   parser artifacts, parse runs, and old bank rows before creating the new
+   document.
+6. "Check with AI" must create a new parser-v2 AI parse run from the existing
+   artifact, then refresh draft entries/source diagnostics from that run.
+7. Existing bank rows without parser-v2 refs must keep using the legacy fuzzy
+   preview fallback.
+
 ## Open Questions
 
-1. Should upload auto-create a parse run, or should the client explicitly call
-   extraction then parse?
-2. Should bank commit be automatic for high-confidence parse runs, or always
-   review-first?
-3. How long should original PDF bytes be retained for preview?
-4. Should OCR be local-only, provider-backed, or configurable?
-5. What confidence threshold should trigger AI/hybrid fallback?
-6. Should parse runs be user-visible history?
+Answered for the single-system migration:
+
+1. First-party resume upload auto-creates the source artifact and deterministic
+   parse run through `/api/documents/upload/review`; lower-level extraction and
+   parse-run routes remain available for explicit/debug flows.
+2. Bank commit is always review-first. No high-confidence auto-commit in this
+   migration.
+3. AI is explicit. The deterministic parse opens the review modal; "Check with
+   AI" creates a new AI parse run from the same artifact.
+
+Still open:
+
+1. How long should original PDF bytes be retained for preview?
+2. Should OCR be local-only, provider-backed, or configurable?
+3. What confidence threshold, if any, should recommend AI/hybrid fallback?
+4. Should parse runs be user-visible history?
 
 ## Implementation Notes
 
@@ -846,5 +940,21 @@ Next implementation slices:
     LLM with annotated source lines and returns raw cited JSON plus validation
     diagnostics before any route trusts the result. Done in the AI cited parser
     service slice.
-25. Keep `/api/upload` and `/api/parse` route migration out until persistence is
-    reviewed separately.
+25. Enable explicit parser-v2 `mode: "ai"` parse-run creation behind the AI
+    gate, checking artifact readiness before billing and persisting raw cited
+    AI JSON plus citation validation warnings as an AI parse run. Done in the
+    AI parse-run route slice.
+26. Add `POST /api/documents/upload/review` as the single first-party
+    Components upload boundary: persist the source document, extract the
+    parser-v2 artifact, create the deterministic parse run, return diagnostics
+    and BankEntry-shaped draft review entries, and keep upload conflict
+    replacement in the same service. Done in the parser-v2 upload-review route
+    slice.
+27. Move the Components upload button, bank drag overlay, and upload dropzone
+    off `/api/upload`/`/api/parse` and onto parser-v2 draft review state. Done
+    in the first-party upload migration slice.
+28. Add parser-v2 draft cleanup and commit completion: discard deletes source
+    documents, parse runs, artifacts, and any committed rows for that source;
+    Done commits parser-v2 entries and auto-promotes empty profile fields from
+    the parser-v2 structured profile. Done in the parser-v2 cleanup/commit
+    slice.
