@@ -28,6 +28,48 @@ Components.
 
 ## Implementation Changes
 
+### Current state after parser-v2 and portfolio-parser work
+
+Recent parser-v2 work changed the ingestion architecture. The deterministic
+portfolio parser has also been upgraded for visual/text portfolio PDFs.
+
+Shipped parser-v2 capabilities:
+
+- Document upload services can persist source artifacts and source maps.
+- Upload review can receive parser-v2 draft entries and source-reference
+  context.
+- Parser-v2 parse runs exist for basic resume parsing from source maps.
+- Legacy upload and parse routes have compatibility bridges into parser-v2
+  artifacts/parse runs.
+- AI source-cited resume parsing has a validation foundation and parser service.
+
+Shipped portfolio parsing capabilities:
+
+- Legacy `/api/upload` still classifies portfolios, then calls
+  `parsePortfolioBasic`.
+- `parsePortfolioBasic` supports explicit headings like `Project: ...`,
+  `Case Study: ...`, `Selected Work: ...`, and markdown headings.
+- `parsePortfolioBasic` also treats visual portfolio headings such as
+  `Robotic Arm Puppeteer — Python | ROS2 | OpenCV | Linux | Fusion360` as
+  project boundaries.
+- Heading stacks are preserved as project technologies.
+- Repeated portfolio headers/contact lines are ignored.
+- Image captions are skipped when selecting project descriptions.
+- PDF-extracted bullets using `●` plus zero-width spacing are normalized.
+
+Still remaining for portfolio imports:
+
+- `/api/parse` remains resume-oriented; the existing `parseDocumentByType` and
+  `parsePortfolioWithLLM` helpers are not wired into the review flow for
+  portfolio re-parsing.
+- OCR support exists only as a text-extraction fallback when extracted PDF text
+  is nearly empty, so image-heavy but text-backed portfolios will not trigger
+  OCR or vision analysis.
+
+Implication: the immediate Kevin-style structure recovery bug is covered by the
+deterministic parser. The next portfolio slice should be type-aware AI reparse
+and, later, true image/vision fallback for pages without embedded text.
+
 ### Types and schemas
 
 - Add `career_notes` to `DOCUMENT_TYPES` and any document type schema/export.
@@ -51,6 +93,85 @@ Components.
   `career_notes` under the existing parser surface.
 - Keep AI parsing optional and gated where existing parse flows already gate AI.
 - Do not route these document types through resume-only `smartParseResume`.
+
+### Portfolio Parsing V2
+
+Upgrade portfolio parsing specifically for visual/text portfolios that use
+page-style project sections rather than markdown-style project labels.
+
+Input pattern to support:
+
+```text
+Project Name — Tech One | Tech Two | Tech Three
+Image caption
+Another image caption
+
+Project description prose...
+● Built ...
+● Shipped ...
+```
+
+Rules:
+
+- Treat lines matching `name — stack` as project boundaries when:
+  - the left side is 2-80 characters,
+  - the right side contains at least two `|`-separated stack/tool tokens or at
+    least one known technical/tool token,
+  - the line is not a repeated page header/footer.
+- Normalize dash variants: `—`, `–`, `-`.
+- Split stack/tool tokens on `|`, comma, or semicolon and store them as explicit
+  project technologies.
+- Ignore repeated boilerplate lines such as `Portfolio`, contact/header links,
+  `Kevin Jiang Resume`, page numbers, and duplicated nav/header text.
+- Treat short lines before the first prose paragraph as image captions. Captions
+  may be stored as low-priority context, but must not become project names.
+- Use the first non-caption prose block after the heading as the project
+  description.
+- Attach following bullet lines to the active project until the next project
+  heading.
+- Extract proof points from project bullets/prose containing metrics,
+  externally verifiable outcomes, awards, grades, launch/shipping language, or
+  performance terms.
+- If no V2 headings are found, fall back to the current explicit
+  `Project: ...` parser behavior.
+
+Kevin Jiang portfolio regression expectations:
+
+- The compressed PDF has extractable text, so this fixture should pass without
+  OCR.
+- Expected project count: 9.
+- Expected project names include:
+  - `Robotic Arm Puppeteer`
+  - `Expressive AI Robot Head`
+  - `AR Gesture Controlled Robot`
+  - `One Handed Keyboard`
+  - `VR Haptic Gloves`
+  - `Robotics`
+  - `PCB Design & Assembly`
+  - `C# Apps & Games`
+  - `Java Applications`
+- No generated project may be named from a repeated header, e.g. `Portfolio`,
+  `Kevin Jiang Resume`, or contact-link text.
+- Project technologies must come from the heading stack and remain attached to
+  the correct project.
+- Project bullets must stay under the correct project parent.
+
+### Type-aware AI reparse
+
+Use the existing type-specific LLM parser helpers for explicit review actions:
+
+- Extend `/api/parse` or parser-v2 parse-run creation to branch on
+  `doc.type`.
+- For `portfolio`, call `parsePortfolioWithLLM` or a parser-v2 source-cited
+  portfolio equivalent.
+- For `cover_letter` and `career_notes`, call the matching type-specific parser
+  instead of resume parsing.
+- Populate the bank with `populateBankFromParsedDocument` for non-resume
+  documents.
+- Keep initial upload deterministic; AI should be user-triggered from the
+  review modal or explicit parse-run mode.
+- Surface `Check with AI` / `Improve parse` for supported non-resume document
+  types, not only resumes.
 
 ### Bank population
 
