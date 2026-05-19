@@ -3567,10 +3567,10 @@ function UploadReviewEntries({
                 <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                   Review component
                 </p>
-                <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                  <h3 className="mr-1 min-w-0 font-display text-base font-semibold leading-6 tracking-tight">
-                    {getEntryLabel(selectedEntry)}
-                  </h3>
+                <h3 className="mt-1 min-w-0 font-display text-base font-semibold leading-6 tracking-tight">
+                  {getEntryLabel(selectedEntry)}
+                </h3>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                   <Badge variant="secondary" className="h-6">
                     {CATEGORY_LABELS[selectedEntry.category]}
                   </Badge>
@@ -3583,21 +3583,21 @@ function UploadReviewEntries({
                       {pluralize(childEntries.length, "bullet")}
                     </Badge>
                   ) : null}
+                  {previewStatus.kind === "pdf" &&
+                  getReviewPreviewBboxes(
+                    selectedEntry,
+                    isReviewRootEntry(selectedEntry),
+                  ) ? (
+                    <button
+                      type="button"
+                      onClick={() => handleViewInDocument(selectedEntry.id)}
+                      className="ml-1 inline-flex h-6 items-center gap-0.5 rounded-md px-1 text-xs font-medium text-primary hover:bg-primary/5 hover:underline"
+                    >
+                      Jump to highlight
+                      <ChevronRight className="h-3 w-3" />
+                    </button>
+                  ) : null}
                 </div>
-                {previewStatus.kind === "pdf" &&
-                getReviewPreviewBboxes(
-                  selectedEntry,
-                  isReviewRootEntry(selectedEntry),
-                ) ? (
-                  <button
-                    type="button"
-                    onClick={() => handleViewInDocument(selectedEntry.id)}
-                    className="mt-1 inline-flex items-center gap-0.5 text-xs font-medium text-primary hover:underline"
-                  >
-                    Jump to highlight
-                    <ChevronRight className="h-3 w-3" />
-                  </button>
-                ) : null}
               </div>
               <div className="flex shrink-0 flex-wrap justify-end gap-2">
                 {isEditingSelected ? (

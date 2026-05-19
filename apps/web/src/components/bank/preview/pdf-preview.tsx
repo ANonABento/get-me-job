@@ -514,11 +514,6 @@ export function PdfPreview({
               </span>
             ) : null}
           </div>
-          <div className="flex shrink-0 items-center rounded-md border bg-background p-0.5">
-            {tabButton("pdf", "PDF")}
-            {tabButton("source", "Source")}
-            {tabButton("diagnostics", "Diagnostics")}
-          </div>
           {activeTab === "pdf" ? (
             <div className="flex shrink-0 items-center gap-1">
               <Button
@@ -576,6 +571,11 @@ export function PdfPreview({
               </Button>
             </div>
           ) : null}
+          <div className="ml-auto flex shrink-0 items-center rounded-md border bg-background p-0.5">
+            {tabButton("pdf", "PDF")}
+            {tabButton("source", "Source")}
+            {tabButton("diagnostics", "Diagnostics")}
+          </div>
           {diagnosticSummary ? (
             <span className="text-muted-foreground xl:hidden">
               {diagnosticSummary}
