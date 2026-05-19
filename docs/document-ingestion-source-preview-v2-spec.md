@@ -846,5 +846,9 @@ Next implementation slices:
     LLM with annotated source lines and returns raw cited JSON plus validation
     diagnostics before any route trusts the result. Done in the AI cited parser
     service slice.
-25. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+25. Enable explicit parser-v2 `mode: "ai"` parse-run creation behind the AI
+    gate, checking artifact readiness before billing and persisting raw cited
+    AI JSON plus citation validation warnings as an AI parse run. Done in the
+    AI parse-run route slice.
+26. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.

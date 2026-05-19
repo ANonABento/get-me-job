@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   listDocumentParseRuns: vi.fn(),
   saveDocumentParseRun: vi.fn(),
   parseResumeV2FromSourceMap: vi.fn(),
+  parseResumeWithAiSourceCitations: vi.fn(),
+  gateAiFeature: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -23,8 +25,17 @@ vi.mock("@/lib/db", () => ({
   saveDocumentParseRun: mocks.saveDocumentParseRun,
 }));
 
+vi.mock("@/lib/billing/ai-gate", () => ({
+  gateAiFeature: mocks.gateAiFeature,
+  isAiGateResponse: (value: unknown) => value instanceof Response,
+}));
+
 vi.mock("@/lib/ingest/parse-resume-v2", () => ({
   parseResumeV2FromSourceMap: mocks.parseResumeV2FromSourceMap,
+}));
+
+vi.mock("@/lib/ingest/ai-source-cited-parser", () => ({
+  parseResumeWithAiSourceCitations: mocks.parseResumeWithAiSourceCitations,
 }));
 
 import { GET, POST } from "./route";
@@ -41,6 +52,18 @@ describe("/api/documents/[id]/parse-runs", () => {
     mocks.requireAuth.mockResolvedValue({ userId: "user-1" });
     mocks.isAuthError.mockReturnValue(false);
     mocks.listDocumentParseRuns.mockReturnValue([]);
+    mocks.gateAiFeature.mockReturnValue({
+      allowed: true,
+      llmConfig: {
+        provider: "openai",
+        model: "gpt-4o-mini",
+        apiKey: "test-key",
+      },
+      plan: "pro-monthly",
+      source: "credits",
+      transaction: null,
+      refund: vi.fn(),
+    });
   });
 
   it("lists parse runs for the authenticated user", async () => {
@@ -136,7 +159,31 @@ describe("/api/documents/[id]/parse-runs", () => {
     expect(response.status).toBe(201);
   });
 
-  it("rejects ai mode until the cited parser exists", async () => {
+  it("creates an AI source-cited parse run from a ready artifact", async () => {
+    const sourceMap = { pages: [], lines: [], rawText: "Jake Ryan" };
+    mocks.getLatestDocumentArtifact.mockReturnValue({
+      id: "artifact-1",
+      documentId: "doc-1",
+      status: "ready",
+      sourceMap,
+    });
+    mocks.parseResumeWithAiSourceCitations.mockResolvedValue({
+      raw: { contact: { name: "Jake Ryan", sourceSpanIds: [] } },
+      validation: {
+        warnings: [
+          {
+            code: "unsupported_value",
+            message: "Value is not supported",
+            sourceSpanIds: ["p1-l001"],
+          },
+        ],
+      },
+    });
+    mocks.saveDocumentParseRun.mockReturnValue({
+      id: "run-ai",
+      mode: "ai",
+    });
+
     const response = await invokeRouteHandler(
       POST,
       jsonRequest("http://localhost/api/documents/doc-1/parse-runs", {
@@ -145,9 +192,58 @@ describe("/api/documents/[id]/parse-runs", () => {
       routeContext({ id: "doc-1" }),
     );
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(201);
+    expect(mocks.gateAiFeature).toHaveBeenCalledWith(
+      "user-1",
+      "tailor",
+      "document-parse-run:doc-1",
+    );
+    expect(mocks.parseResumeWithAiSourceCitations).toHaveBeenCalledWith({
+      sourceMap,
+      llmConfig: expect.objectContaining({ provider: "openai" }),
+    });
+    expect(mocks.saveDocumentParseRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        documentId: "doc-1",
+        artifactId: "artifact-1",
+        userId: "user-1",
+        mode: "ai",
+        status: "ready",
+        confidence: 0.5,
+        warnings: [
+          {
+            code: "unsupported_value",
+            message: "Value is not supported",
+            sourceSpanIds: ["p1-l001"],
+            severity: "warning",
+          },
+        ],
+        structured: expect.objectContaining({
+          parser: "ai-source-cited-v1",
+          raw: { contact: { name: "Jake Ryan", sourceSpanIds: [] } },
+        }),
+      }),
+    );
     await expect(response.json()).resolves.toEqual({
-      error: "Only basic parser-v2 mode is available in this phase",
+      parseRun: { id: "run-ai", mode: "ai" },
+    });
+  });
+
+  it("checks artifact readiness before gating an AI parse", async () => {
+    mocks.getLatestDocumentArtifact.mockReturnValue(null);
+
+    const response = await invokeRouteHandler(
+      POST,
+      jsonRequest("http://localhost/api/documents/doc-1/parse-runs", {
+        mode: "ai",
+      }),
+      routeContext({ id: "doc-1" }),
+    );
+
+    expect(response.status).toBe(404);
+    expect(mocks.gateAiFeature).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toEqual({
+      error: "Document artifact not found",
     });
   });
 
