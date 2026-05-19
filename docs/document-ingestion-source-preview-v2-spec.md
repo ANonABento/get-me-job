@@ -826,5 +826,9 @@ Next implementation slices:
     compatibility routes can wrap artifact lookup, deterministic parsing, and
     parse-run persistence without duplicating route internals. Done in the
     parse-run service-boundary slice.
-20. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+20. Bridge legacy `POST /api/parse` basic mode to parser-v2 parse-run creation
+    when a source artifact already exists, returning optional parser-v2 context
+    while preserving legacy profile auto-promotion, bank population, AI mode,
+    and response compatibility. Done in the legacy parse bridge slice.
+21. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.

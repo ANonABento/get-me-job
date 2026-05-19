@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   smartParseResume: vi.fn(),
   populateBankFromProfile: vi.fn(),
   mergeParsedProfileForAutoPromote: vi.fn(),
+  createBasicDocumentParseRun: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -48,7 +49,18 @@ vi.mock("@/lib/profile/auto-promote", () => ({
   mergeParsedProfileForAutoPromote: mocks.mergeParsedProfileForAutoPromote,
 }));
 
+vi.mock("@/lib/ingest/document-parse-run", async () => {
+  const actual = await vi.importActual<
+    typeof import("@/lib/ingest/document-parse-run")
+  >("@/lib/ingest/document-parse-run");
+  return {
+    ...actual,
+    createBasicDocumentParseRun: mocks.createBasicDocumentParseRun,
+  };
+});
+
 import { CREDIT_COSTS } from "@/lib/db/credits";
+import { DocumentParseRunError } from "@/lib/ingest/document-parse-run";
 import { POST } from "./route";
 
 function parseRequest(body: unknown): NextRequest {
@@ -82,6 +94,9 @@ describe("/api/parse route", () => {
       (existing, parsed) => parsed,
     );
     mocks.parseResumeBasic.mockReturnValue({ contact: { name: "Ada" } });
+    mocks.createBasicDocumentParseRun.mockImplementation(() => {
+      throw new DocumentParseRunError("Document artifact not found", 404);
+    });
     mocks.smartParseResume.mockResolvedValue({
       profile: { contact: { name: "Ada" } },
       confidence: 0.9,
@@ -108,6 +123,10 @@ describe("/api/parse route", () => {
       "Ada Lovelace resume",
       null,
     );
+    expect(mocks.createBasicDocumentParseRun).toHaveBeenCalledWith({
+      documentId: "doc-1",
+      userId: "user-1",
+    });
 
     const body = await response.json();
     expect(body).toMatchObject({
@@ -118,6 +137,40 @@ describe("/api/parse route", () => {
       creditsUsed: 0,
       creditSource: "none",
       llmFallback: false,
+      parserV2: {
+        status: "unavailable",
+        error: "Document artifact not found",
+      },
+    });
+  });
+
+  it("returns parser-v2 parse-run context when a source artifact exists", async () => {
+    mocks.createBasicDocumentParseRun.mockReturnValueOnce({
+      id: "run-1",
+      documentId: "doc-1",
+      artifactId: "artifact-1",
+      userId: "user-1",
+      mode: "basic",
+      parserVersion: "resume-v2-basic-v1",
+      status: "ready",
+      confidence: 0.88,
+      warnings: [],
+      structured: {},
+      createdAt: "2026-05-18T10:00:00.000Z",
+    });
+
+    const response = await POST(parseRequest({ documentId: "doc-1" }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      parserV2: {
+        status: "ready",
+        parseRunId: "run-1",
+        artifactId: "artifact-1",
+        confidence: 0.88,
+        mode: "basic",
+      },
     });
   });
 
@@ -155,6 +208,7 @@ describe("/api/parse route", () => {
       "Ada Lovelace resume",
       gatePass.llmConfig,
     );
+    expect(mocks.createBasicDocumentParseRun).not.toHaveBeenCalled();
     const body = await response.json();
     expect(body).toMatchObject({
       success: true,

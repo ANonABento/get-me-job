@@ -299,6 +299,18 @@ export interface ParseResponse {
   parsingMode: "basic" | "ai";
   creditsUsed: number;
   creditSource: "self-host" | "byok" | "credits" | "none";
+  parserV2?:
+    | {
+        status: "ready";
+        parseRunId: string;
+        artifactId: string;
+        confidence: number;
+        mode: "basic";
+      }
+    | {
+        status: "unavailable";
+        error: string;
+      };
 }
 
 // ---------------------------------------------------------------------------

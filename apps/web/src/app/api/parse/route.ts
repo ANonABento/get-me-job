@@ -19,6 +19,10 @@ import { requireAuth, isAuthError } from "@/lib/auth";
 import { populateBankFromProfile } from "@/lib/resume/info-bank";
 import { mergeParsedProfileForAutoPromote } from "@/lib/profile/auto-promote";
 import { CREDIT_COSTS } from "@/lib/db/credits";
+import {
+  createBasicDocumentParseRun,
+  DocumentParseRunError,
+} from "@/lib/ingest/document-parse-run";
 import type { LLMConfig, Profile } from "@/types";
 import { log } from "@/lib/log";
 
@@ -32,6 +36,19 @@ export interface ParseResumeResult {
   creditsUsed: number;
   creditSource: "self-host" | "byok" | "credits" | "none";
 }
+
+type ParserV2ParseContext =
+  | {
+      status: "ready";
+      parseRunId: string;
+      artifactId: string;
+      confidence: number;
+      mode: "basic";
+    }
+  | {
+      status: "unavailable";
+      error: string;
+    };
 
 async function parseResumeText(
   text: string,
@@ -79,6 +96,41 @@ async function parseResumeText(
     creditsUsed: 0,
     creditSource: "none",
   };
+}
+
+function createParserV2Context(
+  documentId: string,
+  userId: string,
+  mode: "basic" | "ai",
+): ParserV2ParseContext | undefined {
+  if (mode !== "basic") return undefined;
+
+  try {
+    const parseRun = createBasicDocumentParseRun({ documentId, userId });
+    return {
+      status: "ready",
+      parseRunId: parseRun.id,
+      artifactId: parseRun.artifactId,
+      confidence: parseRun.confidence,
+      mode: "basic",
+    };
+  } catch (error) {
+    if (error instanceof DocumentParseRunError) {
+      log.debug("parse", "parser-v2 parse-run unavailable", {
+        documentId,
+        status: error.status,
+      });
+      return { status: "unavailable", error: error.publicMessage };
+    }
+    console.error(
+      "[parse] Parser-v2 parse-run creation failed:",
+      error instanceof Error ? error.stack : error,
+    );
+    return {
+      status: "unavailable",
+      error: "Failed to create parser-v2 parse run",
+    };
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -222,6 +274,11 @@ export async function POST(request: NextRequest) {
 
     // Get updated profile
     const profile = getProfile(authResult.userId);
+    const parserV2 = createParserV2Context(
+      doc.id,
+      authResult.userId,
+      parsingMode,
+    );
 
     return NextResponse.json({
       success: true,
@@ -232,6 +289,7 @@ export async function POST(request: NextRequest) {
       parsingMode,
       creditsUsed,
       creditSource,
+      ...(parserV2 ? { parserV2 } : {}),
     });
   } catch (error) {
     aiGate?.refund();
