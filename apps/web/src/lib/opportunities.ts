@@ -58,13 +58,21 @@ export function jobToOpportunity(job: JobDescription): Opportunity {
     type: "job",
     title: job.title,
     company: job.company,
-    source: "manual",
+    // `source` is the OpportunitySource enum ("waterloo_works", "manual",
+    // …). Jobs imported by the extension store the scraper key in
+    // `job.source`; fall back to manual for legacy rows.
+    source: opportunitySourceFor(job.source),
     sourceUrl: job.url,
+    sourceId: job.sourceJobId,
     city,
     province,
     country: countryParts.join(", ") || undefined,
     remoteType: job.remote ? "remote" : undefined,
     jobType: job.type === "internship" ? "internship" : job.type,
+    level: opportunityLevelFor(job.level),
+    openings: job.openings,
+    applicants: job.applicants,
+    workTerm: job.workTerm,
     summary: job.description.trim(),
     responsibilities: job.responsibilities,
     requiredSkills: job.requirements,
@@ -80,6 +88,54 @@ export function jobToOpportunity(job: JobDescription): Opportunity {
     createdAt: job.createdAt,
     updatedAt: job.createdAt,
   };
+}
+
+// Mirror of OPPORTUNITY_SOURCES in @slothing/shared/schemas. Kept inline
+// because zod's enum throws on unknown values, and we want a graceful
+// fallback to "manual" for legacy / unknown scraper keys.
+const KNOWN_SOURCES = new Set([
+  "waterlooworks",
+  "linkedin",
+  "indeed",
+  "greenhouse",
+  "lever",
+  "devpost",
+  "manual",
+  "url",
+]);
+
+function opportunitySourceFor(
+  source: string | undefined,
+): Opportunity["source"] {
+  if (source && KNOWN_SOURCES.has(source)) {
+    return source as Opportunity["source"];
+  }
+  return "manual";
+}
+
+// Highest-tier first so a "Junior, Intermediate, Senior" WW field becomes
+// "senior" (max applicable level). OPPORTUNITY_LEVELS doesn't have
+// "intern" or "mid" — co-op interns map to "junior", mid maps to
+// "intermediate".
+const LEVEL_PATTERNS: Array<[RegExp, Opportunity["level"]]> = [
+  [/\bprincipal\b/i, "principal"],
+  [/\bstaff\b/i, "staff"],
+  [/\bsenior\b/i, "senior"],
+  [/\blead\b/i, "lead"],
+  [/\bintermediate\b|\bmid\b/i, "intermediate"],
+  [/\bjunior\b|\bentry\b|\bintern\b/i, "junior"],
+];
+
+function opportunityLevelFor(
+  raw: string | undefined,
+): Opportunity["level"] | undefined {
+  if (!raw) return undefined;
+  // WaterlooWorks reports level as a free-text list like "Junior,
+  // Intermediate" — find the highest-tier match present.
+  for (const [pattern, level] of LEVEL_PATTERNS) {
+    if (pattern.test(raw)) return level;
+  }
+  return undefined;
 }
 
 function parseSalaryRange(salary?: string): {

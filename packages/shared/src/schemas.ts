@@ -142,6 +142,9 @@ export interface Opportunity {
   jobType?: OpportunityJobType;
   level?: OpportunityLevel;
   openings?: number;
+  // Competitiveness signal — number of applicants reported by the source
+  // (WaterlooWorks exposes this on the list view but not in the modal).
+  applicants?: number;
   workTerm?: string;
   applicationMethod?: string;
   requiredDocuments?: string[];
@@ -247,6 +250,7 @@ const opportunityInputFields = {
   jobType: opportunityJobTypeSchema.optional(),
   level: opportunityLevelSchema.optional(),
   openings: z.number().int().positive().optional(),
+  applicants: z.number().int().nonnegative().optional(),
   workTerm: optionalText(120),
   applicationMethod: optionalText(120),
   requiredDocuments: optionalStringList,

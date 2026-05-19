@@ -675,7 +675,10 @@ async function runWwBulkScrape(opts: {
   try {
     const resp = await sendMessage<{ ids: string[] }>({
       type: "GET_IMPORTED_SOURCE_JOB_IDS",
-      payload: { source: "waterloo_works" },
+      // Must match `WaterlooWorksScraper.source` ("waterlooworks", no
+      // underscore) — that's what gets stored in jobs.source on import,
+      // and what listSourceJobIds filters by.
+      payload: { source: "waterlooworks" },
     } as never);
     if (resp.success && Array.isArray(resp.data?.ids)) {
       skipSourceJobIds = new Set(resp.data.ids);

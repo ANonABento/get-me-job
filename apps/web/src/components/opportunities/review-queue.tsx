@@ -283,6 +283,9 @@ export function OpportunityReviewQueue({
                       {activeJob.remoteType === "remote" && (
                         <Badge variant="info">Remote</Badge>
                       )}
+                      {activeJob.source === "waterlooworks" && (
+                        <Badge variant="outline">WaterlooWorks</Badge>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -299,6 +302,8 @@ export function OpportunityReviewQueue({
                     <span>Deadline {activeJob.deadline}</span>
                   )}
                 </div>
+
+                <OpportunityMetaRow opportunity={activeJob} />
 
                 {tags.length > 0 && (
                   <div className="mt-6 flex flex-wrap gap-2">
@@ -386,5 +391,54 @@ function ActionButton({
       {icon}
       {label}
     </button>
+  );
+}
+
+/**
+ * Posting-level metadata strip — competitiveness (openings/applicants),
+ * level, and work term. Rendered below the title block on the review card
+ * so a reviewer can read out the "is this worth applying to?" signal
+ * before scrolling into the description. Each chunk is independently
+ * optional; the strip itself doesn't render when nothing is set.
+ */
+function OpportunityMetaRow({ opportunity }: { opportunity: Opportunity }) {
+  const chunks: { key: string; label: string; emphasized?: boolean }[] = [];
+  if (typeof opportunity.applicants === "number") {
+    chunks.push({
+      key: "applicants",
+      label: `${opportunity.applicants} applicant${opportunity.applicants === 1 ? "" : "s"}`,
+      // Highlight low-applicant postings as "less competitive" gems.
+      emphasized: opportunity.applicants <= 25,
+    });
+  }
+  if (typeof opportunity.openings === "number") {
+    chunks.push({
+      key: "openings",
+      label: `${opportunity.openings} opening${opportunity.openings === 1 ? "" : "s"}`,
+    });
+  }
+  if (opportunity.workTerm) {
+    chunks.push({ key: "workTerm", label: opportunity.workTerm });
+  }
+  if (opportunity.level) {
+    chunks.push({
+      key: "level",
+      label:
+        opportunity.level.charAt(0).toUpperCase() + opportunity.level.slice(1),
+    });
+  }
+
+  if (chunks.length === 0) return null;
+  return (
+    <div className="mt-3 flex flex-wrap gap-1.5">
+      {chunks.map((chunk) => (
+        <Badge
+          key={chunk.key}
+          variant={chunk.emphasized ? "default" : "secondary"}
+        >
+          {chunk.label}
+        </Badge>
+      ))}
+    </div>
   );
 }
