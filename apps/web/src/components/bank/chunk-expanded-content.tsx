@@ -80,8 +80,8 @@ export function ChunkExpandedContent({
         })}
       </div>
       {childEntries.length > 0 ? (
-        <div className="rounded-md border border-border/70 bg-background/45 p-3">
-          <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
             <span className="text-xs font-medium text-muted-foreground">
               Bullet components
             </span>
