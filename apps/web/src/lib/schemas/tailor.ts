@@ -20,6 +20,14 @@ const resumeEducationSchema = z
   })
   .passthrough();
 
+const resumeProjectSchema = z
+  .object({
+    name: z.string(),
+    description: z.string(),
+    highlights: z.array(z.string()),
+  })
+  .passthrough();
+
 export const tailoredResumeSchema = z
   .object({
     contact: contactSchema,
@@ -27,6 +35,9 @@ export const tailoredResumeSchema = z
     experiences: z.array(resumeExperienceSchema),
     skills: z.array(z.string()),
     education: z.array(resumeEducationSchema),
+    projects: z.array(resumeProjectSchema).optional(),
+    certifications: z.array(z.string()).optional(),
+    awards: z.array(z.string()).optional(),
   })
   .passthrough();
 

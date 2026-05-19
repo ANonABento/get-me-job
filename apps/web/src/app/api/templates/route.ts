@@ -16,6 +16,11 @@ import {
   deleteCustomTemplate,
   updateCustomTemplateMetadata,
 } from "@/lib/db/custom-templates";
+import {
+  deleteDocumentTemplateV2,
+  listDocumentTemplatesV2,
+  updateDocumentTemplateV2Metadata,
+} from "@/lib/db/template-migrations";
 import { getDocument } from "@/lib/db/queries";
 import { TEMPLATES } from "@/lib/resume/templates";
 import { requireAuth, isAuthError } from "@/lib/auth";
@@ -81,7 +86,14 @@ export async function GET() {
   if (isAuthError(authResult)) return authResult;
 
   try {
-    const customTemplates = getCustomTemplates(authResult.userId);
+    const customTemplateRows = getCustomTemplates(authResult.userId);
+    const documentTemplateV2Rows = listDocumentTemplatesV2(authResult.userId);
+    const customTemplates = Array.isArray(customTemplateRows)
+      ? customTemplateRows
+      : [];
+    const documentTemplatesV2 = Array.isArray(documentTemplateV2Rows)
+      ? documentTemplateV2Rows
+      : [];
 
     const builtIn = TEMPLATES.map((t) => ({
       id: t.id,
@@ -106,8 +118,25 @@ export async function GET() {
       createdAt: t.createdAt,
       updatedAt: t.updatedAt,
     }));
+    const customV2 = documentTemplatesV2.map((t) => ({
+      id: t.id,
+      name: t.name,
+      description:
+        t.description ??
+        (t.sourceType
+          ? `Recreated from ${t.sourceType.toUpperCase()}`
+          : "Recreated document template"),
+      type: "custom" as const,
+      customDescription: t.description,
+      sourceFilename: t.sourceFilename,
+      sourceType: t.sourceType,
+      schemaVersion: t.template.schemaVersion,
+      documentTemplate: t.template,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
+    }));
 
-    return successResponse({ templates: [...builtIn, ...custom] });
+    return successResponse({ templates: [...builtIn, ...custom, ...customV2] });
   } catch (error) {
     console.error("List templates error:", error);
     return errorResponse("internal_error", "Failed to list templates");
@@ -119,7 +148,12 @@ export async function POST(request: NextRequest) {
   if (isAuthError(authResult)) return authResult;
 
   try {
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return ApiErrors.badRequest("Invalid JSON body");
+    }
     const parseResult = createTemplateSchema.safeParse(body);
 
     if (!parseResult.success) {
@@ -168,7 +202,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     const deleted = deleteCustomTemplate(id, authResult.userId);
-    if (!deleted) {
+    const deletedV2 = deleted
+      ? false
+      : deleteDocumentTemplateV2(id, authResult.userId);
+    if (!deleted && !deletedV2) {
       return ApiErrors.notFound("Template");
     }
 
@@ -197,7 +234,13 @@ export async function PATCH(request: NextRequest) {
       { name, description },
       authResult.userId,
     );
-    if (!updated) {
+    const updatedV2 = updated
+      ? null
+      : updateDocumentTemplateV2Metadata(id, authResult.userId, {
+          name,
+          description,
+        });
+    if (!updated && !updatedV2) {
       return ApiErrors.notFound("Template");
     }
 

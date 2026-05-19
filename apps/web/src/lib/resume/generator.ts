@@ -19,6 +19,13 @@ export interface TailoredResume {
     field: string;
     date: string;
   }[];
+  projects?: {
+    name: string;
+    description: string;
+    highlights: string[];
+  }[];
+  certifications?: string[];
+  awards?: string[];
 }
 
 export async function generateTailoredResume(
