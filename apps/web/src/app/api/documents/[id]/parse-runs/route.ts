@@ -8,8 +8,15 @@ import { z } from "zod";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { listDocumentParseRuns } from "@/lib/db";
 import {
+  gateAiFeature,
+  isAiGateResponse,
+  type AiGatePass,
+} from "@/lib/billing/ai-gate";
+import {
+  createAiDocumentParseRun,
   createBasicDocumentParseRun,
   DocumentParseRunError,
+  resolveReadyDocumentArtifact,
 } from "@/lib/ingest/document-parse-run";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +52,7 @@ export async function POST(
 ) {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
+  let aiGate: AiGatePass | null = null;
 
   let body: unknown = {};
   try {
@@ -61,14 +69,30 @@ export async function POST(
     );
   }
 
-  if (parsed.data.mode !== "basic") {
-    return NextResponse.json(
-      { error: "Only basic parser-v2 mode is available in this phase" },
-      { status: 400 },
-    );
-  }
-
   try {
+    if (parsed.data.mode === "ai") {
+      // Check artifact readiness before billing/gating the explicit AI parse.
+      resolveReadyDocumentArtifact({
+        documentId: params.id,
+        userId: authResult.userId,
+        artifactId: parsed.data.artifactId,
+      });
+      const gate = gateAiFeature(
+        authResult.userId,
+        "tailor",
+        `document-parse-run:${params.id}`,
+      );
+      if (isAiGateResponse(gate)) return gate;
+      aiGate = gate;
+      const parseRun = await createAiDocumentParseRun({
+        documentId: params.id,
+        userId: authResult.userId,
+        artifactId: parsed.data.artifactId,
+        llmConfig: gate.llmConfig,
+      });
+      return NextResponse.json({ parseRun }, { status: 201 });
+    }
+
     const parseRun = createBasicDocumentParseRun({
       documentId: params.id,
       userId: authResult.userId,
@@ -77,6 +101,7 @@ export async function POST(
 
     return NextResponse.json({ parseRun }, { status: 201 });
   } catch (error) {
+    aiGate?.refund();
     if (error instanceof DocumentParseRunError) {
       return NextResponse.json(
         { error: error.publicMessage },

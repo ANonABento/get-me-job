@@ -10,9 +10,14 @@ import {
   deleteBankEntriesBySource,
   getDocumentArtifact,
   getDocumentParseRunById,
+  getProfile,
   insertBankEntries,
+  updateProfile,
 } from "@/lib/db";
+import { isParsedResumeV2Result } from "@/lib/ingest/diagnostics";
 import { buildParseRunBankEntries } from "@/lib/ingest/parse-run-bank-import";
+import { parserV2ProfileToAutoPromoteInput } from "@/lib/ingest/parser-v2-profile-promotion";
+import { mergeParsedProfileForAutoPromote } from "@/lib/profile/auto-promote";
 
 export const dynamic = "force-dynamic";
 
@@ -40,16 +45,6 @@ export async function POST(
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Validation failed", details: parsed.error.flatten() },
-      { status: 400 },
-    );
-  }
-
-  if (parsed.data.autoPromoteProfile) {
-    return NextResponse.json(
-      {
-        error:
-          "Profile auto-promotion is not available for parser-v2 commits yet",
-      },
       { status: 400 },
     );
   }
@@ -97,11 +92,35 @@ export async function POST(
         documentId: parseRun.documentId,
         inserted: 0,
         entryIds: [],
+        profilePromoted: false,
       });
     }
 
     deleteBankEntriesBySource(parseRun.documentId, authResult.userId);
     const entryIds = insertBankEntries(entries, authResult.userId);
+    let profilePromoted = false;
+
+    if (
+      parsed.data.autoPromoteProfile &&
+      isParsedResumeV2Result(parseRun.structured)
+    ) {
+      try {
+        const existingProfile = getProfile(authResult.userId);
+        const promoted = mergeParsedProfileForAutoPromote(
+          existingProfile,
+          parserV2ProfileToAutoPromoteInput(parseRun.structured.profile),
+        );
+        if (Object.keys(promoted).length > 0) {
+          updateProfile(promoted, authResult.userId);
+          profilePromoted = true;
+        }
+      } catch (promotionError) {
+        console.error(
+          "Parser-v2 profile auto-promotion failed:",
+          promotionError,
+        );
+      }
+    }
 
     return NextResponse.json({
       success: true,
@@ -109,6 +128,7 @@ export async function POST(
       documentId: parseRun.documentId,
       inserted: entryIds.length,
       entryIds,
+      profilePromoted,
     });
   } catch (error) {
     console.error("Commit parse run import error:", error);
