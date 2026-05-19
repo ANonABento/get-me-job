@@ -729,6 +729,129 @@ Do not continue route migration in this phase unless one of these changes:
 - A storage decision replaces the legacy in-memory PDF cache and fuzzy preview
   fallback for old rows.
 
+## Parser-v2 Single-System Migration Plan
+
+The next phase should make parser-v2 the normal resume upload path. Legacy
+resume parsing should stop running during the default upload flow and should
+remain available only as a temporary fallback/compatibility path until parser-v2
+fixture coverage proves parity.
+
+### Target Resume Upload Flow
+
+```text
+User selects resume
+        |
+        v
+POST /api/documents/upload
+  - validate file type, magic bytes, size
+  - dedupe by user + file hash
+  - persist document row + stored source file
+  - no parse side effects
+        |
+        v
+POST /api/documents/:documentId/extract
+  - build source map from PDF/DOC/TXT
+  - OCR fallback when text geometry is insufficient
+  - persist document_artifacts row
+        |
+        v
+POST /api/documents/:documentId/parse-runs
+  - deterministic parser-v2 by default
+  - optional source-cited AI mode via explicit user action
+  - persist document_parse_runs row
+        |
+        v
+GET /api/documents/:documentId/source-map?parseRunId=:parseRunId
+GET /api/bank/imports/:parseRunId/preview
+  - review modal reads draft components, source refs, source text,
+    diagnostics, and PDF highlights from one parser-v2 run
+  - profile_bank is still unchanged
+        |
+        v
+User edits / deletes / adds manual bullets in review modal
+        |
+        v
+POST /api/bank/imports/:parseRunId/commit
+  - commit accepted reviewed components into profile_bank
+  - persist parser-v2 source metadata on every committed entry
+  - optionally promote parsed profile data after commit
+        |
+        v
+Components table refreshes from committed profile_bank rows
+```
+
+### Desired Route Ownership
+
+- `POST /api/documents/upload` owns file validation, dedupe, and source document
+  persistence. It must not parse resumes or write bank entries.
+- `POST /api/documents/:id/extract` owns source artifact creation. It may create
+  failed artifacts for diagnostics, but failed artifacts must not create ready
+  parse runs.
+- `POST /api/documents/:id/parse-runs` owns parser-v2 parse creation. Basic mode
+  is deterministic; AI mode is explicit and source-cited.
+- `GET /api/bank/imports/:parseRunId/preview` owns review materialization from a
+  parse run into BankEntry-shaped draft components.
+- `POST /api/bank/imports/:parseRunId/commit` owns the only write from
+  parser-v2 review into `profile_bank`.
+- `POST /api/upload` and `POST /api/parse` remain compatibility routes for
+  existing callers, but the first-party resume upload UI should stop using them
+  once this migration lands.
+
+### Current Gaps Before Switching the UI
+
+1. Parser-v2 commit rejects `autoPromoteProfile`. Legacy upload currently
+   auto-promotes parsed resume profile data immediately after parsing; parser-v2
+   should move that side effect to review commit.
+2. The Components upload UI still calls `/api/upload`, then fetches persisted
+   legacy bank rows, then optionally adopts parser-v2 preview entries. This is
+   the split-brain flow that causes modal races and confusing state.
+3. Duplicate upload replacement currently depends on legacy `/api/upload?force`.
+   Parser-v2 upload needs an explicit force/replace path or a UI-level duplicate
+   resolution flow for `/api/documents/upload`.
+4. Manual draft entries are currently posted separately after parser-v2 commit.
+   This is acceptable for a first cut, but the final commit contract should
+   either include manual additions or explicitly document them as client-created
+   entries.
+5. Parser-v2 fixture/eval coverage is good for the current public fixtures, but
+   the UI switch should keep a temporary fallback flag until enough real uploads
+   have passed parity checks.
+
+### Migration Slices
+
+35. Add a parser-v2 upload orchestrator service that performs
+    upload -> extract -> basic parse-run -> source-map/preview URL assembly in
+    one server-owned call path without writing bank rows. Reuse
+    `persistDocumentUpload`, `extractDocumentSourceMap`,
+    `createBasicDocumentParseRun`, and `buildParseRunReviewEntries` instead of
+    duplicating route internals.
+36. Add parser-v2 duplicate replacement support. Either extend
+    `/api/documents/upload` with validated `force=true` replacement semantics or
+    add a dedicated document replacement route that deletes old source docs,
+    artifacts, parse runs, stored file bytes, and bank rows for that source
+    before saving the replacement.
+37. Enable profile auto-promotion on parser-v2 commit. `autoPromoteProfile`
+    should run only after accepted entries are committed, should reuse
+    `mergeParsedProfileForAutoPromote`, and should remain non-fatal if profile
+    update fails.
+38. Switch the Components resume upload UI from `/api/upload` to the parser-v2
+    orchestrated flow. The modal should open from parser-v2 preview entries only;
+    it should not fetch `/api/bank?sourceDocumentId=...` for initial resume
+    review.
+39. Make Done always commit parser-v2 review entries for resume uploads. Discard
+    should close the draft without deleting committed bank rows, because none
+    should exist before commit. Replacement/discard cleanup should remove the
+    saved source document/artifacts when appropriate.
+40. Keep legacy resume parsing behind a temporary fallback flag. Fallback may be
+    offered only when parser-v2 extraction or parse-run creation fails, and the
+    UI should clearly label that it is using the compatibility parser.
+41. Expand regression coverage: upload opens parser-v2 modal, upload does not
+    write bank rows before Done, Done commits reviewed rows, Discard leaves no
+    bank rows, duplicate replacement works, profile promotion happens after
+    commit, and parser-v2 source refs/highlights survive review edits.
+42. Remove first-party resume UI dependencies on `/api/upload` and `/api/parse`.
+    Keep those routes for non-migrated clients until a separate compatibility
+    removal decision is made.
+
 ## Open Questions
 
 1. Should upload auto-create a parse run, or should the client explicitly call
