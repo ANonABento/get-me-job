@@ -698,6 +698,37 @@ Eventually:
 - `/api/parse` should become a thin wrapper around `parse-runs`.
 - Fuzzy matching should be removed from the main ingestion path.
 
+### Route Migration Decision
+
+For the current parser-v2 rebuild, keep `/api/upload` and `/api/parse` as
+compatibility routes.
+
+Rationale:
+
+- `/api/upload` still owns legacy review behavior: deterministic extraction,
+  classification, bank ingestion, profile auto-promotion, PDF byte caching, and
+  fuzzy bbox matching. Parser-v2 artifact creation now runs best-effort after
+  the legacy document row is saved, so new provenance is available without
+  changing the historical response contract.
+- `/api/parse` still owns legacy reparse/profile promotion semantics and AI
+  fallback/refund behavior. Basic mode now creates parser-v2 parse-run context
+  when a ready source artifact exists, but parser-v2 failures remain non-fatal
+  to legacy parsing.
+- `/api/documents/upload`, `/api/documents/:id/extract`,
+  `/api/documents/:id/parse-runs`, `/api/documents/:id/source-map`, and
+  `/api/bank/imports/:parseRunId/*` are the parser-v2 route boundaries for new
+  source-grounded flows.
+
+Do not continue route migration in this phase unless one of these changes:
+
+- The upload review UI no longer needs legacy persisted bank rows as a fallback.
+- Existing clients have moved to the parser-v2 document/upload/extract/parse
+  route sequence.
+- Product policy changes from review-before-commit to automatic commit for
+  high-confidence parse runs.
+- A storage decision replaces the legacy in-memory PDF cache and fuzzy preview
+  fallback for old rows.
+
 ## Open Questions
 
 1. Should upload auto-create a parse run, or should the client explicitly call
@@ -879,5 +910,6 @@ Next implementation slices:
 33. Carry source-map `sourceRefs` through the parser-v2 review context loader so
     client review UI state has direct access to component source IDs, source
     quality, and cited text. Done in the client source refs slice.
-34. Keep `/api/upload` and `/api/parse` route migration out until persistence is
-    reviewed separately.
+34. Freeze `/api/upload` and `/api/parse` as compatibility routes for this
+    phase, documenting the parser-v2 route boundaries and criteria for any
+    future migration. Done in the route migration decision slice.
