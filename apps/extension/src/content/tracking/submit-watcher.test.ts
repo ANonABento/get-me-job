@@ -24,6 +24,11 @@ const enabledSettings: ExtensionSettings = {
   notifyOnJobDetected: true,
   autoTrackApplicationsEnabled: true,
   captureScreenshotEnabled: false,
+  scrapeThrottleMs: 500,
+  scrapeChunkSize: 5,
+  scrapeMaxJobs: 200,
+  scrapeMaxPages: 50,
+  scrapeDedupeEnabled: true,
 };
 
 describe("submit tracking heuristics", () => {

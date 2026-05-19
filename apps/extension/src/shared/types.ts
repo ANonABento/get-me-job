@@ -412,6 +412,13 @@ export interface ExtensionSettings {
   notifyOnJobDetected: boolean;
   autoTrackApplicationsEnabled: boolean;
   captureScreenshotEnabled: boolean;
+  // Bulk-scrape knobs surfaced via the options page (spec §4 bucket D).
+  // The orchestrator reads these before each run.
+  scrapeThrottleMs: number;
+  scrapeChunkSize: number;
+  scrapeMaxJobs: number;
+  scrapeMaxPages: number;
+  scrapeDedupeEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: ExtensionSettings = {
@@ -422,6 +429,11 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   notifyOnJobDetected: true,
   autoTrackApplicationsEnabled: true,
   captureScreenshotEnabled: false,
+  scrapeThrottleMs: 500,
+  scrapeChunkSize: 5,
+  scrapeMaxJobs: 200,
+  scrapeMaxPages: 50,
+  scrapeDedupeEnabled: true,
 };
 
 export const LEGACY_LOCAL_API_BASE_URL = "http://localhost:3000";

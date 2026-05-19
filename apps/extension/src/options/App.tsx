@@ -338,6 +338,110 @@ export default function OptionsApp() {
         </div>
       </section>
 
+      <section className="settings-card scrape-card">
+        <div className="section-head">
+          <h2>Bulk scrape</h2>
+          <SaveStatusBadge status={settingsStatus} />
+        </div>
+        <small>
+          Controls the bulk scrape on WaterlooWorks (and other bulk sources).
+          Throttle is how long we wait between row clicks; chunk size is how
+          many scraped jobs we import per HTTP request.
+        </small>
+        <div className="setting-row">
+          <label className="number-input">
+            <span>Row throttle (ms)</span>
+            <input
+              type="number"
+              min={100}
+              max={5000}
+              value={settings.scrapeThrottleMs}
+              onChange={(e) => {
+                const next = Number.parseInt(e.target.value, 10);
+                if (Number.isFinite(next)) {
+                  handleSettingChange(
+                    "scrapeThrottleMs",
+                    Math.max(100, Math.min(5000, next)),
+                  );
+                }
+              }}
+            />
+          </label>
+          <label className="number-input">
+            <span>Import chunk size</span>
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={settings.scrapeChunkSize}
+              onChange={(e) => {
+                const next = Number.parseInt(e.target.value, 10);
+                if (Number.isFinite(next)) {
+                  handleSettingChange(
+                    "scrapeChunkSize",
+                    Math.max(1, Math.min(50, next)),
+                  );
+                }
+              }}
+            />
+          </label>
+        </div>
+        <div className="setting-row">
+          <label className="number-input">
+            <span>Max jobs / scrape</span>
+            <input
+              type="number"
+              min={1}
+              max={1000}
+              value={settings.scrapeMaxJobs}
+              onChange={(e) => {
+                const next = Number.parseInt(e.target.value, 10);
+                if (Number.isFinite(next)) {
+                  handleSettingChange(
+                    "scrapeMaxJobs",
+                    Math.max(1, Math.min(1000, next)),
+                  );
+                }
+              }}
+            />
+          </label>
+          <label className="number-input">
+            <span>Max pages / scrape</span>
+            <input
+              type="number"
+              min={1}
+              max={200}
+              value={settings.scrapeMaxPages}
+              onChange={(e) => {
+                const next = Number.parseInt(e.target.value, 10);
+                if (Number.isFinite(next)) {
+                  handleSettingChange(
+                    "scrapeMaxPages",
+                    Math.max(1, Math.min(200, next)),
+                  );
+                }
+              }}
+            />
+          </label>
+        </div>
+        <div className="setting-group">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={settings.scrapeDedupeEnabled}
+              onChange={(e) =>
+                handleSettingChange("scrapeDedupeEnabled", e.target.checked)
+              }
+            />
+            <span>Skip postings already imported</span>
+          </label>
+          <small>
+            Asks the API for your imported posting IDs before scraping; skips
+            matching rows without opening their modal.
+          </small>
+        </div>
+      </section>
+
       <section className="settings-card compact-card notifications-card">
         <div className="section-head">
           <h2>Notifications</h2>

@@ -30,6 +30,7 @@ import {
 import { LocaleSection } from "@/components/settings/locale-section";
 import { OllamaWarning } from "@/components/settings/ollama-warning";
 import { OpportunityReviewSection } from "@/components/settings/opportunity-review-section";
+import { OpportunityPreferencesSection } from "@/components/settings/opportunity-preferences-section";
 import { PromptVariantsSection } from "@/components/settings/prompt-variants-section";
 import { ThemeSection } from "@/components/settings/theme-section";
 import { WhatAiPowers } from "@/components/settings/what-ai-powers";
@@ -225,6 +226,7 @@ function SettingsPageInner() {
                 <GoogleIntegration />
                 <GmailAutoStatusSection />
                 <OpportunityReviewSection />
+                <OpportunityPreferencesSection />
               </div>
             )}
 

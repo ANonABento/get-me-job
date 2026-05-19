@@ -648,8 +648,6 @@ async function runBulkSourceScrape(
   };
 }
 
-const BULK_SCRAPE_CHUNK_SIZE = 5;
-
 async function runWwBulkScrape(opts: {
   paginated: boolean;
   maxJobs?: number;
@@ -668,23 +666,43 @@ async function runWwBulkScrape(opts: {
   let pages = 1;
   let aborted = false;
 
+  // Read scrape settings from the user's extension preferences. Falls
+  // back to DEFAULT_SETTINGS values when storage is missing or stale
+  // (e.g. first-run with no settings written yet).
+  let settings: ExtensionSettings | null = null;
+  try {
+    const resp = await sendMessage<ExtensionSettings>(Messages.getSettings());
+    if (resp.success && resp.data) settings = resp.data;
+  } catch {
+    // ignore — defaults below
+  }
+  const scrapeChunkSize = settings?.scrapeChunkSize ?? 5;
+  const scrapeMaxJobs = settings?.scrapeMaxJobs ?? opts.maxJobs;
+  const scrapeMaxPages = settings?.scrapeMaxPages ?? opts.maxPages;
+  const scrapeThrottleMs = settings?.scrapeThrottleMs;
+  const scrapeDedupeEnabled = settings?.scrapeDedupeEnabled ?? true;
+
   // Ask the background for posting IDs we've already imported. The
   // orchestrator skips those rows entirely (no modal open, no scrape).
   // Best-effort — failures fall back to "no filter" so we still scrape.
+  // Honors the user's `scrapeDedupeEnabled` preference — disable to
+  // force a re-scrape of everything.
   let skipSourceJobIds: Set<string> | undefined;
-  try {
-    const resp = await sendMessage<{ ids: string[] }>({
-      type: "GET_IMPORTED_SOURCE_JOB_IDS",
-      // Must match `WaterlooWorksScraper.source` ("waterlooworks", no
-      // underscore) — that's what gets stored in jobs.source on import,
-      // and what listSourceJobIds filters by.
-      payload: { source: "waterlooworks" },
-    } as never);
-    if (resp.success && Array.isArray(resp.data?.ids)) {
-      skipSourceJobIds = new Set(resp.data.ids);
+  if (scrapeDedupeEnabled) {
+    try {
+      const resp = await sendMessage<{ ids: string[] }>({
+        type: "GET_IMPORTED_SOURCE_JOB_IDS",
+        // Must match `WaterlooWorksScraper.source` ("waterlooworks", no
+        // underscore) — that's what gets stored in jobs.source on import,
+        // and what listSourceJobIds filters by.
+        payload: { source: "waterlooworks" },
+      } as never);
+      if (resp.success && Array.isArray(resp.data?.ids)) {
+        skipSourceJobIds = new Set(resp.data.ids);
+      }
+    } catch {
+      // Background unavailable — proceed without dedupe filter.
     }
-  } catch {
-    // Background unavailable — proceed without dedupe filter.
   }
 
   // Aggregate import stats across streaming chunks.
@@ -736,23 +754,25 @@ async function runWwBulkScrape(opts: {
     jobs = opts.paginated
       ? await orchestrator.scrapeAllPaginated({
           onProgress,
-          maxJobs: opts.maxJobs,
-          maxPages: opts.maxPages,
+          maxJobs: scrapeMaxJobs,
+          maxPages: scrapeMaxPages,
+          throttleMs: scrapeThrottleMs,
           signal: controller.signal,
           skipSourceJobIds,
-          chunkSize: BULK_SCRAPE_CHUNK_SIZE,
+          chunkSize: scrapeChunkSize,
           onChunk,
         })
       : await orchestrator.scrapeAllVisible({
           onProgress,
+          throttleMs: scrapeThrottleMs,
           signal: controller.signal,
           skipSourceJobIds,
-          chunkSize: BULK_SCRAPE_CHUNK_SIZE,
+          chunkSize: scrapeChunkSize,
           onChunk,
         });
     aborted = controller.signal.aborted;
     // Flush any trailing partial chunk (jobs.length not a multiple of N).
-    const remainder = jobs.length % BULK_SCRAPE_CHUNK_SIZE;
+    const remainder = jobs.length % scrapeChunkSize;
     if (remainder > 0) {
       await onChunk(jobs.slice(jobs.length - remainder));
     }
