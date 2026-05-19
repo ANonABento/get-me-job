@@ -86,6 +86,24 @@ export type OpportunitySortId = (typeof OPPORTUNITY_SORT_IDS)[number];
 export const OPPORTUNITY_PRESET_SCOPES = ["review", "list"] as const;
 export type OpportunityPresetScope = (typeof OPPORTUNITY_PRESET_SCOPES)[number];
 
+// Auto-tag rule triggers used by the import endpoint to apply tags to
+// freshly-created jobs. Add a new trigger type → extend the union here
+// + the switch in applyAutoTagRules + the dropdown in
+// AutoTagRulesBuilder. Spec: opportunity-customization-spec §4 bucket E.
+export const AUTO_TAG_TRIGGER_TYPES = [
+  "source-equals", // opportunity.source === triggerValue
+  "title-includes", // case-insensitive substring match on title
+  "work-term-includes", // case-insensitive substring match on workTerm
+  "level-equals", // opportunity.level === triggerValue
+] as const;
+export type AutoTagTriggerType = (typeof AUTO_TAG_TRIGGER_TYPES)[number];
+
+// Status the import endpoint stamps onto newly-imported opportunities
+// when the user has set a default. Restricted to early-funnel statuses;
+// "applied"+ shouldn't be auto-assigned via import.
+export const IMPORT_DEFAULT_STATUSES = ["pending", "saved"] as const;
+export type ImportDefaultStatus = (typeof IMPORT_DEFAULT_STATUSES)[number];
+
 export type OpportunityType = (typeof OPPORTUNITY_TYPES)[number];
 export type OpportunitySource = (typeof OPPORTUNITY_SOURCES)[number];
 export type OpportunityRemoteType = (typeof OPPORTUNITY_REMOTE_TYPES)[number];
@@ -395,6 +413,27 @@ export const updateOpportunityPresetSchema = opportunityPresetSchema
   .partial();
 export type UpdateOpportunityPresetInput = z.input<
   typeof updateOpportunityPresetSchema
+>;
+
+// Auto-tag rule that runs against newly-imported opportunities. See
+// opportunity-customization-spec §4 bucket E. The trigger types live
+// in AUTO_TAG_TRIGGER_TYPES above; the engine in
+// apps/web/src/lib/opportunities/auto-tag.ts does the matching.
+export const autoTagTriggerSchema = z.enum(AUTO_TAG_TRIGGER_TYPES);
+export const importDefaultStatusSchema = z.enum(IMPORT_DEFAULT_STATUSES);
+
+export const opportunityAutoTagRuleSchema = z.object({
+  id: z.string(),
+  enabled: z.boolean().default(true),
+  trigger: autoTagTriggerSchema,
+  triggerValue: z.string().trim().min(1).max(200),
+  tags: z
+    .array(z.string().trim().min(1).max(40))
+    .min(1, "At least one tag is required")
+    .max(10),
+});
+export type OpportunityAutoTagRule = z.infer<
+  typeof opportunityAutoTagRuleSchema
 >;
 
 // LLM provider configuration. The runtime validation source lives here so the

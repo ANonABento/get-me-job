@@ -10,6 +10,7 @@ import {
   countJobsByStatus,
   getJobByUrl,
   getJobBySource,
+  updateJob,
   updateJobStatus,
 } from "@/lib/db/jobs";
 import { createNotification } from "@/lib/db/notifications";
@@ -17,6 +18,8 @@ import {
   buildJobFromExtension,
   parseExtensionOpportunityPayload,
 } from "@/lib/extension-opportunities";
+import { getViewPreferences } from "@/lib/db/opportunity-view-preferences";
+import { applyAutoTagRules } from "@/lib/opportunities/auto-tag";
 import type { JobDescription } from "@/types";
 
 export async function POST(request: NextRequest) {
@@ -47,6 +50,17 @@ export async function POST(request: NextRequest) {
 
     const importedJobs: JobDescription[] = [];
     const dedupedIds: string[] = [];
+
+    // Bucket E — auto-tag rules. Loaded once per request so a 50-job
+    // batch doesn't do 50 SELECTs against preferences.
+    const preferences = (() => {
+      try {
+        return getViewPreferences(authResult.userId);
+      } catch {
+        return null;
+      }
+    })();
+    const autoTagRules = preferences?.autoTagRules ?? [];
 
     for (const opportunity of parseResult.opportunities) {
       // Dedupe by (source, sourceJobId) before URL — the natural key from
@@ -91,9 +105,44 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      importedJobs.push(
-        createJob(buildJobFromExtension(opportunity), authResult.userId),
+      const createdJob = createJob(
+        buildJobFromExtension(opportunity),
+        authResult.userId,
       );
+
+      // Bucket E auto-tag: apply rule-derived tags to freshly-created
+      // jobs only. Skipped for jobs that hit the dedupe paths above
+      // (we don't want to silently rewrite a user's existing tags on
+      // re-import). Best-effort — a failure here shouldn't reject the
+      // whole batch.
+      if (autoTagRules.length > 0) {
+        try {
+          const ruleTags = applyAutoTagRules(
+            {
+              source: opportunity.source,
+              title: opportunity.title,
+              workTerm: opportunity.workTerm,
+              level: opportunity.level,
+            },
+            autoTagRules,
+          );
+          if (ruleTags.length > 0) {
+            const mergedKeywords = Array.from(
+              new Set([...(createdJob.keywords ?? []), ...ruleTags]),
+            );
+            updateJob(
+              createdJob.id,
+              { keywords: mergedKeywords },
+              authResult.userId,
+            );
+            createdJob.keywords = mergedKeywords;
+          }
+        } catch (error) {
+          console.error("[auto-tag] rule application failed:", error);
+        }
+      }
+
+      importedJobs.push(createdJob);
     }
 
     const pendingCount = countJobsByStatus("pending", authResult.userId);

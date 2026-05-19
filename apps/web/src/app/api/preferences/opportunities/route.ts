@@ -14,7 +14,11 @@ import {
   setViewPreferences,
   VISIBLE_BADGE_KEYS,
 } from "@/lib/db/opportunity-view-preferences";
-import { opportunitySortIdSchema } from "@slothing/shared/schemas";
+import {
+  importDefaultStatusSchema,
+  opportunityAutoTagRuleSchema,
+  opportunitySortIdSchema,
+} from "@slothing/shared/schemas";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +32,9 @@ const updatePreferencesSchema = z
     scrapeMaxJobs: z.number().int().min(1).max(1000),
     scrapeMaxPages: z.number().int().min(1).max(200),
     scrapeDedupeEnabled: z.boolean(),
+    autoImportEnabled: z.boolean(),
+    defaultImportStatus: importDefaultStatusSchema,
+    autoTagRules: z.array(opportunityAutoTagRuleSchema).max(50),
   })
   .partial();
 
