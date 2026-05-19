@@ -1,4 +1,6 @@
 import type { DocumentSourceMap, SourceQuality } from "./types";
+import { LLMClient, parseJSONFromLLM } from "@/lib/llm/client";
+import type { LLMConfig } from "@/types";
 import { resolveSourceSpanIds } from "./source-spans";
 
 export interface AiSourceCitedPromptOptions {
@@ -27,6 +29,17 @@ export interface AiCitationValidationResult {
     message: string;
     sourceSpanIds: string[];
   }>;
+}
+
+export interface ParseResumeWithAiSourceCitationsInput {
+  sourceMap: DocumentSourceMap;
+  llmConfig: LLMConfig;
+  maxLines?: number;
+}
+
+export interface ParseResumeWithAiSourceCitationsResult {
+  raw: Record<string, unknown>;
+  validation: AiCitationValidationResult;
 }
 
 const METADATA_KEYS = new Set([
@@ -220,4 +233,23 @@ export function validateAiSourceCitations(
   };
   visitNode(parsed, "", sourceMap, result);
   return result;
+}
+
+export async function parseResumeWithAiSourceCitations({
+  sourceMap,
+  llmConfig,
+  maxLines,
+}: ParseResumeWithAiSourceCitationsInput): Promise<ParseResumeWithAiSourceCitationsResult> {
+  const prompt = buildAiSourceCitedResumePrompt(sourceMap, { maxLines });
+  const client = new LLMClient(llmConfig);
+  const response = await client.complete({
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.1,
+    maxTokens: 4096,
+  });
+  const raw = parseJSONFromLLM<Record<string, unknown>>(response);
+  return {
+    raw,
+    validation: validateAiSourceCitations(sourceMap, raw),
+  };
 }

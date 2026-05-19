@@ -1,9 +1,27 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildAiSourceCitedResumePrompt,
+  parseResumeWithAiSourceCitations,
   validateAiSourceCitations,
 } from "./ai-source-cited-parser";
 import type { DocumentSourceMap } from "./types";
+
+const mocks = vi.hoisted(() => ({
+  complete: vi.fn(),
+}));
+
+vi.mock("@/lib/llm/client", async () => {
+  const actual =
+    await vi.importActual<typeof import("@/lib/llm/client")>(
+      "@/lib/llm/client",
+    );
+  return {
+    ...actual,
+    LLMClient: vi.fn().mockImplementation(function MockLLMClient() {
+      return { complete: mocks.complete };
+    }),
+  };
+});
 
 const sourceMap: DocumentSourceMap = {
   pages: [
@@ -32,6 +50,10 @@ const sourceMap: DocumentSourceMap = {
 };
 
 describe("ai source-cited parser helpers", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("builds a prompt with annotated source IDs and citation requirements", () => {
     const prompt = buildAiSourceCitedResumePrompt(sourceMap);
 
@@ -99,5 +121,42 @@ describe("ai source-cited parser helpers", () => {
     expect(result.warnings.map((warning) => warning.code)).toEqual(
       expect.arrayContaining(["missing_source_id", "unsupported_value"]),
     );
+  });
+
+  it("calls the LLM with annotated source lines and validates the cited JSON", async () => {
+    mocks.complete.mockResolvedValueOnce(
+      JSON.stringify({
+        contact: {
+          name: "Ada Lovelace",
+          email: "ada@example.com",
+          sourceSpanIds: ["p1-l001"],
+        },
+      }),
+    );
+
+    const result = await parseResumeWithAiSourceCitations({
+      sourceMap,
+      llmConfig: {
+        provider: "openai",
+        model: "gpt-4o-mini",
+        apiKey: "test-key",
+      },
+    });
+
+    expect(mocks.complete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: [
+          expect.objectContaining({
+            content: expect.stringContaining("[p1-l001] Ada Lovelace"),
+          }),
+        ],
+        temperature: 0.1,
+        maxTokens: 4096,
+      }),
+    );
+    expect(result.raw).toMatchObject({
+      contact: { name: "Ada Lovelace" },
+    });
+    expect(result.validation.warnings).toEqual([]);
   });
 });

@@ -842,5 +842,9 @@ Next implementation slices:
     source-line prompts, validate returned `sourceSpanIds` against artifact
     line IDs, classify citation quality, and warn on unsupported cited values.
     Done in the AI citation validation foundation slice.
-24. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+24. Add an AI source-cited parser service entry point that calls the configured
+    LLM with annotated source lines and returns raw cited JSON plus validation
+    diagnostics before any route trusts the result. Done in the AI cited parser
+    service slice.
+25. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.
