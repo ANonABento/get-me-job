@@ -5,11 +5,23 @@ import { useLocale, useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { Menu, X, Moon, Sun } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { LocaleSwitcherCompact } from "@/components/i18n/locale-switcher";
 import { Link } from "@/i18n/navigation";
 import { useA11yTranslations } from "@/lib/i18n/use-a11y-translations";
 import { useTheme } from "@/components/theme-provider";
+
+/**
+ * Editorial marketing navbar.
+ *
+ * - Fixed top-0 with scroll-shadow behaviour preserved.
+ * - At scrollY=0: transparent so the landing hero reads through it.
+ *   At scrollY>20: paper-tinted with hairline border + soft shadow.
+ * - Primary CTA is a filled bg-ink pill (matches landing hero CTAs).
+ * - Mobile menu is a paper card with hairline borders + mono-cap labels.
+ *
+ * Anchor links (#features, #how-it-works) only resolve on `/`. Browsers
+ * no-op them elsewhere, which is fine fallback behaviour.
+ */
 
 type MarketingNavLink = {
   href: string;
@@ -27,7 +39,6 @@ const navLinks: readonly MarketingNavLink[] = [
 
 export function Navbar() {
   const a11yT = useA11yTranslations();
-
   const locale = useLocale();
   const t = useTranslations("marketing.nav");
   const [scrolled, setScrolled] = useState(false);
@@ -36,10 +47,7 @@ export function Navbar() {
   const callbackUrl = `/${locale}/dashboard`;
 
   const getNavLabel = (link: MarketingNavLink) => {
-    if (link.label) {
-      return link.label;
-    }
-
+    if (link.label) return link.label;
     return t(link.labelKey ?? "features");
   };
 
@@ -52,44 +60,39 @@ export function Navbar() {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+        "fixed inset-x-0 top-0 z-50 transition-all duration-300",
         scrolled
-          ? "bg-background/80 backdrop-blur-lg shadow-sm border-b py-3"
+          ? "border-b border-rule bg-page/85 py-3 shadow-paper-card backdrop-blur-md"
           : "bg-transparent py-5",
       )}
     >
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="flex items-center justify-between">
-          {/* Logo — circle-spiral mark + display-font wordmark. The
-              short "Resume Intelligence 怠惰" subtitle was dropped per
-              Kev's call; the mark + wordmark stand on their own. */}
+      <div className="mx-auto w-full max-w-[1480px] px-5 md:px-10">
+        <div className="flex items-center justify-between gap-4">
           <Link href="/" className="flex min-h-11 items-center gap-2.5">
-            <span className="grid h-10 w-10 flex-shrink-0 place-items-center">
-              <Image
-                src="/brand/slothing-mark.png"
-                alt=""
-                width={40}
-                height={40}
-                priority
-                className="h-10 w-10"
-              />
-            </span>
-            <span className="font-display text-lg font-bold tracking-tight text-foreground">
+            <Image
+              src="/brand/slothing-mark.png"
+              alt=""
+              width={40}
+              height={40}
+              priority
+              className="h-9 w-9"
+            />
+            <span className="font-display text-[18px] font-bold tracking-tight text-ink">
               Slothing
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop nav */}
           <nav
             aria-label={a11yT("navigation")}
-            className="hidden lg:flex items-center gap-8"
+            className="hidden items-center gap-7 lg:flex"
           >
             {navLinks.map((link) =>
               link.href.startsWith("#") ? (
                 <a
                   key={link.label ?? link.labelKey}
                   href={link.href}
-                  className="inline-flex min-h-11 items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  className="inline-flex min-h-11 items-center text-[13.5px] text-ink-2 transition-colors hover:text-ink"
                 >
                   {getNavLabel(link)}
                 </a>
@@ -98,7 +101,7 @@ export function Navbar() {
                   key={link.label ?? link.labelKey}
                   href={link.href}
                   prefetch={false}
-                  className="inline-flex min-h-11 items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  className="inline-flex min-h-11 items-center text-[13.5px] text-ink-2 transition-colors hover:text-ink"
                 >
                   {getNavLabel(link)}
                 </Link>
@@ -106,8 +109,8 @@ export function Navbar() {
             )}
           </nav>
 
-          {/* CTA Buttons */}
-          <div className="hidden lg:flex items-center gap-3">
+          {/* Desktop CTAs */}
+          <div className="hidden items-center gap-3 lg:flex">
             <LocaleSwitcherCompact />
             <button
               type="button"
@@ -115,7 +118,7 @@ export function Navbar() {
               aria-label={
                 isDark ? "Switch to light theme" : "Switch to dark theme"
               }
-              className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="grid h-9 w-9 place-items-center rounded-md text-ink-2 transition-colors hover:bg-rule-strong-bg hover:text-ink"
             >
               {isDark ? (
                 <Moon className="h-4 w-4" aria-hidden="true" />
@@ -123,60 +126,58 @@ export function Navbar() {
                 <Sun className="h-4 w-4" aria-hidden="true" />
               )}
             </button>
-            <Button variant="ghost" asChild>
-              <Link
-                href={{ pathname: "/sign-in", query: { callbackUrl } }}
-                prefetch={false}
-              >
-                {t("signIn")}
-              </Link>
-            </Button>
-            <Button
-              asChild
-              className="gradient-bg text-primary-foreground hover:opacity-90"
+            <Link
+              href={{ pathname: "/sign-in", query: { callbackUrl } }}
+              prefetch={false}
+              className="inline-flex min-h-11 items-center text-[13.5px] text-ink-2 transition-colors hover:text-ink"
             >
-              <Link
-                href={{ pathname: "/sign-in", query: { callbackUrl } }}
-                prefetch={false}
-              >
-                {t("getStarted")}
-              </Link>
-            </Button>
+              {t("signIn")}
+            </Link>
+            <Link
+              href={{ pathname: "/sign-in", query: { callbackUrl } }}
+              prefetch={false}
+              className="inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2.5 text-[13.5px] font-semibold text-page transition-opacity hover:opacity-90"
+            >
+              {t("getStarted")}
+            </Link>
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile menu trigger */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-foreground lg:hidden"
+            className="flex h-11 w-11 items-center justify-center text-ink-2 transition-colors hover:text-ink lg:hidden"
             aria-label={a11yT("toggleMenu")}
             aria-expanded={mobileOpen}
             aria-controls="mobile-nav-menu"
           >
             {mobileOpen ? (
-              <X className="h-6 w-6" />
+              <X className="h-6 w-6" aria-hidden="true" />
             ) : (
-              <Menu className="h-6 w-6" />
+              <Menu className="h-6 w-6" aria-hidden="true" />
             )}
           </button>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile menu */}
         <div
           id="mobile-nav-menu"
           hidden={!mobileOpen}
-          className="lg:hidden mt-4 pb-4 border-t pt-4"
+          className="mt-4 rounded-2xl border border-rule bg-paper p-5 shadow-paper-card lg:hidden"
         >
           <nav
             aria-label={a11yT("mobileNavigation")}
-            className="flex flex-col gap-4"
+            className="flex flex-col gap-1"
           >
+            <span className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-3">
+              Browse
+            </span>
             {navLinks.map((link) =>
               link.href.startsWith("#") ? (
                 <a
                   key={link.label ?? link.labelKey}
                   href={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className="flex min-h-11 items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  className="flex min-h-11 items-center text-[14px] font-medium text-ink-2 transition-colors hover:text-ink"
                 >
                   {getNavLabel(link)}
                 </a>
@@ -186,33 +187,32 @@ export function Navbar() {
                   href={link.href}
                   prefetch={false}
                   onClick={() => setMobileOpen(false)}
-                  className="flex min-h-11 items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  className="flex min-h-11 items-center text-[14px] font-medium text-ink-2 transition-colors hover:text-ink"
                 >
                   {getNavLabel(link)}
                 </Link>
               ),
             )}
-            <LocaleSwitcherCompact className="mt-2" />
-            <div className="flex flex-col gap-2 mt-2">
-              <Button variant="outline" asChild>
-                <Link
-                  href={{ pathname: "/sign-in", query: { callbackUrl } }}
-                  prefetch={false}
-                >
-                  {t("signIn")}
-                </Link>
-              </Button>
-              <Button
-                asChild
-                className="gradient-bg text-primary-foreground hover:opacity-90"
+
+            <div className="mt-4 flex flex-col gap-3 border-t border-rule pt-4">
+              <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-3">
+                Account
+              </span>
+              <LocaleSwitcherCompact />
+              <Link
+                href={{ pathname: "/sign-in", query: { callbackUrl } }}
+                prefetch={false}
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-full border-[1.5px] border-ink bg-transparent px-4 py-2.5 text-[14px] font-semibold text-ink transition-colors hover:bg-rule-strong-bg"
               >
-                <Link
-                  href={{ pathname: "/sign-in", query: { callbackUrl } }}
-                  prefetch={false}
-                >
-                  {t("getStarted")}
-                </Link>
-              </Button>
+                {t("signIn")}
+              </Link>
+              <Link
+                href={{ pathname: "/sign-in", query: { callbackUrl } }}
+                prefetch={false}
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-ink px-4 py-2.5 text-[14px] font-semibold text-page transition-opacity hover:opacity-90"
+              >
+                {t("getStarted")}
+              </Link>
             </div>
           </nav>
         </div>
