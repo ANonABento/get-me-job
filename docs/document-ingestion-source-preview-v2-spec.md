@@ -861,5 +861,8 @@ Next implementation slices:
 28. Add OCR fallback to parser-v2 PDF artifact extraction when pdf.js source
     text is too short, emitting an OCR-backed text source map and setting
     `ocrUsed: true`. Done in the parser-v2 OCR fallback slice.
-29. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+29. Add PDF preview tabs for the parser-v2 review workspace so PDF uploads can
+    switch between rendered PDF, raw source text, and parser diagnostics.
+    Done in the PDF preview source tabs slice.
+30. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.

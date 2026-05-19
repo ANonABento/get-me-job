@@ -1,12 +1,36 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Loader2, Minus, Plus } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  ListChecks,
+  Loader2,
+  Minus,
+  Plus,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { HighlightLayer, type HighlightInput } from "./highlight-layer";
+
+type PdfPreviewTab = "pdf" | "source" | "diagnostics";
+
+interface PdfPreviewDiagnostic {
+  lineCount: number;
+  parsedRoots: {
+    education: number;
+    experiences: number;
+    projects: number;
+    skills: number;
+  };
+  missingRootSourceSpans: string[];
+  missingBulletSourceSpans: string[];
+  partialRootSourceSpans: string[];
+  partialBulletSourceSpans: string[];
+}
 
 interface PdfPreviewProps {
   documentId: string;
@@ -14,19 +38,8 @@ interface PdfPreviewProps {
   highlights: HighlightInput[];
   selectedEntryId: string | null;
   onSelectEntry: (entryId: string) => void;
-  diagnostic?: {
-    lineCount: number;
-    parsedRoots: {
-      education: number;
-      experiences: number;
-      projects: number;
-      skills: number;
-    };
-    missingRootSourceSpans: string[];
-    missingBulletSourceSpans: string[];
-    partialRootSourceSpans: string[];
-    partialBulletSourceSpans: string[];
-  } | null;
+  sourceText?: string;
+  diagnostic?: PdfPreviewDiagnostic | null;
   diagnosticLoading?: boolean;
   /**
    * Imperative request to navigate to the page containing the given entry's
@@ -63,6 +76,7 @@ interface PdfJsModule {
 }
 
 let pdfjsPromise: Promise<PdfJsModule> | null = null;
+const PDFJS_MODULE_PATH = "/pdfjs/pdf.mjs";
 
 /**
  * Load pdfjs-dist once and configure its worker. The non-legacy build is the
@@ -84,8 +98,7 @@ function loadPdfjs(): Promise<PdfJsModule> {
     // `__webpack_require__.r(...)` shim called inside Next's webpack
     // runtime) that threw `Object.defineProperty called on non-object`.
     pdfjsPromise = import(
-      // @ts-expect-error — public-asset URL; not resolvable at type-check time
-      /* webpackIgnore: true */ "/pdfjs/pdf.mjs"
+      /* @vite-ignore */ /* webpackIgnore: true */ PDFJS_MODULE_PATH
     ).then((mod) => {
       const pdfjs = mod as unknown as PdfJsModule;
       if (pdfjs.GlobalWorkerOptions) {
@@ -108,11 +121,13 @@ export function PdfPreview({
   highlights,
   selectedEntryId,
   onSelectEntry,
+  sourceText,
   diagnostic,
   diagnosticLoading,
   onRegisterNavigator,
 }: PdfPreviewProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
+  const [activeTab, setActiveTab] = useState<PdfPreviewTab>("pdf");
   const [pageNumber, setPageNumber] = useState(1);
   const [zoom, setZoom] = useState(1);
   const [previewWidth, setPreviewWidth] = useState(0);
@@ -206,7 +221,9 @@ export function PdfPreview({
 
   // Render the current page to canvas whenever doc / page / zoom changes.
   useEffect(() => {
-    if (state.status !== "ready" || !canvasRef.current) return;
+    if (activeTab !== "pdf" || state.status !== "ready" || !canvasRef.current) {
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -228,13 +245,14 @@ export function PdfPreview({
     return () => {
       cancelled = true;
     };
-  }, [state, pageNumber, renderScale]);
+  }, [activeTab, state, pageNumber, renderScale]);
 
   // Imperative jump-to-entry, exposed via onRegisterNavigator.
   const navigate = useCallback(
     (entryId: string) => {
       const target = highlights.find((h) => h.entryId === entryId);
       if (!target || target.bboxes.length === 0) return;
+      setActiveTab("pdf");
       setPageNumber(target.bboxes[0][0]);
     },
     [highlights],
@@ -244,43 +262,7 @@ export function PdfPreview({
     return onRegisterNavigator(navigate);
   }, [navigate, onRegisterNavigator]);
 
-  if (state.status === "loading") {
-    return (
-      <div className="flex h-full min-h-[400px] items-center justify-center px-6 text-sm text-muted-foreground">
-        <div className="w-full max-w-sm space-y-4">
-          <div className="flex items-center justify-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading preview…
-          </div>
-          <div className="mx-auto aspect-[8.5/11] w-44 overflow-hidden rounded-md border bg-card p-4">
-            <div className="h-5 w-2/3 animate-pulse rounded bg-muted" />
-            <div className="mt-5 space-y-2">
-              {Array.from({ length: 10 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-2 animate-pulse rounded bg-muted"
-                  style={{ width: `${index % 3 === 0 ? 72 : 92}%` }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  if (state.status === "error") {
-    return (
-      <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-2 px-6 text-center">
-        <p className="text-sm font-medium">{state.message}</p>
-        <p className="text-xs text-muted-foreground">
-          Components are still editable on the Components tab. Previews are held
-          in a 24h cache; re-upload {filename} to refresh it.
-        </p>
-      </div>
-    );
-  }
-
-  const totalPages = state.doc.numPages;
+  const totalPages = state.status === "ready" ? state.doc.numPages : 1;
   const pageHighlights = highlights
     .map((h) => ({
       entryId: h.entryId,
@@ -289,14 +271,202 @@ export function PdfPreview({
     }))
     .filter((h) => h.bboxes.length > 0);
   const showHighlightFallback = highlights.every((h) => h.bboxes.length === 0);
+  const rootCount = diagnostic
+    ? diagnostic.parsedRoots.education +
+      diagnostic.parsedRoots.experiences +
+      diagnostic.parsedRoots.projects +
+      diagnostic.parsedRoots.skills
+    : 0;
+  const missingCount = diagnostic
+    ? diagnostic.missingRootSourceSpans.length +
+      diagnostic.missingBulletSourceSpans.length
+    : 0;
+  const partialCount = diagnostic
+    ? diagnostic.partialRootSourceSpans.length +
+      diagnostic.partialBulletSourceSpans.length
+    : 0;
+
+  function tabButton(tab: PdfPreviewTab, label: string) {
+    const selected = activeTab === tab;
+    return (
+      <button
+        type="button"
+        aria-pressed={selected}
+        onClick={() => setActiveTab(tab)}
+        className={cn(
+          "h-7 rounded-md px-2 text-xs font-medium transition-colors",
+          selected
+            ? "bg-primary text-primary-foreground"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+        )}
+      >
+        {label}
+      </button>
+    );
+  }
+
+  function renderPdfPanel() {
+    if (state.status === "loading") {
+      return (
+        <div className="flex h-full min-h-[400px] items-center justify-center px-6 text-sm text-muted-foreground">
+          <div className="w-full max-w-sm space-y-4">
+            <div className="flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading preview...
+            </div>
+            <div className="mx-auto aspect-[8.5/11] w-44 overflow-hidden rounded-md border bg-card p-4">
+              <div className="h-5 w-2/3 animate-pulse rounded bg-muted" />
+              <div className="mt-5 space-y-2">
+                {Array.from({ length: 10 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="h-2 animate-pulse rounded bg-muted"
+                    style={{ width: `${index % 3 === 0 ? 72 : 92}%` }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (state.status === "error") {
+      return (
+        <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-2 px-6 text-center">
+          <p className="text-sm font-medium">{state.message}</p>
+          <p className="text-xs text-muted-foreground">
+            Components are still editable. Source text and diagnostics remain
+            available when parser-v2 extraction succeeded.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div ref={previewViewportRef} className="flex-1 overflow-auto px-4 pb-4">
+        <div className={cn("relative mx-auto block w-fit")}>
+          <canvas
+            ref={canvasRef}
+            className="block border bg-card shadow-sm"
+            aria-label={`${filename} page ${pageNumber}`}
+          />
+          {currentPageDimensions ? (
+            <HighlightLayer
+              highlights={pageHighlights}
+              selectedEntryId={selectedEntryId}
+              onSelectEntry={onSelectEntry}
+              pageWidth={currentPageDimensions.width}
+              pageHeight={currentPageDimensions.height}
+              renderScale={renderScale}
+            />
+          ) : null}
+        </div>
+        {showHighlightFallback ? (
+          <p className="mt-3 max-w-prose text-xs text-muted-foreground">
+            Could not locate parsed components in this PDF. Text-layer
+            positions did not match any extracted entry.
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  function renderSourcePanel() {
+    return (
+      <div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
+        {sourceText?.trim() ? (
+          <pre className="whitespace-pre-wrap break-words rounded-md border bg-muted/20 p-3 font-body text-sm leading-6 text-foreground">
+            {sourceText}
+          </pre>
+        ) : (
+          <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 rounded-md border bg-muted/20 px-6 text-center">
+            <FileText className="h-5 w-5 text-muted-foreground" />
+            <p className="text-sm font-medium">Source text unavailable</p>
+            <p className="max-w-sm text-xs text-muted-foreground">
+              Parser-v2 extraction did not return raw source text for this
+              document.
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function renderDiagnosticsPanel() {
+    if (diagnosticLoading) {
+      return (
+        <div className="flex min-h-[220px] items-center justify-center gap-2 px-4 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading parser-v2 diagnostics
+        </div>
+      );
+    }
+
+    if (!diagnostic) {
+      return (
+        <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 px-6 text-center">
+          <ListChecks className="h-5 w-5 text-muted-foreground" />
+          <p className="text-sm font-medium">Diagnostics unavailable</p>
+          <p className="max-w-sm text-xs text-muted-foreground">
+            No parser-v2 diagnostic payload was returned for this preview.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
+        <div className="grid gap-2 text-sm sm:grid-cols-2">
+          <div className="rounded-md border bg-muted/20 p-3">
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              Source lines
+            </p>
+            <p className="mt-1 text-2xl font-semibold">
+              {diagnostic.lineCount}
+            </p>
+          </div>
+          <div className="rounded-md border bg-muted/20 p-3">
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              Parsed roots
+            </p>
+            <p className="mt-1 text-2xl font-semibold">{rootCount}</p>
+          </div>
+          <div className="rounded-md border bg-muted/20 p-3">
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              Missing spans
+            </p>
+            <p className="mt-1 text-2xl font-semibold">{missingCount}</p>
+          </div>
+          <div className="rounded-md border bg-muted/20 p-3">
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+              Partial spans
+            </p>
+            <p className="mt-1 text-2xl font-semibold">{partialCount}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full flex-col gap-3">
-      <div className="flex items-center justify-between gap-2 px-4 pt-3 text-xs text-muted-foreground">
-        <span className="truncate font-medium text-foreground" title={filename}>
-          {filename}
-        </span>
-        <div className="flex items-center gap-1">
+      <div className="space-y-2 px-4 pt-3 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className="min-w-0 truncate font-medium text-foreground"
+            title={filename}
+          >
+            {filename}
+          </span>
+          <div className="flex shrink-0 items-center rounded-md border bg-background p-0.5">
+            {tabButton("pdf", "PDF")}
+            {tabButton("source", "Source")}
+            {tabButton("diagnostics", "Diagnostics")}
+          </div>
+        </div>
+        {activeTab === "pdf" ? (
+          <div className="flex items-center justify-end gap-1">
           <Button
             type="button"
             variant="ghost"
@@ -344,48 +514,23 @@ export function PdfPreview({
           >
             <Plus className="h-3.5 w-3.5" />
           </Button>
-        </div>
+          </div>
+        ) : null}
       </div>
-      {diagnosticLoading || diagnostic ? (
+      {(diagnosticLoading || diagnostic) && activeTab !== "diagnostics" ? (
         <p className="px-4 text-xs text-muted-foreground">
           {diagnosticLoading
             ? "Loading parser-v2 diagnostics"
             : diagnostic
-              ? `Parser-v2: ${diagnostic.lineCount} source lines, ${
-                  diagnostic.parsedRoots.education +
-                  diagnostic.parsedRoots.experiences +
-                  diagnostic.parsedRoots.projects +
-                  diagnostic.parsedRoots.skills
-                } parsed roots`
+              ? `Parser-v2: ${diagnostic.lineCount} source lines, ${rootCount} parsed roots`
               : null}
         </p>
       ) : null}
-      <div ref={previewViewportRef} className="flex-1 overflow-auto px-4 pb-4">
-        <div className={cn("relative mx-auto block w-fit")}>
-          <canvas
-            ref={canvasRef}
-            className="block border bg-card shadow-sm"
-            aria-label={`${filename} — page ${pageNumber}`}
-          />
-          {currentPageDimensions ? (
-            <HighlightLayer
-              highlights={pageHighlights}
-              selectedEntryId={selectedEntryId}
-              onSelectEntry={onSelectEntry}
-              pageWidth={currentPageDimensions.width}
-              pageHeight={currentPageDimensions.height}
-              renderScale={renderScale}
-            />
-          ) : null}
-        </div>
-        {showHighlightFallback ? (
-          <p className="mt-3 max-w-prose text-xs text-muted-foreground">
-            Couldn&rsquo;t locate parsed components in this PDF — text-layer
-            positions didn&rsquo;t match any extracted entry. The components tab
-            still lets you edit, merge, or discard them.
-          </p>
-        ) : null}
-      </div>
+      {activeTab === "pdf"
+        ? renderPdfPanel()
+        : activeTab === "source"
+          ? renderSourcePanel()
+          : renderDiagnosticsPanel()}
     </div>
   );
 }

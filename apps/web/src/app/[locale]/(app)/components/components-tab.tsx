@@ -3532,6 +3532,7 @@ function UploadReviewEntries({
               selectedEntryId={selectedId}
               onSelectEntry={setSelectedId}
               onRegisterNavigator={registerPdfNavigator}
+              sourceText={parserV2Ready?.sourceText}
               diagnostic={parserV2Ready?.diagnostic}
               diagnosticLoading={parserV2Loading}
             />
