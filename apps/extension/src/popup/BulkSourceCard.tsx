@@ -100,21 +100,13 @@ export function BulkSourceCard(props: BulkSourceCardProps) {
           disabled={disabled}
           title={`Walks every page in your current filter set; capped at 200 jobs.`}
         >
-          {busy === "paginated" ? "Walking pages…" : "Scrape filtered set"}
+          {busy === "paginated" ? "Scraping all…" : "Scrape all"}
         </button>
       </div>
       {busy && (
         <div className="bulk-progress">
           <p className="inline-note bulk-progress-summary">
-            {progress
-              ? `Scraped ${progress.scrapedCount}/${progress.totalRowsOnPage}` +
-                (busy === "paginated" && progress.currentPage > 1
-                  ? ` · page ${progress.currentPage}`
-                  : "") +
-                (progress.errors.length > 0
-                  ? ` · ${progress.errors.length} error${progress.errors.length === 1 ? "" : "s"}`
-                  : "")
-              : "Starting…"}
+            {progress ? formatProgressLine(busy, progress) : "Starting…"}
           </p>
           {progress?.lastTitle && (
             <p
@@ -160,4 +152,29 @@ export function BulkSourceCard(props: BulkSourceCardProps) {
       {lastError && <p className="inline-error">{lastError}</p>}
     </article>
   );
+}
+
+/**
+ * Progress label format depends on the scrape mode:
+ *
+ * - Visible: "Scraped N/total" — total is the row count on the page;
+ *   meaningful denominator.
+ * - Paginated: "Scraped N · page X" — N is cumulative across pages,
+ *   total-rows-on-page belongs to the *current* page so showing
+ *   "Scraped 57/50" reads as a bug ("how can you scrape more than
+ *   there are?"). Drop the denominator and lead with the page index
+ *   instead.
+ */
+function formatProgressLine(
+  mode: BulkScrapeMode,
+  progress: BulkProgress,
+): string {
+  const errorSuffix =
+    progress.errors.length > 0
+      ? ` · ${progress.errors.length} error${progress.errors.length === 1 ? "" : "s"}`
+      : "";
+  if (mode === "paginated") {
+    return `Scraped ${progress.scrapedCount} · page ${progress.currentPage}${errorSuffix}`;
+  }
+  return `Scraped ${progress.scrapedCount}/${progress.totalRowsOnPage}${errorSuffix}`;
 }

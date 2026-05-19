@@ -149,7 +149,7 @@ describe("BulkSourceCard", () => {
     );
     const secondary = Array.from(
       container.querySelectorAll<HTMLButtonElement>("button"),
-    ).find((b) => b.textContent?.includes("Scrape filtered set"));
+    ).find((b) => b.textContent?.includes("Scrape all"));
     expect(secondary).toBeDefined();
     act(() => {
       secondary?.click();
