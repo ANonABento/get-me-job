@@ -55,6 +55,15 @@ export interface BulkSourceCardProps {
   onCancel?: () => void;
   /** Optional: rendered as a deep-link when the result has imports > 0. */
   onViewTracker?: () => void;
+  /**
+   * Optional caps surfaced under the "Scrape all" button so users can see
+   * the limit before they wonder why a scrape stopped early. Hidden when
+   * undefined to keep behavior backward-compatible for sources that don't
+   * pipe settings through (Greenhouse, Lever, Workday today).
+   */
+  limits?: { maxJobs: number; maxPages: number } | null;
+  /** Called when the user clicks the "Adjust" link next to the limits. */
+  onOpenOptions?: () => void;
 }
 
 export function BulkSourceCard(props: BulkSourceCardProps) {
@@ -69,6 +78,8 @@ export function BulkSourceCard(props: BulkSourceCardProps) {
     onScrapePaginated,
     onCancel,
     onViewTracker,
+    limits,
+    onOpenOptions,
   } = props;
 
   const disabled = busy !== null || detectedCount === 0;
@@ -98,11 +109,32 @@ export function BulkSourceCard(props: BulkSourceCardProps) {
           className="btn"
           onClick={onScrapePaginated}
           disabled={disabled}
-          title={`Walks every page in your current filter set; capped at 200 jobs.`}
+          title={
+            limits
+              ? `Walks every page in your current filter set; capped at ${limits.maxJobs} jobs / ${limits.maxPages} pages.`
+              : `Walks every page in your current filter set.`
+          }
         >
           {busy === "paginated" ? "Scraping all…" : "Scrape all"}
         </button>
       </div>
+      {!busy && limits && (
+        <p className="bulk-limits">
+          Up to {limits.maxJobs} jobs · {limits.maxPages} pages
+          {onOpenOptions && (
+            <>
+              {" · "}
+              <button
+                type="button"
+                className="link inline-link"
+                onClick={onOpenOptions}
+              >
+                Adjust
+              </button>
+            </>
+          )}
+        </p>
+      )}
       {busy && (
         <div className="bulk-progress">
           <p className="inline-note bulk-progress-summary">

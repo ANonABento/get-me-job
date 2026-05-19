@@ -105,10 +105,18 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const createdJob = createJob(
-        buildJobFromExtension(opportunity),
-        authResult.userId,
-      );
+      // Bucket E auto-import: when the user has enabled the bypass AND
+      // the incoming opportunity status is the default "pending" (i.e.
+      // the scraper didn't explicitly mark it applied), stamp the
+      // user's chosen default. "saved" lands directly in the kanban,
+      // bypassing the review queue. "applied" stays as-is so the user
+      // can still mark a scrape "applied" through the connect-page or
+      // legacy paths.
+      const builtJob = buildJobFromExtension(opportunity);
+      if (preferences?.autoImportEnabled && builtJob.status === "pending") {
+        builtJob.status = preferences.defaultImportStatus;
+      }
+      const createdJob = createJob(builtJob, authResult.userId);
 
       // Bucket E auto-tag: apply rule-derived tags to freshly-created
       // jobs only. Skipped for jobs that hit the dedupe paths above

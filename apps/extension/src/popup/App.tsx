@@ -148,6 +148,15 @@ export default function App() {
   const [wwBulkError, setWwBulkError] = useState<string | null>(null);
   const [wwBulkProgress, setWwBulkProgress] =
     useState<BulkProgressSnapshot | null>(null);
+  // Cached scrape caps surfaced as a subtitle under the "Scrape all"
+  // button so the user can see why a paginated run stopped early without
+  // digging into the options page. Loaded once on mount; settings
+  // changes from the options page won't refresh until the popup
+  // reopens (acceptable — popups are short-lived).
+  const [scrapeLimits, setScrapeLimits] = useState<{
+    maxJobs: number;
+    maxPages: number;
+  } | null>(null);
   // P3/#39 — Per-source state for Greenhouse / Lever / Workday. Keyed by
   // BulkSourceKey so a future source is a one-line addition.
   const [bulkStates, setBulkStates] = useState<
@@ -226,6 +235,39 @@ export default function App() {
     }, 1000);
     return () => window.clearInterval(intervalId);
   }, [viewState]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load scrape caps on mount so the bulk card can show "Up to N jobs ·
+  // M pages" under the "Scrape all" button. Same data the orchestrator
+  // reads before each run.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const resp = await sendMessage(Messages.getSettings());
+        if (
+          !cancelled &&
+          resp.success &&
+          resp.data &&
+          typeof (resp.data as { scrapeMaxJobs?: number }).scrapeMaxJobs ===
+            "number"
+        ) {
+          const data = resp.data as {
+            scrapeMaxJobs: number;
+            scrapeMaxPages: number;
+          };
+          setScrapeLimits({
+            maxJobs: data.scrapeMaxJobs,
+            maxPages: data.scrapeMaxPages,
+          });
+        }
+      } catch {
+        // best-effort; missing settings just hides the limits hint
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function checkAuthStatus() {
     try {
@@ -925,6 +967,8 @@ export default function App() {
             onScrapePaginated={() => handleWwBulkScrape("paginated")}
             onCancel={handleWwBulkCancel}
             onViewTracker={handleViewReviewQueue}
+            limits={scrapeLimits}
+            onOpenOptions={() => chrome.runtime.openOptionsPage()}
           />
         )}
 

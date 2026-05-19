@@ -121,9 +121,9 @@ export function ImportBehaviorSection() {
       description="Auto-tag rules + defaults for newly-imported opportunities."
     >
       <div className="space-y-6">
-        {/* Auto-import toggle. Informational for now — the import path
-            still routes through the review queue regardless. A future
-            phase will use this to bypass the queue. */}
+        {/* Auto-import bypass — when on, freshly-imported postings get
+            stamped with the default status below instead of the review-
+            queue-gated "pending". */}
         <div>
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -137,9 +137,10 @@ export function ImportBehaviorSection() {
             <span>Auto-import bulk-scraped postings</span>
           </label>
           <p className="ml-6 mt-1 text-xs text-muted-foreground">
-            When off (default), scrapes land in the review queue. Turning on
-            stamps the default status below directly. (UI ships now; bypass
-            logic lands in a follow-up.)
+            When off (default), scrapes land in the review queue. Turn on to
+            stamp the default status below directly — useful when you&apos;ve
+            already pre-filtered the listing in WaterlooWorks and don&apos;t
+            want a second triage pass.
           </p>
         </div>
 

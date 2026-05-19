@@ -635,6 +635,23 @@ body {
   flex-basis: 100%;
 }
 
+.bulk-limits {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--ink-2);
+  font-feature-settings: "tnum";
+}
+
+.bulk-limits .inline-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--brand, var(--ink));
+  cursor: pointer;
+  text-decoration: underline;
+  font: inherit;
+}
+
 .bulk-progress {
   display: grid;
   grid-template-columns: 1fr auto;
