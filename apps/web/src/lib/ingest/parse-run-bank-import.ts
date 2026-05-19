@@ -7,6 +7,7 @@ import type {
   SourceGroundedText,
   SourceQuality,
 } from "./types";
+import { isParsedResumeV2Result } from "./diagnostics";
 import { resolveSourceSpanIds } from "./source-spans";
 
 export interface BuildParseRunBankEntriesInput {
@@ -14,15 +15,6 @@ export interface BuildParseRunBankEntriesInput {
   sourceMap: DocumentSourceMap;
   acceptedComponentIds?: string[];
   edits?: Record<string, unknown>;
-}
-
-function isParsedResumeV2Result(value: unknown): value is ParsedResumeV2Result {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "profile" in value &&
-    typeof (value as ParsedResumeV2Result).profile === "object"
-  );
 }
 
 function sourceBboxTuple(span: {

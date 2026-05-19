@@ -15,6 +15,17 @@ export interface ParserV2Diagnostic {
   partialBulletSourceSpans: string[];
 }
 
+export function isParsedResumeV2Result(
+  value: unknown,
+): value is ParsedResumeV2Result {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "profile" in value &&
+    typeof (value as ParsedResumeV2Result).profile === "object"
+  );
+}
+
 export function createParserV2Diagnostic(
   sourceMap: DocumentSourceMap,
   parsed: ParsedResumeV2Result,

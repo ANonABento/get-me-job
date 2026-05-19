@@ -65,7 +65,14 @@ describe("/api/documents/[id]/source-map", () => {
         artifactId: "artifact-1",
         status: "ready",
         structured: {
+          rawText: "Jake Ryan",
+          warnings: [],
           profile: {
+            contact: {
+              name: "Jake Ryan",
+              sourceSpanIds: ["p1-l001"],
+              sourceQuality: "exact",
+            },
             education: [
               {
                 id: "edu-1",
@@ -73,6 +80,9 @@ describe("/api/documents/[id]/source-map", () => {
                 sourceQuality: "exact",
               },
             ],
+            experiences: [],
+            projects: [],
+            skills: [],
           },
         },
       },
@@ -92,7 +102,16 @@ describe("/api/documents/[id]/source-map", () => {
     await expect(response.json()).resolves.toMatchObject({
       artifact: { id: "artifact-1", documentId: "doc-1" },
       sourceMap,
+      sourceText: "Jake Ryan",
       parseRun: { id: "run-1", artifactId: "artifact-1" },
+      diagnostic: {
+        lineCount: 1,
+        parsedRoots: { education: 1, experiences: 0, projects: 0, skills: 0 },
+        missingRootSourceSpans: [],
+        missingBulletSourceSpans: [],
+        partialRootSourceSpans: [],
+        partialBulletSourceSpans: [],
+      },
     });
   });
 
@@ -120,6 +139,21 @@ describe("/api/documents/[id]/source-map", () => {
     expect(mocks.listDocumentParseRuns).not.toHaveBeenCalled();
     await expect(response.json()).resolves.toMatchObject({
       parseRun: { id: "run-2" },
+      diagnostic: null,
+    });
+  });
+
+  it("returns source text and null diagnostic when no parse run is available", async () => {
+    const response = await invokeRouteHandler(
+      GET,
+      getRequest("http://localhost/api/documents/doc-1/source-map"),
+      routeContext({ id: "doc-1" }),
+    );
+
+    await expect(response.json()).resolves.toMatchObject({
+      sourceText: "Jake Ryan",
+      parseRun: null,
+      diagnostic: null,
     });
   });
 

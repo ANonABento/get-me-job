@@ -10,6 +10,10 @@ import {
   getLatestDocumentArtifact,
   listDocumentParseRuns,
 } from "@/lib/db";
+import {
+  createParserV2Diagnostic,
+  isParsedResumeV2Result,
+} from "@/lib/ingest/diagnostics";
 
 export const dynamic = "force-dynamic";
 
@@ -44,10 +48,17 @@ export async function GET(
       );
     }
 
+    const diagnostic =
+      parseRun && isParsedResumeV2Result(parseRun.structured)
+        ? createParserV2Diagnostic(artifact.sourceMap, parseRun.structured)
+        : null;
+
     return NextResponse.json({
       artifact,
       sourceMap: artifact.sourceMap,
+      sourceText: artifact.sourceMap.rawText,
       parseRun,
+      diagnostic,
     });
   } catch (error) {
     console.error("Get document source map error:", error);

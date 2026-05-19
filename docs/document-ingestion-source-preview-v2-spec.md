@@ -793,5 +793,8 @@ Next implementation slices:
     single expected graduation dates, company/date followed by title/location,
     undated project headers, and wrapped bullet continuations. Done in the SWE
     fixture slice.
-12. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+12. Add first-class source text and parser-v2 diagnostics to the source-map API
+    so preview-v2 can render raw source and diagnostics tabs without recomputing
+    provenance client-side. Done in the source-map diagnostics slice.
+13. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.
