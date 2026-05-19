@@ -1,10 +1,20 @@
 import { render, screen } from "@testing-library/react";
+import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it } from "vitest";
+import messages from "@/messages/en.json";
 import ATSScannerPage from "./page";
+
+function renderPage() {
+  return render(
+    <NextIntlClientProvider locale="en" messages={messages}>
+      <ATSScannerPage params={{ locale: "en" }} />
+    </NextIntlClientProvider>,
+  );
+}
 
 describe("ATSScannerPage", () => {
   it("does not use a dollar sign icon for the free benefit", () => {
-    const { container } = render(<ATSScannerPage params={{ locale: "en" }} />);
+    const { container } = renderPage();
 
     expect(screen.getByText("Free and Private")).toBeInTheDocument();
     expect(
@@ -17,7 +27,7 @@ describe("ATSScannerPage", () => {
   });
 
   it("does not claim the public scanner runs entirely in the browser", () => {
-    const { container } = render(<ATSScannerPage params={{ locale: "en" }} />);
+    const { container } = renderPage();
 
     expect(container).not.toHaveTextContent(/in your browser/i);
     expect(container).not.toHaveTextContent(/nothing is stored/i);
@@ -27,7 +37,7 @@ describe("ATSScannerPage", () => {
   });
 
   it("links the ATS filtering stat to the HBS Hidden Workers source", () => {
-    render(<ATSScannerPage params={{ locale: "en" }} />);
+    renderPage();
 
     expect(screen.getByText(/88% of executives/i)).toBeInTheDocument();
     const source = screen.getByRole("link", { name: /Hidden Workers/i });
@@ -38,7 +48,7 @@ describe("ATSScannerPage", () => {
   });
 
   it("renders the HBS source as a separate readable line", () => {
-    render(<ATSScannerPage params={{ locale: "en" }} />);
+    renderPage();
 
     const source = screen.getByRole("link", { name: /Hidden Workers/i });
 
