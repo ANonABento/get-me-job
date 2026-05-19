@@ -19,6 +19,8 @@ import {
   PAY_NORMALIZATION_UNITS,
   opportunityAutoTagRuleSchema,
 } from "@slothing/shared/schemas";
+import type { LayoutPreference } from "@/lib/opportunities/layout-chunks";
+import { layoutPreferenceSchema } from "@/lib/opportunities/layout-chunks";
 
 export type DisplayDensity = "comfortable" | "compact";
 
@@ -53,6 +55,9 @@ export interface OpportunityViewPreferences {
   // Pay normalization (bucket G)
   payNormalizationUnit: PayNormalizationUnit;
   payNormalizationCurrency: PayNormalizationCurrency;
+  // Card layout builder (F.1) — null means "use defaults". Stored as a
+  // JSON blob so adding a new chunk doesn't require a schema migration.
+  layoutPreference: LayoutPreference | null;
 }
 
 export const DEFAULT_VIEW_PREFERENCES: OpportunityViewPreferences = {
@@ -69,6 +74,7 @@ export const DEFAULT_VIEW_PREFERENCES: OpportunityViewPreferences = {
   autoTagRules: [],
   payNormalizationUnit: "annual",
   payNormalizationCurrency: "USD",
+  layoutPreference: null,
 };
 
 interface OpportunityViewPreferencesRow {
@@ -86,6 +92,7 @@ interface OpportunityViewPreferencesRow {
   auto_tag_rules_json?: string;
   pay_normalization_unit?: string;
   pay_normalization_currency?: string;
+  layout_json?: string;
 }
 
 let preferencesSchemaEnsured = false;
@@ -119,6 +126,9 @@ function ensurePreferencesSchema(): void {
     // Bucket G — pay normalization display preferences.
     "ALTER TABLE opportunity_view_preferences ADD COLUMN pay_normalization_unit TEXT",
     "ALTER TABLE opportunity_view_preferences ADD COLUMN pay_normalization_currency TEXT",
+    // F.1 — drag-and-drop card layout. JSON blob; getEffectiveLayout
+    // normalizes against the current chunk catalog at read time.
+    "ALTER TABLE opportunity_view_preferences ADD COLUMN layout_json TEXT",
   ];
   for (const statement of statements) {
     try {
@@ -180,7 +190,19 @@ function mergeWithDefaults(
       PAY_CURRENCY_SET.has(row.pay_normalization_currency)
         ? (row.pay_normalization_currency as PayNormalizationCurrency)
         : DEFAULT_VIEW_PREFERENCES.payNormalizationCurrency,
+    layoutPreference: parseLayoutPreference(row.layout_json),
   };
+}
+
+function parseLayoutPreference(raw?: string): LayoutPreference | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    const result = layoutPreferenceSchema.safeParse(parsed);
+    return result.success ? result.data : null;
+  } catch {
+    return null;
+  }
 }
 
 function parseRules(raw?: string): OpportunityAutoTagRule[] {
@@ -250,8 +272,9 @@ export function setViewPreferences(
       scrape_max_pages, scrape_dedupe_enabled,
       auto_import_enabled, default_import_status, auto_tag_rules_json,
       pay_normalization_unit, pay_normalization_currency,
+      layout_json,
       updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(user_id) DO UPDATE SET
       display_density = excluded.display_density,
       default_sort_id = excluded.default_sort_id,
@@ -266,6 +289,7 @@ export function setViewPreferences(
       auto_tag_rules_json = excluded.auto_tag_rules_json,
       pay_normalization_unit = excluded.pay_normalization_unit,
       pay_normalization_currency = excluded.pay_normalization_currency,
+      layout_json = excluded.layout_json,
       updated_at = CURRENT_TIMESTAMP`,
   ).run(
     userId,
@@ -282,6 +306,7 @@ export function setViewPreferences(
     JSON.stringify(merged.autoTagRules),
     merged.payNormalizationUnit,
     merged.payNormalizationCurrency,
+    merged.layoutPreference ? JSON.stringify(merged.layoutPreference) : null,
   );
   return merged;
 }

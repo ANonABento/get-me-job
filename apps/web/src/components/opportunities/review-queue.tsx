@@ -1,24 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useFormatter } from "next-intl";
 import { AnimatePresence, motion, type PanInfo } from "framer-motion";
-import {
-  Check,
-  ExternalLink,
-  Inbox,
-  Link2,
-  MapPin,
-  Search,
-  Settings,
-  X,
-} from "lucide-react";
+import { Check, ExternalLink, Inbox, Settings } from "lucide-react";
 import { ExtensionInstallButtons } from "@/components/marketing/extension-install-buttons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { StatusPill } from "@/components/opportunities/status-pill";
 import { OnboardingEmptyState } from "@/components/ui/empty-states";
 import { cn } from "@/lib/utils";
 import type { Opportunity } from "@/types/opportunity";
@@ -28,12 +18,34 @@ import {
   formatOpportunityPay,
   type CurrencyRateMap,
 } from "@/lib/opportunities/pay";
+import {
+  DEFAULT_LAYOUT,
+  getEffectiveLayout,
+  getEnabledBySection,
+} from "@/lib/opportunities/default-layout";
+import type {
+  ChunkKey,
+  LayoutPreference,
+} from "@/lib/opportunities/layout-chunks";
+import { RenderChunk } from "@/lib/opportunities/render-chunk";
 import { useA11yTranslations } from "@/lib/i18n/use-a11y-translations";
 type QueueAction = "save" | "dismiss" | "apply";
 
 const DESCRIPTION_PREVIEW_LENGTH = 260;
 const SWIPE_DISTANCE_THRESHOLD = 110;
 const SWIPE_VELOCITY_THRESHOLD = 650;
+// Tailwind's `md` breakpoint is 768px; we use the same crossover for the
+// layout-spec picker so a 700px-wide window doesn't get the desktop spec
+// while the CSS still renders mobile-style.
+const DESKTOP_MIN_WIDTH = 768;
+
+// Chunks that render as primary action buttons (3-column footer).
+const PRIMARY_ACTIONS: readonly ChunkKey[] = [
+  "dismiss",
+  "apply",
+  "save",
+] as const;
+const PRIMARY_ACTION_SET = new Set<ChunkKey>(PRIMARY_ACTIONS);
 
 function getDeadlineTime(deadline?: string): number {
   if (!deadline) {
@@ -78,6 +90,27 @@ export function getDescriptionPreview(description: string): string {
   return `${description.slice(0, DESCRIPTION_PREVIEW_LENGTH).trim()}...`;
 }
 
+/**
+ * Pick `layout.desktop` or `layout.mobile` based on the viewport. SSR
+ * defaults to desktop so the first paint matches the typical
+ * use-from-laptop case; the post-mount effect swaps to mobile if the
+ * window is narrow.
+ */
+function useDeviceLayout(layout: LayoutPreference) {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia(`(max-width: ${DESKTOP_MIN_WIDTH - 1}px)`);
+    const handle = (event: MediaQueryListEvent | MediaQueryList) => {
+      setIsMobile(event.matches);
+    };
+    handle(mq);
+    mq.addEventListener("change", handle);
+    return () => mq.removeEventListener("change", handle);
+  }, []);
+  return isMobile ? layout.mobile : layout.desktop;
+}
+
 interface OpportunityReviewQueueProps {
   jobs: Opportunity[];
   updating: boolean;
@@ -96,6 +129,10 @@ interface OpportunityReviewQueueProps {
   // /api/cron/currency-rates run.
   payDisplayCurrency?: string;
   currencyRates?: CurrencyRateMap;
+  // F.1 — user-customisable chunk layout. When omitted, falls back to
+  // `DEFAULT_LAYOUT`. The page wrapper fetches this from
+  // /api/preferences/opportunities and passes it through.
+  layout?: LayoutPreference | null;
 }
 
 export function OpportunityReviewQueue({
@@ -106,6 +143,7 @@ export function OpportunityReviewQueue({
   payDisplayUnit = "annual",
   payDisplayCurrency,
   currencyRates,
+  layout,
 }: OpportunityReviewQueueProps) {
   const format = useFormatter();
   const a11yT = useA11yTranslations();
@@ -114,6 +152,15 @@ export function OpportunityReviewQueue({
   const queue = useMemo(() => getPendingOpportunities(jobs), [jobs]);
   const activeJob = queue[0];
   const remainingCount = queue.length;
+  const effectiveLayout = useMemo(
+    () => getEffectiveLayout(layout ?? DEFAULT_LAYOUT),
+    [layout],
+  );
+  const deviceLayout = useDeviceLayout(effectiveLayout);
+  const enabled = useMemo(
+    () => getEnabledBySection(deviceLayout),
+    [deviceLayout],
+  );
 
   const runAction = async (action: QueueAction) => {
     if (!activeJob || updating || activeAction) {
@@ -218,21 +265,11 @@ export function OpportunityReviewQueue({
     );
   }
 
-  const tags = getOpportunityTags(activeJob);
-  const preview = expanded
-    ? activeJob.summary
-    : getDescriptionPreview(activeJob.summary);
-  const canApply = Boolean(activeJob.sourceUrl);
-  const location = [activeJob.city, activeJob.province, activeJob.country]
-    .filter(Boolean)
-    .join(", ");
-  // Bucket G — prefer the inferred-pay fields normalized to the user's
-  // chosen unit. Fall back to the legacy salaryMin/salaryMax range
-  // formatter for rows that predate the inferred-pay migration.
-  const normalizedPay = formatOpportunityPay(activeJob, payDisplayUnit, {
-    targetCurrency: payDisplayCurrency,
-    rates: currencyRates,
-  });
+  // Pre-compute the legacy salary fallback once per render. RenderChunk
+  // for the `salary` chunk consults inferred pay first, but the legacy
+  // string in the activeJob object isn't directly readable from the
+  // chunk renderer — so it stays in the queue's render scope as a
+  // computed value used only when inferred fields are absent.
   const legacySalary =
     activeJob.salaryMin != null || activeJob.salaryMax != null
       ? [activeJob.salaryMin, activeJob.salaryMax]
@@ -246,11 +283,42 @@ export function OpportunityReviewQueue({
           )
           .join(" - ")
       : null;
-  const salary = normalizedPay ?? legacySalary;
-  // Original raw string from the source posting — exposed in a title
-  // attribute so curious users can see the unrounded amount + unit hint.
-  const salaryTooltip =
-    normalizedPay && legacySalary ? legacySalary : undefined;
+  // Decide once whether to show the legacy fallback. RenderChunk for
+  // `salary` returns null when no normalized pay exists; in that case
+  // we want to slot the legacy string into the same chunk position.
+  const normalizedPay = formatOpportunityPay(activeJob, payDisplayUnit, {
+    targetCurrency: payDisplayCurrency,
+    rates: currencyRates,
+  });
+  const salaryFallback = !normalizedPay && legacySalary ? legacySalary : null;
+
+  const tags = getOpportunityTags(activeJob);
+  const preview = expanded
+    ? activeJob.summary
+    : getDescriptionPreview(activeJob.summary);
+  const canApply = Boolean(activeJob.sourceUrl);
+  const chunkContext = {
+    preview,
+    expanded,
+    setExpanded,
+    tags,
+    payDisplayUnit,
+    payDisplayCurrency,
+    currencyRates,
+    onAction: (action: QueueAction) => void runAction(action),
+    actionDisabled: updating || Boolean(activeAction),
+    canApply,
+  };
+
+  // Split the actions section into primary-button vs quick-link groups
+  // so we can render each in its own footer strip. Their relative order
+  // within `enabled.actions` is preserved — user reordering still wins.
+  const primaryActionChunks = enabled.actions.filter((chunk) =>
+    PRIMARY_ACTION_SET.has(chunk),
+  );
+  const quickActionChunks = enabled.actions.filter(
+    (chunk) => !PRIMARY_ACTION_SET.has(chunk),
+  );
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -272,11 +340,11 @@ export function OpportunityReviewQueue({
       </header>
 
       <main className="flex flex-1 items-center justify-center px-4 pb-28">
-        {/* Mobile: max-w-md card-on-card; desktop: max-w-5xl wider stage
-            so the 2-column inner layout (added below) actually breathes
-            and shows location + meta + actions next to title/description
-            instead of stacked. */}
-        <div className="relative h-[min(680px,72vh)] w-full max-w-md md:h-auto md:min-h-[520px] md:max-w-5xl">
+        {/* F.1 — single-column card on both viewports. Width caps mirror
+            the old design (mobile narrow, desktop comfortably wide) but
+            the inner layout is now driven by the user's LayoutPreference
+            so we don't need a hard-coded aside. */}
+        <div className="relative h-[min(680px,72vh)] w-full max-w-md md:h-auto md:min-h-[520px] md:max-w-3xl">
           {queue[1] && (
             <div
               className="absolute inset-x-3 top-5 h-[calc(100%-1.25rem)] rounded-lg border bg-card/50 shadow-sm"
@@ -311,121 +379,97 @@ export function OpportunityReviewQueue({
               }}
               className="absolute inset-0 flex cursor-grab flex-col overflow-hidden rounded-lg border bg-card shadow-xl active:cursor-grabbing"
             >
-              <div className="flex-1 overflow-y-auto p-6 md:grid md:grid-cols-3 md:gap-x-8 md:p-8">
-                {/* Left column on desktop: title + status badges +
-                    description. Single column on mobile keeps the swipe
-                    UX legible. */}
-                <div className="md:col-span-2">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-primary">
-                        {activeJob.company}
-                      </p>
-                      <h2 className="mt-2 font-display text-3xl font-bold leading-tight tracking-tight md:text-4xl">
-                        {activeJob.title}
-                      </h2>
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <StatusPill status={activeJob.status} />
-                        {activeJob.remoteType === "remote" && (
-                          <Badge variant="info">Remote</Badge>
-                        )}
-                        {activeJob.source === "waterlooworks" && (
-                          <Badge variant="outline">WaterlooWorks</Badge>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+              <div className="flex-1 overflow-y-auto p-6 md:p-8">
+                {/* Header section — company + title block + status/badge chips */}
+                {enabled.header.length > 0 && (
+                  <HeaderSection
+                    chunks={enabled.header}
+                    activeJob={activeJob}
+                    chunkContext={chunkContext}
+                  />
+                )}
 
-                  {tags.length > 0 && (
-                    <div className="mt-6 flex flex-wrap gap-2">
-                      {tags.map((tag) => (
-                        <Badge key={tag} variant="outline">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
+                {/* Meta section — small chips strip */}
+                {enabled.meta.length > 0 && (
+                  <div className="mt-5 flex flex-wrap items-center gap-2">
+                    {enabled.meta.map((chunk) => (
+                      <RenderChunk
+                        key={chunk}
+                        chunk={chunk}
+                        opportunity={activeJob}
+                        context={chunkContext}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Body section — vertical flow of location/salary/deadline/tags/summary */}
+                {(enabled.body.length > 0 || salaryFallback) && (
+                  <div className="mt-6 space-y-4">
+                    {enabled.body.map((chunk) => {
+                      // Legacy fallback: when inferred pay is missing we
+                      // still want to render the salary string at the
+                      // chunk's chosen position. Substitute a simple
+                      // span in place of the chunk.
+                      if (chunk === "salary" && salaryFallback) {
+                        return (
+                          <span
+                            key="salary-fallback"
+                            className="text-sm text-muted-foreground"
+                          >
+                            {salaryFallback}
+                          </span>
+                        );
+                      }
+                      return (
+                        <RenderChunk
+                          key={chunk}
+                          chunk={chunk}
+                          opportunity={activeJob}
+                          context={chunkContext}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {primaryActionChunks.length > 0 && (
+                <div
+                  className={cn(
+                    "grid gap-2 border-t bg-background/80 p-4 backdrop-blur",
+                    primaryActionChunks.length === 1 && "grid-cols-1",
+                    primaryActionChunks.length === 2 && "grid-cols-2",
+                    primaryActionChunks.length === 3 && "grid-cols-3",
                   )}
-
-                  <div className="mt-6">
-                    <p className="whitespace-pre-line text-sm leading-6 text-muted-foreground">
-                      {preview}
-                    </p>
-                    {activeJob.summary.length > DESCRIPTION_PREVIEW_LENGTH && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="mt-3 px-0"
-                        onClick={() => setExpanded((current) => !current)}
-                      >
-                        {expanded ? "Show less" : "Show more"}
-                      </Button>
-                    )}
-                  </div>
+                >
+                  {primaryActionChunks.map((chunk) => (
+                    <RenderChunk
+                      key={chunk}
+                      chunk={chunk}
+                      opportunity={activeJob}
+                      context={chunkContext}
+                    />
+                  ))}
                 </div>
+              )}
 
-                {/* Right column on desktop: location / salary / deadline
-                    inline strip + metadata badges. On mobile this falls
-                    below the title block in the natural flow because
-                    `md:grid` doesn't apply. */}
-                <aside className="mt-5 md:mt-0 md:col-span-1 md:border-l md:pl-8">
-                  <div className="flex flex-wrap gap-2 text-sm text-muted-foreground md:flex-col md:items-start md:gap-3">
-                    {location && (
-                      <span className="inline-flex items-center gap-1.5">
-                        <MapPin className="h-4 w-4" />
-                        {location}
-                      </span>
-                    )}
-                    {salary && <span title={salaryTooltip}>{salary}</span>}
-                    {activeJob.deadline && (
-                      <span>Deadline {activeJob.deadline}</span>
-                    )}
-                  </div>
-
-                  <OpportunityMetaRow opportunity={activeJob} />
-                </aside>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 border-t bg-background/80 p-4 backdrop-blur">
-                <ActionButton
-                  label="Dismiss"
-                  icon={<X className="h-5 w-5" />}
-                  className="text-destructive"
-                  disabled={updating || Boolean(activeAction)}
-                  onClick={() => void runAction("dismiss")}
-                />
-                <ActionButton
-                  label="Apply"
-                  icon={<ExternalLink className="h-5 w-5" />}
-                  disabled={!canApply || updating || Boolean(activeAction)}
-                  onClick={() => void runAction("apply")}
-                />
-                <ActionButton
-                  label="Save"
-                  icon={<Check className="h-5 w-5" />}
-                  className="text-primary"
-                  disabled={updating || Boolean(activeAction)}
-                  onClick={() => void runAction("save")}
-                />
-              </div>
               {/* P0 quick actions — passive lookups that don't mutate
                   status. "Search company" googles the employer; "Open
                   original" round-trips to the source posting (for WW the
                   hash hook in the content script reopens the modal). */}
-              <div className="grid grid-cols-2 gap-2 border-t bg-background/60 p-2 backdrop-blur">
-                <QuickActionLink
-                  label={`Search "${activeJob.company}"`}
-                  icon={<Search className="h-4 w-4" />}
-                  href={`https://www.google.com/search?q=${encodeURIComponent(activeJob.company)}`}
-                />
-                {activeJob.sourceUrl && (
-                  <QuickActionLink
-                    label="Open original"
-                    icon={<Link2 className="h-4 w-4" />}
-                    href={activeJob.sourceUrl}
-                  />
-                )}
-              </div>
+              {quickActionChunks.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 border-t bg-background/60 p-2 backdrop-blur">
+                  {quickActionChunks.map((chunk) => (
+                    <RenderChunk
+                      key={chunk}
+                      chunk={chunk}
+                      opportunity={activeJob}
+                      context={chunkContext}
+                    />
+                  ))}
+                </div>
+              )}
             </motion.article>
           </AnimatePresence>
         </div>
@@ -434,52 +478,72 @@ export function OpportunityReviewQueue({
   );
 }
 
-interface ActionButtonProps {
-  label: string;
-  icon: ReactNode;
-  className?: string;
-  disabled?: boolean;
-  onClick: () => void;
-}
+/**
+ * Header chunks render in two visual rows: company + title flow as
+ * stacked text, then the badge cluster (status pill, remote, source)
+ * sits in a horizontal flex below them. This grouping is fixed —
+ * reordering "title" above "company" still works because the layout
+ * preserves array order; but interleaving badges with text would look
+ * broken, so we partition here rather than letting them flow inline.
+ */
+function HeaderSection({
+  chunks,
+  activeJob,
+  chunkContext,
+}: {
+  chunks: ChunkKey[];
+  activeJob: Opportunity;
+  chunkContext: Parameters<typeof RenderChunk>[0]["context"];
+}) {
+  const textChunks = chunks.filter(
+    (chunk) => chunk === "company" || chunk === "title",
+  );
+  const badgeChunks = chunks.filter(
+    (chunk) => chunk !== "company" && chunk !== "title",
+  );
 
-function ActionButton({
-  label,
-  icon,
-  className,
-  disabled,
-  onClick,
-}: ActionButtonProps) {
   return (
-    <button
-      type="button"
-      className={cn(
-        "flex h-16 flex-col items-center justify-center gap-1 rounded-xl border bg-card text-xs font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50",
-        className,
+    <div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          {textChunks.map((chunk) => (
+            <RenderChunk
+              key={chunk}
+              chunk={chunk}
+              opportunity={activeJob}
+              context={chunkContext}
+            />
+          ))}
+        </div>
+      </div>
+      {badgeChunks.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {badgeChunks.map((chunk) => (
+            <RenderChunk
+              key={chunk}
+              chunk={chunk}
+              opportunity={activeJob}
+              context={chunkContext}
+            />
+          ))}
+        </div>
       )}
-      disabled={disabled}
-      onClick={onClick}
-    >
-      {icon}
-      {label}
-    </button>
+    </div>
   );
 }
 
-/**
- * Compact secondary-action row at the bottom of the review card. Renders
- * passive deep-links (search Google for the company, open the original
- * posting) that don't mutate review state. Use `<a target="_blank">` so
- * users land back on the review card after the new tab closes.
- */
-function QuickActionLink({
-  label,
-  icon,
-  href,
-}: {
+interface QuickActionLinkLegacyProps {
   label: string;
   icon: ReactNode;
   href: string;
-}) {
+}
+// Kept exported for back-compat with any tests that imported the legacy
+// helper. New code should use `<RenderChunk chunk="open-original" />`.
+export function QuickActionLink({
+  label,
+  icon,
+  href,
+}: QuickActionLinkLegacyProps) {
   return (
     <a
       href={href}
@@ -493,54 +557,5 @@ function QuickActionLink({
       {icon}
       <span className="truncate">{label}</span>
     </a>
-  );
-}
-
-/**
- * Posting-level metadata strip — competitiveness (openings/applicants),
- * level, and work term. Rendered below the title block on the review card
- * so a reviewer can read out the "is this worth applying to?" signal
- * before scrolling into the description. Each chunk is independently
- * optional; the strip itself doesn't render when nothing is set.
- */
-function OpportunityMetaRow({ opportunity }: { opportunity: Opportunity }) {
-  const chunks: { key: string; label: string; emphasized?: boolean }[] = [];
-  if (typeof opportunity.applicants === "number") {
-    chunks.push({
-      key: "applicants",
-      label: `${opportunity.applicants} applicant${opportunity.applicants === 1 ? "" : "s"}`,
-      // Highlight low-applicant postings as "less competitive" gems.
-      emphasized: opportunity.applicants <= 25,
-    });
-  }
-  if (typeof opportunity.openings === "number") {
-    chunks.push({
-      key: "openings",
-      label: `${opportunity.openings} opening${opportunity.openings === 1 ? "" : "s"}`,
-    });
-  }
-  if (opportunity.workTerm) {
-    chunks.push({ key: "workTerm", label: opportunity.workTerm });
-  }
-  if (opportunity.level) {
-    chunks.push({
-      key: "level",
-      label:
-        opportunity.level.charAt(0).toUpperCase() + opportunity.level.slice(1),
-    });
-  }
-
-  if (chunks.length === 0) return null;
-  return (
-    <div className="mt-3 flex flex-wrap gap-1.5">
-      {chunks.map((chunk) => (
-        <Badge
-          key={chunk.key}
-          variant={chunk.emphasized ? "default" : "secondary"}
-        >
-          {chunk.label}
-        </Badge>
-      ))}
-    </div>
   );
 }

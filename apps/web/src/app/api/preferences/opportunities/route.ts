@@ -21,6 +21,7 @@ import {
   opportunityAutoTagRuleSchema,
   opportunitySortIdSchema,
 } from "@slothing/shared/schemas";
+import { layoutPreferenceSchema } from "@/lib/opportunities/layout-chunks";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,7 @@ const updatePreferencesSchema = z
     autoTagRules: z.array(opportunityAutoTagRuleSchema).max(50),
     payNormalizationUnit: z.enum(PAY_NORMALIZATION_UNITS),
     payNormalizationCurrency: z.enum(PAY_NORMALIZATION_CURRENCIES),
+    layoutPreference: layoutPreferenceSchema.nullable(),
   })
   .partial();
 

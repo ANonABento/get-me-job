@@ -2,11 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Settings } from "lucide-react";
+import { ArrowLeft, LayoutPanelLeft, Settings } from "lucide-react";
 import { OpportunityReviewQueue } from "@/components/opportunities/review-queue";
 import { PresetBar } from "@/components/opportunities/preset-bar";
 import { SortDropdown } from "@/components/opportunities/sort-dropdown";
 import { SavePresetDialog } from "@/components/opportunities/save-preset-dialog";
+import { LayoutBuilderSheet } from "@/components/opportunities/layout-builder-sheet";
+import type { LayoutPreference } from "@/lib/opportunities/layout-chunks";
+import { migrateLayoutFromVisibleBadges } from "@/lib/opportunities/visible-badges-migration";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { OpportunitiesReviewSkeleton } from "@/components/skeletons/opportunities-review-skeleton";
 import { Button } from "@/components/ui/button";
@@ -38,6 +41,8 @@ interface OpportunityPreferencesResponse {
   preferences?: {
     payNormalizationUnit?: PayNormalizationUnit;
     payNormalizationCurrency?: PayNormalizationCurrency;
+    layoutPreference?: LayoutPreference | null;
+    visibleBadges?: string[];
   };
 }
 
@@ -67,6 +72,11 @@ export default function OpportunityReviewPage() {
   const [payDisplayCurrency, setPayDisplayCurrency] =
     useState<PayNormalizationCurrency>("USD");
   const [currencyRates, setCurrencyRates] = useState<CurrencyRateMap>({});
+  // F.1 — card layout. null = use defaults. The sheet edits a draft and
+  // PATCHes; we re-mirror the saved value here so the live card updates.
+  const [layoutPreference, setLayoutPreference] =
+    useState<LayoutPreference | null>(null);
+  const [layoutSheetOpen, setLayoutSheetOpen] = useState(false);
   const { confirm: confirmDelete, dialog: confirmDialog } = useConfirmDialog();
 
   const fetchPageData = useCallback(async () => {
@@ -116,6 +126,21 @@ export default function OpportunityReviewPage() {
       if (preferencesData.preferences?.payNormalizationCurrency) {
         setPayDisplayCurrency(
           preferencesData.preferences.payNormalizationCurrency,
+        );
+      }
+      // F.1 migration — if no explicit layoutPreference exists but the
+      // user has an old `visibleBadges` array with hidden entries, map
+      // those into the layout's disabled list at read time. Runs once
+      // per page load; the first edit through the builder persists an
+      // explicit layoutPreference and this path becomes a no-op.
+      if (preferencesData.preferences?.layoutPreference) {
+        setLayoutPreference(preferencesData.preferences.layoutPreference);
+      } else if (preferencesData.preferences?.visibleBadges) {
+        setLayoutPreference(
+          migrateLayoutFromVisibleBadges(
+            null,
+            preferencesData.preferences.visibleBadges,
+          ),
         );
       }
       if (ratesData.rates) {
@@ -334,6 +359,17 @@ export default function OpportunityReviewPage() {
             setManualSortId(next);
           }}
         />
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setLayoutSheetOpen(true)}
+          className="ml-1 gap-1.5"
+          aria-label="Customize card layout"
+        >
+          <LayoutPanelLeft className="h-4 w-4" />
+          Layout
+        </Button>
       </div>
       <OpportunityReviewQueue
         jobs={visibleJobs}
@@ -343,6 +379,7 @@ export default function OpportunityReviewPage() {
         payDisplayUnit={payDisplayUnit}
         payDisplayCurrency={payDisplayCurrency}
         currencyRates={currencyRates}
+        layout={layoutPreference}
       />
       <SavePresetDialog
         open={saveDialogOpen}
@@ -350,6 +387,12 @@ export default function OpportunityReviewPage() {
         busy={savingPreset}
         defaultName={activePreset ? `${activePreset.name} (copy)` : undefined}
         onSubmit={savePreset}
+      />
+      <LayoutBuilderSheet
+        open={layoutSheetOpen}
+        onOpenChange={setLayoutSheetOpen}
+        value={layoutPreference}
+        onPersisted={setLayoutPreference}
       />
       {confirmDialog}
     </div>

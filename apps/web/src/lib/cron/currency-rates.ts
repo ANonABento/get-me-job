@@ -15,6 +15,7 @@
  * outage never breaks the salary line.
  */
 import { SUPPORTED_CURRENCIES, upsertRate } from "@/lib/db/currency-rates";
+import { nowIso } from "@/lib/format/time";
 
 export interface RefreshResult {
   base: string;
@@ -47,7 +48,7 @@ export async function refreshCurrencyRates(
   deps: RefreshDependencies = {},
 ): Promise<RefreshResult> {
   const fetcher = deps.fetcher ?? fetch;
-  const fetchedAt = deps.now?.() ?? new Date().toISOString();
+  const fetchedAt = deps.now?.() ?? nowIso();
   const errors: string[] = [];
 
   // Build the comma-separated `to=` list, excluding USD (it's the base).

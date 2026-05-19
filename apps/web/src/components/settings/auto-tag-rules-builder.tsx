@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { nowEpoch } from "@/lib/format/time";
 import { cn } from "@/lib/utils";
 import {
   AUTO_TAG_TRIGGER_TYPES,
@@ -72,7 +73,7 @@ export function AutoTagRulesBuilder({
       {
         // Stable enough for in-session keys; the server reissues IDs on
         // first save if we ever need them globally unique.
-        id: `rule-${Date.now().toString(36)}-${Math.random()
+        id: `rule-${nowEpoch().toString(36)}-${Math.random()
           .toString(36)
           .slice(2, 6)}`,
         enabled: true,

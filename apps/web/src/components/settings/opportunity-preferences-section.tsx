@@ -32,6 +32,12 @@ import {
   type PayNormalizationCurrency,
   type PayNormalizationUnit,
 } from "@slothing/shared/schemas";
+import { LayoutBuilder } from "@/components/opportunities/layout-builder";
+import {
+  DEFAULT_LAYOUT,
+  getEffectiveLayout,
+} from "@/lib/opportunities/default-layout";
+import type { LayoutPreference } from "@/lib/opportunities/layout-chunks";
 
 const VISIBLE_BADGE_KEYS = [
   "applicants",
@@ -67,6 +73,7 @@ interface Preferences {
   scrapeDedupeEnabled: boolean;
   payNormalizationUnit: PayNormalizationUnit;
   payNormalizationCurrency: PayNormalizationCurrency;
+  layoutPreference: LayoutPreference | null;
 }
 
 const PAY_UNIT_LABELS: Record<PayNormalizationUnit, string> = {
@@ -247,6 +254,26 @@ export function OpportunityPreferencesSection() {
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        <hr className="border-border" />
+
+        {/* F.1 — drag-and-drop card layout builder */}
+        <div>
+          <Label className="text-sm font-medium">Card layout</Label>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Reorder or hide chunks on the review-queue card. Desktop and mobile
+            keep separate layouts. Same builder also lives in the review queue
+            (open via the Layout button next to Sort).
+          </p>
+          <div className="mt-3">
+            <LayoutBuilder
+              value={getEffectiveLayout(
+                preferences.layoutPreference ?? DEFAULT_LAYOUT,
+              )}
+              onChange={(next) => void patch({ layoutPreference: next })}
+            />
           </div>
         </div>
 

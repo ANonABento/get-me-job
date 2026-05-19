@@ -1,6 +1,6 @@
 "use client";
 
-import { nowIso, toEpoch } from "@/lib/format/time";
+import { nowEpoch, nowIso, toEpoch } from "@/lib/format/time";
 import { TimeAgo } from "@/components/format/time-ago";
 
 import {
@@ -783,7 +783,7 @@ export function BankComponentsTab({
         existingChildren.length,
       );
       const created: BankEntry = {
-        id: `${parent.id}:manual:${Date.now()}`,
+        id: `${parent.id}:manual:${nowEpoch()}`,
         userId: parent.userId,
         category: "bullet",
         content,

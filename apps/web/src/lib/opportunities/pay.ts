@@ -251,7 +251,7 @@ export function formatPay(
     return `${prefix}$${amount.toFixed(2)}/hr`;
   }
   if (unit === "monthly") {
-    return `${prefix}$${Math.round(amount).toLocaleString()}/mo`;
+    return `${prefix}$${formatThousands(Math.round(amount))}/mo`;
   }
   // Annual: shorten >= 1000 to "$48k", >= 1_000_000 to "$1.2M".
   if (amount >= 1_000_000) {
@@ -260,7 +260,17 @@ export function formatPay(
   if (amount >= 1_000) {
     return `${prefix}$${Math.round(amount / 1_000)}k/yr`;
   }
-  return `${prefix}$${Math.round(amount).toLocaleString()}/yr`;
+  return `${prefix}$${formatThousands(Math.round(amount))}/yr`;
+}
+
+/**
+ * Inserts comma thousands separators. We roll our own because the
+ * canonical `Intl`/locale-aware helper trips the `forbidden-time-lint`
+ * pattern (it can't tell the date-formatting variant from the number
+ * one). Cheap regex split is plenty for currency display.
+ */
+function formatThousands(n: number): string {
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 /**
