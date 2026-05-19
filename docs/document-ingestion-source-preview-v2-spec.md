@@ -801,5 +801,10 @@ Next implementation slices:
     state, and surfacing parser-v2 diagnostics/source text in the preview pane
     while leaving legacy bank review behavior intact. Done in the review-context
     bridge slice.
-14. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+14. Add a read-only parser-v2 import preview route that materializes parse-run
+    output into BankEntry-shaped review components without committing them.
+    This gives the UI a server-owned conversion path before replacing legacy
+    persisted bank rows in the review modal. Done in the import-preview route
+    slice.
+15. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.

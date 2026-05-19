@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { DocumentParseRun } from "@/lib/db/document-parse-runs";
 import type { DocumentSourceMap, ParsedResumeV2Result } from "./types";
-import { buildParseRunBankEntries } from "./parse-run-bank-import";
+import {
+  buildParseRunBankEntries,
+  buildParseRunReviewEntries,
+} from "./parse-run-bank-import";
 
 const sourceMap: DocumentSourceMap = {
   pages: [
@@ -180,5 +183,23 @@ describe("buildParseRunBankEntries", () => {
         sourceMap,
       }),
     ).toEqual([]);
+  });
+
+  it("materializes parser-v2 entries for review without committing them", () => {
+    const entries = buildParseRunReviewEntries({ parseRun, sourceMap });
+
+    expect(entries[0]).toMatchObject({
+      id: "exp-1",
+      userId: "user-1",
+      category: "experience",
+      sourceDocumentId: "doc-1",
+      sourceArtifactId: "artifact-1",
+      sourceParseRunId: "run-1",
+      sourceSpanIds: ["p1-l001", "p1-l002"],
+      sourceQuality: "exact",
+      matchMethod: "parser-v2",
+      confidenceScore: 0.9,
+      createdAt: "2026-05-18T10:00:00.000Z",
+    });
   });
 });

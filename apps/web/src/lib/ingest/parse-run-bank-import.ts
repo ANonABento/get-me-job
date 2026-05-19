@@ -1,6 +1,6 @@
 import type { DocumentParseRun } from "@/lib/db/document-parse-runs";
 import type { InsertBankEntry } from "@/lib/db/profile-bank";
-import type { SourceBbox } from "@/types";
+import type { BankEntry, SourceBbox } from "@/types";
 import type {
   DocumentSourceMap,
   ParsedResumeV2Result,
@@ -361,4 +361,29 @@ export function buildParseRunBankEntries({
   }
 
   return entries;
+}
+
+export function buildParseRunReviewEntries(
+  input: BuildParseRunBankEntriesInput,
+): BankEntry[] {
+  const entries = buildParseRunBankEntries(input);
+  return entries.map((entry, index) => ({
+    id: entry.id ?? `${input.parseRun.id}:entry:${index}`,
+    userId: input.parseRun.userId,
+    category: entry.category,
+    content: entry.content,
+    sourceDocumentId: entry.sourceDocumentId,
+    sourcePage: entry.sourcePage,
+    sourceBbox: entry.sourceBbox,
+    sourceOrder: entry.sourceOrder,
+    sourceHeaderBbox: entry.sourceHeaderBbox,
+    sourceLinks: entry.sourceLinks,
+    sourceArtifactId: entry.sourceArtifactId,
+    sourceParseRunId: entry.sourceParseRunId,
+    sourceSpanIds: entry.sourceSpanIds,
+    sourceQuality: entry.sourceQuality,
+    matchMethod: entry.matchMethod,
+    confidenceScore: entry.confidenceScore ?? input.parseRun.confidence,
+    createdAt: input.parseRun.createdAt,
+  }));
 }
