@@ -100,6 +100,11 @@ import {
   type UploadConflictExisting,
 } from "@/lib/upload-conflict";
 import { getUploadReviewPreviewStatus } from "./upload-review-preview-status";
+import {
+  loadParserV2ReviewContext,
+  type ParserV2ReviewContext,
+  type ParserV2ReviewDiagnostic,
+} from "./parser-v2-review-context";
 import { cn } from "@/lib/utils";
 import {
   getBankEntryParentId,
@@ -162,6 +167,8 @@ interface UploadReviewState {
   docType: string;
   mimeType?: string;
   entries: BankEntry[];
+  parserV2Context?: ParserV2ReviewContext;
+  parserV2Loading?: boolean;
 }
 
 type DisplayMode = "category" | "source";
@@ -1170,13 +1177,28 @@ export function BankComponentsTab({
             // Dev-only convenience; blocked storage should not affect uploads.
           }
           setActiveDocumentId(documentId);
+          const docType = uploadData.document?.type || "other";
           setUploadReview({
             documentId,
-            docType: uploadData.document?.type || "other",
+            docType,
             filename: uploadData.document?.filename || file.name,
             mimeType: uploadData.document?.mimeType || file.type,
             entries: reviewEntries,
+            parserV2Loading: docType === "resume",
           });
+          if (docType === "resume") {
+            void loadParserV2ReviewContext(documentId).then((context) => {
+              setUploadReview((prev) =>
+                prev && prev.documentId === documentId
+                  ? {
+                      ...prev,
+                      parserV2Context: context,
+                      parserV2Loading: false,
+                    }
+                  : prev,
+              );
+            });
+          }
           openedReview = true;
         } else {
           setUploadReview(null);
@@ -1771,6 +1793,8 @@ export function BankComponentsTab({
                       documentId={uploadReview.documentId}
                       documentFilename={uploadReview.filename}
                       documentMimeType={uploadReview.mimeType}
+                      parserV2Context={uploadReview.parserV2Context}
+                      parserV2Loading={uploadReview.parserV2Loading}
                     />
                   ) : null}
                 </div>
@@ -2761,12 +2785,58 @@ function getNewParsedChildren(
   });
 }
 
+function ParserV2DiagnosticLine({
+  diagnostic,
+  loading,
+}: {
+  diagnostic?: ParserV2ReviewDiagnostic | null;
+  loading?: boolean;
+}) {
+  if (loading) {
+    return (
+      <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        Loading parser-v2 diagnostics
+      </p>
+    );
+  }
+
+  if (!diagnostic) return null;
+
+  const rootCount =
+    diagnostic.parsedRoots.education +
+    diagnostic.parsedRoots.experiences +
+    diagnostic.parsedRoots.projects +
+    diagnostic.parsedRoots.skills;
+  const missingCount =
+    diagnostic.missingRootSourceSpans.length +
+    diagnostic.missingBulletSourceSpans.length;
+  const partialCount =
+    diagnostic.partialRootSourceSpans.length +
+    diagnostic.partialBulletSourceSpans.length;
+
+  return (
+    <p className="mt-1 text-xs text-muted-foreground">
+      Parser-v2: {diagnostic.lineCount} source lines, {rootCount} parsed roots
+      {missingCount > 0 || partialCount > 0
+        ? `, ${missingCount} missing and ${partialCount} partial spans`
+        : ", all spans resolved"}
+    </p>
+  );
+}
+
 function TextDocumentPreview({
   documentId,
   filename,
+  sourceText,
+  diagnostic,
+  diagnosticLoading,
 }: {
   documentId: string;
   filename: string;
+  sourceText?: string;
+  diagnostic?: ParserV2ReviewDiagnostic | null;
+  diagnosticLoading?: boolean;
 }) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -2776,6 +2846,13 @@ function TextDocumentPreview({
     let cancelled = false;
 
     async function loadTextPreview() {
+      if (sourceText !== undefined) {
+        setText(sourceText);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
       try {
@@ -2808,7 +2885,7 @@ function TextDocumentPreview({
     return () => {
       cancelled = true;
     };
-  }, [documentId]);
+  }, [documentId, sourceText]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -2823,6 +2900,10 @@ function TextDocumentPreview({
           Text preview from stored extraction. Layout and highlights are not
           available for this file type.
         </p>
+        <ParserV2DiagnosticLine
+          diagnostic={diagnostic}
+          loading={diagnosticLoading}
+        />
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-4">
         {loading ? (
@@ -2857,6 +2938,8 @@ function UploadReviewEntries({
   documentId,
   documentFilename,
   documentMimeType,
+  parserV2Context,
+  parserV2Loading,
 }: {
   entries: BankEntry[];
   existingEntries: BankEntry[];
@@ -2875,6 +2958,8 @@ function UploadReviewEntries({
   documentId?: string;
   documentFilename?: string;
   documentMimeType?: string;
+  parserV2Context?: ParserV2ReviewContext;
+  parserV2Loading?: boolean;
 }) {
   const a11yT = useA11yTranslations();
 
@@ -2928,6 +3013,8 @@ function UploadReviewEntries({
     filename: documentFilename,
     mimeType: documentMimeType,
   });
+  const parserV2Ready =
+    parserV2Context?.status === "ready" ? parserV2Context : null;
 
   // PF.4 — left-panel tabs. Document tab is the default so users start with
   // source context for what was extracted; PDF renders pages and non-PDF
@@ -3257,11 +3344,16 @@ function UploadReviewEntries({
               selectedEntryId={selectedId}
               onSelectEntry={setSelectedId}
               onRegisterNavigator={registerPdfNavigator}
+              diagnostic={parserV2Ready?.diagnostic}
+              diagnosticLoading={parserV2Loading}
             />
           ) : (
             <TextDocumentPreview
               documentId={documentId}
               filename={documentFilename ?? "source document"}
+              sourceText={parserV2Ready?.sourceText}
+              diagnostic={parserV2Ready?.diagnostic}
+              diagnosticLoading={parserV2Loading}
             />
           )}
         </div>

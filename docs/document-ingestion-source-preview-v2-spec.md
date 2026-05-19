@@ -796,5 +796,10 @@ Next implementation slices:
 12. Add first-class source text and parser-v2 diagnostics to the source-map API
     so preview-v2 can render raw source and diagnostics tabs without recomputing
     provenance client-side. Done in the source-map diagnostics slice.
-13. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+13. Start review UI wiring by running parser-v2 extraction/parse in the
+    background for resume upload reviews, carrying source-map context in review
+    state, and surfacing parser-v2 diagnostics/source text in the preview pane
+    while leaving legacy bank review behavior intact. Done in the review-context
+    bridge slice.
+14. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.

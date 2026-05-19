@@ -14,6 +14,20 @@ interface PdfPreviewProps {
   highlights: HighlightInput[];
   selectedEntryId: string | null;
   onSelectEntry: (entryId: string) => void;
+  diagnostic?: {
+    lineCount: number;
+    parsedRoots: {
+      education: number;
+      experiences: number;
+      projects: number;
+      skills: number;
+    };
+    missingRootSourceSpans: string[];
+    missingBulletSourceSpans: string[];
+    partialRootSourceSpans: string[];
+    partialBulletSourceSpans: string[];
+  } | null;
+  diagnosticLoading?: boolean;
   /**
    * Imperative request to navigate to the page containing the given entry's
    * first bbox. Returns a function the parent can call (via ref); driven by
@@ -94,6 +108,8 @@ export function PdfPreview({
   highlights,
   selectedEntryId,
   onSelectEntry,
+  diagnostic,
+  diagnosticLoading,
   onRegisterNavigator,
 }: PdfPreviewProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
@@ -330,6 +346,20 @@ export function PdfPreview({
           </Button>
         </div>
       </div>
+      {diagnosticLoading || diagnostic ? (
+        <p className="px-4 text-xs text-muted-foreground">
+          {diagnosticLoading
+            ? "Loading parser-v2 diagnostics"
+            : diagnostic
+              ? `Parser-v2: ${diagnostic.lineCount} source lines, ${
+                  diagnostic.parsedRoots.education +
+                  diagnostic.parsedRoots.experiences +
+                  diagnostic.parsedRoots.projects +
+                  diagnostic.parsedRoots.skills
+                } parsed roots`
+              : null}
+        </p>
+      ) : null}
       <div ref={previewViewportRef} className="flex-1 overflow-auto px-4 pb-4">
         <div className={cn("relative mx-auto block w-fit")}>
           <canvas
