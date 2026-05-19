@@ -60,8 +60,8 @@ export function FaqList({
             key={i}
             className="group border-b border-rule last:border-0 md:border-r md:border-rule md:last-of-type:border-r-0 md:[&:nth-last-child(-n+2)]:border-b-0"
           >
-            <summary className="flex cursor-pointer items-center justify-between gap-4 px-5 py-4 text-[14.5px] font-semibold text-ink md:px-6 md:py-5">
-              <span>{item.q}</span>
+            <summary className="flex cursor-pointer items-center justify-between gap-4 px-5 py-4 md:px-6 md:py-5">
+              <h3 className="text-[14.5px] font-semibold text-ink">{item.q}</h3>
               <span
                 aria-hidden
                 className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-rule-strong-bg text-ink-2 transition-transform group-open:rotate-45"

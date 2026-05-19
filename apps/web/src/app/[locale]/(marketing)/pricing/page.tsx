@@ -1,5 +1,4 @@
 import {
-  Check,
   Github,
   HardDrive,
   Hourglass,
@@ -19,7 +18,11 @@ import { WaitlistForm } from "@/components/marketing/waitlist-form";
 import { Link } from "@/i18n/navigation";
 import { CSP_NONCE_HEADER } from "@/lib/security/headers";
 import { getLocalizedPageMetadata, getMetadataBase } from "@/lib/seo";
-import { cn } from "@/lib/utils";
+import { EditorialHero } from "@/components/landing/EditorialHero";
+import { PriceCard } from "@/components/landing/PriceCard";
+import { CompareTable } from "@/components/landing/CompareTable";
+import { FaqList } from "@/components/landing/FaqList";
+import { MonoCap } from "@/components/landing/primitives";
 
 export function generateMetadata({ params }: { params: { locale: string } }) {
   return getLocalizedPageMetadata("pricing", params.locale);
@@ -215,55 +218,102 @@ const getBreadcrumbSchema = (baseHref: URL, locale: string) => ({
   ],
 });
 
-const comparisonRows = [
+const COMPARE_COLUMNS = [
+  { key: "selfHost", label: "Self-host" },
+  { key: "free", label: "Hosted Free" },
+  { key: "weekly", label: "Weekly" },
+  { key: "monthly", label: "Monthly" },
+] as const;
+
+const comparisonRows: readonly {
+  feature: string;
+  cells: Record<string, string>;
+}[] = [
   {
     feature: "Hosting",
-    selfHost: "Your machine",
-    free: "slothing.work",
-    weekly: "slothing.work",
-    monthly: "slothing.work",
+    cells: {
+      selfHost: "Your machine",
+      free: "slothing.work",
+      weekly: "slothing.work",
+      monthly: "slothing.work",
+    },
   },
   {
     feature: "AI provider",
-    selfHost: "Any (Ollama, BYOK)",
-    free: "Bring your own key",
-    weekly: "Slothing credits",
-    monthly: "Slothing credits",
+    cells: {
+      selfHost: "Any (Ollama, BYOK)",
+      free: "Bring your own key",
+      weekly: "Slothing credits",
+      monthly: "Slothing credits",
+    },
   },
   {
     feature: "Tailored resumes",
-    selfHost: "Unlimited (your compute)",
-    free: "Unlimited (your key)",
-    weekly: "Credits included",
-    monthly: "More credits than weekly",
+    cells: {
+      selfHost: "Unlimited (your compute)",
+      free: "Unlimited (your key)",
+      weekly: "Credits included",
+      monthly: "More credits than weekly",
+    },
   },
   {
     feature: "Generation priority",
-    selfHost: "Local",
-    free: "Standard",
-    weekly: "Priority",
-    monthly: "Priority",
+    cells: {
+      selfHost: "Local",
+      free: "Standard",
+      weekly: "Priority",
+      monthly: "Priority",
+    },
   },
   {
     feature: "Resume variants",
-    selfHost: "Advanced",
-    free: "Core",
-    weekly: "Core",
-    monthly: "Advanced",
+    cells: {
+      selfHost: "Advanced",
+      free: "Core",
+      weekly: "Core",
+      monthly: "Advanced",
+    },
   },
   {
     feature: "New tools",
-    selfHost: "Self-merge",
-    free: "General release",
-    weekly: "Early access",
-    monthly: "Early access",
+    cells: {
+      selfHost: "Self-merge",
+      free: "General release",
+      weekly: "Early access",
+      monthly: "Early access",
+    },
   },
   {
     feature: "Best for",
-    selfHost: "Devs, privacy fans",
-    free: "Testing with your key",
-    weekly: "3–4 week sprint",
-    monthly: "Active multi-month search",
+    cells: {
+      selfHost: "Devs, privacy fans",
+      free: "Testing with your key",
+      weekly: "3–4 week sprint",
+      monthly: "Active multi-month search",
+    },
+  },
+];
+
+const TRUST_PILLARS = [
+  {
+    icon: Lock,
+    label: "Encrypted in transit",
+    body: "All data travels over HTTPS. Resume content and credentials are never sent in plain text.",
+  },
+  {
+    icon: ShieldCheck,
+    label: "No data selling",
+    body: "We do not sell your personal job search data. Third parties only process data needed to operate features you enable.",
+  },
+  {
+    icon: Github,
+    label: "Open source core",
+    body: null, // body rendered inline below to keep the GitHub link in tact
+  },
+  {
+    icon: Trash2,
+    label: "Delete anytime",
+    body: null,
   },
 ] as const;
 
@@ -275,7 +325,7 @@ export default async function PricingPage() {
   const breadcrumbSchema = getBreadcrumbSchema(metadataBase, locale);
 
   return (
-    <main className="px-4 py-16">
+    <>
       <script
         nonce={nonce}
         suppressHydrationWarning
@@ -288,280 +338,199 @@ export default async function PricingPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
-      <section className="mx-auto max-w-6xl">
-        <div className="mx-auto max-w-3xl text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm font-medium text-muted-foreground">
-            <Github className="h-4 w-4 text-primary" />
-            Self-host today, AGPL-3.0. Hosted plans available now.
-          </div>
-          <h1 className="text-4xl font-bold tracking-tight md:text-5xl">
-            Pay for the weeks you need. Not a day more.
-          </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-            Slothing is open source. Run it free on your own machine, or pay a
-            small convenience fee for the hosted version at slothing.work — by
-            the week or by the month.
-          </p>
-        </div>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {tiers.map((tier) => {
-            const Icon = tier.icon;
-            const isInternal = tier.ctaAction.kind === "internal";
-            const internalPath =
-              tier.ctaAction.kind === "internal"
-                ? tier.ctaAction.pathname
-                : null;
-            const externalHref =
-              tier.ctaAction.kind === "external" ? tier.ctaAction.href : null;
-            const checkoutPlan =
-              tier.ctaAction.kind === "checkout" ? tier.ctaAction.plan : null;
+      <EditorialHero
+        eyebrow={{
+          badge: "Open source",
+          label: "Self-host today, AGPL-3.0. Hosted plans available now.",
+        }}
+        headlineTop="Pay for the weeks you need."
+        headlineBottom="Not a day more."
+        body="Slothing is open source. Run it free on your own machine, or pay a small convenience fee for the hosted version at slothing.work — by the week or by the month."
+      />
 
-            return (
-              <article
-                key={tier.name}
-                className={cn(
-                  "flex flex-col rounded-lg border bg-card p-6 shadow-sm",
-                  tier.highlighted && "border-primary ring-2 ring-primary/30",
-                )}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <h2 className="text-2xl font-semibold">{tier.name}</h2>
-                  </div>
-                  {tier.badge && (
-                    <span className="rounded-lg bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
-                      {tier.badge}
-                    </span>
-                  )}
-                </div>
+      {/* Tier cards */}
+      <section className="border-t border-rule bg-paper py-16 md:py-20">
+        <div className="mx-auto w-full max-w-[1480px] px-5 md:px-10">
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+            {tiers.map((tier) => {
+              const Icon = tier.icon;
+              const isInternal = tier.ctaAction.kind === "internal";
+              const internalPath =
+                tier.ctaAction.kind === "internal"
+                  ? tier.ctaAction.pathname
+                  : null;
+              const externalHref =
+                tier.ctaAction.kind === "external" ? tier.ctaAction.href : null;
+              const checkoutPlan =
+                tier.ctaAction.kind === "checkout" ? tier.ctaAction.plan : null;
 
-                <div className="mt-6">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold tracking-tight">
-                      {tier.price}
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      {tier.cadence}
-                    </span>
-                  </div>
-                  <p className="mt-4 text-sm text-muted-foreground">
-                    {tier.description}
-                  </p>
-                </div>
-
-                <ul className="mt-6 space-y-3">
-                  {tier.features.map((feature) => (
-                    <li key={feature} className="flex gap-3 text-sm">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="mt-auto pt-8">
-                  {isInternal && internalPath ? (
-                    <Button asChild className="w-full">
-                      <Link
-                        href={{
-                          pathname: internalPath,
-                          query: { callbackUrl },
-                        }}
-                        prefetch={false}
-                      >
-                        {tier.cta}
-                      </Link>
-                    </Button>
-                  ) : checkoutPlan ? (
-                    <CheckoutButton
-                      plan={checkoutPlan}
-                      variant={tier.highlighted ? "default" : "outline"}
+              const tierSlug = tier.name.toLowerCase().replace(/\s+/g, "-");
+              const cta =
+                isInternal && internalPath ? (
+                  <Button asChild className="w-full">
+                    <Link
+                      href={{
+                        pathname: internalPath,
+                        query: { callbackUrl },
+                      }}
+                      prefetch={false}
+                      data-tier-cta={tierSlug}
                     >
                       {tier.cta}
-                    </CheckoutButton>
-                  ) : (
-                    <Button
-                      asChild
-                      className="w-full"
-                      variant={tier.highlighted ? "default" : "outline"}
+                    </Link>
+                  </Button>
+                ) : checkoutPlan ? (
+                  <CheckoutButton
+                    plan={checkoutPlan}
+                    variant={tier.highlighted ? "default" : "outline"}
+                  >
+                    {tier.cta}
+                  </CheckoutButton>
+                ) : (
+                  <Button
+                    asChild
+                    className="w-full"
+                    variant={tier.highlighted ? "default" : "outline"}
+                  >
+                    <a
+                      href={externalHref ?? "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-tier-cta={tierSlug}
                     >
-                      <a
-                        href={externalHref ?? "#"}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        data-tier-cta={tier.name
-                          .toLowerCase()
-                          .replace(/\s+/g, "-")}
-                      >
-                        {tier.cta}
-                      </a>
-                    </Button>
-                  )}
-                  {tier.ctaNote && (
-                    <p className="mt-2 text-center text-xs text-muted-foreground">
-                      {tier.ctaNote}
-                    </p>
-                  )}
-                </div>
-              </article>
-            );
-          })}
-        </div>
+                      {tier.cta}
+                    </a>
+                  </Button>
+                );
 
-        <section
-          className="mt-10 overflow-hidden rounded-lg border bg-card"
-          aria-labelledby="plan-comparison-heading"
-        >
-          <div className="border-b px-5 py-4">
+              return (
+                <PriceCard
+                  key={tier.name}
+                  icon={<Icon className="h-5 w-5" />}
+                  badge={tier.badge}
+                  name={tier.name}
+                  price={tier.price}
+                  cadence={tier.cadence}
+                  description={tier.description}
+                  features={[...tier.features]}
+                  cta={cta}
+                  ctaNote={tier.ctaNote}
+                  highlighted={tier.highlighted}
+                />
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Compare plans */}
+      <section
+        className="border-t border-rule bg-page py-16 md:py-20"
+        aria-labelledby="plan-comparison-heading"
+      >
+        <div className="mx-auto w-full max-w-[1480px] px-5 md:px-10">
+          <div className="mb-8 flex flex-col gap-2">
+            <MonoCap className="text-brand">Side-by-side</MonoCap>
             <h2
               id="plan-comparison-heading"
-              className="text-lg font-semibold tracking-tight"
+              className="max-w-[20ch] font-display text-[clamp(28px,3vw,40px)] font-extrabold leading-tight tracking-display text-ink"
             >
               Compare plans
             </h2>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] text-left text-sm">
-              <thead className="bg-muted/40 text-muted-foreground">
-                <tr>
-                  <th
-                    className="whitespace-nowrap px-5 py-3 font-medium"
-                    scope="col"
-                  >
-                    Feature
-                  </th>
-                  <th
-                    className="whitespace-nowrap px-5 py-3 font-medium"
-                    scope="col"
-                  >
-                    Self-host
-                  </th>
-                  <th
-                    className="whitespace-nowrap px-5 py-3 font-medium"
-                    scope="col"
-                  >
-                    Hosted Free
-                  </th>
-                  <th
-                    className="whitespace-nowrap px-5 py-3 font-medium"
-                    scope="col"
-                  >
-                    Weekly
-                  </th>
-                  <th
-                    className="whitespace-nowrap px-5 py-3 font-medium"
-                    scope="col"
-                  >
-                    Monthly
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {comparisonRows.map((row) => (
-                  <tr key={row.feature}>
-                    <th className="px-5 py-4 font-medium" scope="row">
-                      {row.feature}
-                    </th>
-                    <td className="px-5 py-4 text-muted-foreground">
-                      {row.selfHost}
-                    </td>
-                    <td className="px-5 py-4 text-muted-foreground">
-                      {row.free}
-                    </td>
-                    <td className="px-5 py-4 text-muted-foreground">
-                      {row.weekly}
-                    </td>
-                    <td className="px-5 py-4 font-medium text-primary">
-                      {row.monthly}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+          <CompareTable
+            columns={[...COMPARE_COLUMNS]}
+            rows={comparisonRows.map((row) => ({
+              label: row.feature,
+              cells: row.cells,
+            }))}
+            highlight="monthly"
+          />
+        </div>
+      </section>
 
-        <section className="mt-16 border-t pt-10">
-          <h2 className="text-2xl font-semibold tracking-tight">
-            Plan questions
-          </h2>
-          <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {faqs.map((faq) => (
-              <div key={faq.question}>
-                <h3 className="font-medium">{faq.question}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {faq.answer}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
+      {/* FAQ */}
+      <section className="border-t border-rule bg-paper py-16 md:py-20">
+        <div className="mx-auto w-full max-w-[1480px] px-5 md:px-10">
+          <FaqList
+            eyebrow="Plan questions"
+            headline="Everything you'd want to ask before paying."
+            items={faqs.map((faq) => ({ q: faq.question, a: faq.answer }))}
+            columns={2}
+          />
+        </div>
+      </section>
 
-        <section
-          className="mt-16 border-t pt-10"
-          aria-labelledby="trust-section-heading"
-        >
-          <h2
-            id="trust-section-heading"
-            className="text-2xl font-semibold tracking-tight"
-          >
-            Security and data handling
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            What Slothing does — and does not — do with your data.
-          </p>
-          <div className="mt-6 grid gap-6 md:grid-cols-4">
-            <div>
-              <Lock className="mb-3 h-5 w-5 text-primary" />
-              <h3 className="font-medium">Encrypted in transit</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                All data travels over HTTPS. Resume content and credentials are
-                never sent in plain text.
-              </p>
-            </div>
-            <div>
-              <ShieldCheck className="mb-3 h-5 w-5 text-primary" />
-              <h3 className="font-medium">No data selling</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                We do not sell your personal job search data. Third parties only
-                process data needed to operate features you enable.
-              </p>
-            </div>
-            <div>
-              <Github className="mb-3 h-5 w-5 text-primary" />
-              <h3 className="font-medium">Open source core</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                The AI pipeline, Document Studio, and tracker are{" "}
-                <a
-                  href={SLOTHING_REPO_URL}
-                  className="text-primary hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
+      {/* Security and data handling */}
+      <section
+        className="border-t border-rule bg-page py-16 md:py-20"
+        aria-labelledby="trust-section-heading"
+      >
+        <div className="mx-auto w-full max-w-[1480px] px-5 md:px-10">
+          <div className="mb-10 flex flex-col gap-2">
+            <MonoCap className="text-brand">Trust</MonoCap>
+            <h2
+              id="trust-section-heading"
+              className="max-w-[24ch] font-display text-[clamp(28px,3vw,40px)] font-extrabold leading-tight tracking-display text-ink"
+            >
+              Security and data handling
+            </h2>
+            <p className="mt-2 max-w-[58ch] text-[16.5px] leading-[1.55] text-ink-2">
+              What Slothing does — and does not — do with your data.
+            </p>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+            {TRUST_PILLARS.map((pillar) => {
+              const Icon = pillar.icon;
+              return (
+                <div
+                  key={pillar.label}
+                  className="rounded-2xl border border-rule bg-paper p-6 shadow-paper-card"
                 >
-                  AGPL-3.0 on GitHub
-                </a>
-                . A small billing module for slothing.work is proprietary. Audit
-                or fork the parts that touch your data.
-              </p>
-            </div>
-            <div>
-              <Trash2 className="mb-3 h-5 w-5 text-primary" />
-              <h3 className="font-medium">Delete anytime</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                You can delete opportunities, documents, and your account at any
-                time. See our{" "}
-                <Link href="/privacy" className="text-primary hover:underline">
-                  Privacy Policy
-                </Link>{" "}
-                for full details.
-              </p>
-            </div>
+                  <Icon className="mb-3 h-5 w-5 text-brand" aria-hidden />
+                  <h3 className="font-display text-[18px] font-bold leading-tight text-ink">
+                    {pillar.label}
+                  </h3>
+                  {pillar.body ? (
+                    <p className="mt-2 text-[14px] leading-6 text-ink-2">
+                      {pillar.body}
+                    </p>
+                  ) : pillar.label === "Open source core" ? (
+                    <p className="mt-2 text-[14px] leading-6 text-ink-2">
+                      The AI pipeline, Document Studio, and tracker are{" "}
+                      <a
+                        href={SLOTHING_REPO_URL}
+                        className="text-brand hover:text-brand-dark"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        AGPL-3.0 on GitHub
+                      </a>
+                      . A small billing module for slothing.work is proprietary.
+                      Audit or fork the parts that touch your data.
+                    </p>
+                  ) : pillar.label === "Delete anytime" ? (
+                    <p className="mt-2 text-[14px] leading-6 text-ink-2">
+                      You can delete opportunities, documents, and your account
+                      at any time. See our{" "}
+                      <Link
+                        href="/privacy"
+                        className="text-brand hover:text-brand-dark"
+                      >
+                        Privacy Policy
+                      </Link>{" "}
+                      for full details.
+                    </p>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
-          <p className="mt-8 rounded-lg border bg-card p-4 text-sm text-muted-foreground">
-            <strong className="font-medium text-foreground">
+
+          <p className="mt-8 rounded-2xl border border-rule bg-paper p-5 text-[14px] leading-6 text-ink-2 shadow-paper-card">
+            <strong className="font-semibold text-ink">
               AI outputs are assistive:
             </strong>{" "}
             Slothing generates tailored resumes and interview feedback to
@@ -569,68 +538,84 @@ export default async function PricingPage() {
             any application. Slothing does not guarantee hiring outcomes,
             interview results, or offer decisions.
           </p>
-        </section>
+        </div>
+      </section>
 
-        <section
-          className="mt-16 grid gap-6 rounded-lg border bg-card p-6 md:grid-cols-[0.9fr_1.1fr] md:items-start"
-          aria-labelledby="waitlist-heading"
-        >
-          <div>
-            <Hourglass className="h-7 w-7 text-primary" />
-            <h2 id="waitlist-heading" className="mt-3 text-xl font-semibold">
-              Want launch updates?
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Join the waitlist for hosted availability, extension marketplace
-              listings, Google setup notes, and early launch windows. No billing
-              is required to get updates.
-            </p>
+      {/* Waitlist */}
+      <section
+        className="border-t border-rule bg-paper py-16 md:py-20"
+        aria-labelledby="waitlist-heading"
+      >
+        <div className="mx-auto w-full max-w-[1480px] px-5 md:px-10">
+          <div className="grid gap-6 rounded-2xl border border-rule bg-page p-6 shadow-paper-card md:grid-cols-[0.9fr_1.1fr] md:items-start md:p-10">
+            <div>
+              <Hourglass className="h-7 w-7 text-brand" aria-hidden />
+              <h2
+                id="waitlist-heading"
+                className="mt-3 font-display text-[clamp(22px,2.4vw,30px)] font-extrabold leading-tight tracking-display text-ink"
+              >
+                Want launch updates?
+              </h2>
+              <p className="mt-3 max-w-[44ch] text-[14.5px] leading-6 text-ink-2">
+                Join the waitlist for hosted availability, extension marketplace
+                listings, Google setup notes, and early launch windows. No
+                billing is required to get updates.
+              </p>
+            </div>
+            <WaitlistForm source="pricing" />
           </div>
-          <WaitlistForm source="pricing" />
-        </section>
+        </div>
+      </section>
 
-        <section className="mt-16 flex flex-col items-center gap-4 rounded-lg border border-primary/30 bg-primary/5 p-8 text-center">
-          <Hourglass className="h-8 w-8 text-primary" />
-          <h2 className="text-xl font-semibold">Ready to start?</h2>
-          <p className="max-w-xl text-sm text-muted-foreground">
-            Create a free account to use Slothing with your own AI key. Upgrade
-            to Weekly or Monthly from Settings once you&apos;re inside.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Button asChild>
+      {/* Final CTA */}
+      <section className="border-t border-rule bg-page py-16 md:py-20">
+        <div className="mx-auto w-full max-w-[1480px] px-5 md:px-10">
+          <div className="flex flex-col items-center gap-5 rounded-2xl border border-brand bg-brand-soft p-8 text-center md:p-12">
+            <Hourglass className="h-8 w-8 text-brand-dark" aria-hidden />
+            <h2 className="font-display text-[clamp(26px,3vw,36px)] font-extrabold leading-tight tracking-display text-ink">
+              Ready to start?
+            </h2>
+            <p className="max-w-[58ch] text-[15px] leading-6 text-ink-2">
+              Create a free account to use Slothing with your own AI key.
+              Upgrade to Weekly or Monthly from Settings once you&apos;re
+              inside.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Button asChild>
+                <Link
+                  href={{ pathname: "/sign-in", query: { callbackUrl } }}
+                  prefetch={false}
+                >
+                  Get started free →
+                </Link>
+              </Button>
+              <CheckoutButton plan="pro_weekly" variant="outline">
+                Start Weekly — $6.99/wk
+              </CheckoutButton>
+              <Button asChild variant="outline">
+                <a
+                  href={SLOTHING_REPO_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Github className="mr-2 h-4 w-4" />
+                  Self-host on GitHub
+                </a>
+              </Button>
+            </div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3">
+              Paid plans require a Slothing account.{" "}
               <Link
                 href={{ pathname: "/sign-in", query: { callbackUrl } }}
+                className="text-brand hover:text-brand-dark"
                 prefetch={false}
               >
-                Get started free →
+                Sign in or create one free →
               </Link>
-            </Button>
-            <CheckoutButton plan="pro_weekly" variant="outline">
-              Start Weekly — $6.99/wk
-            </CheckoutButton>
-            <Button asChild variant="outline">
-              <a
-                href={SLOTHING_REPO_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Github className="mr-2 h-4 w-4" />
-                Self-host on GitHub
-              </a>
-            </Button>
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Paid plans require a Slothing account.{" "}
-            <Link
-              href={{ pathname: "/sign-in", query: { callbackUrl } }}
-              className="text-primary hover:underline"
-              prefetch={false}
-            >
-              Sign in or create one free →
-            </Link>
-          </p>
-        </section>
+        </div>
       </section>
-    </main>
+    </>
   );
 }
