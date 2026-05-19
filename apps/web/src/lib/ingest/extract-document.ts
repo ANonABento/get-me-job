@@ -1,4 +1,5 @@
 import { extractTextFromDocx } from "@/lib/parser/pdf";
+import { extractTextWithOCR, needsOCRFallback } from "@/lib/parser/ocr";
 import { buildPdfSourceMap } from "./pdf-source-map";
 import type {
   DocumentSourceMap,
@@ -9,6 +10,7 @@ import type {
 } from "./types";
 
 export const PDF_SOURCE_MAP_EXTRACTOR_VERSION = "pdf-source-map-v1";
+export const PDF_OCR_SOURCE_MAP_EXTRACTOR_VERSION = "pdf-ocr-source-map-v1";
 export const DOCX_SOURCE_MAP_EXTRACTOR_VERSION = "docx-source-map-v1";
 export const TEXT_SOURCE_MAP_EXTRACTOR_VERSION = "text-source-map-v1";
 
@@ -101,11 +103,21 @@ export async function extractDocumentSourceMap(
   input: ExtractDocumentSourceMapInput,
 ): Promise<ExtractDocumentSourceMapResult> {
   if (isPdf(input)) {
+    const sourceMap = await buildPdfSourceMap(input.buffer);
+    if (!needsOCRFallback(sourceMap.rawText)) {
+      return {
+        sourceMap,
+        extractorVersion: PDF_SOURCE_MAP_EXTRACTOR_VERSION,
+        links: [],
+        ocrUsed: false,
+      };
+    }
+
     return {
-      sourceMap: await buildPdfSourceMap(input.buffer),
-      extractorVersion: PDF_SOURCE_MAP_EXTRACTOR_VERSION,
+      sourceMap: textSourceMap(await extractTextWithOCR(input.buffer)),
+      extractorVersion: PDF_OCR_SOURCE_MAP_EXTRACTOR_VERSION,
       links: [],
-      ocrUsed: false,
+      ocrUsed: true,
     };
   }
 

@@ -858,5 +858,8 @@ Next implementation slices:
     import preview/commit can materialize reviewed AI parse runs into bank
     entries while retaining raw AI JSON and citation diagnostics. Done in the AI
     parse-run normalization slice.
-28. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+28. Add OCR fallback to parser-v2 PDF artifact extraction when pdf.js source
+    text is too short, emitting an OCR-backed text source map and setting
+    `ocrUsed: true`. Done in the parser-v2 OCR fallback slice.
+29. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.
