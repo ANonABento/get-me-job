@@ -7,6 +7,7 @@ import {
   type ParseWarning,
 } from "@/lib/db";
 import type { LLMConfig } from "@/types";
+import { normalizeAiSourceCitedParseResult } from "./ai-parse-run-normalizer";
 import { parseResumeWithAiSourceCitations } from "./ai-source-cited-parser";
 import { parseResumeV2FromSourceMap } from "@/lib/ingest/parse-resume-v2";
 
@@ -107,6 +108,10 @@ export async function createAiDocumentParseRun({
       sourceMap: artifact.sourceMap,
       llmConfig,
     });
+    const structured = normalizeAiSourceCitedParseResult(
+      result,
+      artifact.sourceMap,
+    );
     const warnings: ParseWarning[] = result.validation.warnings.map(
       (warning) => ({
         code: warning.code,
@@ -121,14 +126,11 @@ export async function createAiDocumentParseRun({
       artifactId: artifact.id,
       userId,
       mode: "ai",
+      parserVersion: "ai-source-cited-v1",
       status: "ready",
-      confidence: warnings.length > 0 ? 0.5 : 0.8,
+      confidence: structured.confidence,
       warnings,
-      structured: {
-        parser: "ai-source-cited-v1",
-        raw: result.raw,
-        validation: result.validation,
-      },
+      structured,
     });
   } catch (error) {
     if (error instanceof DocumentParseRunError) throw error;

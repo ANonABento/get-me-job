@@ -5,6 +5,7 @@ import {
   buildParseRunBankEntries,
   buildParseRunReviewEntries,
 } from "./parse-run-bank-import";
+import { normalizeAiSourceCitedParseResult } from "./ai-parse-run-normalizer";
 
 const sourceMap: DocumentSourceMap = {
   pages: [
@@ -183,6 +184,70 @@ describe("buildParseRunBankEntries", () => {
         sourceMap,
       }),
     ).toEqual([]);
+  });
+
+  it("builds bank entries from normalized AI source-cited parse runs", () => {
+    const aiStructured = normalizeAiSourceCitedParseResult(
+      {
+        raw: {
+          experiences: [
+            {
+              company: "Acme",
+              title: "Engineer",
+              location: "Austin, TX",
+              startDate: "Jan 2020",
+              endDate: "Present",
+              current: true,
+              description: "Built parser",
+              highlights: [
+                {
+                  text: "Built parser",
+                  sourceSpanIds: ["p1-l002"],
+                },
+              ],
+              sourceSpanIds: ["p1-l001", "p1-l002"],
+            },
+          ],
+        },
+        validation: {
+          missingSourceIds: [],
+          unsupportedValues: [],
+          fieldSourceQualities: {
+            "experiences.0": "exact",
+            "experiences.0.highlights.0": "exact",
+          },
+          warnings: [],
+        },
+      },
+      sourceMap,
+    );
+
+    const entries = buildParseRunBankEntries({
+      parseRun: {
+        ...parseRun,
+        mode: "ai",
+        parserVersion: "ai-source-cited-v1",
+        structured: aiStructured,
+      },
+      sourceMap,
+    });
+
+    expect(entries).toHaveLength(2);
+    expect(entries[0]).toMatchObject({
+      category: "experience",
+      matchMethod: "parser-v2",
+      sourceParseRunId: "run-1",
+      sourceSpanIds: ["p1-l001", "p1-l002"],
+      sourceQuality: "exact",
+    });
+    expect(entries[0].content).toMatchObject({
+      company: "Acme",
+      title: "Engineer",
+      sourceRef: {
+        parseRunId: "run-1",
+        sourceQuality: "exact",
+      },
+    });
   });
 
   it("materializes parser-v2 entries for review without committing them", () => {

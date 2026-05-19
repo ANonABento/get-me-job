@@ -854,5 +854,9 @@ Next implementation slices:
     preview cache entries and unlinking stored upload files from document,
     source-document, bulk source-document, and account deletion paths. Done in
     the document retention cleanup slice.
-27. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+27. Normalize AI source-cited parse results into parser-v2 structured output so
+    import preview/commit can materialize reviewed AI parse runs into bank
+    entries while retaining raw AI JSON and citation diagnostics. Done in the AI
+    parse-run normalization slice.
+28. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.

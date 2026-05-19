@@ -160,7 +160,20 @@ describe("/api/documents/[id]/parse-runs", () => {
   });
 
   it("creates an AI source-cited parse run from a ready artifact", async () => {
-    const sourceMap = { pages: [], lines: [], rawText: "Jake Ryan" };
+    const sourceMap = {
+      pages: [{ page: 1, width: 612, height: 792, lineIds: ["p1-l001"] }],
+      lines: [
+        {
+          id: "p1-l001",
+          page: 1,
+          text: "Jake Ryan",
+          tokenIds: [],
+          tokens: [],
+          bbox: { page: 1, x0: 0, y0: 0, x1: 80, y1: 12 },
+        },
+      ],
+      rawText: "Jake Ryan",
+    };
     mocks.getLatestDocumentArtifact.mockReturnValue({
       id: "artifact-1",
       documentId: "doc-1",
@@ -170,9 +183,15 @@ describe("/api/documents/[id]/parse-runs", () => {
     mocks.parseResumeWithAiSourceCitations.mockResolvedValue({
       raw: { contact: { name: "Jake Ryan", sourceSpanIds: [] } },
       validation: {
+        missingSourceIds: [],
+        unsupportedValues: [],
+        fieldSourceQualities: {
+          contact: "exact",
+        },
         warnings: [
           {
             code: "unsupported_value",
+            path: "contact.name",
             message: "Value is not supported",
             sourceSpanIds: ["p1-l001"],
           },
@@ -208,6 +227,7 @@ describe("/api/documents/[id]/parse-runs", () => {
         artifactId: "artifact-1",
         userId: "user-1",
         mode: "ai",
+        parserVersion: "ai-source-cited-v1",
         status: "ready",
         confidence: 0.5,
         warnings: [
@@ -219,8 +239,16 @@ describe("/api/documents/[id]/parse-runs", () => {
           },
         ],
         structured: expect.objectContaining({
-          parser: "ai-source-cited-v1",
-          raw: { contact: { name: "Jake Ryan", sourceSpanIds: [] } },
+          profile: expect.objectContaining({
+            contact: expect.objectContaining({
+              name: "Jake Ryan",
+              sourceQuality: "exact",
+            }),
+          }),
+          ai: expect.objectContaining({
+            parser: "ai-source-cited-v1",
+            raw: { contact: { name: "Jake Ryan", sourceSpanIds: [] } },
+          }),
         }),
       }),
     );
