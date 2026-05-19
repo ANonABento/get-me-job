@@ -8,20 +8,13 @@
  * @request { name: string, content: string } (POST) | { id: string } (DELETE) | { id: string, name?: string, description?: string | null } (PATCH)
  * @response TemplatesResponse from @/types/api
  */
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import {
-  getCustomTemplates,
-  saveCustomTemplate,
-  deleteCustomTemplate,
-  updateCustomTemplateMetadata,
-} from "@/lib/db/custom-templates";
-import {
-  deleteDocumentTemplateV2,
-  listDocumentTemplatesV2,
-  updateDocumentTemplateV2Metadata,
+  deleteDocumentTemplateV3,
+  listDocumentTemplatesV3,
+  updateDocumentTemplateV3Metadata,
 } from "@/lib/db/template-migrations";
-import { getDocument } from "@/lib/db/queries";
 import { TEMPLATES } from "@/lib/resume/templates";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import {
@@ -30,7 +23,6 @@ import {
   validationErrorResponse,
   errorResponse,
 } from "@/lib/api-utils";
-import type { AnalyzedTemplate } from "@/lib/resume/template-analyzer";
 
 export const dynamic = "force-dynamic";
 
@@ -52,47 +44,14 @@ const patchTemplateSchema = z
     },
   );
 
-const createTemplateSchema = z.object({
-  name: z.string().min(1, "Name is required").max(100),
-  analyzedStyles: z.object({
-    styles: z.object({
-      fontFamily: z.string(),
-      fontSize: z.string(),
-      headerSize: z.string(),
-      sectionHeaderSize: z.string(),
-      lineHeight: z.string(),
-      accentColor: z.string(),
-      layout: z.enum(["single-column", "two-column"]),
-      headerStyle: z.enum(["centered", "left", "minimal"]),
-      bulletStyle: z.enum(["disc", "dash", "arrow", "none"]),
-      sectionDivider: z.enum(["line", "space", "none"]),
-    }),
-    charsPerLine: z.number().positive(),
-    margins: z.object({
-      top: z.string(),
-      bottom: z.string(),
-      left: z.string(),
-      right: z.string(),
-    }),
-    sectionGap: z.string(),
-  }),
-  sourceDocumentId: z.string().optional(),
-  sourceFilename: z.string().optional(),
-  sourceType: z.enum(["pdf", "docx", "tex"]).optional(),
-});
-
 export async function GET() {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
 
   try {
-    const customTemplateRows = getCustomTemplates(authResult.userId);
-    const documentTemplateV2Rows = listDocumentTemplatesV2(authResult.userId);
-    const customTemplates = Array.isArray(customTemplateRows)
-      ? customTemplateRows
-      : [];
-    const documentTemplatesV2 = Array.isArray(documentTemplateV2Rows)
-      ? documentTemplateV2Rows
+    const documentTemplateV3Rows = listDocumentTemplatesV3(authResult.userId);
+    const documentTemplatesV3 = Array.isArray(documentTemplateV3Rows)
+      ? documentTemplateV3Rows
       : [];
 
     const builtIn = TEMPLATES.map((t) => ({
@@ -102,41 +61,27 @@ export async function GET() {
       type: "built-in" as const,
     }));
 
-    const custom = customTemplates.map((t) => ({
+    const customV3 = documentTemplatesV3.map((t) => ({
       id: t.id,
       name: t.name,
       description:
         t.description ??
         (t.sourceType
-          ? `Imported from ${t.sourceType.toUpperCase()}`
-          : `Custom template${t.sourceDocumentId ? " (from uploaded resume)" : ""}`),
-      type: "custom" as const,
-      analyzedStyles: t.analyzedStyles,
-      customDescription: t.description,
-      sourceFilename: t.sourceFilename,
-      sourceType: t.sourceType,
-      createdAt: t.createdAt,
-      updatedAt: t.updatedAt,
-    }));
-    const customV2 = documentTemplatesV2.map((t) => ({
-      id: t.id,
-      name: t.name,
-      description:
-        t.description ??
-        (t.sourceType
-          ? `Recreated from ${t.sourceType.toUpperCase()}`
-          : "Recreated document template"),
+          ? `Visual template from ${t.sourceType.toUpperCase()}`
+          : "Visual template"),
       type: "custom" as const,
       customDescription: t.description,
       sourceFilename: t.sourceFilename,
       sourceType: t.sourceType,
       schemaVersion: t.template.schemaVersion,
-      documentTemplate: t.template,
+      documentTemplateV3: t.template,
       createdAt: t.createdAt,
       updatedAt: t.updatedAt,
     }));
 
-    return successResponse({ templates: [...builtIn, ...custom, ...customV2] });
+    return successResponse({
+      templates: [...builtIn, ...customV3],
+    });
   } catch (error) {
     console.error("List templates error:", error);
     return errorResponse("internal_error", "Failed to list templates");
@@ -148,41 +93,13 @@ export async function POST(request: NextRequest) {
   if (isAuthError(authResult)) return authResult;
 
   try {
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return ApiErrors.badRequest("Invalid JSON body");
-    }
-    const parseResult = createTemplateSchema.safeParse(body);
-
-    if (!parseResult.success) {
-      return validationErrorResponse(parseResult.error);
-    }
-
-    const {
-      name,
-      analyzedStyles,
-      sourceDocumentId,
-      sourceFilename,
-      sourceType,
-    } = parseResult.data;
-
-    if (sourceDocumentId && !getDocument(sourceDocumentId, authResult.userId)) {
-      return ApiErrors.notFound("Source document");
-    }
-
-    const template = saveCustomTemplate(
-      name,
-      analyzedStyles as AnalyzedTemplate,
-      sourceDocumentId,
-      authResult.userId,
-      sourceFilename && sourceType
-        ? { filename: sourceFilename, type: sourceType }
-        : undefined,
+    return NextResponse.json(
+      {
+        error: "Use /api/templates/migrate to import a V3 visual template.",
+        code: "legacy_template_creation_disabled",
+      },
+      { status: 410 },
     );
-
-    return successResponse(template, 201);
   } catch (error) {
     console.error("Create template error:", error);
     return errorResponse("internal_error", "Failed to create template");
@@ -201,11 +118,8 @@ export async function DELETE(request: NextRequest) {
       return ApiErrors.badRequest("Template ID is required");
     }
 
-    const deleted = deleteCustomTemplate(id, authResult.userId);
-    const deletedV2 = deleted
-      ? false
-      : deleteDocumentTemplateV2(id, authResult.userId);
-    if (!deleted && !deletedV2) {
+    const deletedV3 = deleteDocumentTemplateV3(id, authResult.userId);
+    if (!deletedV3) {
       return ApiErrors.notFound("Template");
     }
 
@@ -229,18 +143,11 @@ export async function PATCH(request: NextRequest) {
     }
 
     const { id, name, description } = parseResult.data;
-    const updated = updateCustomTemplateMetadata(
-      id,
-      { name, description },
-      authResult.userId,
-    );
-    const updatedV2 = updated
-      ? null
-      : updateDocumentTemplateV2Metadata(id, authResult.userId, {
-          name,
-          description,
-        });
-    if (!updated && !updatedV2) {
+    const updatedV3 = updateDocumentTemplateV3Metadata(id, authResult.userId, {
+      name,
+      description,
+    });
+    if (!updatedV3) {
       return ApiErrors.notFound("Template");
     }
 

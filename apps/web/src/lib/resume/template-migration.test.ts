@@ -6,11 +6,17 @@ import {
   applyLayoutHints,
   applySourceStyleHints,
   createTemplateMigrationDraft,
+  createDocumentTemplateV3FromSourceIR,
   extractSourceDocumentIR,
+  inferPdfTableRows,
   mapSourceIRToResume,
 } from "@/lib/resume/template-migration";
-import { assessTemplateMigrationFidelity } from "@/lib/resume/template-migration-fidelity";
+import {
+  assessTemplateMigrationFidelity,
+  assessVisualTemplateFidelity,
+} from "@/lib/resume/template-migration-fidelity";
 import type { DocumentTemplateV2 } from "@/lib/resume/template-v2";
+import type { DocumentTemplateV3 } from "@/lib/resume/template-v3";
 
 describe("template migration source extraction", () => {
   it("extracts DOCX paragraphs, page size, and table cells into source IR", async () => {
@@ -27,7 +33,10 @@ describe("template migration source extraction", () => {
               <w:tc><w:p><w:r><w:t>PDF import</w:t></w:r></w:p></w:tc>
             </w:tr>
           </w:tbl>
-          <w:sectPr><w:pgSz w:w="12240" w:h="15840"/></w:sectPr>
+          <w:sectPr>
+            <w:pgSz w:w="12240" w:h="15840"/>
+            <w:pgMar w:top="720" w:right="900" w:bottom="720" w:left="900"/>
+          </w:sectPr>
         </w:body>
       </w:document>
     `;
@@ -53,7 +62,25 @@ describe("template migration source extraction", () => {
       "docx",
     );
 
-    expect(source.pages[0]).toMatchObject({ widthPt: 612, heightPt: 792 });
+    expect(source.pages[0]).toMatchObject({
+      widthPt: 612,
+      heightPt: 792,
+      margins: {
+        top: "36pt",
+        right: "45pt",
+        bottom: "36pt",
+        left: "45pt",
+      },
+    });
+    expect(
+      createDocumentTemplateV3FromSourceIR("template-v3", "DOCX Page", source)
+        .page.margins,
+    ).toEqual({
+      top: "36pt",
+      right: "45pt",
+      bottom: "36pt",
+      left: "45pt",
+    });
     expect(source.blocks).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -152,6 +179,264 @@ describe("template migration source extraction", () => {
     expect(resume.skills).toEqual(["TypeScript", "PDF import", "LaTeX"]);
   });
 
+  it("preserves simple LaTeX tabular alignment and rules in V3 tables", async () => {
+    const tex = String.raw`
+      \documentclass[letterpaper]{article}
+      \begin{document}
+      \begin{tabular}{|l|r|}
+      \hline
+      Project & 2024 \\
+      Migration UI & Toronto \\
+      \end{tabular}
+      \end{document}
+    `;
+
+    const source = await extractSourceDocumentIR(
+      Buffer.from(tex),
+      "resume.tex",
+      "tex",
+    );
+    const templateV3 = createDocumentTemplateV3FromSourceIR(
+      "template-v3",
+      "LaTeX Table",
+      source,
+    );
+    const table = templateV3.regions[0]?.nodes.find(
+      (node) => node.kind === "table",
+    );
+
+    expect(source.blocks[0]).toMatchObject({
+      type: "table-row",
+      cells: ["Project", "2024"],
+      tableMetadata: expect.objectContaining({ id: "latex-table-1" }),
+      rowMetadata: expect.objectContaining({
+        borders: expect.objectContaining({
+          top: expect.objectContaining({ widthPt: 0.4 }),
+        }),
+      }),
+      cellMetadata: [
+        expect.objectContaining({
+          alignment: "left",
+          borders: expect.objectContaining({
+            left: expect.objectContaining({ style: "solid" }),
+            right: expect.objectContaining({ style: "solid" }),
+          }),
+        }),
+        expect.objectContaining({
+          alignment: "right",
+          borders: expect.objectContaining({
+            right: expect.objectContaining({ style: "solid" }),
+          }),
+        }),
+      ],
+    });
+    expect(table).toMatchObject({
+      kind: "table",
+      id: "latex-table-1",
+    });
+    expect(
+      table && table.kind === "table" ? table.rows[0] : null,
+    ).toMatchObject({
+      borders: expect.objectContaining({
+        top: expect.objectContaining({ widthPt: 0.4 }),
+      }),
+      cells: [
+        expect.objectContaining({ textAlign: "left" }),
+        expect.objectContaining({ textAlign: "right" }),
+      ],
+    });
+  });
+
+  it("preserves LaTeX paragraph column widths in V3 tables", async () => {
+    const tex = String.raw`
+      \documentclass{article}
+      \begin{document}
+      \begin{tabular}{p{2in}r}
+      Summary text & 2026 \\
+      \end{tabular}
+      \end{document}
+    `;
+
+    const source = await extractSourceDocumentIR(
+      Buffer.from(tex),
+      "paragraph-column.tex",
+      "tex",
+    );
+    const templateV3 = createDocumentTemplateV3FromSourceIR(
+      "template-v3",
+      "Paragraph Column",
+      source,
+    );
+    const table = templateV3.regions[0]?.nodes.find(
+      (node) => node.kind === "table",
+    );
+
+    expect(source.blocks[0]).toMatchObject({
+      type: "table-row",
+      cells: ["Summary text", "2026"],
+      cellMetadata: [
+        expect.objectContaining({ widthPt: 144, alignment: "left" }),
+        expect.objectContaining({ alignment: "right" }),
+      ],
+    });
+    expect(table).toMatchObject({
+      kind: "table",
+      rows: [
+        expect.objectContaining({
+          cells: [
+            expect.objectContaining({ widthPt: 144, textAlign: "left" }),
+            expect.objectContaining({ textAlign: "right" }),
+          ],
+        }),
+      ],
+    });
+    expect(table && table.kind === "table" ? table.columns : []).toEqual([
+      expect.objectContaining({ widthPt: 144 }),
+      {},
+    ]);
+  });
+
+  it("preserves LaTeX geometry margins and tabularx multicolumn spans in V3 tables", async () => {
+    const tex = String.raw`
+      \documentclass[letterpaper]{article}
+      \usepackage[top=0.5in,left=0.7in,right=0.6in,bottom=0.8in]{geometry}
+      \begin{document}
+      \begin{tabularx}{6in}{|l|r|}
+      \hline
+      \multicolumn{2}{|c|}{PROJECTS} \\
+      Slothing & 2026 \\
+      \end{tabularx}
+      \end{document}
+    `;
+
+    const source = await extractSourceDocumentIR(
+      Buffer.from(tex),
+      "tabularx.tex",
+      "tex",
+    );
+    const templateV3 = createDocumentTemplateV3FromSourceIR(
+      "template-v3",
+      "Tabularx",
+      source,
+    );
+    const table = templateV3.regions[0]?.nodes.find(
+      (node) => node.kind === "table",
+    );
+
+    expect(source.pages[0]?.margins).toEqual({
+      top: "36pt",
+      right: "43.2pt",
+      bottom: "57.6pt",
+      left: "50.4pt",
+    });
+    expect(source.blocks[0]).toMatchObject({
+      type: "table-row",
+      tableMetadata: expect.objectContaining({
+        id: "latex-table-1",
+        widthPt: 432,
+      }),
+      cells: ["PROJECTS"],
+      cellMetadata: [
+        expect.objectContaining({
+          gridSpan: 2,
+          alignment: "center",
+          borders: expect.objectContaining({
+            left: expect.objectContaining({ style: "solid" }),
+            right: expect.objectContaining({ style: "solid" }),
+          }),
+        }),
+      ],
+    });
+    expect(table).toMatchObject({
+      kind: "table",
+      box: { widthPt: 432 },
+      rows: [
+        expect.objectContaining({
+          cells: [
+            expect.objectContaining({
+              colSpan: 2,
+              textAlign: "center",
+            }),
+          ],
+        }),
+        expect.objectContaining({
+          cells: [
+            expect.objectContaining({ textAlign: "left" }),
+            expect.objectContaining({ textAlign: "right" }),
+          ],
+        }),
+      ],
+    });
+    expect(templateV3.page.margins).toEqual({
+      top: "36pt",
+      right: "43.2pt",
+      bottom: "57.6pt",
+      left: "50.4pt",
+    });
+  });
+
+  it("preserves LaTeX row and cell colors as V3 fills", async () => {
+    const tex = String.raw`
+      \documentclass{article}
+      \usepackage[table]{xcolor}
+      \begin{document}
+      \begin{tabular}{ll}
+      \rowcolor{EFEFEF} Section & Detail \\
+      Project & \cellcolor{yellow} Highlight \\
+      \end{tabular}
+      \end{document}
+    `;
+
+    const source = await extractSourceDocumentIR(
+      Buffer.from(tex),
+      "colored-table.tex",
+      "tex",
+    );
+    const templateV3 = createDocumentTemplateV3FromSourceIR(
+      "template-v3",
+      "Colored Table",
+      source,
+    );
+    const table = templateV3.regions[0]?.nodes.find(
+      (node) => node.kind === "table",
+    );
+
+    expect(source.blocks[0]).toMatchObject({
+      type: "table-row",
+      cells: ["Section", "Detail"],
+      rowMetadata: expect.objectContaining({
+        fill: { color: "#EFEFEF" },
+      }),
+    });
+    expect(source.blocks[1]).toMatchObject({
+      type: "table-row",
+      cells: ["Project", "Highlight"],
+      cellMetadata: [
+        expect.objectContaining({ text: "Project" }),
+        expect.objectContaining({
+          text: "Highlight",
+          fill: { color: "#FFFF00" },
+        }),
+      ],
+    });
+    expect(table).toMatchObject({
+      kind: "table",
+      rows: [
+        expect.objectContaining({
+          fill: { color: "#EFEFEF" },
+        }),
+        expect.objectContaining({
+          cells: [
+            expect.objectContaining({
+              sourceRef: expect.objectContaining({ text: "Project" }),
+            }),
+            expect.objectContaining({ fill: { color: "#FFFF00" } }),
+          ],
+        }),
+      ],
+    });
+  });
+
   it("expands simple custom LaTeX macros before semantic mapping", async () => {
     const tex = String.raw`
       \documentclass{article}
@@ -237,10 +522,556 @@ describe("template migration source extraction", () => {
     expect(draft.fidelity).toMatchObject({
       status: expect.stringMatching(/ready|review|low/),
       metrics: expect.objectContaining({
-        semanticSlotCoverage: expect.any(Number),
+        slotCoverage: expect.any(Number),
       }),
     });
     expect(draft.fidelity.score).toBeGreaterThan(50);
+  });
+
+  it("creates a V3 visual template draft with DOCX table cells as first-class nodes", async () => {
+    const xml = `
+      <w:document>
+        <w:body>
+          <w:tbl>
+            <w:tblPr>
+              <w:tblW w:w="6600"/>
+              <w:jc w:val="center"/>
+              <w:tblCellMar><w:top w:w="80"/><w:left w:w="100"/><w:bottom w:w="80"/><w:right w:w="100"/></w:tblCellMar>
+              <w:tblBorders>
+                <w:top w:val="single" w:sz="4" w:color="94A3B8"/>
+                <w:insideH w:val="single" w:sz="4" w:color="CBD5E1"/>
+              </w:tblBorders>
+              <w:shd w:fill="F8FAFC"/>
+            </w:tblPr>
+            <w:tblGrid>
+              <w:gridCol w:w="4200"/>
+              <w:gridCol w:w="2400"/>
+            </w:tblGrid>
+            <w:tr>
+              <w:tc>
+                <w:tcPr>
+                  <w:tcW w:w="4200"/>
+                  <w:shd w:fill="E5E7EB"/>
+                  <w:tcMar><w:left w:w="120"/><w:right w:w="120"/></w:tcMar>
+                  <w:tcBorders><w:bottom w:val="single" w:sz="8" w:color="111827"/></w:tcBorders>
+                </w:tcPr>
+                <w:p><w:r><w:t>Jane Rivera</w:t></w:r></w:p>
+              </w:tc>
+              <w:tc>
+                <w:tcPr><w:tcW w:w="2400"/></w:tcPr>
+                <w:p><w:pPr><w:jc w:val="right"/></w:pPr><w:r><w:t>jane@example.com</w:t></w:r></w:p>
+              </w:tc>
+            </w:tr>
+            <w:tr>
+              <w:trPr>
+                <w:trHeight w:val="360"/>
+                <w:trBorders><w:bottom w:val="dashed" w:sz="4" w:color="CBD5E1"/></w:trBorders>
+                <w:shd w:fill="FFFFFF"/>
+              </w:trPr>
+              <w:tc>
+                <w:tcPr><w:tcW w:w="6600"/><w:gridSpan w:val="2"/></w:tcPr>
+                <w:p>
+                  <w:pPr><w:spacing w:line="288" w:lineRule="auto"/></w:pPr>
+                  <w:hyperlink r:id="rId1"><w:r><w:rPr><w:i/><w:color w:val="2563EB"/></w:rPr><w:t>Portfolio</w:t></w:r></w:hyperlink>
+                </w:p>
+                <w:p>
+                  <w:pPr>
+                    <w:numPr><w:numId w:val="1"/></w:numPr>
+                    <w:spacing w:line="216" w:lineRule="auto"/>
+                  </w:pPr>
+                  <w:r><w:rPr><w:i/></w:rPr><w:t>Preserved bullet spacing inside a table cell.</w:t></w:r>
+                </w:p>
+              </w:tc>
+            </w:tr>
+          </w:tbl>
+        </w:body>
+      </w:document>
+    `;
+
+    const source = await extractSourceDocumentIR(
+      buildStoredZip({
+        "word/document.xml": xml,
+        "word/_rels/document.xml.rels": `
+          <Relationships>
+            <Relationship Id="rId1" Target="https://example.com/portfolio"/>
+          </Relationships>
+        `,
+      }),
+      "table-resume.docx",
+      "docx",
+    );
+    const templateV3 = createDocumentTemplateV3FromSourceIR(
+      "template-v3",
+      "Table Resume",
+      source,
+    );
+
+    const table = templateV3.regions[0]?.nodes.find(
+      (node) => node.kind === "table",
+    );
+    expect(source.blocks[1]?.cellMetadata?.[0]?.blocks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "link",
+          text: "Portfolio",
+          href: "https://example.com/portfolio",
+          runs: [
+            expect.objectContaining({
+              text: "Portfolio",
+              href: "https://example.com/portfolio",
+              style: expect.objectContaining({
+                color: "#2563EB",
+                italic: true,
+                lineHeight: "1.2",
+              }),
+            }),
+          ],
+        }),
+        expect.objectContaining({
+          type: "list-item",
+          text: "Preserved bullet spacing inside a table cell.",
+          listMarker: "disc",
+          style: expect.objectContaining({
+            italic: true,
+            lineHeight: "0.9",
+          }),
+        }),
+      ]),
+    );
+    expect(table).toMatchObject({
+      kind: "table",
+      id: "table-1",
+      box: { widthPt: 330 },
+      alignment: "center",
+      columns: [{ widthPt: 210 }, { widthPt: 120 }],
+      borders: expect.objectContaining({
+        top: expect.objectContaining({
+          widthPt: 0.5,
+          color: "#94A3B8",
+          style: "solid",
+        }),
+        insideH: expect.objectContaining({
+          color: "#CBD5E1",
+          style: "solid",
+        }),
+      }),
+      cellDefaults: expect.objectContaining({
+        padding: {
+          top: "4pt",
+          right: "5pt",
+          bottom: "4pt",
+          left: "5pt",
+        },
+        fill: { color: "#F8FAFC" },
+      }),
+      rows: [
+        {
+          cells: [
+            expect.objectContaining({
+              widthPt: 210,
+              fill: { color: "#E5E7EB" },
+              padding: expect.objectContaining({
+                left: "6pt",
+                right: "6pt",
+              }),
+              borders: expect.objectContaining({
+                bottom: expect.objectContaining({
+                  widthPt: 1,
+                  color: "#111827",
+                  style: "solid",
+                }),
+              }),
+            }),
+            expect.objectContaining({
+              widthPt: 120,
+              textAlign: "right",
+            }),
+          ],
+        },
+        {
+          heightPt: 18,
+          fill: { color: "#FFFFFF" },
+          borders: expect.objectContaining({
+            bottom: expect.objectContaining({
+              widthPt: 0.5,
+              color: "#CBD5E1",
+              style: "dashed",
+            }),
+          }),
+          cells: [
+            expect.objectContaining({
+              colSpan: 2,
+              nodes: expect.arrayContaining([
+                expect.objectContaining({
+                  kind: "text",
+                  text: "Portfolio",
+                  href: "https://example.com/portfolio",
+                  style: expect.objectContaining({
+                    color: "#2563EB",
+                    fontStyle: "italic",
+                    lineHeight: "1.2",
+                  }),
+                }),
+                expect.objectContaining({
+                  kind: "list",
+                  items: ["Preserved bullet spacing inside a table cell."],
+                  marker: "disc",
+                  style: expect.objectContaining({
+                    fontStyle: "italic",
+                    lineHeight: "0.9",
+                  }),
+                }),
+              ]),
+            }),
+          ],
+        },
+      ],
+    });
+    expect(templateV3.slots).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: "contact.email" }),
+      ]),
+    );
+  });
+
+  it("preserves DOCX numbered list markers inside V3 table cells", async () => {
+    const xml = `
+      <w:document>
+        <w:body>
+          <w:tbl>
+            <w:tblGrid><w:gridCol w:w="6000"/></w:tblGrid>
+            <w:tr>
+              <w:tc>
+                <w:p>
+                  <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="42"/></w:numPr></w:pPr>
+                  <w:r><w:t>First quantified impact.</w:t></w:r>
+                </w:p>
+                <w:p>
+                  <w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="42"/></w:numPr></w:pPr>
+                  <w:r><w:t>Second quantified impact.</w:t></w:r>
+                </w:p>
+              </w:tc>
+            </w:tr>
+          </w:tbl>
+        </w:body>
+      </w:document>
+    `;
+
+    const source = await extractSourceDocumentIR(
+      buildStoredZip({
+        "word/document.xml": xml,
+        "word/numbering.xml": `
+          <w:numbering>
+            <w:abstractNum w:abstractNumId="7">
+              <w:lvl w:ilvl="0"><w:numFmt w:val="decimal"/></w:lvl>
+            </w:abstractNum>
+            <w:num w:numId="42"><w:abstractNumId w:val="7"/></w:num>
+          </w:numbering>
+        `,
+      }),
+      "numbered-list.docx",
+      "docx",
+    );
+    const templateV3 = createDocumentTemplateV3FromSourceIR(
+      "template-v3",
+      "Numbered List",
+      source,
+    );
+    const table = templateV3.regions[0]?.nodes.find(
+      (node) => node.kind === "table",
+    );
+    const listNode =
+      table && table.kind === "table"
+        ? table.rows[0]?.cells[0]?.nodes.find((node) => node.kind === "list")
+        : null;
+
+    expect(source.blocks[0]?.cellMetadata?.[0]?.blocks).toEqual([
+      expect.objectContaining({
+        type: "list-item",
+        text: "First quantified impact.",
+        listMarker: "decimal",
+      }),
+      expect.objectContaining({
+        type: "list-item",
+        text: "Second quantified impact.",
+        listMarker: "decimal",
+      }),
+    ]);
+    expect(listNode).toMatchObject({
+      kind: "list",
+      marker: "decimal",
+      items: ["First quantified impact.", "Second quantified impact."],
+    });
+  });
+
+  it("preserves DOCX document order and separate table boundaries in V3 nodes", async () => {
+    const xml = `
+      <w:document>
+        <w:body>
+          <w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>SUMMARY</w:t></w:r></w:p>
+          <w:tbl>
+            <w:tblGrid><w:gridCol w:w="3000"/></w:tblGrid>
+            <w:tr><w:tc><w:p><w:r><w:t>First table cell</w:t></w:r></w:p></w:tc></w:tr>
+          </w:tbl>
+          <w:p><w:r><w:t>Between tables note</w:t></w:r></w:p>
+          <w:tbl>
+            <w:tblGrid><w:gridCol w:w="1800"/><w:gridCol w:w="1800"/></w:tblGrid>
+            <w:tr>
+              <w:tc><w:p><w:r><w:t>Second table left</w:t></w:r></w:p></w:tc>
+              <w:tc><w:p><w:r><w:t>Second table right</w:t></w:r></w:p></w:tc>
+            </w:tr>
+          </w:tbl>
+        </w:body>
+      </w:document>
+    `;
+
+    const source = await extractSourceDocumentIR(
+      buildStoredZip({ "word/document.xml": xml }),
+      "ordered-tables.docx",
+      "docx",
+    );
+    const templateV3 = createDocumentTemplateV3FromSourceIR(
+      "template-v3",
+      "Ordered Tables",
+      source,
+    );
+    const nodes = templateV3.regions[0]?.nodes ?? [];
+
+    expect(nodes.map((node) => node.kind)).toEqual([
+      "section",
+      "table",
+      "text",
+      "table",
+    ]);
+    expect(
+      nodes.filter((node) => node.kind === "table").map((node) => node.id),
+    ).toEqual(["table-1", "table-2"]);
+    expect(nodes[2]).toEqual(
+      expect.objectContaining({
+        kind: "text",
+        text: "Between tables note",
+      }),
+    );
+  });
+
+  it("preserves nested DOCX tables as V3 tables inside cells", async () => {
+    const xml = `
+      <w:document>
+        <w:body>
+          <w:tbl>
+            <w:tblGrid><w:gridCol w:w="7200"/></w:tblGrid>
+            <w:tr>
+              <w:tc>
+                <w:tcPr><w:tcW w:w="7200"/></w:tcPr>
+                <w:p><w:r><w:t>PROJECTS</w:t></w:r></w:p>
+                <w:tbl>
+                  <w:tblPr>
+                    <w:tblBorders>
+                      <w:insideV w:val="single" w:sz="4" w:color="CCCCCC"/>
+                    </w:tblBorders>
+                  </w:tblPr>
+                  <w:tblGrid><w:gridCol w:w="4800"/><w:gridCol w:w="2400"/></w:tblGrid>
+                  <w:tr>
+                    <w:tc><w:p><w:r><w:t>Visual Import</w:t></w:r></w:p></w:tc>
+                    <w:tc><w:p><w:pPr><w:jc w:val="right"/></w:pPr><w:r><w:t>2026</w:t></w:r></w:p></w:tc>
+                  </w:tr>
+                </w:tbl>
+              </w:tc>
+            </w:tr>
+          </w:tbl>
+        </w:body>
+      </w:document>
+    `;
+
+    const source = await extractSourceDocumentIR(
+      buildStoredZip({ "word/document.xml": xml }),
+      "nested-table.docx",
+      "docx",
+    );
+    const templateV3 = createDocumentTemplateV3FromSourceIR(
+      "template-v3",
+      "Nested Table",
+      source,
+    );
+    const nodes = templateV3.regions[0]?.nodes ?? [];
+    const outerTable = nodes.find((node) => node.kind === "table");
+    const nestedTable =
+      outerTable && outerTable.kind === "table"
+        ? outerTable.rows[0]?.cells[0]?.nodes.find(
+            (node) => node.kind === "table",
+          )
+        : null;
+
+    expect(nodes.filter((node) => node.kind === "table")).toHaveLength(1);
+    expect(source.blocks).toHaveLength(1);
+    expect(source.blocks[0]?.cellMetadata?.[0]?.nestedTables?.[0]).toEqual([
+      expect.objectContaining({
+        type: "table-row",
+        cells: ["Visual Import", "2026"],
+        cellMetadata: [
+          expect.objectContaining({ widthPt: 240 }),
+          expect.objectContaining({ widthPt: 120, alignment: "right" }),
+        ],
+      }),
+    ]);
+    expect(nestedTable).toMatchObject({
+      kind: "table",
+      columns: [{ widthPt: 240 }, { widthPt: 120 }],
+      borders: expect.objectContaining({
+        insideV: expect.objectContaining({ color: "#CCCCCC" }),
+      }),
+      rows: [
+        expect.objectContaining({
+          cells: [
+            expect.objectContaining({
+              nodes: [
+                expect.objectContaining({
+                  kind: "text",
+                  text: "Visual Import",
+                }),
+              ],
+            }),
+            expect.objectContaining({ textAlign: "right" }),
+          ],
+        }),
+      ],
+    });
+  });
+
+  it("maps DOCX vertical cell merges to V3 row spans", async () => {
+    const xml = `
+      <w:document>
+        <w:body>
+          <w:tbl>
+            <w:tblGrid>
+              <w:gridCol w:w="2400"/>
+              <w:gridCol w:w="3600"/>
+            </w:tblGrid>
+            <w:tr>
+              <w:tc>
+                <w:tcPr><w:vMerge w:val="restart"/><w:tcW w:w="2400"/></w:tcPr>
+                <w:p><w:r><w:t>Contact</w:t></w:r></w:p>
+              </w:tc>
+              <w:tc><w:p><w:r><w:t>jane@example.com</w:t></w:r></w:p></w:tc>
+            </w:tr>
+            <w:tr>
+              <w:tc>
+                <w:tcPr><w:vMerge/><w:tcW w:w="2400"/></w:tcPr>
+                <w:p><w:r><w:t>Contact</w:t></w:r></w:p>
+              </w:tc>
+              <w:tc><w:p><w:r><w:t>+1 (416) 847-1928</w:t></w:r></w:p></w:tc>
+            </w:tr>
+          </w:tbl>
+        </w:body>
+      </w:document>
+    `;
+
+    const source = await extractSourceDocumentIR(
+      buildStoredZip({ "word/document.xml": xml }),
+      "vertical-merge.docx",
+      "docx",
+    );
+    const templateV3 = createDocumentTemplateV3FromSourceIR(
+      "template-v3",
+      "Vertical Merge",
+      source,
+    );
+    const table = templateV3.regions[0]?.nodes.find(
+      (node) => node.kind === "table",
+    );
+
+    expect(source.blocks[0]?.cellMetadata?.[0]?.verticalMerge).toBe("restart");
+    expect(source.blocks[1]?.cellMetadata?.[0]?.verticalMerge).toBe("continue");
+    expect(table).toMatchObject({
+      kind: "table",
+      rows: [
+        {
+          cells: [
+            expect.objectContaining({ rowSpan: 2 }),
+            expect.objectContaining({
+              sourceRef: expect.objectContaining({ text: "jane@example.com" }),
+            }),
+          ],
+        },
+        {
+          cells: [
+            expect.objectContaining({
+              sourceRef: expect.objectContaining({
+                text: "+1 (416) 847-1928",
+              }),
+            }),
+          ],
+        },
+      ],
+    });
+    expect(
+      table && table.kind === "table" ? table.rows[1].cells : [],
+    ).toHaveLength(1);
+  });
+
+  it("infers V3 repeat groups from DOCX table section rows", async () => {
+    const xml = `
+      <w:document>
+        <w:body>
+          <w:tbl>
+            <w:tblGrid>
+              <w:gridCol w:w="4800"/>
+              <w:gridCol w:w="1800"/>
+            </w:tblGrid>
+            <w:tr>
+              <w:tc><w:tcPr><w:gridSpan w:val="2"/></w:tcPr><w:p><w:r><w:t>EXPERIENCE</w:t></w:r></w:p></w:tc>
+            </w:tr>
+            <w:tr>
+              <w:tc><w:p><w:r><w:t>Senior Product Engineer</w:t></w:r></w:p></w:tc>
+              <w:tc><w:p><w:pPr><w:jc w:val="right"/></w:pPr><w:r><w:t>2023 - Present</w:t></w:r></w:p></w:tc>
+            </w:tr>
+            <w:tr>
+              <w:tc>
+                <w:tcPr><w:gridSpan w:val="2"/></w:tcPr>
+                <w:p><w:pPr><w:numPr><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>Built reusable table import.</w:t></w:r></w:p>
+              </w:tc>
+            </w:tr>
+          </w:tbl>
+        </w:body>
+      </w:document>
+    `;
+
+    const source = await extractSourceDocumentIR(
+      buildStoredZip({ "word/document.xml": xml }),
+      "experience-table.docx",
+      "docx",
+    );
+    const templateV3 = createDocumentTemplateV3FromSourceIR(
+      "template-v3",
+      "Experience Table",
+      source,
+    );
+    const table = templateV3.regions[0]?.nodes.find(
+      (node) => node.kind === "table",
+    );
+
+    expect(templateV3.slots).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: "experiences[].title" }),
+        expect.objectContaining({ path: "experiences[].dates" }),
+        expect.objectContaining({ path: "experiences[].highlights[]" }),
+      ]),
+    );
+    expect(templateV3.repeatGroups).toEqual([
+      expect.objectContaining({
+        id: "repeat-experiences",
+        collection: "experiences",
+        nodeIds: ["row-block-2", "row-block-3"],
+      }),
+    ]);
+    expect(table).toMatchObject({
+      kind: "table",
+      rows: [
+        expect.objectContaining({ role: "section-header" }),
+        expect.objectContaining({ repeatGroupId: "repeat-experiences" }),
+        expect.objectContaining({ repeatGroupId: "repeat-experiences" }),
+      ],
+    });
   });
 
   it("extracts positioned blocks from a real PDF fixture", async () => {
@@ -329,6 +1160,102 @@ describe("template migration source extraction", () => {
     );
   });
 
+  it("infers V3 table rows from repeated aligned PDF text geometry", () => {
+    const { blocks, inferredTableCount } = inferPdfTableRows([
+      {
+        id: "heading",
+        pageId: "page-1",
+        type: "heading",
+        text: "EXPERIENCE",
+        bbox: { xPt: 72, yPt: 80, widthPt: 90, heightPt: 12 },
+      },
+      {
+        id: "title-1",
+        pageId: "page-1",
+        type: "paragraph",
+        text: "Staff Engineer",
+        bbox: { xPt: 72, yPt: 112, widthPt: 150, heightPt: 10 },
+      },
+      {
+        id: "date-1",
+        pageId: "page-1",
+        type: "paragraph",
+        text: "2023 - Present",
+        bbox: { xPt: 430, yPt: 112, widthPt: 82, heightPt: 10 },
+      },
+      {
+        id: "title-2",
+        pageId: "page-1",
+        type: "paragraph",
+        text: "Frontend Engineer",
+        bbox: { xPt: 73, yPt: 132, widthPt: 150, heightPt: 10 },
+      },
+      {
+        id: "date-2",
+        pageId: "page-1",
+        type: "paragraph",
+        text: "2020 - 2023",
+        bbox: { xPt: 431, yPt: 132, widthPt: 82, heightPt: 10 },
+      },
+    ]);
+    const templateV3 = createDocumentTemplateV3FromSourceIR(
+      "template-v3",
+      "PDF Table",
+      {
+        sourceType: "pdf",
+        filename: "aligned.pdf",
+        pages: [{ id: "page-1", number: 1, widthPt: 612, heightPt: 792 }],
+        blocks,
+        rawText: blocks.map((block) => block.text).join("\n"),
+        diagnostics: [],
+      },
+    );
+    const table = templateV3.regions[0]?.nodes.find(
+      (node) => node.kind === "table",
+    );
+
+    expect(inferredTableCount).toBe(1);
+    expect(blocks.map((block) => block.type)).toEqual([
+      "heading",
+      "table-row",
+      "table-row",
+    ]);
+    expect(blocks[1]).toMatchObject({
+      text: "Staff Engineer | 2023 - Present",
+      cellMetadata: [
+        expect.objectContaining({ text: "Staff Engineer", widthPt: 150 }),
+        expect.objectContaining({
+          text: "2023 - Present",
+          alignment: "right",
+        }),
+      ],
+    });
+    expect(table).toMatchObject({
+      kind: "table",
+      id: "pdf-table-1",
+      rows: [
+        expect.objectContaining({
+          cells: [
+            expect.objectContaining({ textAlign: "left" }),
+            expect.objectContaining({ textAlign: "right" }),
+          ],
+        }),
+        expect.objectContaining({
+          cells: [
+            expect.objectContaining({
+              sourceRef: expect.objectContaining({
+                text: "Frontend Engineer",
+              }),
+            }),
+            expect.objectContaining({
+              sourceRef: expect.objectContaining({ text: "2020 - 2023" }),
+            }),
+          ],
+        }),
+      ],
+    });
+  });
+
   it("preserves source table column widths on reusable V2 blocks", () => {
     const template = sampleSingleColumnTemplate();
 
@@ -393,6 +1320,113 @@ describe("template migration source extraction", () => {
           id: "tables",
           passed: true,
         }),
+      ]),
+    );
+  });
+
+  it("scores V3 visual fidelity from page, table, cell, slot, and repeat-group preservation", () => {
+    const source = {
+      sourceType: "docx" as const,
+      filename: "resume.docx",
+      pages: [{ id: "page-1", number: 1, widthPt: 612, heightPt: 792 }],
+      rawText: "",
+      diagnostics: [],
+      blocks: [
+        {
+          id: "name",
+          pageId: "page-1",
+          type: "heading" as const,
+          text: "Jane Rivera",
+          slotHint: "contact.name" as const,
+        },
+        {
+          id: "email",
+          pageId: "page-1",
+          type: "paragraph" as const,
+          text: "jane@example.com",
+          slotHint: "contact.email" as const,
+        },
+        {
+          id: "experience-heading",
+          pageId: "page-1",
+          type: "heading" as const,
+          text: "EXPERIENCE",
+        },
+        {
+          id: "table-1",
+          pageId: "page-1",
+          type: "table-row" as const,
+          text: "Senior Engineer | 2024",
+          cellMetadata: [
+            { text: "Senior Engineer", widthPt: 280 },
+            { text: "2024", widthPt: 120 },
+          ],
+        },
+      ],
+    };
+    const template = createDocumentTemplateV3FromSourceIR(
+      "template-v3",
+      "Visual",
+      source,
+    );
+
+    const fidelity = assessVisualTemplateFidelity(source, template);
+
+    expect(fidelity.status).toMatch(/ready|review/);
+    expect(fidelity.metrics).toMatchObject({
+      tablesDetected: 1,
+      sourceCells: 2,
+      cellsPreserved: 2,
+      slotsMapped: expect.any(Number),
+    });
+    expect(fidelity.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "tables_detected", passed: true }),
+        expect.objectContaining({ id: "cell_geometry_detected", passed: true }),
+      ]),
+    );
+  });
+
+  it("marks V3 visual fidelity low when layout structure is not renderable", () => {
+    const source = {
+      sourceType: "pdf" as const,
+      filename: "scan.pdf",
+      pages: [],
+      blocks: [
+        {
+          id: "raw",
+          pageId: "page-1",
+          type: "paragraph" as const,
+          text: "Jane Rivera",
+        },
+      ],
+      rawText: "Jane Rivera",
+      diagnostics: [],
+    };
+    const template: DocumentTemplateV3 = {
+      schemaVersion: 3,
+      id: "template-v3",
+      name: "Broken visual template",
+      source: { filename: "scan.pdf", type: "pdf" },
+      page: {
+        size: "letter",
+        widthPt: 0,
+        heightPt: 0,
+        margins: { top: "0pt", right: "0pt", bottom: "0pt", left: "0pt" },
+      },
+      tokens: {},
+      regions: [],
+      slots: [],
+      repeatGroups: [],
+      diagnostics: [],
+    };
+
+    const fidelity = assessVisualTemplateFidelity(source, template);
+
+    expect(fidelity.status).toBe("low");
+    expect(fidelity.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "preview_renderable", passed: false }),
       ]),
     );
   });

@@ -5,7 +5,7 @@
  * @response ResumeTemplatesResponse from @/types/api
  */
 import { TEMPLATES } from "@/lib/resume/pdf";
-import { getCustomTemplates } from "@/lib/db/custom-templates";
+import { listDocumentTemplatesV3 } from "@/lib/db/template-migrations";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { successResponse, errorResponse } from "@/lib/api-utils";
 
@@ -23,11 +23,14 @@ export async function GET() {
       type: "built-in" as const,
     }));
 
-    const custom = getCustomTemplates(authResult.userId).map((t) => ({
+    const custom = listDocumentTemplatesV3(authResult.userId).map((t) => ({
       id: t.id,
       name: t.name,
-      description: `Custom template${t.sourceDocumentId ? " (from uploaded resume)" : ""}`,
+      description: t.description ?? "Visual template",
       type: "custom" as const,
+      schemaVersion: 3,
+      sourceFilename: t.sourceFilename,
+      sourceType: t.sourceType,
     }));
 
     return successResponse({ templates: [...builtIn, ...custom] });

@@ -156,7 +156,11 @@ async function extractTemplateText(
     const positionedText = await extractPdfTextFromPositions(buffer);
     if (positionedText.length >= 25) return positionedText;
   }
-  return (await extractTextFromFile(tempFile)).trim();
+  const extractedText = (await extractTextFromFile(tempFile)).trim();
+  if (sourceType === "docx" && extractedText.length < 25) {
+    return extractDocxTextFromXml(buffer);
+  }
+  return extractedText;
 }
 
 async function extractPdfTextFromPositions(buffer: Buffer): Promise<string> {
@@ -225,17 +229,59 @@ function extractDocxStyleSignals(buffer: Buffer): TemplateStyleSignals {
   const font = extractDocxFont(xml);
   const accentColor = extractDocxAccentColor(xml);
   const sizes = extractDocxSizes(xml);
+  const fallback = inferDocxFallbackSignals(documentXml);
 
   return {
-    pageSize,
-    margins,
+    pageSize: pageSize ?? fallback.pageSize,
+    margins: margins ?? fallback.margins,
     styles: {
+      ...fallback.styles,
       ...(font ? { fontFamily: font } : {}),
       ...(accentColor ? { accentColor } : {}),
       ...sizes,
       ...extractDocxLayoutSignals(documentXml),
       ...extractDocxBulletSignals(numberingXml),
       ...extractDocxSectionSignals(xml),
+    },
+  };
+}
+
+function extractDocxTextFromXml(buffer: Buffer): string {
+  const documentXml = readZipTextEntries(buffer)["word/document.xml"];
+  if (!documentXml) return "";
+  return documentXml
+    .replace(/<w:tab\/>/g, " | ")
+    .replace(/<\/w:p>/g, "\n")
+    .replace(/<\/w:tr>/g, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function inferDocxFallbackSignals(documentXml: string): TemplateStyleSignals {
+  if (!/<w:document\b|<document\b/.test(documentXml)) return {};
+  return {
+    pageSize: "letter",
+    margins: {
+      top: "1in",
+      right: "1in",
+      bottom: "1in",
+      left: "1in",
+    },
+    styles: {
+      fontFamily: "Aptos, Calibri, Arial, sans-serif",
+      fontSize: "11pt",
+      headerSize: "20pt",
+      sectionHeaderSize: "12pt",
+      lineHeight: "1.35",
+      layout: "single-column",
+      headerStyle: "left",
+      bulletStyle: "disc",
+      sectionDivider: "line",
     },
   };
 }
@@ -724,7 +770,7 @@ function buildDefaultWarnings(
   }
   if (defaultsUsed.length === 0) return [];
   return [
-    `Used defaults for ${formatList(defaultsUsed)} because those style signals could not be detected confidently.`,
+    `Some optional style details were not explicit in the file, so common defaults were used for ${formatList(defaultsUsed)}.`,
   ];
 }
 
@@ -742,9 +788,9 @@ function getImportConfidence(
         ],
     ).length +
     (signals.pageSize ? 1 : 0);
-  if (text.length >= 100 && sectionCount >= 2 && signalCount >= 6)
-    return "high";
-  if (text.length >= 50 && signalCount >= 3) return "medium";
+  if (text.length >= 100 && signalCount >= 6) return "high";
+  if (text.length >= 50 && (signalCount >= 3 || sectionCount >= 1))
+    return "medium";
   return "low";
 }
 

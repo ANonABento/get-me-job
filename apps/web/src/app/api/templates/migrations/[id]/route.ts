@@ -6,14 +6,24 @@ import {
   updateTemplateMigrationDraft,
 } from "@/lib/db/template-migrations";
 import type { TailoredResume } from "@/lib/resume/generator";
-import type { SourceDocumentIR } from "@/lib/resume/template-migration";
+import {
+  createDocumentTemplateV3FromSourceIR,
+  type SourceDocumentIR,
+} from "@/lib/resume/template-migration";
 import {
   documentTemplateV2Schema,
   resumeSlotPathSchema,
   type DocumentTemplateV2,
   type ResumeSlotPath,
 } from "@/lib/resume/template-v2";
-import { assessTemplateMigrationFidelity } from "@/lib/resume/template-migration-fidelity";
+import {
+  documentTemplateV3Schema,
+  type DocumentTemplateV3,
+} from "@/lib/resume/template-v3";
+import {
+  assessTemplateMigrationFidelity,
+  assessVisualTemplateFidelity,
+} from "@/lib/resume/template-migration-fidelity";
 import { tailoredResumeSchema } from "@/lib/schemas/tailor";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +37,7 @@ const slotCorrectionSchema = z.object({
 const updateMigrationSchema = z.object({
   resume: tailoredResumeSchema.optional(),
   template: documentTemplateV2Schema.optional(),
+  templateV3: documentTemplateV3Schema.optional(),
   slotCorrections: z.array(slotCorrectionSchema).optional(),
 });
 
@@ -84,6 +95,8 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
 
   let resume = (parsed.data.resume ?? draft.resume) as TailoredResume;
   let template = cloneTemplate(parsed.data.template ?? draft.template);
+  let templateV3: DocumentTemplateV3 | undefined =
+    parsed.data.templateV3 ?? draft.templateV3;
   let source = cloneSource(draft.source);
   if (parsed.data.slotCorrections?.length) {
     resume = applySlotCorrections(
@@ -96,15 +109,44 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       parsed.data.slotCorrections,
     );
     source = applySourceSlotCorrections(source, parsed.data.slotCorrections);
+    templateV3 = rebuildVisualTemplateForSource(templateV3, source);
   }
 
-  const updated = updateTemplateMigrationDraft(params.id, authResult.userId, {
+  const updates: Parameters<typeof updateTemplateMigrationDraft>[2] = {
     source,
     resume,
     template,
-    fidelity: assessTemplateMigrationFidelity(source, template),
-  });
+    fidelity: templateV3
+      ? assessVisualTemplateFidelity(source, templateV3)
+      : assessTemplateMigrationFidelity(source, template),
+  };
+  if (templateV3) updates.templateV3 = templateV3;
+
+  const updated = updateTemplateMigrationDraft(
+    params.id,
+    authResult.userId,
+    updates,
+  );
   return NextResponse.json({ draft: updated ? publicDraft(updated) : null });
+}
+
+function rebuildVisualTemplateForSource(
+  existing: DocumentTemplateV3 | null | undefined,
+  source: SourceDocumentIR,
+): DocumentTemplateV3 | undefined {
+  if (!existing) return undefined;
+  const rebuilt = createDocumentTemplateV3FromSourceIR(
+    existing.id,
+    existing.name,
+    source,
+  );
+  return {
+    ...rebuilt,
+    description: existing.description,
+    repeatGroups: existing.repeatGroups.length
+      ? existing.repeatGroups
+      : rebuilt.repeatGroups,
+  };
 }
 
 function applySourceSlotCorrections(

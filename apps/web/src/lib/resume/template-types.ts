@@ -6,6 +6,7 @@ export interface ResumeTemplate {
   name: string;
   description: string;
   preview?: string;
+  schemaVersion?: number;
   styles: TemplateStyles;
 }
 

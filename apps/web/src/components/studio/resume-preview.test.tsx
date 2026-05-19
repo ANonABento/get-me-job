@@ -184,4 +184,22 @@ describe("ResumePreview", () => {
     expect(previewPage?.className).toContain("shadow-[var(--shadow-elevated)]");
     expect(previewPage).not.toHaveStyle("border-top: 4px solid #1f2937");
   });
+
+  it("renders V3 visual template HTML without generic resume padding or accent border", () => {
+    render(
+      <ResumePreview
+        templateId="classic"
+        documentMode="resume"
+        html='<article class="resume-v3">Visual layout</article>'
+      />,
+    );
+
+    const visualResume = document.querySelector(".resume-v3");
+    const htmlWrapper = visualResume?.parentElement;
+    const previewPage = htmlWrapper?.parentElement;
+
+    expect(visualResume).toHaveTextContent("Visual layout");
+    expect(htmlWrapper).not.toHaveClass("px-14");
+    expect(previewPage).not.toHaveStyle("border-top: 4px solid #333333");
+  });
 });

@@ -25,76 +25,7 @@ describe("CustomTemplateManagerDialog", () => {
     vi.restoreAllMocks();
   });
 
-  it("imports a Studio template and shows source, confidence, and warnings", async () => {
-    const onTemplatesChanged = vi.fn();
-    const onTemplateImported = vi.fn();
-    const fetchMock = vi.fn(
-      async (input: RequestInfo | URL, init?: RequestInit) => {
-        const url = String(input);
-        if (url === "/api/templates/import") {
-          return Response.json({
-            template: {
-              id: "custom-tex",
-              name: "Resume Template",
-              sourceFilename: "resume.tex",
-              sourceType: "tex",
-            },
-            warnings: ["Used defaults for page size."],
-            confidence: "medium",
-            sectionsFound: ["experience"],
-          });
-        }
-        return Response.json({
-          templates: [
-            {
-              id: "custom-tex",
-              name: "Resume Template",
-              description: "Imported from TEX",
-              type: "custom",
-              sourceFilename: "resume.tex",
-              sourceType: "tex",
-            },
-          ],
-        });
-      },
-    );
-    vi.stubGlobal("fetch", fetchMock);
-
-    renderDialog({
-      onTemplatesChanged,
-      onTemplateImported,
-    });
-
-    const input =
-      document.querySelector<HTMLInputElement>("input[type='file']");
-    expect(input).not.toBeNull();
-    fireEvent.change(input!, {
-      target: {
-        files: [
-          new File(["\\documentclass{article}"], "resume.tex", {
-            type: "text/x-tex",
-          }),
-        ],
-      },
-    });
-
-    await waitFor(() => {
-      expect(screen.getAllByText("Resume Template").length).toBeGreaterThan(0);
-      expect(screen.getByText("medium confidence")).toBeInTheDocument();
-      expect(screen.getByText("resume.tex (TEX)")).toBeInTheDocument();
-      expect(
-        screen.getByText("Used defaults for page size."),
-      ).toBeInTheDocument();
-    });
-    await waitFor(() => expect(onTemplatesChanged).toHaveBeenCalled());
-    expect(onTemplateImported).toHaveBeenCalledWith("custom-tex");
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/templates/import",
-      expect.objectContaining({ method: "POST", body: expect.any(FormData) }),
-    );
-  });
-
-  it("shows migration source geometry and rendered preview", async () => {
+  it("shows layout source geometry and rendered preview", async () => {
     const fetchMock = vi.fn(
       async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
@@ -105,7 +36,7 @@ describe("CustomTemplateManagerDialog", () => {
             confidence: "high",
           });
         }
-        if (url === "/api/templates/v2/preview") {
+        if (url === "/api/templates/v3/preview") {
           return Response.json({
             html: "<html><body><article>Rendered migrated resume</article></body></html>",
             pdfOptions: { format: "Letter" },
@@ -121,6 +52,7 @@ describe("CustomTemplateManagerDialog", () => {
               ? { ...block, slotHint: body.slotCorrections[0].path }
               : block,
           );
+          if (body.templateV3) next.templateV3 = body.templateV3;
           return Response.json({ draft: next });
         }
         return Response.json({ templates: [] });
@@ -132,8 +64,8 @@ describe("CustomTemplateManagerDialog", () => {
 
     const inputs =
       document.querySelectorAll<HTMLInputElement>("input[type='file']");
-    expect(inputs.length).toBeGreaterThanOrEqual(2);
-    fireEvent.change(inputs[1], {
+    expect(inputs.length).toBe(1);
+    fireEvent.change(inputs[0], {
       target: {
         files: [
           new File(["%PDF-1.7"], "resume.pdf", {
@@ -145,28 +77,55 @@ describe("CustomTemplateManagerDialog", () => {
 
     await waitFor(() => {
       expect(screen.getByText("resume.pdf")).toBeInTheDocument();
-      expect(screen.getByText("Source layout")).toBeInTheDocument();
       expect(screen.getByText("Rendered preview")).toBeInTheDocument();
-      expect(screen.getByText("Fidelity")).toBeInTheDocument();
-      expect(screen.getByText("86% ready")).toBeInTheDocument();
+      expect(screen.getByText("Ready to save")).toBeInTheDocument();
+      expect(screen.getByText("Style captured")).toBeInTheDocument();
+      expect(screen.getByText("Detected structure")).toBeInTheDocument();
+      expect(screen.getByText("Outer table")).toBeInTheDocument();
     });
+    fireEvent.click(screen.getByRole("button", { name: "Original" }));
+    expect(screen.getByText("Source layout")).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(
-        screen.getByTitle("Migrated template preview"),
-      ).toBeInTheDocument();
+      expect(screen.getByTitle("Visual template preview")).toBeInTheDocument();
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/templates/v2/preview",
+      "/api/templates/v3/preview",
       expect.objectContaining({ method: "POST" }),
     );
     expect(
       screen.getByLabelText("Select source block Jane Rivera"),
     ).toBeInTheDocument();
-    expect(screen.getAllByText("Name").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("Name").length).toBeGreaterThan(0);
     expect(screen.getByText("DOCX")).toBeInTheDocument();
 
     fireEvent.click(screen.getByText("Skills | PDF | DOCX"));
+    fireEvent.click(screen.getByRole("button", { name: "Structure" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mark repeat" }));
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/templates/migrations/draft-1",
+        expect.objectContaining({
+          method: "PATCH",
+          body: expect.stringContaining('"id":"repeat-custom"'),
+        }),
+      );
+    });
+    fireEvent.change(
+      screen.getByLabelText("Collection for repeat-experiences"),
+      {
+        target: { value: "projects" },
+      },
+    );
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/templates/migrations/draft-1",
+        expect.objectContaining({
+          method: "PATCH",
+          body: expect.stringContaining('"collection":"projects"'),
+        }),
+      );
+    });
     fireEvent.click(screen.getByRole("button", { name: "Skills" }));
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -179,7 +138,7 @@ describe("CustomTemplateManagerDialog", () => {
     });
   });
 
-  it("commits a reviewed migration and selects the saved V2 template", async () => {
+  it("commits a reviewed visual template without importing resume content", async () => {
     const onTemplatesChanged = vi.fn();
     const onTemplateImported = vi.fn();
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
@@ -191,7 +150,7 @@ describe("CustomTemplateManagerDialog", () => {
           confidence: "high",
         });
       }
-      if (url === "/api/templates/v2/preview") {
+      if (url === "/api/templates/v3/preview") {
         return Response.json({
           html: "<html><body><article>Rendered migrated resume</article></body></html>",
           pdfOptions: { format: "Letter" },
@@ -223,7 +182,7 @@ describe("CustomTemplateManagerDialog", () => {
 
     const inputs =
       document.querySelectorAll<HTMLInputElement>("input[type='file']");
-    fireEvent.change(inputs[1], {
+    fireEvent.change(inputs[0], {
       target: {
         files: [
           new File(["%PDF-1.7"], "resume.pdf", {
@@ -237,7 +196,7 @@ describe("CustomTemplateManagerDialog", () => {
       expect(screen.getByText("resume.pdf")).toBeInTheDocument();
     });
     fireEvent.click(
-      screen.getByRole("button", { name: "Save migrated template" }),
+      screen.getByRole("button", { name: "Save visual template" }),
     );
 
     await waitFor(() => {
@@ -247,7 +206,55 @@ describe("CustomTemplateManagerDialog", () => {
       );
     });
     await waitFor(() => expect(onTemplatesChanged).toHaveBeenCalled());
-    expect(onTemplateImported).toHaveBeenCalledWith("template-1");
+    expect(onTemplateImported).not.toHaveBeenCalled();
+  });
+
+  it("blocks saving a low-fidelity visual template", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/templates/migrate") {
+        return Response.json({
+          draft: lowFidelityMigrationDraft(),
+          warnings: [],
+          confidence: "low",
+        });
+      }
+      if (url === "/api/templates/v3/preview") {
+        return Response.json({
+          html: "<html><body><article>Partial preview</article></body></html>",
+          pdfOptions: { format: "Letter" },
+        });
+      }
+      return Response.json({ templates: [] });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderDialog();
+
+    const inputs =
+      document.querySelectorAll<HTMLInputElement>("input[type='file']");
+    fireEvent.change(inputs[0], {
+      target: {
+        files: [
+          new File(["%PDF-1.7"], "resume.pdf", {
+            type: "application/pdf",
+          }),
+        ],
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Cannot save yet")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Could not read enough layout structure from this file. Try DOCX/LaTeX, or use a selectable PDF with visible text.",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByRole("button", { name: "Save visual template" }),
+    ).toBeDisabled();
   });
 });
 
@@ -323,6 +330,99 @@ function migrationDraft() {
       slots: [],
       diagnostics: [],
     },
+    templateV3: {
+      schemaVersion: 3,
+      id: "template-v3",
+      name: "Migrated",
+      page: {
+        size: "letter",
+        widthPt: 612,
+        heightPt: 792,
+        margins: { top: "36pt", right: "36pt", bottom: "36pt", left: "36pt" },
+      },
+      tokens: {
+        body: { fontFamily: "Inter", fontSize: "11pt", lineHeight: "1.4" },
+      },
+      regions: [
+        {
+          id: "region-page-frame",
+          role: "page-frame",
+          flow: "table",
+          nodes: [
+            {
+              kind: "table",
+              id: "table-1",
+              columns: [{ widthPt: 180 }, { widthPt: 180 }, { widthPt: 180 }],
+              rows: [
+                {
+                  kind: "row",
+                  id: "row-block-1",
+                  cells: [
+                    {
+                      kind: "cell",
+                      id: "cell-name",
+                      nodes: [
+                        {
+                          kind: "slot",
+                          id: "node-name",
+                          slotId: "slot-contact-name",
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  kind: "row",
+                  id: "row-block-2",
+                  repeatGroupId: "repeat-experiences",
+                  cells: [
+                    {
+                      kind: "cell",
+                      id: "cell-skills",
+                      nodes: [
+                        {
+                          kind: "list",
+                          id: "node-skills",
+                          slotId: "slot-skills",
+                          items: ["PDF", "DOCX"],
+                          marker: "disc",
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      slots: [
+        {
+          id: "slot-contact-name",
+          path: "contact.name",
+          role: "text",
+          sourceRefs: [{ sourceId: "block-1" }],
+          fallback: "Jane Rivera",
+        },
+        {
+          id: "slot-skills",
+          path: "skills[]",
+          role: "list",
+          sourceRefs: [{ sourceId: "block-2" }],
+          fallback: "PDF",
+        },
+      ],
+      repeatGroups: [
+        {
+          id: "repeat-experiences",
+          collection: "experiences",
+          nodeIds: ["row-block-2"],
+          emptyBehavior: "hide",
+          sourceRefs: [{ sourceId: "block-2" }],
+        },
+      ],
+      diagnostics: [],
+    },
     fidelity: {
       score: 86,
       status: "ready",
@@ -345,5 +445,41 @@ function migrationDraft() {
     },
     warnings: ["PDF text positions were used."],
     confidence: "high",
+  };
+}
+
+function lowFidelityMigrationDraft() {
+  return {
+    ...migrationDraft(),
+    templateV3: {
+      schemaVersion: 3,
+      id: "template-v3",
+      name: "Low fidelity visual template",
+      source: { filename: "resume.pdf", type: "pdf" },
+      page: {
+        size: "letter",
+        widthPt: 0,
+        heightPt: 0,
+        margins: { top: "0pt", right: "0pt", bottom: "0pt", left: "0pt" },
+      },
+      tokens: {},
+      regions: [],
+      slots: [],
+      repeatGroups: [],
+      diagnostics: [],
+    },
+    fidelity: {
+      score: 28,
+      status: "low",
+      checks: [
+        {
+          id: "preview_renderable",
+          label: "Renderable structure",
+          score: 0,
+          passed: false,
+          detail: "The template includes regions and renderable nodes.",
+        },
+      ],
+    },
   };
 }

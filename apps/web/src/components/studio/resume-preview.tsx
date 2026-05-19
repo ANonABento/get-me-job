@@ -173,6 +173,8 @@ export function ResumePreview({
 
   const template = getTemplateForDocumentMode(documentMode, templateId);
   const isCoverLetter = documentMode === "cover_letter";
+  const isVisualTemplateHtml =
+    documentMode === "resume" && html?.includes("resume-v3");
   const templateStyles =
     template.styles.layout === "letter"
       ? coverLetterStylesToEditorTemplateStyles(template.styles)
@@ -253,7 +255,10 @@ export function ResumePreview({
             width: `${pageWidthPx}px`,
             minHeight: `${pageHeightPx}px`,
             fontFamily,
-            borderTop: isCoverLetter ? undefined : `4px solid ${accentColor}`,
+            borderTop:
+              isCoverLetter || isVisualTemplateHtml
+                ? undefined
+                : `4px solid ${accentColor}`,
             transformOrigin: "top left",
             transform: `scale(${scale})`,
           }}
@@ -288,7 +293,11 @@ export function ResumePreview({
             </>
           ) : html ? (
             <div
-              className={isCoverLetter ? undefined : "px-14 py-12"}
+              className={
+                isCoverLetter || isVisualTemplateHtml
+                  ? undefined
+                  : "px-14 py-12"
+              }
               dangerouslySetInnerHTML={{ __html: html }}
             />
           ) : (

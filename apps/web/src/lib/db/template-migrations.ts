@@ -2,9 +2,11 @@ import db from "./legacy";
 import { nowIso } from "@/lib/format/time";
 import { generateId } from "@/lib/utils";
 import type { DocumentTemplateV2 } from "@/lib/resume/template-v2";
+import type { DocumentTemplateV3 } from "@/lib/resume/template-v3";
 import {
+  assessVisualTemplateFidelity,
   assessTemplateMigrationFidelity,
-  type TemplateMigrationFidelityReport,
+  type TemplateMigrationFidelityLike,
 } from "@/lib/resume/template-migration-fidelity";
 import type {
   SourceDocumentIR,
@@ -22,6 +24,7 @@ interface DraftRow {
   source_ir_json: string;
   resume_json: string;
   template_json: string;
+  template_v3_json?: string | null;
   fidelity_report_json?: string | null;
   warnings_json: string;
   confidence: "high" | "medium" | "low";
@@ -54,6 +57,18 @@ export interface SavedDocumentTemplateV2 {
   updatedAt: string;
 }
 
+export interface SavedDocumentTemplateV3 {
+  id: string;
+  userId: string;
+  name: string;
+  description: string | null;
+  sourceFilename: string | null;
+  sourceType: TemplateSourceType | null;
+  template: DocumentTemplateV3;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export function ensureTemplateMigrationTables(): void {
   db.prepare(
     `CREATE TABLE IF NOT EXISTS template_migration_drafts (
@@ -73,6 +88,9 @@ export function ensureTemplateMigrationTables(): void {
     )`,
   ).run();
   ensureColumn("template_migration_drafts", "fidelity_report_json", "text");
+  ensureColumn("template_migration_drafts", "template_v3_json", "text");
+  ensureColumn("template_migration_drafts", "source_type", "text");
+  copyLegacyColumn("template_migration_drafts", "source_kind", "source_type");
   db.prepare(
     `CREATE TABLE IF NOT EXISTS document_templates_v2 (
       id text PRIMARY KEY,
@@ -86,18 +104,123 @@ export function ensureTemplateMigrationTables(): void {
       updated_at text NOT NULL
     )`,
   ).run();
+  db.prepare(
+    `CREATE TABLE IF NOT EXISTS document_templates_v3 (
+      id text PRIMARY KEY,
+      user_id text NOT NULL,
+      name text NOT NULL,
+      description text,
+      source_filename text,
+      source_type text,
+      template_json text NOT NULL,
+      created_at text NOT NULL,
+      updated_at text NOT NULL
+    )`,
+  ).run();
+  ensureColumn("document_templates_v2", "source_type", "text");
+  ensureColumn("document_templates_v3", "source_type", "text");
+  copyLegacyColumn("document_templates_v2", "source_kind", "source_type");
+}
+
+export function saveDocumentTemplateV3(
+  userId: string,
+  template: DocumentTemplateV3,
+): SavedDocumentTemplateV3 {
+  ensureTemplateMigrationTables();
+  const now = nowIso();
+  const id = template.id || generateId();
+  const savedTemplate = { ...template, id };
+  const existing = getDocumentTemplateV3(id, userId);
+  if (existing) {
+    db.prepare(
+      `UPDATE document_templates_v3
+       SET name = ?, description = ?, source_filename = ?, source_type = ?,
+         template_json = ?, updated_at = ?
+       WHERE id = ? AND user_id = ?`,
+    ).run(
+      savedTemplate.name,
+      savedTemplate.description ?? null,
+      savedTemplate.source?.filename ?? null,
+      savedTemplate.source?.type ?? null,
+      JSON.stringify(savedTemplate),
+      now,
+      id,
+      userId,
+    );
+  } else {
+    db.prepare(
+      `INSERT INTO document_templates_v3 (
+        id, user_id, name, description, source_filename, source_type,
+        template_json, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      id,
+      userId,
+      savedTemplate.name,
+      savedTemplate.description ?? null,
+      savedTemplate.source?.filename ?? null,
+      savedTemplate.source?.type ?? null,
+      JSON.stringify(savedTemplate),
+      now,
+      now,
+    );
+  }
+  return {
+    id,
+    userId,
+    name: savedTemplate.name,
+    description: savedTemplate.description ?? null,
+    sourceFilename: savedTemplate.source?.filename ?? null,
+    sourceType: savedTemplate.source?.type ?? null,
+    template: savedTemplate,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  };
+}
+
+export function getDocumentTemplateV3(
+  id: string,
+  userId: string,
+): SavedDocumentTemplateV3 | null {
+  ensureTemplateMigrationTables();
+  const row = db
+    .prepare(
+      `SELECT id, user_id, name, description, source_filename, source_type,
+        template_json, created_at, updated_at
+       FROM document_templates_v3
+       WHERE id = ? AND user_id = ?`,
+    )
+    .get(id, userId) as TemplateRow | undefined;
+  return row ? rowToTemplateV3(row) : null;
+}
+
+export function listDocumentTemplatesV3(
+  userId: string,
+): SavedDocumentTemplateV3[] {
+  ensureTemplateMigrationTables();
+  const rows = db
+    .prepare(
+      `SELECT id, user_id, name, description, source_filename, source_type,
+        template_json, created_at, updated_at
+       FROM document_templates_v3
+       WHERE user_id = ?
+       ORDER BY updated_at DESC`,
+    )
+    .all(userId) as TemplateRow[];
+  return rows.map(rowToTemplateV3);
 }
 
 export function saveTemplateMigrationDraft(
   draft: TemplateMigrationDraft,
 ): TemplateMigrationDraft {
   ensureTemplateMigrationTables();
+  const legacyColumns = legacyMigrationDraftInsertColumns(draft);
   db.prepare(
     `INSERT INTO template_migration_drafts (
       id, user_id, status, source_filename, source_type, source_ir_json,
-      resume_json, template_json, fidelity_report_json, warnings_json, confidence,
-      committed_template_id, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      resume_json, template_json, template_v3_json, fidelity_report_json, warnings_json, confidence,
+      committed_template_id, created_at, updated_at${legacyColumns.sql}
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${legacyColumns.placeholders})`,
   ).run(
     draft.id,
     draft.userId,
@@ -107,12 +230,14 @@ export function saveTemplateMigrationDraft(
     JSON.stringify(draft.source),
     JSON.stringify(draft.resume),
     JSON.stringify(draft.template),
+    JSON.stringify(draft.templateV3),
     JSON.stringify(draft.fidelity),
     JSON.stringify(draft.warnings),
     draft.confidence,
     draft.committedTemplateId ?? null,
     draft.createdAt,
     draft.updatedAt,
+    ...legacyColumns.values,
   );
   return draft;
 }
@@ -125,7 +250,7 @@ export function getTemplateMigrationDraft(
   const row = db
     .prepare(
       `SELECT id, user_id, status, source_filename, source_type, source_ir_json,
-        resume_json, template_json, fidelity_report_json, warnings_json, confidence,
+        resume_json, template_json, template_v3_json, fidelity_report_json, warnings_json, confidence,
         committed_template_id, created_at, updated_at
        FROM template_migration_drafts
        WHERE id = ? AND user_id = ?`,
@@ -141,7 +266,8 @@ export function updateTemplateMigrationDraft(
     source?: SourceDocumentIR;
     resume?: TailoredResume;
     template?: DocumentTemplateV2;
-    fidelity?: TemplateMigrationFidelityReport;
+    templateV3?: DocumentTemplateV3;
+    fidelity?: TemplateMigrationFidelityLike;
     warnings?: string[];
     status?: TemplateMigrationDraft["status"];
     committedTemplateId?: string | null;
@@ -154,11 +280,13 @@ export function updateTemplateMigrationDraft(
     source: updates.source ?? existing.source,
     resume: updates.resume ?? existing.resume,
     template: updates.template ?? existing.template,
+    templateV3: updates.templateV3 ?? existing.templateV3,
     fidelity:
       updates.fidelity ??
-      assessTemplateMigrationFidelity(
+      assessDraftFidelity(
         updates.source ?? existing.source,
         updates.template ?? existing.template,
+        updates.templateV3 ?? existing.templateV3,
       ),
     warnings: updates.warnings ?? existing.warnings,
     status: updates.status ?? existing.status,
@@ -170,7 +298,7 @@ export function updateTemplateMigrationDraft(
   };
   db.prepare(
     `UPDATE template_migration_drafts
-     SET status = ?, source_ir_json = ?, resume_json = ?, template_json = ?,
+     SET status = ?, source_ir_json = ?, resume_json = ?, template_json = ?, template_v3_json = ?,
        fidelity_report_json = ?, warnings_json = ?,
        committed_template_id = ?, updated_at = ?
      WHERE id = ? AND user_id = ?`,
@@ -179,6 +307,7 @@ export function updateTemplateMigrationDraft(
     JSON.stringify(next.source),
     JSON.stringify(next.resume),
     JSON.stringify(next.template),
+    JSON.stringify(next.templateV3),
     JSON.stringify(next.fidelity),
     JSON.stringify(next.warnings),
     next.committedTemplateId ?? null,
@@ -215,11 +344,12 @@ export function saveDocumentTemplateV2(
       userId,
     );
   } else {
+    const legacySourceKind = hasColumn("document_templates_v2", "source_kind");
     db.prepare(
       `INSERT INTO document_templates_v2 (
         id, user_id, name, description, source_filename, source_type,
-        template_json, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        template_json, created_at, updated_at${legacySourceKind ? ", source_kind" : ""}
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?${legacySourceKind ? ", ?" : ""})`,
     ).run(
       id,
       userId,
@@ -230,6 +360,7 @@ export function saveDocumentTemplateV2(
       JSON.stringify(savedTemplate),
       now,
       now,
+      ...(legacySourceKind ? [savedTemplate.source?.type ?? null] : []),
     );
   }
   return {
@@ -314,12 +445,67 @@ export function updateDocumentTemplateV2Metadata(
   };
 }
 
+export function updateDocumentTemplateV3Metadata(
+  id: string,
+  userId: string,
+  updates: { name?: string; description?: string | null },
+): SavedDocumentTemplateV3 | null {
+  const existing = getDocumentTemplateV3(id, userId);
+  if (!existing) return null;
+  const now = nowIso();
+  const template: DocumentTemplateV3 = {
+    ...existing.template,
+    name: updates.name ?? existing.template.name,
+    description:
+      updates.description !== undefined
+        ? (updates.description ?? undefined)
+        : existing.template.description,
+  };
+  db.prepare(
+    `UPDATE document_templates_v3
+     SET name = ?, description = ?, template_json = ?, updated_at = ?
+     WHERE id = ? AND user_id = ?`,
+  ).run(
+    template.name,
+    template.description ?? null,
+    JSON.stringify(template),
+    now,
+    id,
+    userId,
+  );
+  return {
+    ...existing,
+    name: template.name,
+    description: template.description ?? null,
+    template,
+    updatedAt: now,
+  };
+}
+
+export function deleteDocumentTemplateV3(id: string, userId: string): boolean {
+  ensureTemplateMigrationTables();
+  const result = db
+    .prepare(`DELETE FROM document_templates_v3 WHERE id = ? AND user_id = ?`)
+    .run(id, userId);
+  return result.changes > 0;
+}
+
 export function deleteDocumentTemplateV2(id: string, userId: string): boolean {
   ensureTemplateMigrationTables();
   const result = db
     .prepare(`DELETE FROM document_templates_v2 WHERE id = ? AND user_id = ?`)
     .run(id, userId);
   return result.changes > 0;
+}
+
+function assessDraftFidelity(
+  source: SourceDocumentIR,
+  template: DocumentTemplateV2,
+  templateV3: DocumentTemplateV3 | null | undefined,
+): TemplateMigrationFidelityLike {
+  return templateV3
+    ? assessVisualTemplateFidelity(source, templateV3)
+    : assessTemplateMigrationFidelity(source, template);
 }
 
 function rowToDraft(row: DraftRow): TemplateMigrationDraft {
@@ -332,13 +518,19 @@ function rowToDraft(row: DraftRow): TemplateMigrationDraft {
     source: JSON.parse(row.source_ir_json) as SourceDocumentIR,
     resume: JSON.parse(row.resume_json) as TailoredResume,
     template: JSON.parse(row.template_json) as DocumentTemplateV2,
+    templateV3: row.template_v3_json
+      ? (JSON.parse(row.template_v3_json) as DocumentTemplateV3)
+      : legacyTemplateV3Fallback(
+          JSON.parse(row.template_json) as DocumentTemplateV2,
+        ),
     fidelity: row.fidelity_report_json
-      ? (JSON.parse(
-          row.fidelity_report_json,
-        ) as TemplateMigrationFidelityReport)
-      : assessTemplateMigrationFidelity(
+      ? (JSON.parse(row.fidelity_report_json) as TemplateMigrationFidelityLike)
+      : assessDraftFidelity(
           JSON.parse(row.source_ir_json) as SourceDocumentIR,
           JSON.parse(row.template_json) as DocumentTemplateV2,
+          row.template_v3_json
+            ? (JSON.parse(row.template_v3_json) as DocumentTemplateV3)
+            : null,
         ),
     warnings: JSON.parse(row.warnings_json) as string[],
     confidence: row.confidence,
@@ -348,12 +540,90 @@ function rowToDraft(row: DraftRow): TemplateMigrationDraft {
   };
 }
 
+function legacyTemplateV3Fallback(
+  template: DocumentTemplateV2,
+): DocumentTemplateV3 {
+  return {
+    schemaVersion: 3,
+    id: `${template.id}-v3`,
+    name: template.name,
+    description: template.description,
+    source: template.source,
+    page: {
+      size: template.page.size,
+      widthPt: template.page.size === "a4" ? 595 : 612,
+      heightPt: template.page.size === "a4" ? 842 : 792,
+      margins: template.page.margins,
+    },
+    tokens: template.tokens,
+    regions: [],
+    slots: template.slots.map((slot) => ({
+      id: slot.id,
+      path: slot.path,
+      role:
+        slot.role === "list" ? "list" : slot.role === "link" ? "link" : "text",
+      token: slot.token,
+      sourceRefs: slot.sourceBlockIds.map((sourceId) => ({ sourceId })),
+      fallback: slot.label,
+    })),
+    repeatGroups: [],
+    diagnostics: [
+      {
+        id: "legacy-v2-fallback",
+        severity: "warning",
+        message: "This older draft was created before V3 visual templates.",
+        sourceRefs: [],
+      },
+    ],
+  };
+}
+
 function ensureColumn(table: string, column: string, type: string): void {
+  if (hasColumn(table, column)) return;
+  db.prepare(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`).run();
+}
+
+function hasColumn(table: string, column: string): boolean {
   const columns = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{
     name: string;
   }>;
-  if (columns.some((entry) => entry.name === column)) return;
-  db.prepare(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`).run();
+  return columns.some((entry) => entry.name === column);
+}
+
+function copyLegacyColumn(
+  table: string,
+  legacyColumn: string,
+  currentColumn: string,
+): void {
+  if (!hasColumn(table, legacyColumn) || !hasColumn(table, currentColumn)) {
+    return;
+  }
+  db.prepare(
+    `UPDATE ${table}
+     SET ${currentColumn} = ${legacyColumn}
+     WHERE ${currentColumn} IS NULL OR ${currentColumn} = ''`,
+  ).run();
+}
+
+function legacyMigrationDraftInsertColumns(draft: TemplateMigrationDraft): {
+  sql: string;
+  placeholders: string;
+  values: unknown[];
+} {
+  const valuesByColumn: Record<string, unknown> = {
+    source_kind: draft.sourceType,
+    source_json: JSON.stringify(draft.source),
+    diagnostics_json: JSON.stringify(draft.warnings),
+    corrections_json: "{}",
+  };
+  const columns = Object.keys(valuesByColumn).filter((column) =>
+    hasColumn("template_migration_drafts", column),
+  );
+  return {
+    sql: columns.length ? `, ${columns.join(", ")}` : "",
+    placeholders: columns.map(() => ", ?").join(""),
+    values: columns.map((column) => valuesByColumn[column]),
+  };
 }
 
 function rowToTemplate(row: TemplateRow): SavedDocumentTemplateV2 {
@@ -365,6 +635,20 @@ function rowToTemplate(row: TemplateRow): SavedDocumentTemplateV2 {
     sourceFilename: row.source_filename ?? null,
     sourceType: row.source_type ?? null,
     template: JSON.parse(row.template_json) as DocumentTemplateV2,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function rowToTemplateV3(row: TemplateRow): SavedDocumentTemplateV3 {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    name: row.name,
+    description: row.description ?? null,
+    sourceFilename: row.source_filename ?? null,
+    sourceType: row.source_type ?? null,
+    template: JSON.parse(row.template_json) as DocumentTemplateV3,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

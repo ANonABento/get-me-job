@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { ResumeTemplate } from "@/lib/resume/template-types";
+import type { DocumentTemplateV3 } from "@/lib/resume/template-v3";
 
 interface TemplateApiItem {
   id: string;
@@ -14,6 +15,8 @@ interface TemplateApiItem {
   };
   sourceFilename?: string | null;
   sourceType?: string | null;
+  schemaVersion?: number;
+  documentTemplateV3?: DocumentTemplateV3;
   updatedAt?: string;
 }
 
@@ -34,13 +37,55 @@ async function fetchCustomTemplates(): Promise<ResumeTemplate[]> {
   if (!response.ok) throw new Error("Failed to load custom templates");
   const data = (await response.json()) as TemplatesApiResponse;
   return (data.templates ?? [])
-    .filter((template) => template.type === "custom" && template.analyzedStyles)
-    .map((template) => ({
-      id: template.id,
-      name: template.name,
-      description: template.description ?? "Imported template",
-      styles: template.analyzedStyles!.styles,
-    }));
+    .filter(
+      (template) => template.type === "custom" && template.documentTemplateV3,
+    )
+    .map((template) =>
+      isDocumentTemplateV3Item(template)
+        ? documentTemplateV3ToResumeTemplate(template)
+        : unreachableTemplate(template),
+    );
+}
+
+function isDocumentTemplateV3Item(
+  template: TemplateApiItem,
+): template is TemplateApiItem & { documentTemplateV3: DocumentTemplateV3 } {
+  return Boolean(template.documentTemplateV3);
+}
+
+function documentTemplateV3ToResumeTemplate(
+  template: TemplateApiItem & { documentTemplateV3: DocumentTemplateV3 },
+): ResumeTemplate {
+  const documentTemplate = template.documentTemplateV3;
+  const body = documentTemplate.tokens.body;
+  const heading = documentTemplate.tokens.heading ?? body;
+  const name = documentTemplate.tokens.name ?? heading;
+  const hasSidebar = documentTemplate.regions.some(
+    (region) => region.role === "sidebar",
+  );
+
+  return {
+    id: template.id,
+    name: template.name,
+    description: template.description ?? "Visual template",
+    schemaVersion: 3,
+    styles: {
+      fontFamily: body?.fontFamily ?? "'Helvetica Neue', Arial, sans-serif",
+      fontSize: body?.fontSize ?? "11pt",
+      headerSize: name?.fontSize ?? "20pt",
+      sectionHeaderSize: heading?.fontSize ?? "12pt",
+      lineHeight: body?.lineHeight ?? "1.4",
+      accentColor: heading?.color ?? name?.color ?? "#333333",
+      layout: hasSidebar ? "two-column" : "single-column",
+      headerStyle: "left",
+      bulletStyle: "disc",
+      sectionDivider: "line",
+    },
+  };
+}
+
+function unreachableTemplate(template: TemplateApiItem): ResumeTemplate {
+  throw new Error(`Unsupported custom template payload: ${template.id}`);
 }
 
 export function useCustomTemplates() {

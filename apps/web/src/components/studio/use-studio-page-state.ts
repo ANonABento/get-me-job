@@ -129,6 +129,7 @@ interface StudioPageState {
   handleSelectDocument: (id: string) => void;
   handleGenerateFromBank: () => void;
   handleTemplateSelect: (templateId: string) => void;
+  handleTemplateImported: (templateId: string, resume: TailoredResume) => void;
   handleToggleEntry: (id: string) => void;
   handleToggleVisibility: (categoryId: BankCategory) => void;
   html: string;
@@ -729,6 +730,8 @@ export function useStudioPageState(): StudioPageState {
         : selectedResumeTemplate,
     [documentMode, selectedResumeTemplate, templateId],
   );
+  const selectedResumeTemplateIsVisual =
+    documentMode === "resume" && selectedResumeTemplate?.schemaVersion === 3;
 
   const currentDraftState = useMemo<BuilderDraftState>(
     () => ({
@@ -863,9 +866,10 @@ export function useStudioPageState(): StudioPageState {
         if (!cancelled) {
           lastPreviewErrorToastRef.current = "";
           if (data.html) {
-            const nextContent = data.resume
-              ? tailoredResumeToTipTapDocument(data.resume)
-              : undefined;
+            const nextContent =
+              data.resume && !selectedResumeTemplateIsVisual
+                ? tailoredResumeToTipTapDocument(data.resume)
+                : undefined;
             contentRef.current = nextContent;
             setHtml(data.html);
             setContent(nextContent);
@@ -943,6 +947,7 @@ export function useStudioPageState(): StudioPageState {
     orderedEntries,
     previewVersionId,
     selectedResumeTemplate,
+    selectedResumeTemplateIsVisual,
     showErrorToast,
     templateId,
     visibleCategoryIds,
@@ -1148,6 +1153,31 @@ export function useStudioPageState(): StudioPageState {
     [markActiveDocumentDirty, templateId, updateActiveDocument],
   );
 
+  const handleTemplateImported = useCallback(
+    (nextTemplateId: string, resume: TailoredResume) => {
+      const nextContent = tailoredResumeToTipTapDocument(resume);
+      const nextHtml = createEditorBodyHtml(nextContent);
+      const nextSections = createInitialSections();
+      contentRef.current = nextContent;
+      setPreviewVersionId(null);
+      markActiveDocumentDirty();
+      setDocumentMode("resume");
+      setTemplateId(nextTemplateId);
+      setSelectedIds(new Set());
+      setSections(nextSections);
+      setContent(nextContent);
+      setHtml(nextHtml);
+      updateActiveDocument({
+        templateId: nextTemplateId,
+        selectedEntryIds: [],
+        sections: nextSections,
+        content: nextContent,
+        html: nextHtml,
+      });
+    },
+    [markActiveDocumentDirty, updateActiveDocument],
+  );
+
   const handleCreateDocument = useCallback(() => {
     const document = createStudioDocument(documentMode, {
       index: currentDocuments.length + 1,
@@ -1293,6 +1323,7 @@ export function useStudioPageState(): StudioPageState {
   const getPrintableHtml = useCallback(() => {
     const bodyHtml = content ? createEditorBodyHtml(content) : html;
     if (!bodyHtml) return "";
+    if (selectedResumeTemplateIsVisual) return html || bodyHtml;
 
     if (documentMode === "cover_letter") {
       if (!selectedTemplate || selectedTemplate.styles.layout !== "letter") {
@@ -1316,7 +1347,14 @@ export function useStudioPageState(): StudioPageState {
       `${selectedTemplate.name} Resume`,
       pageSettings,
     );
-  }, [content, documentMode, html, pageSettings, selectedTemplate]);
+  }, [
+    content,
+    documentMode,
+    html,
+    pageSettings,
+    selectedResumeTemplateIsVisual,
+    selectedTemplate,
+  ]);
 
   const handleDownloadPdf = useCallback(async () => {
     const printableHtml = getPrintableHtml();
@@ -1425,6 +1463,7 @@ export function useStudioPageState(): StudioPageState {
     handleSelectDocument,
     handleGenerateFromBank,
     handleTemplateSelect,
+    handleTemplateImported,
     handleToggleEntry,
     handleToggleVisibility,
     html,

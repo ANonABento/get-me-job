@@ -4,6 +4,13 @@ import type {
   ResumeSlotPath,
   TemplateBlock,
 } from "@/lib/resume/template-v2";
+import type {
+  DocumentTemplateV3,
+  TemplateNodeV3,
+  TemplateTable,
+  TemplateTableCell,
+  TemplateTableRow,
+} from "@/lib/resume/template-v3";
 
 export interface TemplateMigrationFidelityCheck {
   id: string;
@@ -29,6 +36,32 @@ export interface TemplateMigrationFidelityReport {
     adoptedStyleTokens: number;
   };
 }
+
+export interface VisualTemplateFidelityReport {
+  score: number;
+  status: "ready" | "review" | "low";
+  checks: TemplateMigrationFidelityCheck[];
+  metrics: {
+    pageSetup: number;
+    tableStructure: number;
+    cellGeometry: number;
+    styleCoverage: number;
+    slotCoverage: number;
+    repeatGroupCoverage: number;
+    renderCompleteness: number;
+    tablesDetected: number;
+    sourceTableRows: number;
+    rowsPreserved: number;
+    sourceCells: number;
+    cellsPreserved: number;
+    repeatGroups: number;
+    slotsMapped: number;
+  };
+}
+
+export type TemplateMigrationFidelityLike =
+  | TemplateMigrationFidelityReport
+  | VisualTemplateFidelityReport;
 
 export function assessTemplateMigrationFidelity(
   source: SourceDocumentIR,
@@ -148,6 +181,134 @@ export function assessTemplateMigrationFidelity(
   };
 }
 
+export function assessVisualTemplateFidelity(
+  source: SourceDocumentIR,
+  template: DocumentTemplateV3,
+): VisualTemplateFidelityReport {
+  const sourceBlocks = source.blocks.filter((block) => block.text.trim());
+  const sourceTableRows = source.blocks.filter(
+    (block) => block.type === "table-row",
+  );
+  const sourceCells = countSourceCells(source);
+  const tables = collectV3Tables(template);
+  const rows = tables.flatMap((table) => table.rows);
+  const cells = rows.flatMap((row) => row.cells);
+  const slotsMapped = template.slots.filter(
+    (slot) => slot.sourceRefs.length || slot.fallback,
+  ).length;
+  const expectedRepeatGroups = expectedRepeatGroupCollections(source);
+  const repeatGroups = template.repeatGroups.filter(
+    (group) => group.nodeIds.length || group.sourceRefs.length,
+  );
+  const pageSetup = visualPageSetupScore(template);
+  const tableStructure = sourceTableRows.length
+    ? Math.min(1, rows.length / sourceTableRows.length)
+    : tables.length
+      ? 1
+      : 0.75;
+  const cellGeometry = sourceCells
+    ? Math.min(1, cells.length / sourceCells)
+    : cells.length
+      ? 1
+      : 0.75;
+  const styleCoverage = visualStyleCoverage(template, cells);
+  const slotCoverage = visualSlotCoverage(source, template);
+  const repeatGroupCoverage = expectedRepeatGroups.size
+    ? Math.min(1, repeatGroups.length / expectedRepeatGroups.size)
+    : 1;
+  const renderCompleteness = visualRenderCompleteness(template);
+
+  const checks: TemplateMigrationFidelityCheck[] = [
+    check(
+      "page_setup_detected",
+      "Page setup",
+      pageSetup,
+      "Page dimensions and margins were captured for the visual template.",
+    ),
+    check(
+      "tables_detected",
+      "Table structure",
+      tableStructure,
+      sourceTableRows.length
+        ? `${rows.length} of ${sourceTableRows.length} source table rows are represented in V3 tables.`
+        : tables.length
+          ? `${tables.length} V3 tables were detected.`
+          : "No source tables were detected.",
+    ),
+    check(
+      "cell_geometry_detected",
+      "Cell geometry",
+      cellGeometry,
+      sourceCells
+        ? `${cells.length} of ${sourceCells} source cells are preserved as V3 cells.`
+        : `${cells.length} V3 cells are available for rendering.`,
+    ),
+    check(
+      "style_coverage_detected",
+      "Style coverage",
+      styleCoverage,
+      "Typography, fills, borders, alignment, and padding were sampled from the visual structure.",
+    ),
+    check(
+      "required_slots_mapped",
+      "Required slots",
+      slotCoverage,
+      "Name plus at least one contact slot should be mapped before saving.",
+    ),
+    check(
+      "repeat_groups_detected",
+      "Repeat groups",
+      repeatGroupCoverage,
+      expectedRepeatGroups.size
+        ? `${repeatGroups.length} repeat groups were detected for ${expectedRepeatGroups.size} repeatable source sections.`
+        : "No repeatable source sections were required.",
+    ),
+    check(
+      "preview_renderable",
+      "Renderable structure",
+      renderCompleteness,
+      "The template includes regions and renderable nodes.",
+    ),
+  ];
+  const rawScore = Math.round(
+    (checks.reduce((sum, item) => sum + item.score, 0) / checks.length) * 100,
+  );
+  const forcedLow =
+    !template.regions.length ||
+    renderCompleteness < 0.5 ||
+    pageSetup < 0.75 ||
+    (sourceTableRows.length > 0 && (tables.length === 0 || cells.length === 0));
+  const status = forcedLow
+    ? "low"
+    : rawScore >= 80
+      ? "ready"
+      : rawScore >= 55
+        ? "review"
+        : "low";
+
+  return {
+    score: rawScore,
+    status,
+    checks,
+    metrics: {
+      pageSetup: roundRatio(pageSetup),
+      tableStructure: roundRatio(tableStructure),
+      cellGeometry: roundRatio(cellGeometry),
+      styleCoverage: roundRatio(styleCoverage),
+      slotCoverage: roundRatio(slotCoverage),
+      repeatGroupCoverage: roundRatio(repeatGroupCoverage),
+      renderCompleteness: roundRatio(renderCompleteness),
+      tablesDetected: tables.length,
+      sourceTableRows: sourceTableRows.length,
+      rowsPreserved: rows.length,
+      sourceCells,
+      cellsPreserved: cells.length,
+      repeatGroups: repeatGroups.length,
+      slotsMapped,
+    },
+  };
+}
+
 function check(
   id: string,
   label: string,
@@ -257,4 +418,127 @@ function countAdoptedStyleTokens(
 
 function roundRatio(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function collectV3Tables(template: DocumentTemplateV3): TemplateTable[] {
+  return template.regions.flatMap((region) =>
+    collectTablesFromNodes(region.nodes),
+  );
+}
+
+function collectTablesFromNodes(nodes: TemplateNodeV3[]): TemplateTable[] {
+  return nodes.flatMap((node) => {
+    if (node.kind === "table") return [node];
+    if (node.kind === "row") return collectTablesFromRows([node]);
+    if (node.kind === "cell") return collectTablesFromCells([node]);
+    return [];
+  });
+}
+
+function collectTablesFromRows(rows: TemplateTableRow[]): TemplateTable[] {
+  return rows.flatMap((row) => collectTablesFromCells(row.cells));
+}
+
+function collectTablesFromCells(cells: TemplateTableCell[]): TemplateTable[] {
+  return cells.flatMap((cell) => collectTablesFromNodes(cell.nodes));
+}
+
+function countSourceCells(source: SourceDocumentIR): number {
+  return source.blocks.reduce((count, block) => {
+    if (block.cellMetadata?.length) return count + block.cellMetadata.length;
+    return count + (block.cells?.length ?? 0);
+  }, 0);
+}
+
+function visualPageSetupScore(template: DocumentTemplateV3): number {
+  const hasSize = Boolean(template.page.widthPt && template.page.heightPt);
+  const hasMargins = Object.values(template.page.margins).every(Boolean);
+  return hasSize && hasMargins ? 1 : hasSize ? 0.65 : 0.2;
+}
+
+function visualStyleCoverage(
+  template: DocumentTemplateV3,
+  cells: TemplateTableCell[],
+): number {
+  const styledCells = cells.filter(
+    (cell) =>
+      cell.padding ||
+      cell.borders ||
+      cell.fill ||
+      cell.textAlign ||
+      cell.verticalAlign,
+  ).length;
+  const styledRegions = template.regions.filter(
+    (region) => region.style?.padding || region.style?.fill,
+  ).length;
+  const tokenCount = Object.keys(template.tokens).length;
+  const styleSignals = styledCells + styledRegions + tokenCount;
+  const denominator = Math.max(1, Math.min(8, cells.length || tokenCount || 1));
+  return Math.min(1, styleSignals / denominator);
+}
+
+function visualSlotCoverage(
+  source: SourceDocumentIR,
+  template: DocumentTemplateV3,
+): number {
+  const hasText = source.blocks.some((block) => block.text.trim());
+  if (!hasText) return 1;
+  const mappedPaths = new Set(
+    template.slots
+      .filter((slot) => slot.sourceRefs.length || slot.fallback)
+      .map((slot) => slot.path),
+  );
+  const hasName = mappedPaths.has("contact.name");
+  const hasContact = [
+    "contact.email",
+    "contact.phone",
+    "contact.location",
+    "contact.linkedin",
+    "contact.github",
+  ].some((path) => mappedPaths.has(path as ResumeSlotPath));
+  if (hasName && hasContact) return 1;
+  if (hasName || hasContact) return 0.55;
+  return mappedPaths.size ? 0.35 : 0;
+}
+
+function expectedRepeatGroupCollections(source: SourceDocumentIR): Set<string> {
+  const expected = new Set<string>();
+  for (const block of source.blocks) {
+    const text = block.text.trim().toLowerCase();
+    if (
+      ["experience", "work experience", "professional experience"].includes(
+        text,
+      )
+    ) {
+      expected.add("experiences");
+    }
+    if (text === "projects" || text === "academic projects") {
+      expected.add("projects");
+    }
+    if (text === "education") {
+      expected.add("education");
+    }
+  }
+  return expected;
+}
+
+function visualRenderCompleteness(template: DocumentTemplateV3): number {
+  if (!template.regions.length) return 0;
+  const nodeCount = template.regions.reduce(
+    (count, region) => count + region.nodes.length,
+    0,
+  );
+  const hasRenderableNode = template.regions.some((region) =>
+    region.nodes.some((node) => {
+      if (node.kind === "table") return node.rows.length > 0;
+      if (node.kind === "text") return Boolean(node.text.trim());
+      if (node.kind === "slot") return Boolean(node.slotId);
+      if (node.kind === "list")
+        return Boolean(node.items.length || node.slotId);
+      if (node.kind === "section") return Boolean(node.title.trim());
+      return false;
+    }),
+  );
+  if (!hasRenderableNode) return 0.35;
+  return Math.min(1, 0.5 + nodeCount / 8);
 }

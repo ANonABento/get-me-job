@@ -4,13 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   requireAuth: vi.fn(),
   getGeneratedResume: vi.fn(),
-  getDocumentTemplateV2: vi.fn(),
-  listDocumentTemplatesV2: vi.fn(),
+  getDocumentTemplateV3: vi.fn(),
+  listDocumentTemplatesV3: vi.fn(),
   getTemplateWithCustom: vi.fn(),
   generateResumeHTML: vi.fn(),
-  generateResumeHTMLV2: vi.fn(),
-  generateResumeLatexV2: vi.fn(),
-  getDocumentTemplateV2PDFOptions: vi.fn(),
+  generateResumeHTMLV3: vi.fn(),
   generatePDF: vi.fn(),
   convertContentToDocx: vi.fn(),
 }));
@@ -25,8 +23,8 @@ vi.mock("@/lib/db", () => ({
 }));
 
 vi.mock("@/lib/db/template-migrations", () => ({
-  getDocumentTemplateV2: mocks.getDocumentTemplateV2,
-  listDocumentTemplatesV2: mocks.listDocumentTemplatesV2,
+  getDocumentTemplateV3: mocks.getDocumentTemplateV3,
+  listDocumentTemplatesV3: mocks.listDocumentTemplatesV3,
 }));
 
 vi.mock("@/lib/resume/templates", () => ({
@@ -37,10 +35,8 @@ vi.mock("@/lib/resume/pdf", () => ({
   generateResumeHTML: mocks.generateResumeHTML,
 }));
 
-vi.mock("@/lib/resume/template-v2-renderer", () => ({
-  generateResumeHTMLV2: mocks.generateResumeHTMLV2,
-  generateResumeLatexV2: mocks.generateResumeLatexV2,
-  getDocumentTemplateV2PDFOptions: mocks.getDocumentTemplateV2PDFOptions,
+vi.mock("@/lib/resume/template-v3-renderer", () => ({
+  generateResumeHTMLV3: mocks.generateResumeHTMLV3,
 }));
 
 vi.mock("@/lib/resume/pdf-export", () => ({
@@ -95,53 +91,60 @@ describe("resume export route", () => {
       id: "resume-1",
       contentJson: JSON.stringify(resume),
     });
-    mocks.getDocumentTemplateV2.mockReturnValue(null);
-    mocks.listDocumentTemplatesV2.mockReturnValue([]);
+    mocks.getDocumentTemplateV3.mockReturnValue(null);
+    mocks.listDocumentTemplatesV3.mockReturnValue([]);
     mocks.getTemplateWithCustom.mockReturnValue(customTemplate);
     mocks.generateResumeHTML.mockReturnValue("<html>custom resume</html>");
-    mocks.generateResumeHTMLV2.mockReturnValue("<html>v2 resume</html>");
-    mocks.generateResumeLatexV2.mockReturnValue("\\documentclass{article}");
-    mocks.getDocumentTemplateV2PDFOptions.mockReturnValue({
-      format: "Letter",
-      margin: { top: "0", right: "0", bottom: "0", left: "0" },
-    });
+    mocks.generateResumeHTMLV3.mockReturnValue("<html>v3 resume</html>");
     mocks.generatePDF.mockResolvedValue(new Uint8Array([1, 2, 3]));
     mocks.convertContentToDocx.mockResolvedValue(Buffer.from([4, 5, 6]));
   });
 
-  it("lists committed V2 templates alongside built-in export templates", async () => {
-    mocks.listDocumentTemplatesV2.mockReturnValue([
+  it("lists committed V3 visual templates alongside built-in export templates", async () => {
+    mocks.listDocumentTemplatesV3.mockReturnValue([
       {
-        id: "v2-template",
-        name: "Migrated Resume",
+        id: "v3-template",
+        name: "Visual Table",
         description: null,
-        sourceFilename: "resume.pdf",
-        sourceType: "pdf",
+        sourceFilename: "resume.docx",
+        sourceType: "docx",
         template: {
-          ...v2Template(),
-          regions: [
-            {
-              id: "region-sidebar",
-              role: "sidebar",
-              flow: "block",
-              blocks: [],
+          schemaVersion: 3,
+          id: "v3-template",
+          name: "Visual Table",
+          page: {
+            size: "letter",
+            widthPt: 612,
+            heightPt: 792,
+            margins: {
+              top: "0.5in",
+              right: "0.5in",
+              bottom: "0.5in",
+              left: "0.5in",
             },
+          },
+          tokens: {},
+          regions: [
+            { id: "region-main", role: "page-frame", flow: "table", nodes: [] },
           ],
+          slots: [],
+          repeatGroups: [],
+          diagnostics: [],
         },
       },
     ]);
 
     const response = await GET();
 
-    expect(mocks.listDocumentTemplatesV2).toHaveBeenCalledWith("user-1");
+    expect(mocks.listDocumentTemplatesV3).toHaveBeenCalledWith("user-1");
     await expect(response.json()).resolves.toMatchObject({
       templates: expect.arrayContaining([
         expect.objectContaining({
-          id: "v2-template",
+          id: "v3-template",
           type: "custom",
-          schemaVersion: 2,
-          layout: "two-column",
-          sourceFilename: "resume.pdf",
+          schemaVersion: 3,
+          layout: "single-column",
+          sourceFilename: "resume.docx",
         }),
       ]),
     });
@@ -169,31 +172,31 @@ describe("resume export route", () => {
     await expect(response.text()).resolves.toBe("<html>custom resume</html>");
   });
 
-  it("renders saved resume HTML with a committed V2 document template", async () => {
+  it("renders saved resume HTML with a committed V3 visual template", async () => {
     const documentTemplate = {
-      id: "v2-template",
-      template: { schemaVersion: 2, id: "v2-template", name: "V2 Template" },
+      id: "v3-template",
+      template: { schemaVersion: 3, id: "v3-template", name: "V3 Template" },
     };
-    mocks.getDocumentTemplateV2.mockReturnValue(documentTemplate);
+    mocks.getDocumentTemplateV3.mockReturnValue(documentTemplate);
 
     const response = await POST(
       exportRequest({
         resumeId: "resume-1",
-        templateId: "v2-template",
+        templateId: "v3-template",
         format: "html",
       }),
     );
 
-    expect(mocks.getDocumentTemplateV2).toHaveBeenCalledWith(
-      "v2-template",
+    expect(mocks.getDocumentTemplateV3).toHaveBeenCalledWith(
+      "v3-template",
       "user-1",
     );
-    expect(mocks.generateResumeHTMLV2).toHaveBeenCalledWith(
+    expect(mocks.generateResumeHTMLV3).toHaveBeenCalledWith(
       resume,
       documentTemplate.template,
     );
     expect(mocks.getTemplateWithCustom).not.toHaveBeenCalled();
-    await expect(response.text()).resolves.toBe("<html>v2 resume</html>");
+    await expect(response.text()).resolves.toBe("<html>v3 resume</html>");
   });
 
   it("uses the custom-template HTML when exporting a saved resume to PDF", async () => {
@@ -221,6 +224,41 @@ describe("resume export route", () => {
         },
       },
     );
+  });
+
+  it("uses committed V3 visual template HTML and page settings for PDF export", async () => {
+    const documentTemplate = {
+      id: "v3-template",
+      template: {
+        schemaVersion: 3,
+        id: "v3-template",
+        name: "V3 Template",
+        page: {
+          size: "a4",
+          widthPt: 595,
+          heightPt: 842,
+          margins: { top: "0", right: "0", bottom: "0", left: "0" },
+        },
+      },
+    };
+    mocks.getDocumentTemplateV3.mockReturnValue(documentTemplate);
+
+    await POST(
+      exportRequest({
+        resumeId: "resume-1",
+        templateId: "v3-template",
+        format: "pdf",
+      }),
+    );
+
+    expect(mocks.generateResumeHTMLV3).toHaveBeenCalledWith(
+      resume,
+      documentTemplate.template,
+    );
+    expect(mocks.generatePDF).toHaveBeenCalledWith("<html>v3 resume</html>", {
+      format: "A4",
+      margin: { top: "0", right: "0", bottom: "0", left: "0" },
+    });
   });
 
   it("exports a resume DOCX from TipTap content", async () => {
@@ -251,64 +289,6 @@ describe("resume export route", () => {
     expect(Array.from(new Uint8Array(await response.arrayBuffer()))).toEqual([
       4, 5, 6,
     ]);
-  });
-
-  it("exports a saved resume DOCX with a committed V2 document template", async () => {
-    const documentTemplate = {
-      id: "v2-template",
-      name: "V2 Template",
-      template: v2Template(),
-    };
-    mocks.getDocumentTemplateV2.mockReturnValue(documentTemplate);
-
-    const response = await POST(
-      exportRequest({
-        resumeId: "resume-1",
-        templateId: "v2-template",
-        format: "docx",
-      }),
-    );
-
-    expect(mocks.convertContentToDocx).toHaveBeenCalledWith(
-      expect.objectContaining({
-        mode: "resume",
-        title: "V2 Template Resume",
-        content: expect.objectContaining({ type: "doc" }),
-        templateStyles: expect.objectContaining({
-          fontFamily: "Inter",
-          layout: "single-column",
-        }),
-        pageSettings: expect.objectContaining({
-          marginPreset: "custom",
-        }),
-      }),
-    );
-    expect(response.headers.get("content-type")).toBe(
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    );
-  });
-
-  it("exports a saved resume LaTeX with a committed V2 document template", async () => {
-    const documentTemplate = {
-      id: "v2-template",
-      name: "V2 Template",
-      template: v2Template(),
-    };
-    mocks.getDocumentTemplateV2.mockReturnValue(documentTemplate);
-
-    const response = await POST(
-      exportRequest({
-        resumeId: "resume-1",
-        templateId: "v2-template",
-        format: "latex",
-      }),
-    );
-
-    expect(mocks.generateResumeLatexV2).toHaveBeenCalledWith(
-      resume,
-      documentTemplate.template,
-    );
-    await expect(response.text()).resolves.toBe("\\documentclass{article}");
   });
 
   it("exports a cover letter DOCX from TipTap content", async () => {
@@ -347,29 +327,3 @@ describe("resume export route", () => {
     expect(mocks.convertContentToDocx).not.toHaveBeenCalled();
   });
 });
-
-function v2Template() {
-  return {
-    schemaVersion: 2,
-    id: "v2-template",
-    name: "V2 Template",
-    page: {
-      size: "letter",
-      margins: { top: "0.5in", right: "0.6in", bottom: "0.7in", left: "0.8in" },
-    },
-    tokens: {
-      body: { fontFamily: "Inter", fontSize: "10pt", lineHeight: "1.4" },
-      heading: { fontFamily: "Inter", fontSize: "12pt", lineHeight: "1.2" },
-      name: { fontFamily: "Inter", fontSize: "20pt", lineHeight: "1.1" },
-      meta: { fontFamily: "Inter", fontSize: "9pt", lineHeight: "1.4" },
-      "body-strong": {
-        fontFamily: "Inter",
-        fontSize: "10pt",
-        lineHeight: "1.4",
-      },
-    },
-    regions: [],
-    slots: [],
-    diagnostics: [],
-  };
-}

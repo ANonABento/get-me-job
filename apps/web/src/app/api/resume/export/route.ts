@@ -11,8 +11,8 @@ import { z } from "zod";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { getGeneratedResume } from "@/lib/db";
 import {
-  getDocumentTemplateV2,
-  listDocumentTemplatesV2,
+  getDocumentTemplateV3,
+  listDocumentTemplatesV3,
 } from "@/lib/db/template-migrations";
 import type { TailoredResume } from "@/lib/resume/generator";
 import type { LatexOptions } from "@/lib/resume/latex-generator";
@@ -22,8 +22,6 @@ import {
   getTemplate,
 } from "@/lib/resume/template-data";
 import { getTemplateWithCustom } from "@/lib/resume/templates";
-import type { TipTapJSONContent } from "@/lib/editor/types";
-import type { TemplateStyles } from "@/lib/resume/template-data";
 import {
   DEFAULT_PAGE_SETTINGS,
   normalizePageSettings,
@@ -53,7 +51,7 @@ export async function GET() {
   if (isAuthError(authResult)) return authResult;
 
   const { LATEX_TEMPLATES } = await import("@/lib/resume/latex-generator");
-  const v2Templates = listDocumentTemplatesV2(authResult.userId);
+  const v3Templates = listDocumentTemplatesV3(authResult.userId);
   return NextResponse.json({
     templates: [
       ...LATEX_TEMPLATES.map((t) => ({
@@ -63,21 +61,17 @@ export async function GET() {
         layout: t.layout,
         type: "built-in" as const,
       })),
-      ...v2Templates.map((template) => ({
+      ...v3Templates.map((template) => ({
         id: template.id,
         name: template.name,
-        description:
-          template.description ??
-          (template.sourceFilename
-            ? `Migrated from ${template.sourceFilename}`
-            : "Migrated document template"),
+        description: template.description ?? "Visual template",
         layout: template.template.regions.some(
           (region) => region.role === "sidebar",
         )
           ? "two-column"
           : "single-column",
         type: "custom" as const,
-        schemaVersion: template.template.schemaVersion,
+        schemaVersion: 3,
         sourceFilename: template.sourceFilename,
         sourceType: template.sourceType,
       })),
@@ -115,11 +109,11 @@ async function renderResumeHtml(
   templateId: string,
   userId: string,
 ): Promise<string> {
-  const documentTemplate = getDocumentTemplateV2(templateId, userId);
-  if (documentTemplate) {
-    const { generateResumeHTMLV2 } =
-      await import("@/lib/resume/template-v2-renderer");
-    return generateResumeHTMLV2(resume, documentTemplate.template);
+  const documentTemplateV3 = getDocumentTemplateV3(templateId, userId);
+  if (documentTemplateV3) {
+    const { generateResumeHTMLV3 } =
+      await import("@/lib/resume/template-v3-renderer");
+    return generateResumeHTMLV3(resume, documentTemplateV3.template);
   }
   const { generateResumeHTML } = await import("@/lib/resume/pdf");
   const template = getTemplateWithCustom(templateId, userId);
@@ -169,35 +163,6 @@ export async function POST(request: NextRequest) {
 
     // Route by format
     if (format === "docx") {
-      const documentTemplate = resume
-        ? getDocumentTemplateV2(templateId, authResult.userId)
-        : null;
-      if (resume && documentTemplate && !content) {
-        const { convertContentToDocx } =
-          await import("@/lib/builder/docx-export");
-        const docxBuffer = await convertContentToDocx({
-          content: resumeToTipTapContent(resume),
-          mode: "resume",
-          templateStyles: documentTemplateV2ToTemplateStyles(
-            documentTemplate.template,
-          ),
-          pageSettings: documentTemplateV2ToPageSettings(
-            documentTemplate.template,
-          ),
-          title: `${documentTemplate.name} Resume`,
-        });
-
-        return new NextResponse(new Uint8Array(docxBuffer), {
-          status: 200,
-          headers: {
-            "Content-Type":
-              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "Content-Disposition": 'attachment; filename="resume.docx"',
-            "Content-Length": String(docxBuffer.length),
-          },
-        });
-      }
-
       if (!content || typeof content !== "object") {
         return NextResponse.json(
           { error: "content required for DOCX export" },
@@ -240,19 +205,13 @@ export async function POST(request: NextRequest) {
           { status: 400 },
         );
       }
-      const documentTemplate = getDocumentTemplateV2(
+      const latex = (
+        await import("@/lib/resume/latex-generator")
+      ).generateResumeLatex(
+        resume,
         templateId,
-        authResult.userId,
+        (latexOptions || {}) as LatexOptions,
       );
-      const latex = documentTemplate
-        ? (
-            await import("@/lib/resume/template-v2-renderer")
-          ).generateResumeLatexV2(resume, documentTemplate.template)
-        : (await import("@/lib/resume/latex-generator")).generateResumeLatex(
-            resume,
-            templateId,
-            (latexOptions || {}) as LatexOptions,
-          );
 
       if (compilePdf) {
         try {
@@ -333,17 +292,21 @@ export async function POST(request: NextRequest) {
     }
 
     const { generatePDF } = await import("@/lib/resume/pdf-export");
-    const documentTemplate = resume
-      ? getDocumentTemplateV2(templateId, authResult.userId)
+    const documentTemplateV3 = resume
+      ? getDocumentTemplateV3(templateId, authResult.userId)
       : null;
     const normalizedPageSettings = normalizePageSettings(
       (pageSettings as Partial<PageSettings> | undefined) ??
         DEFAULT_PAGE_SETTINGS,
     );
-    const pdfOptions: ServerPDFOptions = documentTemplate
-      ? (
-          await import("@/lib/resume/template-v2-renderer")
-        ).getDocumentTemplateV2PDFOptions(documentTemplate.template)
+    const pdfOptions: ServerPDFOptions = documentTemplateV3
+      ? {
+          format:
+            documentTemplateV3.template.page.size.toLowerCase() === "a4"
+              ? "A4"
+              : "Letter",
+          margin: { top: "0", right: "0", bottom: "0", left: "0" },
+        }
       : {
           format: normalizedPageSettings.size === "a4" ? "A4" : "Letter",
           margin: pageSettingsToPdfMargin(normalizedPageSettings),
@@ -367,149 +330,4 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
-}
-
-function resumeToTipTapContent(resume: TailoredResume): TipTapJSONContent {
-  return {
-    type: "doc",
-    content: [
-      {
-        type: "contactInfo",
-        attrs: {
-          name: resume.contact.name ?? "",
-          email: resume.contact.email ?? "",
-          phone: resume.contact.phone ?? "",
-          location: resume.contact.location ?? "",
-          linkedin: resume.contact.linkedin ?? "",
-          github: resume.contact.github ?? "",
-        },
-      },
-      resume.summary
-        ? sectionNode("Summary", [paragraphNode(resume.summary)])
-        : null,
-      resume.experiences.length
-        ? sectionNode(
-            "Experience",
-            resume.experiences.map((experience) => ({
-              type: "resumeEntry",
-              attrs: {
-                title: experience.title,
-                company: experience.company,
-                dates: experience.dates,
-              },
-              content: [bulletListNode(experience.highlights)],
-            })),
-          )
-        : null,
-      resume.projects?.length
-        ? sectionNode(
-            "Projects",
-            resume.projects.map((project) => ({
-              type: "resumeEntry",
-              attrs: {
-                title: project.name,
-                company: project.description,
-                dates: "",
-              },
-              content: [bulletListNode(project.highlights)],
-            })),
-          )
-        : null,
-      resume.skills.length
-        ? sectionNode("Skills", [paragraphNode(resume.skills.join(" | "))])
-        : null,
-      resume.education.length
-        ? sectionNode(
-            "Education",
-            resume.education.map((education) => ({
-              type: "resumeEntry",
-              attrs: {
-                title: [education.degree, education.field]
-                  .filter(Boolean)
-                  .join(" in "),
-                company: education.institution,
-                dates: education.date,
-              },
-            })),
-          )
-        : null,
-      resume.certifications?.length
-        ? sectionNode("Certifications", [bulletListNode(resume.certifications)])
-        : null,
-      resume.awards?.length
-        ? sectionNode("Awards", [bulletListNode(resume.awards)])
-        : null,
-    ].filter((node): node is TipTapJSONContent => Boolean(node)),
-  };
-}
-
-function sectionNode(
-  title: string,
-  content: TipTapJSONContent[],
-): TipTapJSONContent {
-  return { type: "resumeSection", attrs: { title }, content };
-}
-
-function paragraphNode(text: string): TipTapJSONContent {
-  return { type: "paragraph", content: [{ type: "text", text }] };
-}
-
-function bulletListNode(values: string[]): TipTapJSONContent {
-  return {
-    type: "bulletList",
-    content: values.map((value) => ({
-      type: "listItem",
-      content: [paragraphNode(value)],
-    })),
-  };
-}
-
-function documentTemplateV2ToTemplateStyles(
-  template: import("@/lib/resume/template-v2").DocumentTemplateV2,
-): TemplateStyles {
-  const body = template.tokens.body;
-  const heading = template.tokens.heading ?? body;
-  const name = template.tokens.name ?? heading;
-  const firstSection = template.regions
-    .flatMap((region) => region.blocks)
-    .find((block) => block.type === "section");
-  return {
-    fontFamily: body?.fontFamily ?? "Arial",
-    fontSize: body?.fontSize ?? "11pt",
-    headerSize: name?.fontSize ?? "20pt",
-    sectionHeaderSize: heading?.fontSize ?? "12pt",
-    lineHeight: body?.lineHeight ?? "1.4",
-    accentColor: heading?.color ?? name?.color ?? "#111827",
-    layout: template.regions.some((region) => region.role === "sidebar")
-      ? ("two-column" as const)
-      : ("single-column" as const),
-    headerStyle: "left" as const,
-    bulletStyle: firstSection?.style?.bulletStyle ?? "disc",
-    sectionDivider: firstSection?.style?.divider ?? "line",
-  };
-}
-
-function documentTemplateV2ToPageSettings(
-  template: import("@/lib/resume/template-v2").DocumentTemplateV2,
-): Partial<PageSettings> {
-  return {
-    size: template.page.size.toLowerCase() === "a4" ? "a4" : "letter",
-    marginPreset: "custom",
-    margins: {
-      top: parseInches(template.page.margins.top, 0.75),
-      right: parseInches(template.page.margins.right, 0.75),
-      bottom: parseInches(template.page.margins.bottom, 0.75),
-      left: parseInches(template.page.margins.left, 0.75),
-    },
-  };
-}
-
-function parseInches(value: string, fallback: number): number {
-  const trimmed = value.trim();
-  const amount = Number.parseFloat(trimmed);
-  if (!Number.isFinite(amount)) return fallback;
-  if (trimmed.endsWith("cm")) return amount / 2.54;
-  if (trimmed.endsWith("mm")) return amount / 25.4;
-  if (trimmed.endsWith("pt")) return amount / 72;
-  return amount;
 }

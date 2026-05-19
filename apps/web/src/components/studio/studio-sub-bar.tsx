@@ -37,6 +37,7 @@ import {
   getCoverLetterTemplate,
 } from "@/lib/builder/cover-letter-document";
 import { getTemplate, TEMPLATES } from "@/lib/resume/template-data";
+import type { TailoredResume } from "@/lib/resume/generator";
 import type { ResumeTemplate } from "@/lib/resume/template-types";
 import { cn } from "@/lib/utils";
 import { useA11yTranslations } from "@/lib/i18n/use-a11y-translations";
@@ -77,6 +78,7 @@ interface StudioSubBarProps {
   templateId: string;
   customTemplates: ResumeTemplate[];
   onTemplateSelect: (templateId: string) => void;
+  onTemplateImported?: (templateId: string, resume: TailoredResume) => void;
   onTemplatesChanged: () => void | Promise<void>;
 
   onTailorAi: () => void;
@@ -122,6 +124,7 @@ export function StudioSubBar({
   templateId,
   customTemplates,
   onTemplateSelect,
+  onTemplateImported,
   onTemplatesChanged,
   onTailorAi,
   exportMenuOpen,
@@ -307,7 +310,9 @@ export function StudioSubBar({
         open={templateManagerOpen}
         onOpenChange={setTemplateManagerOpen}
         onTemplatesChanged={onTemplatesChanged}
-        onTemplateImported={onTemplateSelect}
+        onTemplateImported={
+          onTemplateImported ?? ((id) => onTemplateSelect(id))
+        }
       />
     </TooltipProvider>
   );

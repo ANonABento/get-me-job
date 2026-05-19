@@ -10,13 +10,23 @@ import {
   type ResumeSlotPath,
 } from "@/lib/resume/template-v2";
 import {
+  documentTemplateV3Schema,
+  type BorderSet,
+  type BoxEdges,
+  type DocumentTemplateV3,
+  type TemplateTable,
+  type TemplateTableCell,
+  type TemplateTableRow,
+} from "@/lib/resume/template-v3";
+import {
   extractTemplateFromFile,
   getTemplateSourceType,
   type TemplateSourceType,
 } from "@/lib/templates/import";
 import {
+  assessVisualTemplateFidelity,
   assessTemplateMigrationFidelity,
-  type TemplateMigrationFidelityReport,
+  type TemplateMigrationFidelityLike,
 } from "@/lib/resume/template-migration-fidelity";
 
 export interface SourceDocumentIR {
@@ -33,6 +43,39 @@ export interface SourcePage {
   number: number;
   widthPt?: number;
   heightPt?: number;
+  margins?: BoxEdges;
+}
+
+export interface SourceInlineRun {
+  text: string;
+  href?: string;
+  style?: SourceBlock["style"];
+}
+
+export interface SourceCellBlock {
+  id: string;
+  type: "paragraph" | "heading" | "list-item" | "link";
+  text: string;
+  href?: string;
+  listMarker?: "disc" | "decimal" | "dash" | "none";
+  style?: SourceBlock["style"];
+  runs: SourceInlineRun[];
+}
+
+export interface SourceTableMetadata {
+  id: string;
+  widthPt?: number;
+  alignment?: "left" | "center" | "right";
+  columns?: Array<number | undefined>;
+  padding?: BoxEdges;
+  borders?: BorderSet;
+  fill?: { color: string };
+}
+
+export interface SourceTableRowMetadata {
+  heightPt?: number;
+  borders?: BorderSet;
+  fill?: { color: string };
 }
 
 export interface SourceBlock {
@@ -51,16 +94,27 @@ export interface SourceBlock {
     fontFamily?: string;
     fontSizePt?: number;
     bold?: boolean;
+    italic?: boolean;
     color?: string;
+    lineHeight?: string;
     alignment?: "left" | "center" | "right" | "justified";
     styleId?: string;
   };
   cells?: string[];
+  tableMetadata?: SourceTableMetadata;
+  rowMetadata?: SourceTableRowMetadata;
   cellMetadata?: Array<{
     text: string;
     widthPt?: number;
     gridSpan?: number;
+    verticalMerge?: "restart" | "continue";
     alignment?: "left" | "center" | "right" | "justified";
+    padding?: BoxEdges;
+    borders?: BorderSet;
+    fill?: { color: string };
+    verticalAlign?: "top" | "middle" | "bottom";
+    blocks?: SourceCellBlock[];
+    nestedTables?: SourceBlock[][];
   }>;
   href?: string;
 }
@@ -74,7 +128,8 @@ export interface TemplateMigrationDraft {
   source: SourceDocumentIR;
   resume: TailoredResume;
   template: DocumentTemplateV2;
-  fidelity: TemplateMigrationFidelityReport;
+  templateV3: DocumentTemplateV3;
+  fidelity: TemplateMigrationFidelityLike;
   warnings: string[];
   confidence: "high" | "medium" | "low";
   createdAt: string;
@@ -134,7 +189,12 @@ export async function createTemplateMigrationDraft({
   applySourceStyleHints(template, source);
   applySlotSourceHints(template, source.blocks);
   applyLayoutHints(template, source);
-  const fidelity = assessTemplateMigrationFidelity(source, template);
+  const templateV3 = createDocumentTemplateV3FromSourceIR(
+    generateId(),
+    filename.replace(/\.[^.]+$/, "").slice(0, 100) || "Visual template",
+    source,
+  );
+  const fidelity = assessVisualTemplateFidelity(source, templateV3);
 
   return {
     id: generateId(),
@@ -145,6 +205,7 @@ export async function createTemplateMigrationDraft({
     source,
     resume,
     template,
+    templateV3,
     fidelity,
     warnings: [...extracted.warnings, ...source.diagnostics],
     confidence: extracted.confidence,
@@ -267,16 +328,182 @@ async function extractPositionedPdfIR(
     }
   }
   await repairGlyphDamagedPdfText(buffer, blocks);
+  const { blocks: inferredBlocks, inferredTableCount } =
+    inferPdfTableRows(blocks);
   return {
     sourceType: "pdf",
     filename,
     pages: pages.length ? pages : [pdfPage(buffer.toString("latin1"))],
-    blocks,
-    rawText: blocks.map((block) => block.text).join("\n"),
+    blocks: inferredBlocks,
+    rawText: inferredBlocks.map((block) => block.text).join("\n"),
     diagnostics: [
       "PDF text positions were used to infer line spacing, margins, and column layout.",
-    ],
+      inferredTableCount
+        ? "PDF table rows were inferred from aligned text geometry."
+        : "",
+    ].filter(Boolean),
   };
+}
+
+export function inferPdfTableRows(blocks: SourceBlock[]): {
+  blocks: SourceBlock[];
+  inferredTableCount: number;
+} {
+  const output: SourceBlock[] = [];
+  let inferredTableCount = 0;
+  const pages = new Map<string, SourceBlock[]>();
+  for (const block of blocks) {
+    pages.set(block.pageId, [...(pages.get(block.pageId) ?? []), block]);
+  }
+
+  for (const pageBlocks of pages.values()) {
+    const lines = groupSourceBlocksByY(pageBlocks);
+    for (let index = 0; index < lines.length; index += 1) {
+      const line = lines[index];
+      if (!isPdfTableLine(line)) {
+        output.push(...line);
+        continue;
+      }
+
+      const run = [line];
+      let cursor = index + 1;
+      while (
+        cursor < lines.length &&
+        isPdfTableLine(lines[cursor]) &&
+        pdfTableLinesAlign(line, lines[cursor]) &&
+        pdfLineGap(lines[cursor - 1], lines[cursor]) <= 32
+      ) {
+        run.push(lines[cursor]);
+        cursor += 1;
+      }
+
+      if (run.length < 2) {
+        output.push(...line);
+        continue;
+      }
+
+      inferredTableCount += 1;
+      const tableId = `pdf-table-${inferredTableCount}`;
+      for (const [rowIndex, row] of run.entries()) {
+        output.push(pdfLineToTableRow(row, tableId, rowIndex));
+      }
+      index = cursor - 1;
+    }
+  }
+
+  return { blocks: renumberSourceBlocks(output), inferredTableCount };
+}
+
+function groupSourceBlocksByY(blocks: SourceBlock[]): SourceBlock[][] {
+  const lines: SourceBlock[][] = [];
+  for (const block of blocks) {
+    if (!block.bbox) {
+      lines.push([block]);
+      continue;
+    }
+    const line = lines.find((candidate) => {
+      const first = candidate[0]?.bbox;
+      if (!first) return false;
+      const height = Math.max(first.heightPt, block.bbox!.heightPt, 8);
+      return Math.abs(first.yPt - block.bbox!.yPt) < height * 0.6;
+    });
+    if (line) line.push(block);
+    else lines.push([block]);
+  }
+  return lines
+    .map((line) =>
+      [...line].sort((a, b) => (a.bbox?.xPt ?? 0) - (b.bbox?.xPt ?? 0)),
+    )
+    .sort((a, b) => (a[0]?.bbox?.yPt ?? 0) - (b[0]?.bbox?.yPt ?? 0));
+}
+
+function isPdfTableLine(line: SourceBlock[]): boolean {
+  return line.length >= 2 && line.every((block) => block.bbox);
+}
+
+function pdfTableLinesAlign(
+  reference: SourceBlock[],
+  candidate: SourceBlock[],
+): boolean {
+  if (reference.length !== candidate.length) return false;
+  return reference.every((block, index) => {
+    const left = block.bbox?.xPt;
+    const nextLeft = candidate[index]?.bbox?.xPt;
+    return (
+      left !== undefined &&
+      nextLeft !== undefined &&
+      Math.abs(left - nextLeft) <= 14
+    );
+  });
+}
+
+function pdfLineGap(previous: SourceBlock[], next: SourceBlock[]): number {
+  const previousBox = unionBlockBoxes(previous);
+  const nextBox = unionBlockBoxes(next);
+  if (!previousBox || !nextBox) return Infinity;
+  return nextBox.yPt - (previousBox.yPt + previousBox.heightPt);
+}
+
+function pdfLineToTableRow(
+  line: SourceBlock[],
+  tableId: string,
+  rowIndex: number,
+): SourceBlock {
+  const cells = line.map((block) => block.text);
+  const bbox = unionBlockBoxes(line);
+  return {
+    id: `${tableId}-row-${rowIndex + 1}`,
+    pageId: line[0]?.pageId ?? "page-1",
+    type: "table-row",
+    text: cells.join(" | "),
+    cells,
+    bbox,
+    tableMetadata: {
+      id: tableId,
+      columns: line.map((block) => block.bbox?.widthPt).filter(Boolean),
+    },
+    cellMetadata: line.map((block) => ({
+      text: block.text,
+      widthPt: block.bbox?.widthPt,
+      alignment: inferPdfCellAlignment(block, line),
+      blocks: [
+        {
+          id: `${block.id}:cell-text`,
+          type: block.type === "heading" ? "heading" : "paragraph",
+          text: block.text,
+          style: block.style,
+          runs: [{ text: block.text, style: block.style }],
+        },
+      ],
+    })),
+  };
+}
+
+function inferPdfCellAlignment(
+  block: SourceBlock,
+  row: SourceBlock[],
+): "left" | "right" | undefined {
+  const index = row.indexOf(block);
+  if (index < 1 || !block.bbox) return "left";
+  const rightEdges = row
+    .map((candidate) =>
+      candidate.bbox ? candidate.bbox.xPt + candidate.bbox.widthPt : null,
+    )
+    .filter((edge): edge is number => edge !== null);
+  const maxRight = Math.max(...rightEdges);
+  const right = block.bbox.xPt + block.bbox.widthPt;
+  return Math.abs(maxRight - right) < 16 ? "right" : "left";
+}
+
+function unionBlockBoxes(blocks: SourceBlock[]) {
+  const boxes = blocks
+    .map((block) => block.bbox)
+    .filter((box): box is NonNullable<SourceBlock["bbox"]> => Boolean(box));
+  return boxes.length ? unionBox(boxes) : undefined;
+}
+
+function renumberSourceBlocks(blocks: SourceBlock[]): SourceBlock[] {
+  return blocks.map((block, index) => ({ ...block, id: `block-${index + 1}` }));
 }
 
 async function repairGlyphDamagedPdfText(
@@ -372,43 +599,32 @@ function extractDocxIR(buffer: Buffer, filename: string): SourceDocumentIR {
   const entries = readZipTextEntries(buffer);
   const xml = entries["word/document.xml"] ?? "";
   const styles = parseDocxStyles(entries["word/styles.xml"] ?? "");
+  const numbering = parseDocxNumbering(entries["word/numbering.xml"] ?? "");
+  const relationships = parseDocxRelationships(
+    entries["word/_rels/document.xml.rels"] ?? "",
+  );
   const page = docxPage(xml);
   const blocks: SourceBlock[] = [];
   let blockIndex = 0;
-  for (const child of xml.matchAll(/<w:(p|tbl)\b[\s\S]*?<\/w:\1>/g)) {
-    const tagName = child[1];
-    const childXml = child[0];
+  let tableIndex = 0;
+  const nextBlockId = () => `block-${++blockIndex}`;
+  const nextTableId = () => `table-${++tableIndex}`;
+  for (const child of extractDocxBodyChildren(xml)) {
+    const tagName = child.tag;
+    const childXml = child.xml;
     if (tagName === "tbl") {
-      const gridWidths = Array.from(
-        childXml.matchAll(/<w:gridCol\b[^>]*w:w="([0-9.]+)"/g),
-      ).map((match) => Number(match[1]) / 20);
-      for (const row of childXml.matchAll(/<w:tr\b[\s\S]*?<\/w:tr>/g)) {
-        let gridIndex = 0;
-        const cellMetadata = Array.from(
-          row[0].matchAll(/<w:tc\b[\s\S]*?<\/w:tc>/g),
-        )
-          .map((cell) => {
-            const metadata = docxCellMetadata(cell[0]);
-            const span = Math.max(1, metadata.gridSpan ?? 1);
-            const gridWidth = gridWidths
-              .slice(gridIndex, gridIndex + span)
-              .reduce((sum, value) => sum + value, 0);
-            const width = metadata.widthPt ?? (gridWidth || undefined);
-            gridIndex += span;
-            return { ...metadata, widthPt: width };
-          })
-          .filter((cell) => cell.text);
-        if (cellMetadata.length > 1) {
-          blocks.push({
-            id: `block-${++blockIndex}`,
-            pageId: "page-1",
-            type: "table-row",
-            text: cellMetadata.map((cell) => cell.text).join(" | "),
-            cells: cellMetadata.map((cell) => cell.text),
-            cellMetadata,
-          });
-        }
-      }
+      blocks.push(
+        ...parseDocxTableRows(
+          childXml,
+          nextTableId(),
+          page.id,
+          styles,
+          numbering,
+          relationships,
+          nextBlockId,
+          nextTableId,
+        ),
+      );
       continue;
     }
 
@@ -423,12 +639,12 @@ function extractDocxIR(buffer: Buffer, filename: string): SourceDocumentIR {
       },
     );
     blocks.push({
-      id: `block-${++blockIndex}`,
-      pageId: "page-1",
+      id: nextBlockId(),
+      pageId: page.id,
       type:
         isHeadingText(text) || /heading|title/i.test(styleId ?? "")
           ? "heading"
-          : /<w:numPr\b|<w:numId\b/.test(childXml)
+          : docxListMarker(childXml, numbering)
             ? "list-item"
             : "paragraph",
       text,
@@ -448,13 +664,147 @@ function extractDocxIR(buffer: Buffer, filename: string): SourceDocumentIR {
   };
 }
 
+function parseDocxTableRows(
+  tableXml: string,
+  tableId: string,
+  pageId: string,
+  styles: Record<string, NonNullable<SourceBlock["style"]>>,
+  numbering: DocxNumberingMap,
+  relationships: Record<string, string>,
+  nextBlockId: () => string,
+  nextTableId: () => string,
+): SourceBlock[] {
+  const gridWidths = docxDirectGridWidths(tableXml);
+  const tableMetadata = docxTableMetadata(tableId, tableXml, gridWidths);
+  const rows: SourceBlock[] = [];
+  for (const rowXml of extractDirectDocxElements(tableXml, "tr")) {
+    let gridIndex = 0;
+    const rowMetadata = docxTableRowMetadata(rowXml);
+    const cellMetadata = extractDirectDocxElements(rowXml, "tc")
+      .map((cellXml) => {
+        const metadata = docxCellMetadata(cellXml, styles, relationships, {
+          pageId,
+          numbering,
+          nextBlockId,
+          nextTableId,
+        });
+        const span = Math.max(1, metadata.gridSpan ?? 1);
+        const gridWidth = gridWidths
+          .slice(gridIndex, gridIndex + span)
+          .reduce((sum, value) => sum + value, 0);
+        const width = metadata.widthPt ?? (gridWidth || undefined);
+        gridIndex += span;
+        return { ...metadata, widthPt: width };
+      })
+      .filter((cell) => cell.text || cell.nestedTables?.length);
+    if (cellMetadata.length) {
+      rows.push({
+        id: nextBlockId(),
+        pageId,
+        type: "table-row",
+        text: cellMetadata.map((cell) => cell.text).join(" | "),
+        cells: cellMetadata.map((cell) => cell.text),
+        tableMetadata,
+        rowMetadata,
+        cellMetadata,
+      });
+    }
+  }
+  return rows;
+}
+
+function extractDocxBodyChildren(
+  documentXml: string,
+): Array<{ tag: "p" | "tbl"; xml: string }> {
+  const body = documentXml.match(/<w:body\b[^>]*>([\s\S]*?)<\/w:body>/)?.[1];
+  const xml = body ?? documentXml;
+  const children: Array<{ tag: "p" | "tbl"; xml: string }> = [];
+  let cursor = 0;
+  while (cursor < xml.length) {
+    const next = xml.slice(cursor).match(/<w:(p|tbl)\b/);
+    if (!next) break;
+    const start = cursor + (next.index ?? 0);
+    const tag = next[1] as "p" | "tbl";
+    const end = balancedDocxElementEnd(xml, start, tag);
+    if (end === -1) break;
+    children.push({ tag, xml: xml.slice(start, end) });
+    cursor = end;
+  }
+  return children;
+}
+
+function extractDirectDocxElements(xml: string, tag: string): string[] {
+  const inner = docxElementInnerXml(xml) ?? xml;
+  const elements: string[] = [];
+  let cursor = 0;
+  while (cursor < inner.length) {
+    const next = inner.slice(cursor).match(new RegExp(`<w:(${tag}|tbl)\\b`));
+    if (!next) break;
+    const start = cursor + next.index!;
+    const foundTag = next[1];
+    const end = balancedDocxElementEnd(inner, start, foundTag);
+    if (end === -1) break;
+    if (foundTag === tag) {
+      elements.push(inner.slice(start, end));
+    }
+    cursor = end;
+  }
+  return elements;
+}
+
+function docxElementInnerXml(xml: string): string | null {
+  const openEnd = xml.indexOf(">");
+  const closeStart = xml.lastIndexOf("</w:");
+  if (openEnd === -1 || closeStart === -1 || closeStart <= openEnd) {
+    return null;
+  }
+  return xml.slice(openEnd + 1, closeStart);
+}
+
+function balancedDocxElementEnd(
+  xml: string,
+  start: number,
+  tag: string,
+): number {
+  const tagPattern = new RegExp(`<\\/?w:${tag}\\b[^>]*>`, "g");
+  tagPattern.lastIndex = start;
+  let depth = 0;
+  let match: RegExpExecArray | null;
+  while ((match = tagPattern.exec(xml)) !== null) {
+    const token = match[0];
+    const closing = token.startsWith("</");
+    const selfClosing = /\/>$/.test(token);
+    if (closing) {
+      depth -= 1;
+      if (depth === 0) return tagPattern.lastIndex;
+    } else if (!selfClosing) {
+      depth += 1;
+    }
+  }
+  return -1;
+}
+
+function docxDirectGridWidths(tableXml: string): number[] {
+  const inner = docxElementInnerXml(tableXml) ?? tableXml;
+  const nestedTableStart = inner.search(/<w:tr\b/);
+  const tableHeaderXml =
+    nestedTableStart >= 0 ? inner.slice(0, nestedTableStart) : inner;
+  return Array.from(
+    tableHeaderXml.matchAll(/<w:gridCol\b[^>]*w:w="([0-9.]+)"/g),
+  ).map((match) => Number(match[1]) / 20);
+}
+
 export function applySourceStyleHints(
   template: DocumentTemplateV2,
   source: SourceDocumentIR,
 ): void {
-  const bodyStyle = firstStyle(
+  const hasPdfGeometry =
+    source.sourceType === "pdf" && source.blocks.some((block) => block.bbox);
+  const bodyStyle = representativeStyle(
     source.blocks.filter(
-      (block) => block.type === "paragraph" || block.type === "list-item",
+      (block) =>
+        (block.type === "paragraph" || block.type === "list-item") &&
+        block.slotHint !== "contact.name",
     ),
   );
   const headingStyle = firstStyle(
@@ -477,6 +827,7 @@ export function applySourceStyleHints(
 
 function extractLatexIR(source: string, filename: string): SourceDocumentIR {
   const clean = source.replace(/%.*$/gm, "");
+  let latexTableIndex = 0;
   const expanded = expandLatexCustomMacros(clean)
     .replace(
       /\\resumeSubheading\{([^}]*)\}\{([^}]*)\}\{([^}]*)\}\{([^}]*)\}/g,
@@ -487,20 +838,16 @@ function extractLatexIR(source: string, filename: string): SourceDocumentIR {
     .replace(/\\href\{([^}]+)\}\{([^}]+)\}/g, "$2 <$1>")
     .replace(/\\url\{([^}]+)\}/g, "$1")
     .replace(
-      /\\begin\{tabular\}\{[^}]*}([\s\S]*?)\\end\{tabular}/g,
-      (_match, body: string) =>
-        body
-          .split(/\\\\/)
-          .map((row) => row.replace(/\\hline|\\cline\{[^}]+}/g, "").trim())
-          .filter(Boolean)
-          .map(
-            (row) =>
-              `\n__TABLE_ROW__ ${row
-                .split("&")
-                .map((cell) => cell.trim())
-                .join(" | ")}\n`,
-          )
-          .join(""),
+      /\\begin\{tabularx\}\{((?:[^{}]|\{[^{}]*})*)}\{((?:[^{}]|\{[^{}]*})*)}([\s\S]*?)\\end\{tabularx}/g,
+      (_match, width: string, spec: string, body: string) =>
+        latexTabularToLineIR(`latex-table-${++latexTableIndex}`, spec, body, {
+          widthPt: latexLengthToPt(width),
+        }),
+    )
+    .replace(
+      /\\begin\{(?:tabular|longtable|array)\}\{((?:[^{}]|\{[^{}]*})*)}([\s\S]*?)\\end\{(?:tabular|longtable|array)}/g,
+      (_match, spec: string, body: string) =>
+        latexTabularToLineIR(`latex-table-${++latexTableIndex}`, spec, body),
     )
     .replace(/\\(section|subsection|subsubsection)\*?\{([^}]*)\}/g, "\n$2\n")
     .replace(/\\item(?:\[[^\]]+])?\s*/g, "\n- ")
@@ -536,14 +883,26 @@ function buildLineIR(
     .filter(Boolean)
     .map<SourceBlock>((line, index) => {
       if (line.startsWith("__TABLE_ROW__")) {
-        const cells = line.replace(/^__TABLE_ROW__\s*/, "").split(/\s+\|\s+/);
+        const payload = parseLatexTableRowPayload(line);
+        const cells =
+          payload?.cells ??
+          line.replace(/^__TABLE_ROW__\s*/, "").split(/\s+\|\s+/);
         return {
           id: `block-${index + 1}`,
           pageId: page.id,
           type: "table-row",
           text: cells.join(" | "),
           cells,
-          cellMetadata: cells.map((cell) => ({ text: cell })),
+          tableMetadata: payload?.tableMetadata,
+          rowMetadata: payload?.rowMetadata,
+          cellMetadata: cells.map((cell, cellIndex) => ({
+            text: cell,
+            widthPt: payload?.widths[cellIndex] ?? undefined,
+            gridSpan: payload?.colSpans[cellIndex] ?? undefined,
+            alignment: payload?.alignments[cellIndex] ?? undefined,
+            borders: payload?.cellBorders[cellIndex] ?? undefined,
+            fill: payload?.cellFills[cellIndex] ?? undefined,
+          })),
         };
       }
       return {
@@ -568,6 +927,353 @@ function buildLineIR(
   };
 }
 
+interface LatexTableRowPayload {
+  tableMetadata: SourceTableMetadata;
+  rowMetadata?: SourceTableRowMetadata;
+  cells: string[];
+  widths: Array<number | null | undefined>;
+  colSpans: Array<number | null | undefined>;
+  alignments: Array<"left" | "center" | "right" | null | undefined>;
+  cellBorders: Array<BorderSet | null | undefined>;
+  cellFills: Array<{ color: string } | null | undefined>;
+}
+
+function latexTabularToLineIR(
+  tableId: string,
+  spec: string,
+  body: string,
+  options: { widthPt?: number } = {},
+): string {
+  const columns = parseLatexColumnSpec(spec);
+  const rows: string[] = [];
+  let pendingTopRule = false;
+  for (const segment of body.split(/\\\\/)) {
+    let row = segment.trim();
+    if (!row) continue;
+    const rowFill = latexRowFill(row);
+    row = row.replace(/\\rowcolor(?:\[[^\]]+])?\{[^}]+}/g, "").trim();
+    if (/\\(?:hline|toprule|midrule|bottomrule)\b/.test(row)) {
+      pendingTopRule = true;
+      row = row.replace(/\\(?:hline|toprule|midrule|bottomrule)\b/g, "").trim();
+    }
+    row = row.replace(/\\cline\{[^}]+}/g, "").trim();
+    if (!row) continue;
+    const parsedCells = parseLatexTableCells(row, columns);
+    const cells = parsedCells.map((cell) => cell.text);
+    const payload: LatexTableRowPayload = {
+      tableMetadata: {
+        id: tableId,
+        widthPt: options.widthPt,
+        columns: columns.some((column) => column.widthPt)
+          ? columns.map((column) => column.widthPt)
+          : undefined,
+      },
+      rowMetadata: pendingTopRule
+        ? { borders: { top: latexRuleBorder() }, fill: rowFill }
+        : rowFill
+          ? { fill: rowFill }
+          : undefined,
+      cells,
+      widths: parsedCells.map((cell) => cell.widthPt),
+      colSpans: parsedCells.map((cell) => cell.colSpan),
+      alignments: parsedCells.map((cell) => cell.alignment),
+      cellBorders: parsedCells.map((cell) => cell.borders),
+      cellFills: parsedCells.map((cell) => cell.fill),
+    };
+    rows.push(
+      `\n__TABLE_ROW__ ${encodeURIComponent(JSON.stringify(payload))}\n`,
+    );
+    pendingTopRule = false;
+  }
+  return rows.join("");
+}
+
+function parseLatexTableRowPayload(line: string): LatexTableRowPayload | null {
+  const encoded = line.replace(/^__TABLE_ROW__\s*/, "").trim();
+  if (!encoded.startsWith("%7B")) return null;
+  try {
+    return JSON.parse(decodeURIComponent(encoded)) as LatexTableRowPayload;
+  } catch {
+    return null;
+  }
+}
+
+function parseLatexTableCells(
+  row: string,
+  columns: ReturnType<typeof parseLatexColumnSpec>,
+): Array<{
+  text: string;
+  widthPt?: number;
+  colSpan?: number;
+  alignment?: "left" | "center" | "right";
+  borders?: BorderSet;
+  fill?: { color: string };
+}> {
+  const cells = splitLatexTableCells(row);
+  let columnIndex = 0;
+  return cells.map((rawCell) => {
+    const multicolumn = parseLatexMulticolumn(rawCell);
+    if (multicolumn) {
+      const specColumns = parseLatexColumnSpec(multicolumn.spec);
+      const span = Math.max(1, multicolumn.colSpan);
+      const startColumn = columns[columnIndex];
+      const endColumn = columns[columnIndex + span];
+      const explicitColumn = specColumns[0];
+      const widthPt = columns
+        .slice(columnIndex, columnIndex + span)
+        .reduce<number | undefined>((sum, column) => {
+          if (!column.widthPt) return sum;
+          return (sum ?? 0) + column.widthPt;
+        }, undefined);
+      const cell = {
+        text: cleanLatexCell(multicolumn.content),
+        widthPt,
+        colSpan: span > 1 ? span : undefined,
+        alignment: explicitColumn?.alignment ?? startColumn?.alignment,
+        fill: latexCellFill(multicolumn.content),
+        borders: latexCellBorders(
+          {
+            alignment: explicitColumn?.alignment ?? startColumn?.alignment,
+            widthPt,
+            leftRule:
+              explicitColumn?.leftRule ?? startColumn?.leftRule ?? false,
+            rightRule:
+              explicitColumn?.rightRule ??
+              columns[columnIndex + span - 1]?.rightRule ??
+              false,
+          },
+          endColumn,
+        ),
+      };
+      columnIndex += span;
+      return cell;
+    }
+
+    const column = columns[columnIndex];
+    const cell = {
+      text: cleanLatexCell(rawCell),
+      widthPt: column?.widthPt,
+      alignment: column?.alignment,
+      fill: latexCellFill(rawCell),
+      borders: latexCellBorders(column, columns[columnIndex + 1]),
+    };
+    columnIndex += 1;
+    return cell;
+  });
+}
+
+function splitLatexTableCells(row: string): string[] {
+  const cells: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let index = 0; index < row.length; index += 1) {
+    const char = row[index];
+    if (char === "\\") {
+      index += 1;
+      continue;
+    }
+    if (char === "{") depth += 1;
+    if (char === "}") depth = Math.max(0, depth - 1);
+    if (char === "&" && depth === 0) {
+      cells.push(row.slice(start, index));
+      start = index + 1;
+    }
+  }
+  cells.push(row.slice(start));
+  return cells;
+}
+
+function parseLatexMulticolumn(
+  cell: string,
+): { colSpan: number; spec: string; content: string } | null {
+  const trimmed = cell.trim();
+  if (!trimmed.startsWith("\\multicolumn")) return null;
+  let cursor = "\\multicolumn".length;
+  const colSpan = readLatexBracedValue(trimmed, cursor);
+  if (!colSpan) return null;
+  cursor = colSpan.endIndex + 1;
+  const spec = readLatexBracedValue(trimmed, cursor);
+  if (!spec) return null;
+  cursor = spec.endIndex + 1;
+  const content = readLatexBracedValue(trimmed, cursor);
+  if (!content) return null;
+  const span = Number(colSpan.value.trim());
+  return Number.isFinite(span)
+    ? { colSpan: span, spec: spec.value, content: content.value }
+    : null;
+}
+
+function parseLatexColumnSpec(spec: string): Array<{
+  alignment?: "left" | "center" | "right";
+  widthPt?: number;
+  leftRule: boolean;
+  rightRule: boolean;
+}> {
+  const columns: Array<{
+    alignment?: "left" | "center" | "right";
+    widthPt?: number;
+    leftRule: boolean;
+    rightRule: boolean;
+  }> = [];
+  let pendingRule = false;
+  for (let index = 0; index < spec.length; index += 1) {
+    const char = spec[index];
+    if (char === "|") {
+      pendingRule = true;
+      if (columns.length) columns[columns.length - 1].rightRule = true;
+      continue;
+    }
+    const alignment =
+      char === "l" ||
+      char === "p" ||
+      char === "m" ||
+      char === "b" ||
+      char === "X"
+        ? "left"
+        : char === "c"
+          ? "center"
+          : char === "r"
+            ? "right"
+            : undefined;
+    if (!alignment) continue;
+    let widthPt: number | undefined;
+    if (
+      (char === "p" || char === "m" || char === "b") &&
+      spec[index + 1] === "{"
+    ) {
+      const width = readLatexBracedValue(spec, index + 1);
+      widthPt = width ? latexLengthToPt(width.value) : undefined;
+      if (width) index = width.endIndex;
+    }
+    columns.push({
+      alignment,
+      widthPt,
+      leftRule: pendingRule,
+      rightRule: false,
+    });
+    pendingRule = false;
+  }
+  if (pendingRule && columns.length)
+    columns[columns.length - 1].rightRule = true;
+  return columns;
+}
+
+function readLatexBracedValue(
+  value: string,
+  openBraceIndex: number,
+): { value: string; endIndex: number } | null {
+  let depth = 0;
+  for (let index = openBraceIndex; index < value.length; index += 1) {
+    const char = value[index];
+    if (char === "{") depth += 1;
+    if (char === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        return {
+          value: value.slice(openBraceIndex + 1, index),
+          endIndex: index,
+        };
+      }
+    }
+  }
+  return null;
+}
+
+function latexLengthToPt(value: string): number | undefined {
+  const match = value.trim().match(/^([0-9.]+)\s*(pt|in|cm|mm)$/i);
+  if (!match) return undefined;
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount)) return undefined;
+  const unit = match[2].toLowerCase();
+  const points =
+    unit === "in"
+      ? amount * 72
+      : unit === "cm"
+        ? amount * 28.3465
+        : unit === "mm"
+          ? amount * 2.83465
+          : amount;
+  return Math.round(points * 100) / 100;
+}
+
+function latexLengthToCssPt(value: string | undefined): string | undefined {
+  const points = value ? latexLengthToPt(value) : undefined;
+  return points === undefined ? undefined : `${points}pt`;
+}
+
+function latexCellBorders(
+  column: ReturnType<typeof parseLatexColumnSpec>[number] | undefined,
+  nextColumn: ReturnType<typeof parseLatexColumnSpec>[number] | undefined,
+): BorderSet | undefined {
+  const borders: BorderSet = {};
+  if (column?.leftRule) borders.left = latexRuleBorder();
+  if (column?.rightRule || nextColumn?.leftRule)
+    borders.right = latexRuleBorder();
+  return Object.keys(borders).length ? borders : undefined;
+}
+
+function latexRuleBorder(): BorderSet["top"] {
+  return { widthPt: 0.4, color: "#000000", style: "solid" };
+}
+
+function latexRowFill(row: string): { color: string } | undefined {
+  const match = row.match(/\\rowcolor(?:\[[^\]]+])?\{([^}]+)}/);
+  return latexColorFill(match?.[1]);
+}
+
+function latexCellFill(cell: string): { color: string } | undefined {
+  const match = cell.match(/\\cellcolor(?:\[[^\]]+])?\{([^}]+)}/);
+  return latexColorFill(match?.[1]);
+}
+
+function latexColorFill(
+  value: string | undefined,
+): { color: string } | undefined {
+  const color = latexColorToHex(value);
+  return color ? { color } : undefined;
+}
+
+function latexColorToHex(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const normalized = value.trim().toLowerCase();
+  if (/^[0-9a-f]{6}$/i.test(normalized)) return `#${normalized.toUpperCase()}`;
+  if (/^[0-9a-f]{3}$/i.test(normalized)) {
+    return `#${normalized
+      .split("")
+      .map((char) => `${char}${char}`)
+      .join("")
+      .toUpperCase()}`;
+  }
+  const named: Record<string, string> = {
+    black: "#000000",
+    blue: "#0000FF",
+    cyan: "#00FFFF",
+    gray: "#808080",
+    green: "#008000",
+    grey: "#808080",
+    lime: "#00FF00",
+    magenta: "#FF00FF",
+    orange: "#FFA500",
+    purple: "#800080",
+    red: "#FF0000",
+    teal: "#008080",
+    violet: "#EE82EE",
+    white: "#FFFFFF",
+    yellow: "#FFFF00",
+  };
+  return named[normalized];
+}
+
+function cleanLatexCell(cell: string): string {
+  return cell
+    .replace(/\\cellcolor(?:\[[^\]]+])?\{[^}]+}/g, "")
+    .replace(/\\(?:textbf|textit|emph|underline)\{([^}]*)\}/g, "$1")
+    .replace(/\\[a-zA-Z]+\*?(?:\[[^\]]*])?(?:\{[^}]*\})?/g, " ")
+    .replace(/[{}]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function applySlotSourceHints(
   template: DocumentTemplateV2,
   blocks: SourceBlock[],
@@ -590,16 +1296,20 @@ function applySlotSourceHints(
 function applySemanticSlotHints(source: SourceDocumentIR): void {
   let section = "";
   let experienceEntryStarted = false;
+  let experienceHighlightStarted = false;
   let educationEntryStarted = false;
   let projectEntryStarted = false;
+  let projectHighlightStarted = false;
 
   for (const [index, block] of source.blocks.entries()) {
     const normalized = normalizeSectionName(block.text);
     if (SECTION_NAMES.has(normalized)) {
       section = normalized;
       experienceEntryStarted = false;
+      experienceHighlightStarted = false;
       educationEntryStarted = false;
       projectEntryStarted = false;
+      projectHighlightStarted = false;
       continue;
     }
 
@@ -644,18 +1354,26 @@ function applySemanticSlotHints(source: SourceDocumentIR): void {
       section === "professional experience" ||
       section === "work history"
     ) {
-      if (block.type === "list-item") {
+      if (
+        block.type === "list-item" ||
+        isBulletLikeText(block.text) ||
+        (experienceHighlightStarted && isIndentedContinuation(block))
+      ) {
         block.slotHint = "experiences[].highlights[]";
+        experienceHighlightStarted = true;
       } else if (
         !experienceEntryStarted ||
         looksLikeExperienceHeader(block.text)
       ) {
         block.slotHint = "experiences[].title";
         experienceEntryStarted = true;
+        experienceHighlightStarted = false;
       } else if (hasDateRange(block.text)) {
         block.slotHint = "experiences[].dates";
+        experienceHighlightStarted = false;
       } else {
         block.slotHint = "experiences[].company";
+        experienceHighlightStarted = false;
       }
       continue;
     }
@@ -679,16 +1397,34 @@ function applySemanticSlotHints(source: SourceDocumentIR): void {
     }
 
     if (section === "projects" || section === "academic projects") {
-      if (block.type === "list-item") {
+      if (
+        block.type === "list-item" ||
+        isBulletLikeText(block.text) ||
+        (projectHighlightStarted && isIndentedContinuation(block))
+      ) {
         block.slotHint = "projects[].highlights[]";
-      } else if (!projectEntryStarted) {
+        projectHighlightStarted = true;
+      } else if (
+        !projectEntryStarted ||
+        (projectHighlightStarted && !isIndentedContinuation(block))
+      ) {
         block.slotHint = "projects[].name";
         projectEntryStarted = true;
+        projectHighlightStarted = false;
       } else {
         block.slotHint = "projects[].description";
+        projectHighlightStarted = false;
       }
     }
   }
+}
+
+function isBulletLikeText(text: string): boolean {
+  return /^\s*(?:[-*•●])\s*/.test(text);
+}
+
+function isIndentedContinuation(block: SourceBlock): boolean {
+  return (block.bbox?.xPt ?? 0) > 45;
 }
 
 export function applyLayoutHints(
@@ -744,7 +1480,7 @@ function inferTableColumnWidths(tableRows: SourceBlock[]): number[] {
     for (const cell of row.cellMetadata ?? []) {
       const span = Math.max(1, cell.gridSpan ?? 1);
       const width = cell.widthPt;
-      if (width && Number.isFinite(width)) {
+      if (span === 1 && width && Number.isFinite(width)) {
         const perColumn = width / span;
         for (let i = 0; i < span; i += 1) {
           columnTotals[columnIndex + i] =
@@ -835,6 +1571,782 @@ function applyColumnGeometryHints(
   });
   template.regions = regions;
   template.diagnostics.push("source_column_geometry_inferred");
+}
+
+export function createDocumentTemplateV3FromSourceIR(
+  id: string,
+  name: string,
+  source: SourceDocumentIR,
+): DocumentTemplateV3 {
+  const page = source.pages[0] ?? {
+    id: "page-1",
+    number: 1,
+    widthPt: 612,
+    heightPt: 792,
+  };
+  const hasPdfGeometry =
+    source.sourceType === "pdf" && source.blocks.some((block) => block.bbox);
+  const bodyStyle = representativeStyle(
+    source.blocks.filter(
+      (block) =>
+        (block.type === "paragraph" || block.type === "list-item") &&
+        block.slotHint !== "contact.name",
+    ),
+  );
+  const headingStyle = firstStyle(
+    source.blocks.filter((block) => block.type === "heading"),
+  );
+  const nameStyle = source.blocks[0]?.style ?? headingStyle ?? bodyStyle;
+  const slots = buildTemplateV3Slots(source);
+  const nodes = buildTemplateV3Nodes(source, slots);
+  const repeatGroups = buildTemplateV3RepeatGroups(nodes);
+
+  return documentTemplateV3Schema.parse({
+    schemaVersion: 3,
+    id,
+    name,
+    description: `Visual template imported from ${source.filename}`,
+    source: { filename: source.filename, type: source.sourceType },
+    page: {
+      size:
+        page.widthPt &&
+        page.widthPt < 600 &&
+        page.heightPt &&
+        page.heightPt > 800
+          ? "a4"
+          : "letter",
+      widthPt: page.widthPt ?? 612,
+      heightPt: page.heightPt ?? 792,
+      margins:
+        page.margins ??
+        (hasPdfGeometry
+          ? {
+              top: "0pt",
+              right: "0pt",
+              bottom: "0pt",
+              left: "0pt",
+            }
+          : {
+              top: "0.5in",
+              right: "0.5in",
+              bottom: "0.5in",
+              left: "0.5in",
+            }),
+    },
+    tokens: {
+      name: tokenFromSourceStyle(nameStyle, {
+        fontFamily: "Arial, sans-serif",
+        fontSize: "20pt",
+        lineHeight: "1.1",
+        fontWeight: "700",
+      }),
+      heading: tokenFromSourceStyle(headingStyle, {
+        fontFamily: "Arial, sans-serif",
+        fontSize: "11pt",
+        lineHeight: "1.2",
+        fontWeight: "700",
+        textTransform: "uppercase",
+      }),
+      body: tokenFromSourceStyle(bodyStyle, {
+        fontFamily: "Arial, sans-serif",
+        fontSize: "10pt",
+        lineHeight: "1.35",
+      }),
+      meta: tokenFromSourceStyle(bodyStyle, {
+        fontFamily: "Arial, sans-serif",
+        fontSize: "9pt",
+        lineHeight: "1.3",
+        color: "#555555",
+      }),
+    },
+    regions: [
+      {
+        id: "region-page-frame",
+        role: "page-frame",
+        flow: hasPdfGeometry
+          ? "absolute"
+          : nodes.some((node) => node.kind === "table")
+            ? "table"
+            : "block",
+        box: hasPdfGeometry
+          ? { widthPt: page.widthPt ?? 612, heightPt: page.heightPt ?? 792 }
+          : undefined,
+        nodes,
+      },
+    ],
+    slots,
+    repeatGroups,
+    diagnostics: source.diagnostics.map((message, index) => ({
+      id: `diagnostic-${index + 1}`,
+      severity: "info",
+      message,
+      sourceRefs: [],
+    })),
+  });
+}
+
+function buildTemplateV3Nodes(
+  source: SourceDocumentIR,
+  slots: DocumentTemplateV3["slots"],
+): DocumentTemplateV3["regions"][number]["nodes"] {
+  const nodes: DocumentTemplateV3["regions"][number]["nodes"] = [];
+  let section = "";
+  for (let index = 0; index < source.blocks.length; index += 1) {
+    const block = source.blocks[index];
+    if (block.type === "table-row" && block.cellMetadata?.length) {
+      const tableId = block.tableMetadata?.id ?? "";
+      const rows: SourceBlock[] = [];
+      while (index < source.blocks.length) {
+        const row = source.blocks[index];
+        if (row.type !== "table-row" || !row.cellMetadata?.length) break;
+        const rowTableId = row.tableMetadata?.id ?? "";
+        if (rows.length && rowTableId !== tableId) break;
+        rows.push(row);
+        index += 1;
+      }
+      nodes.push(buildTemplateV3Table(rows, slots, section));
+      const sectionRows = rows.map(sectionNameFromRow).filter(Boolean);
+      const lastSection = sectionRows[sectionRows.length - 1];
+      if (lastSection) section = lastSection;
+      index -= 1;
+      continue;
+    }
+
+    const nextSection = sectionNameFromRow(block);
+    if (nextSection) section = nextSection;
+    nodes.push(buildTemplateV3Block(block, slots));
+  }
+
+  return nodes;
+}
+
+function buildTemplateV3Block(
+  block: SourceBlock,
+  slots: DocumentTemplateV3["slots"],
+): DocumentTemplateV3["regions"][number]["nodes"][number] {
+  const slot = slots.find((candidate) =>
+    candidate.sourceRefs.some((ref) => ref.sourceId === block.id),
+  );
+  if (slot) {
+    return {
+      kind: "slot",
+      id: `node-${slot.id}-${block.id}`,
+      slotId: slot.id,
+      slotOccurrence: slot.sourceRefs.findIndex(
+        (ref) => ref.sourceId === block.id,
+      ),
+      box: boxFromSourceBlock(block),
+      token: tokenForSlotPath(slot.path),
+      style: typographyOverrideFromSourceStyle(block.style),
+      textAlign: block.style?.alignment,
+      fallback: block.text,
+      sourceRef: sourceRefForBlock(block),
+    };
+  }
+  if (block.type === "heading") {
+    return {
+      kind: "section",
+      id: `section-${block.id}`,
+      title: block.text,
+      box: boxFromSourceBlock(block),
+      token: "heading",
+      style: typographyOverrideFromSourceStyle(block.style),
+      sourceRef: sourceRefForBlock(block),
+    };
+  }
+  return {
+    kind: "text",
+    id: `text-${block.id}`,
+    text: block.text,
+    box: boxFromSourceBlock(block),
+    token: block.type === "list-item" ? "body" : "body",
+    style: typographyOverrideFromSourceStyle(block.style),
+    textAlign: block.style?.alignment,
+    sourceRef: sourceRefForBlock(block),
+  };
+}
+
+function buildTemplateV3Table(
+  rows: SourceBlock[],
+  slots: DocumentTemplateV3["slots"],
+  initialSection = "",
+): TemplateTable {
+  const tableMetadata = rows[0]?.tableMetadata;
+  const columns = (
+    tableMetadata?.columns?.length
+      ? tableMetadata.columns
+      : inferTableColumnWidths(rows)
+  ).map((widthPt) => (widthPt ? { widthPt } : {}));
+  const verticalMergeLayout = analyzeVerticalMerges(rows);
+  let section = initialSection;
+  const tableRows: TemplateTableRow[] = rows.map((row, rowIndex) => {
+    const nextSection = sectionNameFromRow(row);
+    if (nextSection) section = nextSection;
+    return {
+      kind: "row",
+      id: `row-${row.id}`,
+      role: rowRole(row),
+      heightPt: row.rowMetadata?.heightPt,
+      borders: row.rowMetadata?.borders,
+      fill: row.rowMetadata?.fill,
+      cells: (row.cellMetadata ?? []).flatMap<TemplateTableCell>(
+        (cell, cellIndex) => {
+          const mergeKey = verticalMergeCellKey(rowIndex, cellIndex);
+          if (verticalMergeLayout.skipContinuationKeys.has(mergeKey)) {
+            return [];
+          }
+          const slotPath = inferCellSlotHint(
+            row,
+            cellIndex,
+            cell.text,
+            rowIndex,
+            section,
+          );
+          const slot = slotPath
+            ? slots.find((candidate) =>
+                candidate.sourceRefs.some(
+                  (ref) =>
+                    ref.sourceId === `${row.id}:cell-${cellIndex + 1}` &&
+                    candidate.path === slotPath,
+                ),
+              )
+            : null;
+          const nodes = templateCellNodes(row, cell, cellIndex, slot, slots);
+          return {
+            kind: "cell",
+            id: `cell-${row.id}-${cellIndex + 1}`,
+            colSpan: cell.gridSpan,
+            rowSpan: verticalMergeLayout.rowSpans.get(mergeKey),
+            widthPt: cell.widthPt,
+            padding: cell.padding,
+            borders: cell.borders,
+            fill: cell.fill,
+            verticalAlign: cell.verticalAlign,
+            textAlign: cell.alignment,
+            sourceRef: {
+              sourceId: `${row.id}:cell-${cellIndex + 1}`,
+              text: cell.text,
+            },
+            nodes,
+          };
+        },
+      ),
+      sourceRef: sourceRefForBlock(row),
+    };
+  });
+
+  return {
+    kind: "table",
+    id: tableMetadata?.id ?? "table-source-1",
+    role: "outer-frame",
+    box: tableMetadata?.widthPt
+      ? { widthPt: tableMetadata.widthPt }
+      : undefined,
+    alignment: tableMetadata?.alignment,
+    columns,
+    rows: tableRows,
+    borders: tableMetadata?.borders,
+    cellDefaults: {
+      padding: tableMetadata?.padding ?? {
+        top: "2pt",
+        right: "3pt",
+        bottom: "2pt",
+        left: "3pt",
+      },
+      fill: tableMetadata?.fill,
+      verticalAlign: "top",
+    },
+    sourceRef: { sourceId: tableMetadata?.id ?? "source-table-1" },
+  };
+}
+
+function analyzeVerticalMerges(rows: SourceBlock[]): {
+  rowSpans: Map<string, number>;
+  skipContinuationKeys: Set<string>;
+} {
+  const positionedRows = rows.map(positionTableCells);
+  const rowSpans = new Map<string, number>();
+  const skipContinuationKeys = new Set<string>();
+
+  for (const [rowIndex, cells] of positionedRows.entries()) {
+    for (const positioned of cells) {
+      if (positioned.cell.verticalMerge !== "restart") continue;
+      let rowSpan = 1;
+      for (
+        let nextRowIndex = rowIndex + 1;
+        nextRowIndex < positionedRows.length;
+        nextRowIndex += 1
+      ) {
+        const continuation = positionedRows[nextRowIndex].find(
+          (candidate) =>
+            candidate.columnStart === positioned.columnStart &&
+            candidate.cell.verticalMerge === "continue",
+        );
+        if (!continuation) break;
+        rowSpan += 1;
+        skipContinuationKeys.add(
+          verticalMergeCellKey(nextRowIndex, continuation.cellIndex),
+        );
+      }
+      if (rowSpan > 1) {
+        rowSpans.set(
+          verticalMergeCellKey(rowIndex, positioned.cellIndex),
+          rowSpan,
+        );
+      }
+    }
+  }
+
+  return { rowSpans, skipContinuationKeys };
+}
+
+function positionTableCells(row: SourceBlock): Array<{
+  cell: NonNullable<SourceBlock["cellMetadata"]>[number];
+  cellIndex: number;
+  columnStart: number;
+}> {
+  const positioned: Array<{
+    cell: NonNullable<SourceBlock["cellMetadata"]>[number];
+    cellIndex: number;
+    columnStart: number;
+  }> = [];
+  let columnStart = 0;
+  for (const [cellIndex, cell] of (row.cellMetadata ?? []).entries()) {
+    positioned.push({ cell, cellIndex, columnStart });
+    columnStart += Math.max(1, cell.gridSpan ?? 1);
+  }
+  return positioned;
+}
+
+function verticalMergeCellKey(rowIndex: number, cellIndex: number): string {
+  return `${rowIndex}:${cellIndex}`;
+}
+
+function templateCellNodes(
+  row: SourceBlock,
+  cell: NonNullable<SourceBlock["cellMetadata"]>[number],
+  cellIndex: number,
+  slot: DocumentTemplateV3["slots"][number] | null | undefined,
+  slots: DocumentTemplateV3["slots"],
+): TemplateTableCell["nodes"] {
+  const nestedTableNodes = (cell.nestedTables ?? []).map((nestedRows) =>
+    buildTemplateV3Table(nestedRows, slots),
+  );
+  if (slot) {
+    if (slot.role === "list") {
+      return [
+        {
+          kind: "list",
+          id: `list-${row.id}-${cellIndex + 1}`,
+          slotId: slot.id,
+          items: listItemsFromCell(cell),
+          marker: listMarkerFromCell(cell),
+          style: listStyleFromCell(cell),
+        },
+        ...nestedTableNodes,
+      ];
+    }
+    return [
+      {
+        kind: "slot",
+        id: `node-${slot.id}`,
+        slotId: slot.id,
+        fallback: cell.text,
+      },
+      ...nestedTableNodes,
+    ];
+  }
+
+  if (rowRole(row) === "section-header") {
+    return [
+      {
+        kind: "section",
+        id: `text-${row.id}-${cellIndex + 1}`,
+        title: cell.text,
+        token: "heading",
+      },
+      ...nestedTableNodes,
+    ];
+  }
+
+  const blocks = cell.blocks ?? [];
+  if (!blocks.length) {
+    if (nestedTableNodes.length) return nestedTableNodes;
+    return [
+      {
+        kind: "text",
+        id: `text-${row.id}-${cellIndex + 1}`,
+        text: cell.text,
+        token: "body",
+      },
+      ...nestedTableNodes,
+    ];
+  }
+
+  const nodes: TemplateTableCell["nodes"] = [];
+  let listItems: string[] = [];
+  let listStyle:
+    | ReturnType<typeof typographyOverrideFromSourceStyle>
+    | undefined;
+  let listMarker: "disc" | "decimal" | "dash" | "none" = "disc";
+  const flushList = () => {
+    if (!listItems.length) return;
+    nodes.push({
+      kind: "list",
+      id: `list-${row.id}-${cellIndex + 1}-${nodes.length + 1}`,
+      items: listItems,
+      marker: listMarker,
+      style: listStyle,
+    });
+    listItems = [];
+    listStyle = undefined;
+    listMarker = "disc";
+  };
+
+  for (const block of blocks) {
+    if (block.type === "list-item") {
+      if (!listItems.length) {
+        listStyle = typographyOverrideFromSourceStyle(block.style);
+        listMarker = block.listMarker ?? "disc";
+      }
+      listItems.push(block.text);
+      continue;
+    }
+    flushList();
+    const richRuns = block.runs.filter((run) => run.text.trim());
+    if (richRuns.length > 1 || richRuns.some((run) => run.href)) {
+      for (const run of richRuns) {
+        nodes.push({
+          kind: "text",
+          id: `text-${row.id}-${cellIndex + 1}-${nodes.length + 1}`,
+          text: run.text,
+          token: block.type === "heading" ? "heading" : "body",
+          href: run.href,
+          textAlign: block.style?.alignment,
+          style: typographyOverrideFromSourceStyle(run.style ?? block.style),
+          sourceRef: {
+            sourceId: `${row.id}:cell-${cellIndex + 1}:${block.id}`,
+            text: run.text,
+          },
+        });
+      }
+      continue;
+    }
+    nodes.push({
+      kind: "text",
+      id: `text-${row.id}-${cellIndex + 1}-${nodes.length + 1}`,
+      text: block.text,
+      token: block.type === "heading" ? "heading" : "body",
+      href: block.href,
+      textAlign: block.style?.alignment,
+      style: typographyOverrideFromSourceStyle(block.style),
+      sourceRef: {
+        sourceId: `${row.id}:cell-${cellIndex + 1}:${block.id}`,
+        text: block.text,
+      },
+    });
+  }
+  flushList();
+  nodes.push(...nestedTableNodes);
+  return nodes;
+}
+
+function listItemsFromCell(
+  cell: NonNullable<SourceBlock["cellMetadata"]>[number],
+): string[] {
+  const listItems =
+    cell.blocks
+      ?.filter((block) => block.type === "list-item")
+      .map((block) => block.text) ?? [];
+  return listItems.length ? listItems : [cell.text].filter(Boolean);
+}
+
+function listStyleFromCell(
+  cell: NonNullable<SourceBlock["cellMetadata"]>[number],
+): ReturnType<typeof typographyOverrideFromSourceStyle> {
+  const listBlock = cell.blocks?.find((block) => block.type === "list-item");
+  return typographyOverrideFromSourceStyle(listBlock?.style);
+}
+
+function listMarkerFromCell(
+  cell: NonNullable<SourceBlock["cellMetadata"]>[number],
+): "disc" | "decimal" | "dash" | "none" {
+  const listBlock = cell.blocks?.find((block) => block.type === "list-item");
+  return listBlock?.listMarker ?? "disc";
+}
+
+function typographyOverrideFromSourceStyle(
+  style: SourceBlock["style"] | undefined,
+) {
+  if (!style) return undefined;
+  const fontStyle: "italic" | "normal" | undefined =
+    style.italic === undefined ? undefined : style.italic ? "italic" : "normal";
+  return {
+    fontFamily: style.fontFamily,
+    fontSize: style.fontSizePt ? `${style.fontSizePt}pt` : undefined,
+    color: style.color,
+    fontWeight:
+      style.bold === undefined ? undefined : style.bold ? "700" : "400",
+    fontStyle,
+    lineHeight: style.lineHeight,
+  };
+}
+
+function buildTemplateV3Slots(
+  source: SourceDocumentIR,
+): DocumentTemplateV3["slots"] {
+  const refsByPath = new Map<
+    ResumeSlotPath,
+    Array<{ sourceId: string; text: string }>
+  >();
+  let tableRowIndex = -1;
+  let section = "";
+  for (const block of source.blocks) {
+    if (block.type === "table-row") tableRowIndex += 1;
+    const nextSection = sectionNameFromRow(block);
+    if (nextSection) section = nextSection;
+    if (block.slotHint) {
+      addSlotRef(refsByPath, block.slotHint, block.id, block.text);
+    }
+    block.cellMetadata?.forEach((cell, index) => {
+      const slotHint = inferCellSlotHint(
+        block,
+        index,
+        cell.text,
+        tableRowIndex,
+        section,
+      );
+      if (slotHint) {
+        addSlotRef(
+          refsByPath,
+          slotHint,
+          `${block.id}:cell-${index + 1}`,
+          cell.text,
+        );
+      }
+    });
+  }
+  if (!refsByPath.has("contact.name")) {
+    const firstTableBlock = source.blocks.find(
+      (block) =>
+        block.type === "table-row" && rowRole(block) !== "section-header",
+    );
+    const firstTableCellIndex =
+      firstTableBlock?.cellMetadata?.findIndex((cell) => {
+        const text = cell.text.trim();
+        return text && !text.includes("@") && !hasDateRange(text);
+      }) ?? -1;
+    const firstTableCell = firstTableBlock?.cellMetadata?.[firstTableCellIndex];
+    if (firstTableBlock && firstTableCell && firstTableCellIndex >= 0) {
+      addSlotRef(
+        refsByPath,
+        "contact.name",
+        `${firstTableBlock.id}:cell-${firstTableCellIndex + 1}`,
+        firstTableCell.text,
+      );
+    }
+  }
+  return Array.from(refsByPath.entries()).map(([path, refs]) => ({
+    id: `slot-${path.replace(/[^a-z0-9]+/gi, "-").replace(/-$/, "")}`,
+    path,
+    role: path.endsWith("[]")
+      ? "list"
+      : path.includes("linkedin") || path.includes("github")
+        ? "link"
+        : "text",
+    token: path.startsWith("contact.name") ? "name" : "body",
+    sourceRefs: refs,
+    fallback: refs[0]?.text,
+  }));
+}
+
+function addSlotRef(
+  refsByPath: Map<ResumeSlotPath, Array<{ sourceId: string; text: string }>>,
+  path: ResumeSlotPath,
+  sourceId: string,
+  text: string,
+): void {
+  refsByPath.set(path, [...(refsByPath.get(path) ?? []), { sourceId, text }]);
+}
+
+function inferCellSlotHint(
+  row: SourceBlock,
+  cellIndex: number,
+  text: string,
+  tableRowIndex = -1,
+  section = "",
+): ResumeSlotPath | undefined {
+  const inferred = inferSlotHint(text);
+  if (inferred) return inferred;
+  const sectionSlot = inferSectionCellSlotHint(row, cellIndex, text, section);
+  if (sectionSlot) return sectionSlot;
+  if (
+    row.type === "table-row" &&
+    rowRole(row) !== "section-header" &&
+    tableRowIndex === 0 &&
+    cellIndex === 0 &&
+    !row.cellMetadata?.[cellIndex]?.blocks?.some(
+      (block) => block.type === "list-item",
+    ) &&
+    text.trim() &&
+    !text.includes("@") &&
+    !hasDateRange(text)
+  ) {
+    return "contact.name";
+  }
+  return undefined;
+}
+
+function inferSectionCellSlotHint(
+  row: SourceBlock,
+  cellIndex: number,
+  text: string,
+  section: string,
+): ResumeSlotPath | undefined {
+  const normalizedSection = normalizeSectionName(section);
+  if (!normalizedSection || SECTION_NAMES.has(normalizeSectionName(text))) {
+    return undefined;
+  }
+  const isListCell = row.cellMetadata?.[cellIndex]?.blocks?.some(
+    (block) => block.type === "list-item",
+  );
+  if (
+    normalizedSection === "experience" ||
+    normalizedSection === "work experience" ||
+    normalizedSection === "professional experience" ||
+    normalizedSection === "work history"
+  ) {
+    if (isListCell) return "experiences[].highlights[]";
+    if (hasDateRange(text)) return "experiences[].dates";
+    if (cellIndex === 0) return "experiences[].title";
+    return "experiences[].company";
+  }
+  if (
+    normalizedSection === "projects" ||
+    normalizedSection === "academic projects"
+  ) {
+    if (isListCell) return "projects[].highlights[]";
+    if (cellIndex === 0) return "projects[].name";
+    return "projects[].description";
+  }
+  if (normalizedSection === "education") {
+    if (hasDateRange(text)) return "education[].date";
+    if (cellIndex === 0) return "education[].institution";
+    if (
+      /\b(B\.?S\.?|M\.?S\.?|BA|MA|PhD|Bachelor|Master|Doctor|Degree)\b/i.test(
+        text,
+      )
+    ) {
+      return "education[].degree";
+    }
+    return "education[].field";
+  }
+  return undefined;
+}
+
+function buildTemplateV3RepeatGroups(
+  nodes: DocumentTemplateV3["regions"][number]["nodes"],
+): DocumentTemplateV3["repeatGroups"] {
+  const groups: DocumentTemplateV3["repeatGroups"] = [];
+  const tables = nodes.filter(
+    (node): node is TemplateTable => node.kind === "table",
+  );
+  for (const [tableIndex, table] of tables.entries()) {
+    for (const collection of [
+      "experiences",
+      "projects",
+      "education",
+    ] as const) {
+      const rows = table.rows.filter((row) =>
+        rowUsesCollection(row, collection),
+      );
+      if (!rows.length) continue;
+      const id =
+        tables.length === 1
+          ? `repeat-${collection}`
+          : `repeat-${collection}-${tableIndex + 1}`;
+      for (const row of rows) row.repeatGroupId = id;
+      groups.push({
+        id,
+        collection,
+        nodeIds: rows.map((row) => row.id),
+        emptyBehavior: "hide",
+        sourceRefs: rows
+          .map((row) => row.sourceRef)
+          .filter((ref): ref is NonNullable<typeof ref> => Boolean(ref)),
+      });
+    }
+  }
+  return groups;
+}
+
+function rowUsesCollection(
+  row: TemplateTableRow,
+  collection: "experiences" | "projects" | "education",
+): boolean {
+  return row.cells.some((cell) =>
+    cell.nodes.some((node) => {
+      if ((node.kind === "slot" || node.kind === "list") && node.slotId) {
+        return node.slotId.includes(collection);
+      }
+      return false;
+    }),
+  );
+}
+
+function rowRole(row: SourceBlock): TemplateTableRow["role"] {
+  const text = row.text.trim();
+  if (SECTION_NAMES.has(normalizeSectionName(text))) return "section-header";
+  if (hasDateRange(text)) return "item-header";
+  if (row.cells?.length === 1) return "compact-row";
+  return undefined;
+}
+
+function sectionNameFromRow(row: SourceBlock): string {
+  if (rowRole(row) !== "section-header") return "";
+  return normalizeSectionName(row.cells?.[0] ?? row.text);
+}
+
+function sourceRefForBlock(block: SourceBlock) {
+  return { sourceId: block.id, text: block.text };
+}
+
+function boxFromSourceBlock(block: SourceBlock) {
+  return block.bbox
+    ? {
+        xPt: block.bbox.xPt,
+        yPt: block.bbox.yPt,
+        widthPt: block.bbox.widthPt,
+        heightPt: block.bbox.heightPt,
+      }
+    : undefined;
+}
+
+function tokenForSlotPath(path: ResumeSlotPath): string {
+  if (path === "contact.name") return "name";
+  if (path.startsWith("contact.")) return "meta";
+  if (path.includes(".dates") || path.includes(".date")) return "meta";
+  return "body";
+}
+
+function tokenFromSourceStyle(
+  style: SourceBlock["style"] | undefined,
+  fallback: DocumentTemplateV3["tokens"][string],
+): DocumentTemplateV3["tokens"][string] {
+  return {
+    fontFamily: style?.fontFamily ?? fallback.fontFamily,
+    fontSize: style?.fontSizePt ? `${style.fontSizePt}pt` : fallback.fontSize,
+    lineHeight: fallback.lineHeight,
+    color: style?.color ?? fallback.color,
+    fontWeight:
+      style?.bold === undefined
+        ? fallback.fontWeight
+        : style.bold
+          ? "700"
+          : "400",
+    textTransform: fallback.textTransform,
+    letterSpacing: fallback.letterSpacing,
+  };
 }
 
 function groupLinesBySection(lines: string[]): Map<string, string[]> {
@@ -982,6 +2494,7 @@ function isHeadingText(text: string): boolean {
 function normalizeSectionName(text: string) {
   return text
     .replace(/^(?:-|\u2022)\s*/, "")
+    .replace(/[^\w\s/&-]/g, "")
     .replace(/[:|]+$/g, "")
     .trim()
     .toLowerCase();
@@ -999,6 +2512,7 @@ function pdfPage(raw: string): SourcePage {
 
 function docxPage(xml: string): SourcePage {
   const tag = xml.match(/<w:pgSz\b[^>]*>/)?.[0] ?? "";
+  const marginTag = xml.match(/<w:pgMar\b[^>]*>/)?.[0] ?? "";
   const width = readNumberAttribute(tag, "w");
   const height = readNumberAttribute(tag, "h");
   return {
@@ -1006,7 +2520,23 @@ function docxPage(xml: string): SourcePage {
     number: 1,
     widthPt: width ? width / 20 : 612,
     heightPt: height ? height / 20 : 792,
+    margins: docxPageMargins(marginTag),
   };
+}
+
+function docxPageMargins(xml: string): BoxEdges | undefined {
+  if (!xml) return undefined;
+  const edge = (name: string) => {
+    const value = readNumberAttribute(xml, name);
+    return value === undefined ? undefined : `${roundPt(value / 20)}pt`;
+  };
+  const top = edge("top");
+  const right = edge("right");
+  const bottom = edge("bottom");
+  const left = edge("left");
+  return top && right && bottom && left
+    ? { top, right, bottom, left }
+    : undefined;
 }
 
 function latexPage(source: string): SourcePage {
@@ -1016,7 +2546,43 @@ function latexPage(source: string): SourcePage {
     number: 1,
     widthPt: a4 ? 595 : 612,
     heightPt: a4 ? 842 : 792,
+    margins: latexPageMargins(source),
   };
+}
+
+function latexPageMargins(source: string): BoxEdges | undefined {
+  const geometryOptions = source.match(
+    /\\usepackage\[((?:[^\]]|\][^\\])*)]\{geometry}/,
+  )?.[1];
+  const geometryCommand = source.match(/\\geometry\{([^}]*)}/)?.[1];
+  const options = [geometryOptions, geometryCommand].filter(Boolean).join(",");
+  if (!options) return undefined;
+
+  const entries = new Map<string, string>();
+  for (const part of options.split(",")) {
+    const [rawKey, rawValue] = part.split("=");
+    const key = rawKey?.trim().toLowerCase();
+    const value = rawValue?.trim();
+    if (key && value) entries.set(key, value);
+  }
+  const uniform = entries.get("margin");
+  const horizontal = entries.get("hmargin");
+  const vertical = entries.get("vmargin");
+  const top = latexLengthToCssPt(
+    entries.get("top") ?? entries.get("tmargin") ?? vertical ?? uniform,
+  );
+  const right = latexLengthToCssPt(
+    entries.get("right") ?? entries.get("rmargin") ?? horizontal ?? uniform,
+  );
+  const bottom = latexLengthToCssPt(
+    entries.get("bottom") ?? entries.get("bmargin") ?? vertical ?? uniform,
+  );
+  const left = latexLengthToCssPt(
+    entries.get("left") ?? entries.get("lmargin") ?? horizontal ?? uniform,
+  );
+  return top && right && bottom && left
+    ? { top, right, bottom, left }
+    : undefined;
 }
 
 function xmlText(xml: string) {
@@ -1031,7 +2597,28 @@ function xmlText(xml: string) {
     .trim();
 }
 
-function docxCellMetadata(xml: string) {
+function decodeXmlEntities(value: string): string {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'");
+}
+
+function docxCellMetadata(
+  xml: string,
+  styles: Record<string, NonNullable<SourceBlock["style"]>>,
+  relationships: Record<string, string>,
+  context: {
+    pageId: string;
+    numbering: DocxNumberingMap;
+    nextBlockId: () => string;
+    nextTableId: () => string;
+  },
+) {
+  const nestedTableXmls = extractDirectDocxElements(xml, "tbl");
+  const textXml = removeXmlFragments(xml, nestedTableXmls);
   const widthTwips = readNumberAttribute(
     xml.match(/<w:tcW\b[^>]*>/)?.[0] ?? "",
     "w",
@@ -1040,18 +2627,362 @@ function docxCellMetadata(xml: string) {
     xml.match(/<w:gridSpan\b[^>]*>/)?.[0] ?? "",
     "val",
   );
+  const verticalMerge = docxVerticalMerge(xml);
   const alignment = docxAlignment(xml);
+  const borders = docxBorders(
+    xml.match(/<w:tcBorders\b[\s\S]*?<\/w:tcBorders>/)?.[0] ?? "",
+  );
+  const fill = docxFill(xml);
+  const padding = docxCellPadding(xml);
+  const verticalAlign = docxVerticalAlign(xml);
+  const blocks = docxCellBlocks(
+    textXml,
+    styles,
+    relationships,
+    context.numbering,
+  );
+  const nestedTables = nestedTableXmls
+    .map((tableXml) =>
+      parseDocxTableRows(
+        tableXml,
+        context.nextTableId(),
+        context.pageId,
+        styles,
+        context.numbering,
+        relationships,
+        context.nextBlockId,
+        context.nextTableId,
+      ),
+    )
+    .filter((rows) => rows.length);
+  const nestedText = nestedTables
+    .flatMap((rows) => rows.map((row) => row.text))
+    .filter(Boolean);
+  const textParts = [...blocks.map((block) => block.text), ...nestedText];
   return {
-    text: xmlText(xml),
+    text: textParts.length ? textParts.join("\n") : xmlText(textXml),
     widthPt: widthTwips ? widthTwips / 20 : undefined,
     gridSpan: gridSpan && gridSpan > 1 ? gridSpan : undefined,
+    verticalMerge,
     alignment,
+    padding,
+    borders,
+    fill,
+    verticalAlign,
+    blocks,
+    nestedTables,
   };
+}
+
+function removeXmlFragments(xml: string, fragments: string[]): string {
+  return fragments.reduce((next, fragment) => next.replace(fragment, ""), xml);
+}
+
+function docxCellBlocks(
+  xml: string,
+  styles: Record<string, NonNullable<SourceBlock["style"]>>,
+  relationships: Record<string, string>,
+  numbering: DocxNumberingMap,
+): SourceCellBlock[] {
+  return Array.from(xml.matchAll(/<w:p\b[\s\S]*?<\/w:p>/g))
+    .map<SourceCellBlock | null>((paragraph, index) => {
+      const paragraphXml = paragraph[0];
+      const text = xmlText(paragraphXml);
+      if (!text) return null;
+      const styleId = paragraphXml.match(
+        /<w:pStyle\b[^>]*w:val="([^"]+)"/,
+      )?.[1];
+      const style = mergeDocxStyle(
+        styles[styleId ?? ""],
+        docxParagraphStyle(paragraphXml),
+        { styleId },
+      );
+      const href = firstDocxHyperlink(paragraphXml, relationships);
+      const listMarker = docxListMarker(paragraphXml, numbering);
+      return {
+        id: `cell-block-${index + 1}`,
+        type:
+          isHeadingText(text) || /heading|title/i.test(styleId ?? "")
+            ? "heading"
+            : listMarker
+              ? "list-item"
+              : href
+                ? "link"
+                : "paragraph",
+        text,
+        href,
+        listMarker,
+        style,
+        runs: docxInlineRuns(paragraphXml, relationships, style),
+      };
+    })
+    .filter((block): block is SourceCellBlock => Boolean(block));
+}
+
+function docxInlineRuns(
+  xml: string,
+  relationships: Record<string, string>,
+  paragraphStyle: SourceBlock["style"],
+): SourceInlineRun[] {
+  const runs: SourceInlineRun[] = [];
+  for (const match of xml.matchAll(
+    /<w:hyperlink\b[\s\S]*?<\/w:hyperlink>|<w:r\b[\s\S]*?<\/w:r>/g,
+  )) {
+    const fragment = match[0];
+    const href = fragment.startsWith("<w:hyperlink")
+      ? docxHyperlinkTarget(fragment, relationships)
+      : undefined;
+    const runXmls = fragment.startsWith("<w:hyperlink")
+      ? Array.from(fragment.matchAll(/<w:r\b[\s\S]*?<\/w:r>/g)).map(
+          (run) => run[0],
+        )
+      : [fragment];
+    for (const runXml of runXmls) {
+      const text = xmlText(runXml);
+      if (!text) continue;
+      runs.push({
+        text,
+        href,
+        style: mergeDocxStyle(paragraphStyle, docxParagraphStyle(runXml)),
+      });
+    }
+  }
+  return runs;
+}
+
+function firstDocxHyperlink(
+  xml: string,
+  relationships: Record<string, string>,
+): string | undefined {
+  const hyperlink = xml.match(/<w:hyperlink\b[\s\S]*?<\/w:hyperlink>/)?.[0];
+  return hyperlink ? docxHyperlinkTarget(hyperlink, relationships) : undefined;
+}
+
+function docxHyperlinkTarget(
+  xml: string,
+  relationships: Record<string, string>,
+): string | undefined {
+  const id = xml.match(/r:id="([^"]+)"/)?.[1];
+  return id ? relationships[id] : undefined;
+}
+
+type DocxNumberingMap = Map<
+  string,
+  Map<string, "disc" | "decimal" | "dash" | "none">
+>;
+
+function parseDocxNumbering(xml: string): DocxNumberingMap {
+  const abstractMarkers = new Map<
+    string,
+    Map<string, "disc" | "decimal" | "dash" | "none">
+  >();
+  for (const abstractMatch of xml.matchAll(
+    /<w:abstractNum\b[\s\S]*?<\/w:abstractNum>/g,
+  )) {
+    const abstractXml = abstractMatch[0];
+    const abstractId = abstractXml.match(/w:abstractNumId="([^"]+)"/)?.[1];
+    if (!abstractId) continue;
+    const levels = new Map<string, "disc" | "decimal" | "dash" | "none">();
+    for (const levelMatch of abstractXml.matchAll(
+      /<w:lvl\b[\s\S]*?<\/w:lvl>/g,
+    )) {
+      const levelXml = levelMatch[0];
+      const ilvl = levelXml.match(/w:ilvl="([^"]+)"/)?.[1] ?? "0";
+      const format = levelXml.match(/<w:numFmt\b[^>]*w:val="([^"]+)"/)?.[1];
+      levels.set(ilvl, docxNumberFormatMarker(format));
+    }
+    abstractMarkers.set(abstractId, levels);
+  }
+
+  const numbering = new Map<
+    string,
+    Map<string, "disc" | "decimal" | "dash" | "none">
+  >();
+  for (const numMatch of xml.matchAll(/<w:num\b[\s\S]*?<\/w:num>/g)) {
+    const numXml = numMatch[0];
+    const numId = numXml.match(/w:numId="([^"]+)"/)?.[1];
+    const abstractId = numXml.match(
+      /<w:abstractNumId\b[^>]*w:val="([^"]+)"/,
+    )?.[1];
+    if (numId && abstractId) {
+      numbering.set(numId, abstractMarkers.get(abstractId) ?? new Map());
+    }
+  }
+  return numbering;
+}
+
+function docxNumberFormatMarker(
+  format: string | undefined,
+): "disc" | "decimal" | "dash" | "none" {
+  if (format === "decimal") return "decimal";
+  if (format === "none") return "none";
+  return "disc";
+}
+
+function docxListMarker(
+  xml: string,
+  numbering: DocxNumberingMap,
+): "disc" | "decimal" | "dash" | "none" | undefined {
+  const numPr = xml.match(/<w:numPr\b[\s\S]*?<\/w:numPr>/)?.[0] ?? "";
+  if (!numPr) return undefined;
+  const numId = numPr.match(/<w:numId\b[^>]*w:val="([^"]+)"/)?.[1];
+  const ilvl = numPr.match(/<w:ilvl\b[^>]*w:val="([^"]+)"/)?.[1] ?? "0";
+  return numId ? (numbering.get(numId)?.get(ilvl) ?? "disc") : "disc";
+}
+
+function parseDocxRelationships(xml: string): Record<string, string> {
+  const relationships: Record<string, string> = {};
+  for (const rel of xml.matchAll(/<Relationship\b[^>]*>/g)) {
+    const tag = rel[0];
+    const id = tag.match(/\bId="([^"]+)"/)?.[1];
+    const target = tag.match(/\bTarget="([^"]+)"/)?.[1];
+    if (id && target) relationships[id] = decodeXmlEntities(target);
+  }
+  return relationships;
 }
 
 function readNumberAttribute(tag: string, name: string): number | undefined {
   const match = tag.match(new RegExp(`w:${name}="([0-9.]+)"`));
   return match ? Number(match[1]) : undefined;
+}
+
+function docxTableMetadata(
+  id: string,
+  xml: string,
+  gridWidths: number[],
+): SourceTableMetadata {
+  const properties = xml.match(/<w:tblPr\b[\s\S]*?<\/w:tblPr>/)?.[0] ?? "";
+  const widthTwips = readNumberAttribute(
+    properties.match(/<w:tblW\b[^>]*>/)?.[0] ?? "",
+    "w",
+  );
+  return {
+    id,
+    widthPt: widthTwips ? widthTwips / 20 : undefined,
+    alignment: docxTableAlignment(properties),
+    columns: gridWidths.length ? gridWidths : undefined,
+    padding: docxTableCellPadding(properties),
+    borders: docxBorders(
+      properties.match(/<w:tblBorders\b[\s\S]*?<\/w:tblBorders>/)?.[0] ?? "",
+    ),
+    fill: docxFill(properties),
+  };
+}
+
+function docxTableRowMetadata(xml: string): SourceTableRowMetadata | undefined {
+  const properties = xml.match(/<w:trPr\b[\s\S]*?<\/w:trPr>/)?.[0] ?? "";
+  if (!properties) return undefined;
+  const heightTwips = readNumberAttribute(
+    properties.match(/<w:trHeight\b[^>]*>/)?.[0] ?? "",
+    "val",
+  );
+  const metadata: SourceTableRowMetadata = {
+    heightPt: heightTwips ? heightTwips / 20 : undefined,
+    borders: docxBorders(
+      properties.match(/<w:trBorders\b[\s\S]*?<\/w:trBorders>/)?.[0] ?? "",
+    ),
+    fill: docxFill(properties),
+  };
+  return metadata.heightPt || metadata.borders || metadata.fill
+    ? metadata
+    : undefined;
+}
+
+function docxTableAlignment(
+  xml: string,
+): SourceTableMetadata["alignment"] | undefined {
+  const value = xml.match(/<w:jc\b[^>]*w:val="([^"]+)"/)?.[1];
+  if (value === "center") return "center";
+  if (value === "right" || value === "end") return "right";
+  if (value === "left" || value === "start") return "left";
+  return undefined;
+}
+
+function docxTableCellPadding(xml: string): BoxEdges | undefined {
+  const marginXml = xml.match(/<w:tblCellMar\b[\s\S]*?<\/w:tblCellMar>/)?.[0];
+  return marginXml ? docxMarginEdges(marginXml) : undefined;
+}
+
+function docxCellPadding(xml: string): BoxEdges | undefined {
+  const marginXml = xml.match(/<w:tcMar\b[\s\S]*?<\/w:tcMar>/)?.[0] ?? "";
+  return marginXml ? docxMarginEdges(marginXml) : undefined;
+}
+
+function docxMarginEdges(xml: string): BoxEdges {
+  const edge = (name: string) => {
+    const tag = xml.match(new RegExp(`<w:${name}\\b[^>]*>`))?.[0] ?? "";
+    const value = readNumberAttribute(tag, "w");
+    return value ? `${roundPt(value / 20)}pt` : "0pt";
+  };
+  return {
+    top: edge("top"),
+    right: edge("right"),
+    bottom: edge("bottom"),
+    left: edge("left"),
+  };
+}
+
+function docxFill(xml: string): { color: string } | undefined {
+  const value = xml.match(/<w:shd\b[^>]*w:fill="([0-9A-Fa-f]{6})"/)?.[1];
+  return value ? { color: `#${value}` } : undefined;
+}
+
+function docxVerticalAlign(
+  xml: string,
+): "top" | "middle" | "bottom" | undefined {
+  const value = xml.match(/<w:vAlign\b[^>]*w:val="([^"]+)"/)?.[1];
+  if (value === "center") return "middle";
+  if (value === "bottom") return "bottom";
+  return value === "top" ? "top" : undefined;
+}
+
+function docxVerticalMerge(xml: string): "restart" | "continue" | undefined {
+  const tag = xml.match(/<w:vMerge\b[^>]*(?:\/>|><\/w:vMerge>)/)?.[0] ?? "";
+  if (!tag) return undefined;
+  const value = tag.match(/w:val="([^"]+)"/)?.[1];
+  return value === "restart" ? "restart" : "continue";
+}
+
+function docxBorders(xml: string): BorderSet | undefined {
+  if (!xml) return undefined;
+  const sides = {
+    top: docxBorderSide(xml, "top"),
+    right: docxBorderSide(xml, "right"),
+    bottom: docxBorderSide(xml, "bottom"),
+    left: docxBorderSide(xml, "left"),
+    insideH: docxBorderSide(xml, "insideH"),
+    insideV: docxBorderSide(xml, "insideV"),
+  };
+  return Object.values(sides).some(Boolean) ? sides : undefined;
+}
+
+function docxBorderSide(
+  xml: string,
+  side: keyof BorderSet,
+): BorderSet[keyof BorderSet] {
+  const tag = xml.match(new RegExp(`<w:${side}\\b[^>]*>`))?.[0] ?? "";
+  if (!tag) return undefined;
+  const val = tag.match(/w:val="([^"]+)"/)?.[1] ?? "single";
+  const size = readNumberAttribute(tag, "sz");
+  const color = tag.match(/w:color="([0-9A-Fa-f]{6})"/)?.[1];
+  return {
+    widthPt: size ? size / 8 : 0.5,
+    color: color ? `#${color}` : "#000000",
+    style:
+      val === "dashed"
+        ? "dashed"
+        : val === "dotted"
+          ? "dotted"
+          : val === "double"
+            ? "double"
+            : val === "nil" || val === "none"
+              ? "none"
+              : "solid",
+  };
+}
+
+function roundPt(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 function parseDocxStyles(
@@ -1079,9 +3010,11 @@ function docxParagraphStyle(xml: string): NonNullable<SourceBlock["style"]> {
     .join("");
   return {
     bold: docxBold(rPr),
+    italic: docxItalic(rPr),
     fontSizePt: docxFontSizePt(rPr),
     fontFamily: docxFontFamily(rPr),
     color: docxColor(rPr),
+    lineHeight: docxLineHeight(xml),
     alignment: docxAlignment(xml),
   };
 }
@@ -1130,6 +3063,23 @@ function docxBold(xml: string): boolean | undefined {
   return !/w:val="(?:0|false)"/.test(tag);
 }
 
+function docxItalic(xml: string): boolean | undefined {
+  const tag = xml.match(/<w:i\b[^>]*\/>|<w:i\b[^>]*>/)?.[0];
+  if (!tag) return undefined;
+  return !/w:val="(?:0|false)"/.test(tag);
+}
+
+function docxLineHeight(xml: string): string | undefined {
+  const tag = xml.match(/<w:spacing\b[^>]*>/)?.[0] ?? "";
+  const line = readNumberAttribute(tag, "line");
+  if (!line) return undefined;
+  const lineRule = tag.match(/w:lineRule="([^"]+)"/)?.[1];
+  if (!lineRule || lineRule === "auto") {
+    return `${Math.round((line / 240) * 100) / 100}`;
+  }
+  return `${Math.round((line / 20) * 100) / 100}pt`;
+}
+
 function docxAlignment(
   xml: string,
 ): NonNullable<SourceBlock["style"]>["alignment"] {
@@ -1142,6 +3092,29 @@ function docxAlignment(
 
 function firstStyle(blocks: SourceBlock[]): SourceBlock["style"] | undefined {
   return blocks.find((block) => block.style)?.style;
+}
+
+function representativeStyle(
+  blocks: SourceBlock[],
+): SourceBlock["style"] | undefined {
+  const sizes = blocks
+    .map((block) => block.style?.fontSizePt)
+    .filter((size): size is number => typeof size === "number" && size > 0)
+    .sort((a, b) => a - b);
+  const fontSizePt = sizes.length
+    ? sizes[Math.floor((sizes.length - 1) / 2)]
+    : undefined;
+  const base = blocks.find(
+    (block) =>
+      block.style &&
+      (fontSizePt === undefined || block.style.fontSizePt === fontSizePt),
+  )?.style;
+  return base
+    ? {
+        ...base,
+        fontSizePt,
+      }
+    : undefined;
 }
 
 function applyTokenStyle(
@@ -1178,7 +3151,7 @@ function readZipTextEntries(buffer: Buffer): Record<string, string> {
     if (
       compressedSize > 0 &&
       dataEnd <= buffer.length &&
-      name.endsWith(".xml")
+      (name.endsWith(".xml") || name.endsWith(".rels"))
     ) {
       const compressed = buffer.subarray(dataStart, dataEnd);
       try {
@@ -1224,7 +3197,7 @@ function readZipTextEntriesFromCentralDirectory(
     const nameEnd = nameStart + fileNameLength;
     const name = buffer.toString("utf8", nameStart, nameEnd);
 
-    if (name.endsWith(".xml")) {
+    if (name.endsWith(".xml") || name.endsWith(".rels")) {
       const data = readZipEntryData(
         buffer,
         localHeaderOffset,

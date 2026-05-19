@@ -134,6 +134,42 @@ describe("template import", () => {
     });
   });
 
+  it("treats sparse DOCX style XML as usable Word defaults", async () => {
+    const docx = zipEntries({
+      "word/document.xml": [
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">',
+        "<w:body>",
+        "<w:p><w:r><w:t>Jane Candidate</w:t></w:r></w:p>",
+        "<w:p><w:r><w:t>jane@example.com</w:t></w:r></w:p>",
+        "<w:p><w:r><w:t>Experience</w:t></w:r></w:p>",
+        "<w:p><w:r><w:t>Built reusable document templates from DOCX resumes.</w:t></w:r></w:p>",
+        "<w:p><w:r><w:t>Skills</w:t></w:r></w:p>",
+        "<w:p><w:r><w:t>TypeScript, React, PDF, LaTeX</w:t></w:r></w:p>",
+        "</w:body>",
+        "</w:document>",
+      ].join(""),
+    });
+
+    const result = await extractTemplateFromFile({
+      filename: "resume.docx",
+      mimeType:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      llmClient: null,
+      buffer: docx,
+    });
+
+    expect(result.template.styles).toMatchObject({
+      fontFamily: "Aptos, Calibri, Arial, sans-serif",
+      fontSize: "11pt",
+      lineHeight: "1.35",
+      layout: "single-column",
+      bulletStyle: "disc",
+      sectionDivider: "line",
+    });
+    expect(result.confidence).toBe("high");
+    expect(result.warnings.join(" ")).not.toMatch(/Used defaults/i);
+  });
+
   it("returns usable defaults with warnings when PDF extraction is weak", async () => {
     const result = await extractTemplateFromFile({
       filename: "resume.pdf",

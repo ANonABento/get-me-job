@@ -239,6 +239,7 @@ function StudioPageContent() {
         templateId={studio.templateId}
         customTemplates={studio.customTemplates}
         onTemplateSelect={studio.handleTemplateSelect}
+        onTemplateImported={studio.handleTemplateImported}
         onTemplatesChanged={async () => {
           await studio.refreshCustomTemplates();
         }}

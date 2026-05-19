@@ -31,23 +31,13 @@ export const AI_TASK_SURFACES: readonly AiTaskSurface[] = [
 
 export const SLOTHING_AI_TASKS: readonly SlothingAiTask[] = [
   {
-    id: "studio.template_import",
-    label: "Template import",
+    id: "studio.visual_template_import",
+    label: "Visual template import",
     surface: "Studio",
-    route: "POST /api/templates/import",
+    route: "POST /api/templates/migrate",
     mode: "optional_llm",
     fallbackDescription:
-      "Extracts template style signals with deterministic PDF, DOCX, and LaTeX heuristics.",
-    bentoTaskId: "slothing.profile_extract",
-  },
-  {
-    id: "studio.template_analyze",
-    label: "Template text analyze",
-    surface: "Studio",
-    route: "POST /api/templates/analyze",
-    mode: "optional_llm",
-    fallbackDescription:
-      "Uses text structure, bullets, section dividers, and spacing estimates when no model is available.",
+      "Extracts reusable visual layout with deterministic PDF geometry, DOCX tables, and LaTeX tabular heuristics.",
     bentoTaskId: "slothing.profile_extract",
   },
   {

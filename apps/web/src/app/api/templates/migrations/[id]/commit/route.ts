@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import {
   getTemplateMigrationDraft,
-  saveDocumentTemplateV2,
+  saveDocumentTemplateV3,
   updateTemplateMigrationDraft,
 } from "@/lib/db/template-migrations";
+import { assessVisualTemplateFidelity } from "@/lib/resume/template-migration-fidelity";
 
 export const dynamic = "force-dynamic";
+
+const LOW_VISUAL_FIDELITY_MESSAGE =
+  "Could not read enough layout structure from this file. Try DOCX/LaTeX, or use a selectable PDF with visible text.";
 
 interface RouteContext {
   params: { id: string };
@@ -24,7 +28,32 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
     );
   }
 
-  const saved = saveDocumentTemplateV2(authResult.userId, draft.template);
+  if (!draft.templateV3) {
+    return NextResponse.json(
+      {
+        error: "This draft does not contain a V3 visual template.",
+        code: "visual_template_missing",
+      },
+      { status: 422 },
+    );
+  }
+
+  const visualFidelity = assessVisualTemplateFidelity(
+    draft.source,
+    draft.templateV3,
+  );
+  if (visualFidelity.status === "low") {
+    return NextResponse.json(
+      {
+        error: LOW_VISUAL_FIDELITY_MESSAGE,
+        code: "visual_fidelity_low",
+        fidelity: visualFidelity,
+      },
+      { status: 422 },
+    );
+  }
+
+  const saved = saveDocumentTemplateV3(authResult.userId, draft.templateV3);
   const updated = updateTemplateMigrationDraft(params.id, authResult.userId, {
     status: "committed",
     committedTemplateId: saved.id,
@@ -38,7 +67,7 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
       sourceFilename: saved.sourceFilename,
       sourceType: saved.sourceType,
       schemaVersion: saved.template.schemaVersion,
-      documentTemplate: saved.template,
+      documentTemplateV3: saved.template,
       createdAt: saved.createdAt,
       updatedAt: saved.updatedAt,
     },

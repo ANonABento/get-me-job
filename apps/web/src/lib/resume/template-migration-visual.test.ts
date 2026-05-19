@@ -4,6 +4,7 @@ import path from "path";
 import { chromium, type Browser, type Page } from "playwright";
 import { createTemplateMigrationDraft } from "@/lib/resume/template-migration";
 import { generateResumeHTMLV2 } from "@/lib/resume/template-v2-renderer";
+import { generateResumeHTMLV3 } from "@/lib/resume/template-v3-renderer";
 
 let browser: Browser | null = null;
 
@@ -95,12 +96,55 @@ describe("template migration visual render fidelity", () => {
       title: "Senior Platform Engineer",
       company: "Northstar Labs",
     });
-    expect(draft.fidelity.metrics.tableRows).toBeGreaterThan(0);
-    expect(draft.fidelity.metrics.preservedTableRows).toBeGreaterThan(0);
+    expect("sourceTableRows" in draft.fidelity.metrics).toBe(true);
+    expect("rowsPreserved" in draft.fidelity.metrics).toBe(true);
+    if ("sourceTableRows" in draft.fidelity.metrics) {
+      expect(draft.fidelity.metrics.sourceTableRows).toBeGreaterThan(0);
+    }
+    if ("rowsPreserved" in draft.fidelity.metrics) {
+      expect(draft.fidelity.metrics.rowsPreserved).toBeGreaterThan(0);
+    }
     expect(metrics.width).toBeGreaterThanOrEqual(785);
     expect(metrics.width).toBeLessThanOrEqual(805);
     expect(metrics.height).toBeGreaterThanOrEqual(1100);
     expect(metrics.visibleTextBlocks).toBeGreaterThan(6);
+    expect(metrics.text).toContain("Alex Rivera");
+    expect(metrics.text).toContain("Senior Platform Engineer");
+    expect(metrics.text).toContain("TypeScript");
+  });
+
+  it("renders a real DOCX table resume as a visible V3 table layout", async () => {
+    const buffer = readFileSync(
+      path.join(process.cwd(), "tests/fixtures/dogfood/table-docx-resume.docx"),
+    );
+    const draft = await createTemplateMigrationDraft({
+      buffer,
+      filename: "table-docx-resume.docx",
+      mimeType:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      userId: "visual-user",
+      llmClient: null,
+      now: "2026-05-19T00:00:00.000Z",
+    });
+    const html = generateResumeHTMLV3(draft.resume, draft.templateV3);
+    const metrics = await renderResumeHtml(html, {
+      width: 1100,
+      height: 1400,
+      rootSelector: ".resume-v3",
+    });
+
+    expect(draft.templateV3.schemaVersion).toBe(3);
+    expect(draft.templateV3.regions[0]?.flow).toBe("table");
+    expect(draft.templateV3.regions[0]?.nodes).toEqual(
+      expect.arrayContaining([expect.objectContaining({ kind: "table" })]),
+    );
+    expect(draft.fidelity.score).toBeGreaterThanOrEqual(70);
+    expect(metrics.width).toBeGreaterThanOrEqual(785);
+    expect(metrics.width).toBeLessThanOrEqual(805);
+    expect(metrics.height).toBeGreaterThanOrEqual(1000);
+    expect(metrics.visibleTextBlocks).toBeGreaterThan(8);
+    expect(metrics.tableCount).toBeGreaterThan(0);
+    expect(metrics.tableCellCount).toBeGreaterThan(6);
     expect(metrics.text).toContain("Alex Rivera");
     expect(metrics.text).toContain("Senior Platform Engineer");
     expect(metrics.text).toContain("TypeScript");
@@ -153,7 +197,7 @@ describe("template migration visual render fidelity", () => {
 
 async function renderResumeHtml(
   html: string,
-  viewport: { width: number; height: number },
+  viewport: { width: number; height: number; rootSelector?: string },
 ) {
   if (!browser) return staticResumeMetrics(html);
   const page = await browser.newPage({
@@ -162,17 +206,20 @@ async function renderResumeHtml(
   });
   try {
     await page.setContent(html, { waitUntil: "load" });
-    const metrics = await renderedResumeMetrics(page);
+    const metrics = await renderedResumeMetrics(
+      page,
+      viewport.rootSelector ?? ".resume-v2",
+    );
     return metrics;
   } finally {
     await page.close();
   }
 }
 
-async function renderedResumeMetrics(page: Page) {
+async function renderedResumeMetrics(page: Page, rootSelector: string) {
   const visibleTextSelector =
-    "h1, h2, p, li, .skills span, .strong, .meta, .item div";
-  return page.locator(".resume-v2").evaluate((element, selector) => {
+    "h1, h2, p, li, td, .skills span, .strong, .meta, .item div";
+  return page.locator(rootSelector).evaluate((element, selector) => {
     const visibleTextSelector = selector as string;
     const text = document.body.innerText;
     const box = element.getBoundingClientRect();
@@ -185,6 +232,8 @@ async function renderedResumeMetrics(page: Page) {
       gridTemplateColumns: style.gridTemplateColumns,
       text,
       headingCount: headings.length,
+      tableCount: document.querySelectorAll("table").length,
+      tableCellCount: document.querySelectorAll("td").length,
       visibleTextBlocks: Array.from(
         document.querySelectorAll(visibleTextSelector),
       ).filter((node) => {
@@ -207,8 +256,10 @@ function staticResumeMetrics(html: string) {
     gridTemplateColumns: isGrid ? "163.2px 1fr" : "none",
     text,
     headingCount: document.querySelectorAll(".section-title").length,
+    tableCount: document.querySelectorAll("table").length,
+    tableCellCount: document.querySelectorAll("td").length,
     visibleTextBlocks: document.querySelectorAll(
-      "h1, h2, p, li, .skills span, .strong, .meta, .item div",
+      "h1, h2, p, li, td, .skills span, .strong, .meta, .item div",
     ).length,
   };
 }

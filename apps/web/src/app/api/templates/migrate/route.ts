@@ -29,7 +29,10 @@ export async function POST(request: NextRequest) {
   );
   if (!rateLimit.allowed) {
     return NextResponse.json(
-      { error: "Too many template migration requests.", code: "rate_limited" },
+      {
+        error: "Too many visual template import requests.",
+        code: "rate_limited",
+      },
       {
         status: 429,
         headers: {
@@ -80,7 +83,7 @@ export async function POST(request: NextRequest) {
     const gate = gateOptionalAiFeature(
       authResult.userId,
       "document_assistant",
-      `template-migration:${nowEpoch()}`,
+      `visual-template-import:${nowEpoch()}`,
     );
     if (isAiGateResponse(gate)) return gate;
     aiGate = gate;
@@ -106,11 +109,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     aiGate?.refund();
-    console.error("Template migration error:", error);
+    console.error("Visual template import error:", error);
+    const detail = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       {
-        error: "We couldn't recreate a reusable template from that file.",
-        code: "migration_failed",
+        error: "We couldn't read enough visual structure from that file.",
+        code: "layout_import_failed",
+        ...(process.env.NODE_ENV === "production" ? {} : { detail }),
       },
       { status: 422 },
     );

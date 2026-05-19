@@ -7,6 +7,7 @@ import {
   editableDocumentToResume,
   type EditableResumeDocument,
 } from "@/lib/builder/editor-document";
+import { getDocumentTemplateV3 } from "@/lib/db/template-migrations";
 import { generateResumeHTML } from "@/lib/resume/pdf";
 import { getTemplateWithCustom } from "@/lib/resume/templates";
 import { builderRequestSchema } from "@/lib/schemas";
@@ -28,8 +29,11 @@ export async function POST(request: NextRequest) {
         document as EditableResumeDocument,
         contact || { name: "Your Name" },
       );
-      const template = getTemplateWithCustom(templateId, authResult.userId);
-      const html = generateResumeHTML(resume, templateId, template);
+      const html = await renderBuilderResumeHtml(
+        resume,
+        templateId,
+        authResult.userId,
+      );
 
       return NextResponse.json({ html, resume });
     }
@@ -45,8 +49,11 @@ export async function POST(request: NextRequest) {
       contact || { name: "Your Name" },
     );
 
-    const template = getTemplateWithCustom(templateId, authResult.userId);
-    const html = generateResumeHTML(resume, templateId, template);
+    const html = await renderBuilderResumeHtml(
+      resume,
+      templateId,
+      authResult.userId,
+    );
 
     return NextResponse.json({ html, resume });
   } catch (error) {
@@ -58,10 +65,26 @@ export async function POST(request: NextRequest) {
   }
 }
 
+async function renderBuilderResumeHtml(
+  resume: ReturnType<typeof bankEntriesToResume>,
+  templateId: string,
+  userId: string,
+): Promise<string> {
+  const documentTemplateV3 = getDocumentTemplateV3(templateId, userId);
+  if (documentTemplateV3) {
+    const { generateResumeHTMLV3 } =
+      await import("@/lib/resume/template-v3-renderer");
+    return generateResumeHTMLV3(resume, documentTemplateV3.template);
+  }
+  const template = getTemplateWithCustom(templateId, userId);
+  return generateResumeHTML(resume, templateId, template);
+}
+
 function expandSelectedBankEntries(
   entries: ReturnType<typeof getBankEntries>,
   entryIds: string[],
 ) {
+  if (!Array.isArray(entries)) return [];
   const selectedIds = new Set(entryIds);
   const selectedEntries = entries.filter((entry) => selectedIds.has(entry.id));
   const selectedRootIds = new Set(
