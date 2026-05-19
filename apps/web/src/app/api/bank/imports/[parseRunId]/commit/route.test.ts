@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   getDocumentArtifact: vi.fn(),
   deleteBankEntriesBySource: vi.fn(),
   insertBankEntries: vi.fn(),
+  getProfile: vi.fn(),
+  updateProfile: vi.fn(),
   buildParseRunBankEntries: vi.fn(),
 }));
 
@@ -21,6 +23,8 @@ vi.mock("@/lib/db", () => ({
   getDocumentArtifact: mocks.getDocumentArtifact,
   deleteBankEntriesBySource: mocks.deleteBankEntriesBySource,
   insertBankEntries: mocks.insertBankEntries,
+  getProfile: mocks.getProfile,
+  updateProfile: mocks.updateProfile,
 }));
 
 vi.mock("@/lib/ingest/parse-run-bank-import", () => ({
@@ -48,6 +52,30 @@ const parseRun = {
   structured: { profile: { experiences: [] } },
 };
 
+const parsedResumeRun = {
+  ...parseRun,
+  structured: {
+    profile: {
+      contact: {
+        name: "Kevin Jiang",
+        email: "kevin@example.com",
+        confidence: 0.9,
+        sourceSpanIds: ["p1-l001"],
+        sourceQuality: "exact",
+      },
+      rawText: "Kevin Jiang",
+      experiences: [],
+      education: [],
+      skills: [],
+      projects: [],
+    },
+    sectionsDetected: ["contact"],
+    confidence: 0.9,
+    rawText: "Kevin Jiang",
+    warnings: [],
+  },
+};
+
 const artifact = {
   id: "artifact-1",
   documentId: "doc-1",
@@ -65,6 +93,15 @@ describe("/api/bank/imports/[parseRunId]/commit", () => {
       { category: "education", content: { institution: "Southwestern" } },
     ]);
     mocks.insertBankEntries.mockReturnValue(["entry-1"]);
+    mocks.getProfile.mockReturnValue({
+      id: "user-1",
+      contact: { name: "" },
+      experiences: [],
+      education: [],
+      skills: [],
+      projects: [],
+      certifications: [],
+    });
   });
 
   it("commits parser-v2 entries for the authenticated user", async () => {
@@ -106,6 +143,7 @@ describe("/api/bank/imports/[parseRunId]/commit", () => {
       documentId: "doc-1",
       inserted: 1,
       entryIds: ["entry-1"],
+      profilePromoted: false,
     });
   });
 
@@ -195,14 +233,30 @@ describe("/api/bank/imports/[parseRunId]/commit", () => {
     });
   });
 
-  it("rejects profile auto-promotion for this phase", async () => {
+  it("auto-promotes parser-v2 profile data after commit when requested", async () => {
+    mocks.getDocumentParseRunById.mockReturnValue(parsedResumeRun);
+
     const response = await invokeRouteHandler(
       POST,
       postCommit({ autoPromoteProfile: true }),
       routeContext({ parseRunId: "run-1" }),
     );
 
-    expect(response.status).toBe(400);
-    expect(mocks.getDocumentParseRunById).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(mocks.getProfile).toHaveBeenCalledWith("user-1");
+    expect(mocks.updateProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contact: expect.objectContaining({
+          name: "Kevin Jiang",
+          email: "kevin@example.com",
+        }),
+        rawText: "Kevin Jiang",
+      }),
+      "user-1",
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      profilePromoted: true,
+    });
   });
 });
