@@ -15,6 +15,14 @@ const expectedPath = path.join(
   process.cwd(),
   "tests/fixtures/parser-v2/syzfjbzwjncs.expected.json",
 );
+const sweFixturePath = path.join(
+  process.cwd(),
+  "tests/fixtures/parser-v2/bznbzdprjfyy.pdf",
+);
+const sweExpectedPath = path.join(
+  process.cwd(),
+  "tests/fixtures/parser-v2/bznbzdprjfyy.expected.json",
+);
 
 interface ExpectedFixture {
   contact: Record<string, unknown>;
@@ -25,6 +33,10 @@ interface ExpectedFixture {
 
 function expectedFixture(): ExpectedFixture {
   return JSON.parse(readFileSync(expectedPath, "utf8")) as ExpectedFixture;
+}
+
+function expectedSweFixture(): ExpectedFixture {
+  return JSON.parse(readFileSync(sweExpectedPath, "utf8")) as ExpectedFixture;
 }
 
 describe("parseResumeV2FromSourceMap", () => {
@@ -70,6 +82,38 @@ describe("parseResumeV2FromSourceMap", () => {
     expect(parsed.profile.projects[0].technologies.join(" ")).not.toMatch(
       /2020|Present/,
     );
+  });
+
+  it("parses the SWE template's alternate header shape and wrapped bullets", async () => {
+    const sourceMap = await buildPdfSourceMap(readFileSync(sweFixturePath));
+    const parsed = parseResumeV2FromSourceMap(sourceMap);
+    const expected = expectedSweFixture();
+
+    expect(parsed.profile.contact).toMatchObject(expected.contact);
+    expect(parsed.profile.education).toMatchObject(expected.education);
+    expect(parsed.profile.experiences).toMatchObject(expected.experiences);
+    expect(parsed.profile.projects).toMatchObject(expected.projects);
+    expect(parsed.profile.experiences[0]).toMatchObject({
+      company: "Company Name 1",
+      title: "Software Engineer",
+    });
+    expect(parsed.profile.experiences[0].highlights[0].sourceSpanIds).toEqual([
+      "p1-l011",
+      "p1-l012",
+    ]);
+    expect(parsed.profile.projects).toHaveLength(3);
+    expect(parsed.profile.projects[0].startDate).toBeUndefined();
+    expect(
+      [
+        parsed.profile.contact,
+        ...parsed.profile.education,
+        ...parsed.profile.experiences,
+        ...parsed.profile.projects,
+        ...parsed.profile.experiences.flatMap((entry) => entry.highlights),
+        ...parsed.profile.projects.flatMap((entry) => entry.highlights),
+      ].every((item) => item.sourceQuality === "exact"),
+    ).toBe(true);
+    expect(parsed.warnings).toEqual([]);
   });
 
   it("strips contact artifacts and reports missing source spans in diagnostics", async () => {

@@ -62,6 +62,17 @@ function textWithoutBullet(text: string): string {
   return text.replace(/^[•●○◦■▪▸→✓\-–—*]\s*/, "").trim();
 }
 
+function isBulletLine(line: SourceLine): boolean {
+  return /^[•●○◦■▪▸→✓\-–—*]\s*/.test(line.text);
+}
+
+function splitPipeText(text: string): string[] {
+  return normalizeText(text)
+    .split(/\s*\|\s*/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
 function lineParts(line: SourceLine, rightColumnX = 400): LineParts {
   const leftTokens = line.tokens.filter(
     (token) => token.bbox.x0 < rightColumnX,
@@ -172,6 +183,40 @@ function parseEducationDegreeAndField(line: string): {
   return parseDegreeAndField(normalized);
 }
 
+const SINGLE_DATE_REGEX =
+  /\b(?:Expected\s+)?(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sept?(?:ember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(?:\d{4}|\d{2}X{2})\b/i;
+
+function extractDateText(text: string): string {
+  return extractDateRange(text) || text.match(SINGLE_DATE_REGEX)?.[0] || "";
+}
+
+function splitDateText(dateText: string): {
+  start: string;
+  end: string;
+} {
+  if (!dateText) return { start: "", end: "" };
+  if (hasDateRange(dateText)) return splitDateRange(dateText);
+  return { start: "", end: dateText.trim() };
+}
+
+function stripDateText(text: string, dateText: string): string {
+  return normalizeText(text.replace(dateText, "").replace(/\s*\|\s*$/, ""));
+}
+
+function appendContinuation(
+  value: {
+    text: string;
+    sourceSpanIds: string[];
+    sourceQuality: SourceQuality;
+  },
+  line: SourceLine,
+  sourceMap: DocumentSourceMap,
+) {
+  value.text = normalizeText(`${value.text} ${line.text}`);
+  value.sourceSpanIds.push(line.id);
+  value.sourceQuality = sourceQuality(sourceMap, value.sourceSpanIds);
+}
+
 function sourceQuality(
   sourceMap: DocumentSourceMap,
   sourceSpanIds: string[],
@@ -187,25 +232,47 @@ function parseEducation(
   for (let i = 0; i < lines.length; i += 1) {
     const schoolLine = lines[i];
     const degreeLine = lines[i + 1];
-    if (!schoolLine || !degreeLine || !hasDateRange(degreeLine.text)) continue;
+    if (!schoolLine || !degreeLine) continue;
 
     const schoolParts = lineParts(schoolLine);
     const degreeParts = lineParts(degreeLine);
-    const dateText = extractDateRange(degreeParts.right || degreeLine.text);
-    const { start, end } = splitDateRange(dateText);
-    const { degree, field } = parseEducationDegreeAndField(
-      normalizeText(degreeParts.left || degreeLine.text),
+    const schoolSegments = splitPipeText(schoolLine.text);
+    const degreeSegments = splitPipeText(degreeLine.text);
+    const dateText =
+      extractDateText(degreeParts.right) ||
+      extractDateText(degreeLine.text) ||
+      extractDateText(schoolParts.right) ||
+      extractDateText(schoolLine.text);
+    if (!dateText) continue;
+
+    const { start, end } = splitDateText(dateText);
+    const degreeText = stripDateText(
+      degreeParts.left || degreeSegments[0] || degreeLine.text,
+      dateText,
     );
+    const { degree, field } = parseEducationDegreeAndField(degreeText);
     const sourceSpanIds = [schoolLine.id, degreeLine.id];
+    const institution = stripDateText(
+      schoolParts.left || schoolSegments[0] || schoolLine.text,
+      dateText,
+    );
+    const location =
+      schoolParts.right && !extractDateText(schoolParts.right)
+        ? schoolParts.right
+        : degreeParts.right && !extractDateText(degreeParts.right)
+          ? degreeParts.right
+          : degreeSegments
+              .slice(1)
+              .find((segment) => !extractDateText(segment));
 
     education.push({
-      id: stableId("edu", sourceSpanIds, `${schoolParts.left}:${degree}`),
-      institution: schoolParts.left || schoolLine.text,
-      location: schoolParts.right || undefined,
+      id: stableId("edu", sourceSpanIds, `${institution}:${degree}`),
+      institution,
+      location: location || undefined,
       degree,
       field,
-      startDate: start,
-      endDate: end,
+      startDate: start || undefined,
+      endDate: end || undefined,
       highlights: [],
       sourceSpanIds,
       sourceQuality: sourceQuality(sourceMap, sourceSpanIds),
@@ -215,30 +282,34 @@ function parseEducation(
   return education;
 }
 
-function parseExperiences(
+function parseGroundedBullets(
   sourceMap: DocumentSourceMap,
   lines: SourceLine[],
-): ParsedExperienceV2[] {
-  const experiences: ParsedExperienceV2[] = [];
-  let current: ParsedExperienceV2 | null = null;
+  startIndex: number,
+): {
+  highlights: Array<{
+    text: string;
+    sourceSpanIds: string[];
+    sourceQuality: SourceQuality;
+  }>;
+  nextIndex: number;
+} {
+  const highlights: Array<{
+    text: string;
+    sourceSpanIds: string[];
+    sourceQuality: SourceQuality;
+  }> = [];
+  let index = startIndex;
 
-  function pushCurrent() {
-    if (!current) return;
-    current.description = current.highlights
-      .map((highlight) => highlight.text)
-      .join("\n");
-    experiences.push(current);
-    current = null;
-  }
-
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i];
+  for (; index < lines.length; index += 1) {
+    const line = lines[index];
     if (!line?.text) continue;
+    if (hasDateRange(line.text)) break;
 
-    if (/^[•●○◦■▪▸→✓\-–—*]\s*/.test(line.text)) {
+    if (isBulletLine(line)) {
       const bullet = textWithoutBullet(line.text);
-      if (current && bullet) {
-        current.highlights.push({
+      if (bullet) {
+        highlights.push({
           text: bullet,
           sourceSpanIds: [line.id],
           sourceQuality: sourceQuality(sourceMap, [line.id]),
@@ -247,9 +318,31 @@ function parseExperiences(
       continue;
     }
 
+    const current = highlights[highlights.length - 1];
+    if (current) appendContinuation(current, line, sourceMap);
+  }
+
+  return { highlights, nextIndex: index };
+}
+
+function looksLikeTitle(text: string): boolean {
+  return /\b(?:Engineer|Developer|Manager|Director|Analyst|Designer|Lead|Intern|Specialist|Research|Assistant|Scientist|Consultant|Architect|Support)\b/i.test(
+    text,
+  );
+}
+
+function parseExperiences(
+  sourceMap: DocumentSourceMap,
+  lines: SourceLine[],
+): ParsedExperienceV2[] {
+  const experiences: ParsedExperienceV2[] = [];
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (!line?.text) continue;
+
     if (!hasDateRange(line.text)) continue;
 
-    pushCurrent();
     const headerParts = lineParts(line);
     const companyLine = lines[i + 1];
     const companyParts = companyLine
@@ -258,13 +351,24 @@ function parseExperiences(
     const dateText = extractDateRange(headerParts.right || line.text);
     const { start, end } = splitDateRange(dateText);
     const sourceSpanIds = companyLine ? [line.id, companyLine.id] : [line.id];
-    const title = normalizeText(
+    const headerLeft = normalizeText(
       headerParts.left || line.text.replace(dateText, ""),
     );
-    const company = normalizeText(companyParts.left || "");
+    const detailLeft = normalizeText(companyParts.left || "");
+    const headerLooksLikeTitle = looksLikeTitle(headerLeft);
+    const detailLooksLikeTitle = looksLikeTitle(detailLeft);
+    const title =
+      !headerLooksLikeTitle && detailLooksLikeTitle ? detailLeft : headerLeft;
+    const company =
+      !headerLooksLikeTitle && detailLooksLikeTitle ? headerLeft : detailLeft;
     const location = normalizeText(companyParts.right || "");
+    const { highlights, nextIndex } = parseGroundedBullets(
+      sourceMap,
+      lines,
+      companyLine && !hasDateRange(companyLine.text) ? i + 2 : i + 1,
+    );
 
-    current = {
+    experiences.push({
       id: stableId("exp", sourceSpanIds, `${title}:${company}`),
       company: company || "Unknown",
       title,
@@ -272,16 +376,15 @@ function parseExperiences(
       startDate: start,
       endDate: end,
       current: /present|current/i.test(dateText),
-      description: "",
-      highlights: [],
+      description: highlights.map((highlight) => highlight.text).join("\n"),
+      highlights,
       skills: [],
       sourceSpanIds,
       sourceQuality: sourceQuality(sourceMap, sourceSpanIds),
-    };
-    if (companyLine && !hasDateRange(companyLine.text)) i += 1;
+    });
+    i = nextIndex - 1;
   }
 
-  pushCurrent();
   return experiences;
 }
 
@@ -310,7 +413,7 @@ function parseProjects(
 
   for (const line of lines) {
     if (!line.text) continue;
-    if (/^[•●○◦■▪▸→✓\-–—*]\s*/.test(line.text)) {
+    if (isBulletLine(line)) {
       const bullet = textWithoutBullet(line.text);
       if (current && bullet) {
         current.highlights.push({
@@ -322,23 +425,32 @@ function parseProjects(
       continue;
     }
 
-    if (!hasDateRange(line.text)) continue;
-    pushCurrent();
+    const isProjectHeader = line.text.includes("|") || hasDateRange(line.text);
+    if (current?.highlights.length && !isProjectHeader) {
+      appendContinuation(
+        current.highlights[current.highlights.length - 1],
+        line,
+        sourceMap,
+      );
+      continue;
+    }
 
+    if (!isProjectHeader) continue;
+    pushCurrent();
     const parts = lineParts(line);
     const [namePart, technologiesPart = ""] = parts.left
       .split(/\s*\|\s*/)
       .map((part) => part.trim());
     const dateText = extractDateRange(parts.right || line.text);
-    const { start, end } = splitDateRange(dateText);
+    const { start, end } = splitDateText(dateText);
     current = {
       id: stableId("proj", [line.id], namePart),
       name: namePart,
       description: "",
       technologies: splitTechnologies(technologiesPart),
       highlights: [],
-      startDate: start,
-      endDate: end,
+      startDate: start || undefined,
+      endDate: end || undefined,
       sourceSpanIds: [line.id],
       sourceQuality: sourceQuality(sourceMap, [line.id]),
     };

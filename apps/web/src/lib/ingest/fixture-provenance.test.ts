@@ -72,4 +72,21 @@ describe("parser-v2 fixture provenance", () => {
       license: "MIT",
     });
   });
+
+  it("documents the SWE Resume Template as an internet-sourced fixture", () => {
+    const sweTemplate = manifest().fixtures.find(
+      (fixture) => fixture.id === "overleaf-swe-resume-template",
+    );
+
+    expect(sweTemplate).toMatchObject({
+      file: "bznbzdprjfyy.pdf",
+      title: "SWE Resume Template",
+      author: "Audric Serador",
+      sourcePageUrl:
+        "https://www.overleaf.com/latex/templates/swe-resume-template/bznbzdprjfyy",
+      sourcePdfUrl:
+        "https://www.overleaf.com/latex/templates/swe-resume-template/bznbzdprjfyy.pdf",
+      license: "Creative Commons CC BY 4.0",
+    });
+  });
 });

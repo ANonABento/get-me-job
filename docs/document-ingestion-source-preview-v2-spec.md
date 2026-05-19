@@ -771,7 +771,8 @@ Next implementation slices:
 3. Add source quality classification (`exact`, `partial`, `missing`) for
    parser-v2 roots and bullets. Done on `main` in `0fa16b7c`.
 4. Add parser-v2 fixtures beyond `syzfjbzwjncs.pdf` before generalizing
-   heuristics.
+   heuristics. Done in the SWE fixture slice for
+   `bznbzdprjfyy.pdf`.
 5. Add persistence for `document_artifacts`, plus a read-only source artifact
    API. Done on `main` in `7819ba18`.
 6. Add persistence for `document_parse_runs`, plus basic parser-v2 create/read
@@ -788,5 +789,9 @@ Next implementation slices:
 10. Add a parser-v2 fixture manifest that records public internet source,
     license, verification date, and file hashes for downloaded real-world
     resume fixtures. Done in the fixture-provenance slice for Jake's Resume.
-11. Keep `/api/upload` and `/api/parse` route migration out until persistence is
+11. Harden parser-v2 against the second public fixture's layout variants:
+    single expected graduation dates, company/date followed by title/location,
+    undated project headers, and wrapped bullet continuations. Done in the SWE
+    fixture slice.
+12. Keep `/api/upload` and `/api/parse` route migration out until persistence is
     reviewed separately.

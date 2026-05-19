@@ -15,6 +15,21 @@
       "sha256": "a09eb1f7a29c3991b04e52fc47d191a4a6067b18ebc071196a7e8488af5aa38c",
       "expectedSha256": "2e95278e25504eff114d2d807b63842365c301b0d6ae55eeb2c6f957f63788b2",
       "notes": "Downloaded from the public Overleaf template PDF URL. The Overleaf template page lists Jake Gutierrez as author and states the work is published under the MIT License."
+    },
+    {
+      "id": "overleaf-swe-resume-template",
+      "file": "bznbzdprjfyy.pdf",
+      "expectedFile": "bznbzdprjfyy.expected.json",
+      "kind": "public-real-world-template",
+      "title": "SWE Resume Template",
+      "author": "Audric Serador",
+      "sourcePageUrl": "https://www.overleaf.com/latex/templates/swe-resume-template/bznbzdprjfyy",
+      "sourcePdfUrl": "https://www.overleaf.com/latex/templates/swe-resume-template/bznbzdprjfyy.pdf",
+      "license": "Creative Commons CC BY 4.0",
+      "verifiedAt": "2026-05-18",
+      "sha256": "6c86df1a6349feedcf575f509aff21c02f01c880062e3e044bf91c1a39242275",
+      "expectedSha256": "c773650b8db1fd0ba109234f16fae93edba4512ad807312353e5309bd0a69225",
+      "notes": "Downloaded from the public Overleaf template PDF URL. The Overleaf template page lists Audric Serador as author and Creative Commons CC BY 4.0 as the page license; the visible LaTeX source header also states License: MIT."
     }
   ]
 }

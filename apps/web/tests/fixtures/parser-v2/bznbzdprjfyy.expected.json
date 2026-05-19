@@ -1,0 +1,129 @@
+{
+  "contact": {
+    "name": "First Last",
+    "email": "firstlast@gmail.com",
+    "github": "github.com/firstlast",
+    "sourceSpanIds": ["p1-l001", "p1-l002"]
+  },
+  "education": [
+    {
+      "institution": "University Name",
+      "location": "City, State",
+      "degree": "Bachelor of Science",
+      "field": "Computer Science (GPA: 4.00 / 4.00)",
+      "endDate": "Expected May 20XX",
+      "sourceSpanIds": ["p1-l004", "p1-l005"]
+    }
+  ],
+  "experiences": [
+    {
+      "title": "Software Engineer",
+      "company": "Company Name 1",
+      "location": "City, State",
+      "startDate": "Jan 20XX",
+      "endDate": "May 20XX",
+      "sourceSpanIds": ["p1-l009", "p1-l010"],
+      "highlights": [
+        {
+          "text": "Implemented microservices architecture using Node.js and Express, improving API response time by 25% and reducing server load by 30%.",
+          "sourceSpanIds": ["p1-l011", "p1-l012"]
+        },
+        {
+          "text": "Led a cross-functional team in implementing a new feature using React and Redux, resulting in a 20% increase in user engagement within the first month.",
+          "sourceSpanIds": ["p1-l013", "p1-l014"]
+        },
+        {
+          "text": "Optimized MySQL database queries, reducing page load times by 15% and enhancing overall application performance.",
+          "sourceSpanIds": ["p1-l015", "p1-l016"]
+        }
+      ]
+    },
+    {
+      "title": "Software Engineer Intern",
+      "company": "Company Name 2",
+      "location": "City, State",
+      "startDate": "May 20XX",
+      "endDate": "Aug 20XX",
+      "sourceSpanIds": ["p1-l017", "p1-l018"],
+      "highlights": [
+        {
+          "text": "Designed and implemented responsive user interfaces with Angular, leading to a 15% improvement in user satisfaction scores.",
+          "sourceSpanIds": ["p1-l019", "p1-l020"]
+        },
+        {
+          "text": "Introduced automated testing processes with Jest and Enzyme, increasing test coverage by 30% and reducing post-release defects by 25%.",
+          "sourceSpanIds": ["p1-l021", "p1-l022"]
+        },
+        {
+          "text": "Contributed to the adoption of agile methodologies, utilizing Jira and Confluence, improving team productivity by 15% through iterative development cycles.",
+          "sourceSpanIds": ["p1-l023", "p1-l024"]
+        }
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Project Name 1",
+      "technologies": [
+        "React.js",
+        "Angular",
+        "Vue.js",
+        "Django",
+        "Flask",
+        "Ruby on Rails"
+      ],
+      "sourceSpanIds": ["p1-l026"],
+      "highlights": [
+        {
+          "text": "Led the development of a microservices-based e-commerce platform using Node.js, resulting in a 40% increase in daily transactions within the first quarter.",
+          "sourceSpanIds": ["p1-l027", "p1-l028"]
+        },
+        {
+          "text": "Designed and deployed a scalable RESTful API using Django and Django REST Framework, achieving a 30% improvement in data retrieval speed.",
+          "sourceSpanIds": ["p1-l029", "p1-l030"]
+        },
+        {
+          "text": "Implemented a real-time chat feature using WebSocket and Socket.io, enhancing user engagement and reducing response time by 20%.",
+          "sourceSpanIds": ["p1-l031", "p1-l032"]
+        }
+      ]
+    },
+    {
+      "name": "Project Name 2",
+      "technologies": [
+        "Spring Boot",
+        "Express.js",
+        "TensorFlow",
+        "PyTorch",
+        "jQuery",
+        "Bootstrap"
+      ],
+      "sourceSpanIds": ["p1-l033"],
+      "highlights": [
+        {
+          "text": "Developed a data visualization dashboard using D3.js, providing stakeholders with real-time insights and improving decision-making processes.",
+          "sourceSpanIds": ["p1-l034", "p1-l035"]
+        },
+        {
+          "text": "Built a CI/CD pipeline using Jenkins and Docker, reducing deployment time by 40% and ensuring consistent and reliable releases.",
+          "sourceSpanIds": ["p1-l036", "p1-l037"]
+        }
+      ]
+    },
+    {
+      "name": "Project Name 3",
+      "technologies": ["Python", "Flask", "Jinja2", "Firebase", "Bootstrap"],
+      "sourceSpanIds": ["p1-l038"],
+      "highlights": [
+        {
+          "text": "Contributed to an open-source project on GitHub, collaborating with a global community and achieving 500+ stars and 50 forks.",
+          "sourceSpanIds": ["p1-l039", "p1-l040"]
+        },
+        {
+          "text": "Implemented automated testing for a critical module using Selenium, reducing regression bugs by 30% and ensuring a more stable release cycle.",
+          "sourceSpanIds": ["p1-l041", "p1-l042"]
+        }
+      ]
+    }
+  ]
+}
