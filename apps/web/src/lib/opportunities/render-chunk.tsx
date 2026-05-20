@@ -279,16 +279,24 @@ export function RenderChunk({
         />
       );
 
-    case "google-company":
+    case "google-company": {
+      // audit/15: long company names like "Chemetics Inc (A Worley
+      // Company)" produce a wordy quoted label that visually competes
+      // with the actual content. Trim parenthetical parent-company
+      // qualifiers from the *displayed* label only; the search URL
+      // still uses the full string so the result quality doesn't
+      // suffer.
+      const trimmedLabel = opportunity.company.replace(/\s*\(.*\)\s*$/, "");
       return (
         <QuickActionLink
-          label={`Search "${opportunity.company}"`}
+          label={`Search "${trimmedLabel}"`}
           icon={<Search className="h-4 w-4" />}
           href={`https://www.google.com/search?q=${encodeURIComponent(
             opportunity.company,
           )}`}
         />
       );
+    }
 
     case "open-original":
       return opportunity.sourceUrl ? (
