@@ -277,7 +277,7 @@ function renderConcreteRow(
   rowIndex = 0,
 ): string {
   const style = [
-    row.heightPt ? `height:${round(row.heightPt)}pt` : "",
+    row.heightPt && !repeat ? `height:${round(row.heightPt)}pt` : "",
     row.fill ? fillCss(row.fill) : "",
     borderCss(row.borders),
   ].filter(Boolean);

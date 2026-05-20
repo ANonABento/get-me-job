@@ -228,11 +228,7 @@ export async function extractSourceDocumentIR(
 }
 
 export function mapSourceIRToResume(source: SourceDocumentIR): TailoredResume {
-  const lines = source.blocks
-    .filter((block) => block.text.trim())
-    .map((block) =>
-      block.type === "list-item" ? `- ${block.text.trim()}` : block.text.trim(),
-    );
+  const lines = sourceLinesForResumeMapping(source);
   const sections = groupLinesBySection(lines);
   const contactLines = lines.slice(0, 5).join(" ");
   const firstLine = lines[0] ?? "";
@@ -273,6 +269,42 @@ export function mapSourceIRToResume(source: SourceDocumentIR): TailoredResume {
     ),
     awards: parsePlainList(firstSectionLines(sections, ["awards"])),
   };
+}
+
+function sourceLinesForResumeMapping(source: SourceDocumentIR): string[] {
+  return source.blocks.flatMap((block) => {
+    if (block.type !== "table-row" || !block.cellMetadata?.length) {
+      return block.text.trim()
+        ? [
+            block.type === "list-item"
+              ? `- ${block.text.trim()}`
+              : block.text.trim(),
+          ]
+        : [];
+    }
+
+    const cellLines = block.cellMetadata.map((cell) =>
+      (cell.blocks ?? [])
+        .filter((cellBlock) => cellBlock.text.trim())
+        .map((cellBlock) =>
+          cellBlock.type === "list-item"
+            ? `- ${cellBlock.text.trim()}`
+            : cellBlock.text.trim(),
+        ),
+    );
+    const populatedCells = cellLines.filter((lines) => lines.length);
+    if (
+      populatedCells.length > 1 &&
+      populatedCells.every((lines) => lines.length === 1)
+    ) {
+      return [populatedCells.map((lines) => lines[0]).join(" | ")];
+    }
+
+    const expanded = cellLines.flat();
+    if (expanded.length > 1) return expanded;
+    if (block.cells?.length) return [block.cells.join(" | ")];
+    return block.text.trim() ? [block.text.trim()] : [];
+  });
 }
 
 async function extractPdfIR(
@@ -2483,13 +2515,16 @@ function parseExperienceLines(lines: string[]): TailoredResume["experiences"] {
   const result: TailoredResume["experiences"] = [];
   let current: TailoredResume["experiences"][number] | null = null;
   for (const line of lines) {
-    const isBullet = /^(?:-|\u2022)/.test(line) || line.length > 80;
-    if (
-      !isBullet &&
-      /(\d{4}|present|engineer|manager|developer|intern)/i.test(line)
-    ) {
+    const looksLikeHeader =
+      /(\d{4}|present|engineer|manager|developer|intern)/i.test(line) &&
+      !/^(?:-|\u2022)/.test(line);
+    const isBullet =
+      !looksLikeHeader && (/^(?:-|\u2022)/.test(line) || line.length > 80);
+    if (!isBullet && looksLikeHeader) {
       if (current) result.push(current);
-      const parts = line.split(/\s+\|\s+|\s+-\s+/).map((part) => part.trim());
+      const parts = line
+        .split(/\s+\|\s+|\s+[—-]\s+/)
+        .map((part) => part.trim());
       current = {
         title: parts[0] ?? "",
         company: parts[1] ?? "",
@@ -2513,7 +2548,7 @@ function parseSkills(lines: string[]) {
 
 function parseEducation(lines: string[]): TailoredResume["education"] {
   return lines.filter(Boolean).map((line) => {
-    const parts = line.split(/\s+\|\s+|\s+-\s+/).map((part) => part.trim());
+    const parts = line.split(/\s+\|\s+|\s+[—-]\s+/).map((part) => part.trim());
     return {
       institution: parts[0] ?? "",
       degree: parts[1] ?? "",
@@ -2532,7 +2567,9 @@ function parseProjects(
     const isBullet = /^(?:-|\u2022)/.test(line) || line.length > 100;
     if (!isBullet) {
       if (current) projects.push(current);
-      const parts = line.split(/\s+\|\s+|\s+-\s+/).map((part) => part.trim());
+      const parts = line
+        .split(/\s+\|\s+|\s+[—-]\s+/)
+        .map((part) => part.trim());
       current = {
         name: parts[0] ?? "",
         description: parts.slice(1).join(" - "),
