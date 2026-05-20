@@ -490,7 +490,11 @@ export default function OpportunityDetailPage({
             <header className="border-b pb-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <h1 className="text-3xl font-semibold tracking-tight">
+                  {/* audit/11: detail-page H1 picks up font-display per
+                      the editorial system (CLAUDE.md: "Headings use
+                      font-display tracking-tight"). Was inheriting the
+                      body font; matches the bento title now. */}
+                  <h1 className="font-display text-3xl font-semibold tracking-tight">
                     {opportunity.title}
                   </h1>
                   <p className="mt-2 text-lg text-muted-foreground">
