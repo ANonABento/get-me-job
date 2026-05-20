@@ -462,3 +462,200 @@ configured thresholds.
 - Spec-backed tests for source-independent analysis.
 - Dogfood artifact containing the analysis report.
 - Lab panel or JSON section exposing the report.
+
+## Phase 2 Deliverables
+
+- `inferResumeSemanticIR(source)` as the only supported semantic handoff from
+  evidence to reusable template rendering.
+- Confidence and evidence refs on every contact field, section, item, and
+  bullet grouping where the source can support it.
+- Section alias registry that is data-driven and extensible, not hardcoded to a
+  specific resume/persona.
+- Grouping tests for:
+  - repeated experience/project entries.
+  - continuation lines under the prior entry.
+  - bulletless paragraph resumes.
+  - custom sections and unknown section titles.
+  - international date formats.
+- Review mutation APIs for section type/title corrections that regenerate
+  reusable artifacts from the same semantic IR.
+
+Exit gate:
+
+- Stress renders can replace all source content with unrelated candidate data
+  without leaking source-only bullets, names, companies, dates, or projects.
+
+## Phase 3 Deliverables
+
+- `inferImportedTemplateStyleTokens(source)` populated from evidence clusters,
+  not from fixture names or user identity.
+- Token confidence for page geometry, margins, typography roles, colors, rules,
+  list treatment, and date alignment.
+- Token candidate lists when multiple plausible source styles exist.
+- Review mutation APIs for overriding:
+  - accent/body/rule/link/bullet colors.
+  - body/name/section/metadata font size and weight.
+  - margins, section gaps, item gaps, bullet gaps, and line height.
+  - section divider and header divider presence.
+- Lab token panel that shows token value, confidence, evidence refs, and any
+  competing candidates.
+
+Exit gate:
+
+- A template imported from one resume can be restyled through token edits and
+  re-rendered without touching semantic content or legacy V3 boxes.
+
+## Phase 4 Deliverables
+
+- `ReusableResumeTemplateIR` schemaVersion 4 is the primary app template model.
+- Renderer consumes semantic data through reusable components and tokenized
+  styles.
+- Component IR supports at minimum:
+  - header name/contact blocks.
+  - section headings and optional rules.
+  - repeatable entry headers.
+  - optional secondary/meta/date fields.
+  - bullet lists and paragraph-style achievement lines.
+  - skills, education rows, and custom sections.
+- Empty sections hide cleanly.
+- Added items reuse the same component pattern as imported items.
+- Removed items do not preserve fixed whitespace from the source.
+
+Exit gate:
+
+- The normal builder, preview, and export routes render V4 templates before
+  considering legacy V3 or built-in templates.
+
+## Phase 5 Deliverables
+
+- Standalone template lab shows the same persisted draft artifacts as the app:
+  reference/source render, reusable render, stress render, semantic tree, style
+  tokens, mismatch report, and diagnostics.
+- App review UI exposes the same conceptual panes, even if compressed into a
+  smaller workflow.
+- Semantic review controls:
+  - assign and rename section type.
+  - reorder sections.
+  - split/merge semantic items.
+  - move bullets between items.
+  - mark a source block decorative/non-template.
+- Style review controls:
+  - edit supported token values.
+  - choose among token candidates when available.
+  - reset an override back to inferred value.
+- The review UI labels source render as evidence/debug output and reusable
+  render as the saved template output.
+
+Exit gate:
+
+- A user can correct a bad import through controls, save, reopen the template,
+  add new resume content, and see the corrected reusable structure preserved.
+
+## Phase 6 Deliverables
+
+- Default template pickers list only built-in templates and saved V4 reusable
+  templates.
+- Legacy V3 visual templates are hidden from normal creation, tailoring,
+  Studio, and opportunity generation flows unless explicitly requested.
+- Legacy management/debug surfaces can still list V3 templates for inspection,
+  rename, or deletion.
+- Existing documents with already-selected V3 template ids continue to render
+  and export.
+- Migration drafts may retain `templateV3` only as evidence/debug data.
+- Commit path saves V4 when reusable artifacts are ready and rejects incomplete
+  V4 saves with actionable issues.
+
+Exit gate:
+
+- There is one normal user-facing template system: built-ins plus V4 reusable
+  templates. V3 is compatibility/debug only.
+
+## Phase 7 Deliverables
+
+- Fixture manifest contains required class coverage independent of exact
+  examples.
+- Fixtures include PDF, DOCX, and LaTeX sources.
+- Each fixture declares expected semantic sections and expected style traits.
+- Dogfood suite renders:
+  - source/reference preview.
+  - reusable render with source content.
+  - reusable stress render with unrelated candidate content.
+- Scorecards report:
+  - semantic coverage.
+  - style token coverage.
+  - layout resilience.
+  - reference visual-family resemblance.
+  - fixture-class coverage.
+- Reference resemblance stays diagnostic unless it reveals structural failure.
+- User-provided resumes may be added as private dogfood cases, but pass/fail
+  must never depend on a specific person's content.
+
+Exit gate:
+
+- Strict suite passes with every required fixture class covered, and failures
+  identify whether the break is extraction, semantic inference, token inference,
+  component rendering, or review/save wiring.
+
+## Universal Testing Contract
+
+The verification suite must test behavior, not a single user's resume:
+
+- Use anonymized or generated persona fixtures for normal CI-style checks.
+- Keep user resumes as dogfood inputs only when the user explicitly provides
+  them for debugging.
+- For every new bug found from a user resume, add a generalized fixture class or
+  generated reproduction that captures the pattern without depending on that
+  user's name, jobs, schools, or wording.
+- Every renderer test should replace source content with unrelated candidate
+  content to catch leaked fixed boxes and duplicated source text.
+- Every importer test should include evidence refs so failures can be traced
+  back to the source block, row, line, or token cluster.
+- Visual comparison is used to verify visual family and diagnose extraction
+  regressions. It is not the product goal and should not force pixel-perfect
+  source layout into the saved template.
+
+## Debug Lab Contract
+
+The standalone lab is the place to dogfood import behavior before app UX work:
+
+- It must open from static artifacts without a running app session.
+- It must show all panes needed to explain a failure:
+  - reference/source preview.
+  - reusable render.
+  - stress render.
+  - source evidence tree.
+  - semantic tree.
+  - style token table.
+  - mismatch report.
+  - raw JSON artifacts.
+- It must link each issue to the likely pipeline stage:
+  extraction, semantic grouping, style token inference, component rendering, or
+  app wiring.
+- It must make fixture coverage visible so a green run cannot hide that the
+  suite only tested one resume family.
+
+## Current Implementation Status
+
+As of the latest implementation slice, the system has:
+
+- V4 reusable template artifacts persisted on migration drafts.
+- V4 reusable template save/list/get/delete/update database support.
+- V4-first render/export/template-list behavior for normal flows.
+- Legacy V3 hidden from normal pickers by default and retained for
+  compatibility/debug management.
+- A strict visual dogfood suite with all required fixture classes covered.
+- A reusable renderer that consumes section order and entry component settings
+  for header fields and bullet-vs-paragraph achievement rendering.
+
+Known remaining gaps:
+
+- Split/merge semantic items and move-bullet controls are not complete in the
+  app review UI.
+- Style token candidate selection is not complete; direct token overrides exist
+  for only part of the desired surface.
+- Decorative/non-template source evidence marking is not complete.
+- DOCX table-heavy imports still need extraction and layout resilience work; the
+  dogfood suite keeps this visible as a broad fixture class rather than a
+  person-specific case.
+- The lab is useful for verification, but app review needs to expose the same
+  model in a clearer workflow.
