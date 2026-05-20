@@ -3498,6 +3498,7 @@ function StyleTokensPane({
 
 function MismatchReportPane({ draft }: { draft: TemplateMigrationDraft }) {
   const items = mismatchReportItems(draft);
+  const gates = reviewGateGroups(draft, items);
   return (
     <div className="rounded-md border bg-muted/20 p-3">
       <div className="flex items-center justify-between gap-2">
@@ -3509,6 +3510,33 @@ function MismatchReportPane({ draft }: { draft: TemplateMigrationDraft }) {
         </p>
       </div>
       <div className="mt-2 max-h-[420px] space-y-2 overflow-auto rounded-sm border bg-background p-3 text-xs">
+        <div className="grid gap-2 md:grid-cols-5">
+          {gates.map((gate) => (
+            <div
+              key={gate.id}
+              className={`rounded-sm border p-2 ${
+                gate.status === "blocked"
+                  ? "border-red-700/20 bg-red-700/5 text-red-900"
+                  : gate.status === "review"
+                    ? "border-amber-700/20 bg-amber-700/5 text-amber-900"
+                    : "border-emerald-700/20 bg-emerald-700/5 text-emerald-900"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-medium">{gate.label}</p>
+                <span className="shrink-0 rounded-sm bg-background/70 px-1.5 py-0.5 text-[10px] uppercase">
+                  {gate.status === "blocked"
+                    ? "Blocked"
+                    : gate.status === "review"
+                      ? "Review"
+                      : "Pass"}
+                </span>
+              </div>
+              <p className="mt-1 leading-5">{gate.detail}</p>
+              <p className="mt-1 text-[11px] opacity-80">{gate.action}</p>
+            </div>
+          ))}
+        </div>
         {items.length ? (
           items.map((item) => (
             <div
@@ -3543,6 +3571,14 @@ function MismatchReportPane({ draft }: { draft: TemplateMigrationDraft }) {
     </div>
   );
 }
+
+type ReviewGateGroup = {
+  id: "extraction" | "semantic" | "style" | "render" | "app-wiring";
+  label: string;
+  status: "pass" | "review" | "blocked";
+  detail: string;
+  action: string;
+};
 
 function mismatchReportItems(draft: TemplateMigrationDraft): Array<{
   area: string;
@@ -3590,7 +3626,7 @@ function mismatchReportItems(draft: TemplateMigrationDraft): Array<{
   }
   if ((scores.sourceEvidence ?? 1) < 0.75) {
     items.push({
-      area: "source",
+      area: "extraction",
       label: "Weak source evidence",
       detail: `Source evidence is ${formatConfidence(scores.sourceEvidence)}.`,
       action:
@@ -3610,7 +3646,7 @@ function mismatchReportItems(draft: TemplateMigrationDraft): Array<{
   }
   if (hasDocxTableEvidence(draft)) {
     items.push({
-      area: "source",
+      area: "extraction",
       label: "Table-heavy DOCX review",
       detail:
         "This import includes DOCX table evidence, which often mixes reusable resume content with layout-only cells.",
@@ -3666,6 +3702,124 @@ function mismatchReportItems(draft: TemplateMigrationDraft): Array<{
   return items;
 }
 
+function reviewGateGroups(
+  draft: TemplateMigrationDraft,
+  items: ReturnType<typeof mismatchReportItems>,
+): ReviewGateGroup[] {
+  const scores = draft.universalAnalysis?.scores ?? {};
+  const blockingMessage = visualTemplateBlockingMessage(draft);
+  const hasReusableRender = Boolean(draft.reusableHtml?.trim());
+  const hasReusableSections = Boolean(
+    draft.reusableTemplate?.sectionOrder?.length,
+  );
+  const hasReusableComponents = Boolean(
+    draft.reusableTemplate?.components?.length,
+  );
+  const hasSemanticSections = Boolean(draft.semanticResume?.sections?.length);
+  const hasStyleTokens = Boolean(draft.styleTokens);
+  const sourceEvidence = scores.sourceEvidence ?? 1;
+  const semanticCoverage =
+    scores.semanticCoverage ?? (hasSemanticSections ? 1 : 0);
+  const styleCoverage = scores.styleCoverage ?? (hasStyleTokens ? 1 : 0);
+  const layoutResilience = scores.layoutResilience ?? 1;
+
+  return [
+    {
+      id: "extraction",
+      label: "Extraction gate",
+      status: gateStatus(
+        [
+          sourceEvidence < 0.45,
+          items.some(
+            (item) => item.area === "extraction" && item.tone === "danger",
+          ),
+        ],
+        [
+          sourceEvidence < 0.75,
+          items.some((item) => item.area === "extraction"),
+        ],
+      ),
+      detail:
+        sourceEvidence < 0.75
+          ? `Source evidence is ${formatConfidence(sourceEvidence)}.`
+          : "Source evidence is represented or explicitly reviewable.",
+      action:
+        "Use Source Evidence to classify unresolved blocks, table cells, and decorative layout before saving.",
+    },
+    {
+      id: "semantic",
+      label: "Semantic gate",
+      status: gateStatus(
+        [semanticCoverage < 0.55, !hasSemanticSections],
+        [
+          semanticCoverage < 0.75,
+          items.some((item) => item.area === "semantic"),
+        ],
+      ),
+      detail:
+        semanticCoverage < 0.75
+          ? `Semantic coverage is ${formatConfidence(semanticCoverage)}.`
+          : "Sections, items, dates, metadata, and bullets have reusable mappings.",
+      action:
+        "Use Semantic Tree to correct section types, item grouping, fields, and bullet ownership.",
+    },
+    {
+      id: "style",
+      label: "Style gate",
+      status: gateStatus(
+        [styleCoverage < 0.45, !hasStyleTokens],
+        [styleCoverage < 0.75, items.some((item) => item.area === "style")],
+      ),
+      detail:
+        styleCoverage < 0.75
+          ? `Style coverage is ${formatConfidence(styleCoverage)}.`
+          : "Typography, spacing, color, and layout tokens are available for review.",
+      action:
+        "Use Style Tokens to choose reusable typography, spacing, divider, color, and layout candidates.",
+    },
+    {
+      id: "render",
+      label: "Render gate",
+      status: gateStatus(
+        [layoutResilience < 0.7, !hasReusableRender, !hasReusableSections],
+        [
+          layoutResilience < 0.75,
+          !hasReusableComponents,
+          items.some((item) => item.area === "render"),
+        ],
+      ),
+      detail:
+        layoutResilience < 0.75
+          ? `Layout resilience is ${formatConfidence(layoutResilience)}.`
+          : "Reusable and stress renders avoid severe overflow, clipping, and duplicate content.",
+      action:
+        "Compare Reusable Render with Visual Evidence and check stress-style warnings for overflow or missing repeats.",
+    },
+    {
+      id: "app-wiring",
+      label: "App wiring gate",
+      status: gateStatus(
+        [Boolean(blockingMessage)],
+        [draft.confidence !== "high", draft.fidelity?.status === "review"],
+      ),
+      detail: blockingMessage
+        ? blockingMessage
+        : "Save readiness is based on the reusable template artifacts, not source-only visual boxes.",
+      action:
+        "Resolve blocked gates before saving; after save, reopen the template and verify new resume content uses the reusable structure.",
+    },
+  ];
+}
+
+function gateStatus(
+  blocked: boolean[],
+  review: boolean[],
+): ReviewGateGroup["status"] {
+  if (blocked.some(Boolean)) return "blocked";
+  if (review.some(Boolean)) return "review";
+  return "pass";
+}
+
 function hasDocxTableEvidence(draft: TemplateMigrationDraft): boolean {
   const sourceType = draft.sourceType || draft.sourceFilename;
   const isDocx = sourceType.toLowerCase().includes("docx");
@@ -3679,7 +3833,7 @@ function hasDocxTableEvidence(draft: TemplateMigrationDraft): boolean {
 }
 
 function fidelityCheckArea(id: string): string {
-  if (/page|geometry|cell|table/i.test(id)) return "source";
+  if (/page|geometry|cell|table/i.test(id)) return "extraction";
   if (/slot|semantic|mapping/i.test(id)) return "semantic";
   if (/style|token/i.test(id)) return "style";
   if (/render|preview|repeat|completeness/i.test(id)) return "render";

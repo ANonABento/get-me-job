@@ -1382,6 +1382,28 @@ describe("CustomTemplateManagerDialog", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Mismatch Report" }));
 
+    expect(screen.getByText("Extraction gate")).toBeInTheDocument();
+    expect(screen.getByText("Semantic gate")).toBeInTheDocument();
+    expect(screen.getByText("Style gate")).toBeInTheDocument();
+    expect(screen.getByText("Render gate")).toBeInTheDocument();
+    expect(screen.getByText("App wiring gate")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Use Source Evidence to classify unresolved blocks, table cells/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Use Semantic Tree to correct section types/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Use Style Tokens to choose reusable typography/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Compare Reusable Render with Visual Evidence/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Resolve blocked gates before saving/),
+    ).toBeInTheDocument();
     expect(screen.getByText("Weak layout resilience")).toBeInTheDocument();
     expect(screen.getByText("Weak source evidence")).toBeInTheDocument();
     expect(screen.getByText("Render completeness")).toBeInTheDocument();

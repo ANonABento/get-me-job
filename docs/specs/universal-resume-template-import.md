@@ -771,5 +771,7 @@ Known remaining gaps:
   reusable table-row matching was made token-aware, body typography inference
   stopped reusing name-sized text, and sub-pixel page-height rounding stopped
   counting as page overflow.
-- The lab is useful for verification, but app review needs to expose the same
-  model in a clearer workflow.
+- App review mismatch reports now expose the same gate model as the lab:
+  extraction, semantic, style, render, and app wiring statuses with review
+  actions. The broader review workflow still needs the full save/reopen/add-new
+  content exit-gate verification.
