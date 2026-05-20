@@ -652,16 +652,15 @@ As of the latest implementation slice, the system has:
   as achievement text so user content is not silently dropped.
 - Source evidence can be marked non-template/decorative from review; reusable
   semantic artifacts regenerate from the remaining evidence.
-- Semantic item primary, secondary, and date fields can be corrected directly
-  from review after import or split.
+- Semantic item primary, secondary, date, location, URL, and metadata fields can
+  be corrected directly from review after import or split.
 - Style token overrides can be reset back to inferred values from current source
   evidence.
 
 Known remaining gaps:
 
-- Split/merge semantic item controls are basic adjacent operations; richer
-  editing of metadata, locations, URLs, and arbitrary item targets is still not
-  complete.
+- Split/merge semantic item controls are basic adjacent operations; arbitrary
+  item targets and drag/drop are still not complete.
 - Move-bullet controls are basic adjacent-item controls; richer drag/drop or
   arbitrary target selection is still not complete.
 - Decorative source marking is block-level only; finer-grained row/cell/run

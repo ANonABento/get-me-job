@@ -184,6 +184,7 @@ interface TemplateMigrationDraft {
         location?: string;
         dateRange?: string;
         meta?: string[];
+        url?: string;
         bullets?: string[];
         confidence?: number;
         evidenceRefs?: string[];
@@ -2334,7 +2335,8 @@ function SemanticSectionCard({
   function updateItem(
     itemIndex: number,
     updates: Pick<SemanticDraftItem, "primary"> &
-      Partial<Pick<SemanticDraftItem, "secondary" | "dateRange">>,
+      Partial<Pick<SemanticDraftItem, "secondary" | "dateRange">> &
+      Partial<Pick<SemanticDraftItem, "location" | "url" | "meta">>,
   ) {
     if (!semantic) return;
     const nextSemantic: SemanticDraftResume = {
@@ -2447,7 +2449,8 @@ function SemanticItemCard({
   onUpdateItem: (
     itemIndex: number,
     updates: Pick<SemanticDraftItem, "primary"> &
-      Partial<Pick<SemanticDraftItem, "secondary" | "dateRange">>,
+      Partial<Pick<SemanticDraftItem, "secondary" | "dateRange">> &
+      Partial<Pick<SemanticDraftItem, "location" | "url" | "meta">>,
   ) => void;
   onMergeItemIntoPrevious: (itemIndex: number) => void;
   onMoveBullet: (
@@ -2460,16 +2463,32 @@ function SemanticItemCard({
   const [primary, setPrimary] = useState(item.primary);
   const [secondary, setSecondary] = useState(item.secondary ?? "");
   const [dateRange, setDateRange] = useState(item.dateRange ?? "");
+  const [location, setLocation] = useState(item.location ?? "");
+  const [url, setUrl] = useState(item.url ?? "");
+  const [meta, setMeta] = useState((item.meta ?? []).join(" | "));
   const dirty =
     primary !== item.primary ||
     secondary !== (item.secondary ?? "") ||
-    dateRange !== (item.dateRange ?? "");
+    dateRange !== (item.dateRange ?? "") ||
+    location !== (item.location ?? "") ||
+    url !== (item.url ?? "") ||
+    meta !== (item.meta ?? []).join(" | ");
 
   useEffect(() => {
     setPrimary(item.primary);
     setSecondary(item.secondary ?? "");
     setDateRange(item.dateRange ?? "");
-  }, [item.primary, item.secondary, item.dateRange]);
+    setLocation(item.location ?? "");
+    setUrl(item.url ?? "");
+    setMeta((item.meta ?? []).join(" | "));
+  }, [
+    item.primary,
+    item.secondary,
+    item.dateRange,
+    item.location,
+    item.url,
+    item.meta,
+  ]);
 
   return (
     <div className="border-l pl-2">
@@ -2520,6 +2539,9 @@ function SemanticItemCard({
                 primary: primary.trim(),
                 secondary: secondary.trim() || undefined,
                 dateRange: dateRange.trim() || undefined,
+                location: location.trim() || undefined,
+                url: url.trim() || undefined,
+                meta: splitSemanticMeta(meta),
               })
             }
           >
@@ -2539,6 +2561,41 @@ function SemanticItemCard({
             </Button>
           ) : null}
         </div>
+      </div>
+      <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <label className="space-y-1">
+          <span className="block text-[10px] font-medium uppercase text-muted-foreground">
+            Location
+          </span>
+          <Input
+            value={location}
+            aria-label={`Location for semantic item ${itemIndex + 1}`}
+            className="h-8 text-xs"
+            onChange={(event) => setLocation(event.currentTarget.value)}
+          />
+        </label>
+        <label className="space-y-1">
+          <span className="block text-[10px] font-medium uppercase text-muted-foreground">
+            URL
+          </span>
+          <Input
+            value={url}
+            aria-label={`URL for semantic item ${itemIndex + 1}`}
+            className="h-8 text-xs"
+            onChange={(event) => setUrl(event.currentTarget.value)}
+          />
+        </label>
+        <label className="space-y-1">
+          <span className="block text-[10px] font-medium uppercase text-muted-foreground">
+            Metadata
+          </span>
+          <Input
+            value={meta}
+            aria-label={`Metadata for semantic item ${itemIndex + 1}`}
+            className="h-8 text-xs"
+            onChange={(event) => setMeta(event.currentTarget.value)}
+          />
+        </label>
       </div>
       {item.bullets?.length ? (
         <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted-foreground">
@@ -2984,6 +3041,13 @@ function semanticItemHeaderText(
 
 function uniqueStrings(values: string[]): string[] {
   return Array.from(new Set(values.filter(Boolean)));
+}
+
+function splitSemanticMeta(value: string): string[] {
+  return value
+    .split(/\s*[|,;]\s*/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function formatTokenJson(value: unknown): string {

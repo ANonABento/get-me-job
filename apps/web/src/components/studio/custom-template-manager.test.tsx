@@ -510,6 +510,7 @@ describe("CustomTemplateManagerDialog", () => {
             ...next.styleTokens,
             color: {
               ...next.styleTokens.color,
+              body: { value: "#111111" },
               accent: { value: "#2563eb" },
             },
           };
@@ -761,6 +762,15 @@ describe("CustomTemplateManagerDialog", () => {
     fireEvent.change(screen.getByLabelText("Date for semantic item 1"), {
       target: { value: "Jan 2025 - Present" },
     });
+    fireEvent.change(screen.getByLabelText("Location for semantic item 1"), {
+      target: { value: "Toronto, ON" },
+    });
+    fireEvent.change(screen.getByLabelText("URL for semantic item 1"), {
+      target: { value: "https://example.com/project" },
+    });
+    fireEvent.change(screen.getByLabelText("Metadata for semantic item 1"), {
+      target: { value: "TypeScript | PDF | DOCX" },
+    });
     fireEvent.click(
       screen.getByRole("button", { name: "Save semantic item 1" }),
     );
@@ -771,6 +781,9 @@ describe("CustomTemplateManagerDialog", () => {
         primary: "Principal Engineer",
         secondary: "Example Labs",
         dateRange: "Jan 2025 - Present",
+        location: "Toronto, ON",
+        url: "https://example.com/project",
+        meta: ["TypeScript", "PDF", "DOCX"],
         confidence: 1,
       });
       expect(latest.semanticResume.sections[0].items[0].bullets).toEqual([
