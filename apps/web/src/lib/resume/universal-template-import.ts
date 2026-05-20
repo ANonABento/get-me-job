@@ -525,6 +525,8 @@ function inferColorTokens(
       Boolean(item.color),
     );
   const colorCandidates = colorTokenCandidates(styleColors);
+  const linkColors = linkColorEvidence(source);
+  const linkColor = mostCommon(linkColors.map((item) => item.color));
   const bodyColor = typography.body?.color;
   const accentColor =
     typography.sectionHeading?.color ??
@@ -575,8 +577,64 @@ function inferColorTokens(
           evidenceRefsForColor(styleColors, accentColor),
         )
       : undefined,
-    link: undefined,
+    link: linkColor
+      ? {
+          ...scalarToken(linkColor, 0.68, [
+            ...new Set(
+              linkColors
+                .filter((item) => item.color === linkColor)
+                .map((item) => item.evidenceRef),
+            ),
+          ]),
+          candidates: colorTokenCandidates(linkColors),
+        }
+      : undefined,
   };
+}
+
+function linkColorEvidence(
+  source: SourceDocumentIR,
+): Array<{ id: string; color: string; evidenceRef: string }> {
+  const colors: Array<{ id: string; color: string; evidenceRef: string }> = [];
+  for (const block of source.blocks) {
+    if (block.href && block.style?.color) {
+      colors.push({
+        id: block.id,
+        color: block.style.color,
+        evidenceRef: block.id,
+      });
+    }
+    for (const run of block.runs ?? []) {
+      if (run.href && run.style?.color) {
+        colors.push({
+          id: block.id,
+          color: run.style.color,
+          evidenceRef: block.id,
+        });
+      }
+    }
+    for (const cell of block.cellMetadata ?? []) {
+      for (const cellBlock of cell.blocks ?? []) {
+        if (cellBlock.href && cellBlock.style?.color) {
+          colors.push({
+            id: block.id,
+            color: cellBlock.style.color,
+            evidenceRef: block.id,
+          });
+        }
+        for (const run of cellBlock.runs ?? []) {
+          if (run.href && run.style?.color) {
+            colors.push({
+              id: block.id,
+              color: run.style.color,
+              evidenceRef: block.id,
+            });
+          }
+        }
+      }
+    }
+  }
+  return colors;
 }
 
 function inferSpacingTokens(

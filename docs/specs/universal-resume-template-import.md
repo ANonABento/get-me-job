@@ -734,7 +734,8 @@ As of the latest implementation slice, the system has:
   for header fields and bullet-vs-paragraph achievement rendering. During
   migration, V4 reusable artifacts now infer bullet-vs-paragraph achievement
   rendering from source visual evidence instead of defaulting every section to
-  list styling, and preserve source-backed list marker style where available.
+  list styling, preserve source-backed list marker style where available, and
+  render reusable contact links with inferred link color.
 - Basic semantic review controls for section type/title correction and moving
   bullets between adjacent, dragged, or explicitly selected items.
 - Semantic sections can be reordered from review with buttons or drag/drop and
@@ -786,6 +787,8 @@ Known remaining gaps:
   the imported source has achievement text without visual list markers.
 - V4 reusable templates preserve detected list marker treatment, including
   numbered DOCX list evidence, in generated reusable renders.
+- V4 reusable templates render contact email/GitHub/LinkedIn fields as semantic
+  links and infer link color from source hyperlink evidence.
 - App review mismatch reports now expose the same gate model as the lab:
   extraction, semantic, style, render, and app wiring statuses with review
   actions.

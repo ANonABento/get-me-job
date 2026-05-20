@@ -441,7 +441,9 @@ function renderTemplateBody(
     .filter(Boolean);
 
   return [
-    header ? renderHeader(header, semantic) : "",
+    header
+      ? renderHeader(header, semantic, template.tokens.color.link?.value)
+      : "",
     ...renderedSections,
   ].join("\n");
 }
@@ -449,18 +451,31 @@ function renderTemplateBody(
 function renderHeader(
   component: HeaderBlockComponent,
   semantic: ResumeSemanticIR,
+  linkColor?: string,
 ): string {
   const contact = component.contactFields
-    .map((field) => semantic.contact[field])
-    .filter(
-      (value): value is string =>
-        typeof value === "string" && value.trim().length > 0,
-    )
-    .map(escapeHtml)
+    .map((field) => renderContactField(field, semantic.contact[field]))
+    .filter(Boolean)
     .join(" | ");
   return `<header class="rt-header"><h1>${escapeHtml(
     semantic.contact.name || "Your Name",
-  )}</h1>${contact ? `<div class="rt-contact">${contact}</div>` : ""}</header>`;
+  )}</h1>${contact ? `<div class="rt-contact${linkColor ? " rt-contact-linked" : ""}">${contact}</div>` : ""}</header>`;
+}
+
+function renderContactField(
+  field: keyof ResumeSemanticIR["contact"],
+  value: ResumeSemanticIR["contact"][keyof ResumeSemanticIR["contact"]],
+): string {
+  if (typeof value !== "string" || !value.trim()) return "";
+  const text = value.trim();
+  if (field === "email") {
+    return `<a href="mailto:${escapeHtml(text)}">${escapeHtml(text)}</a>`;
+  }
+  if (field === "linkedin" || field === "github") {
+    const href = /^https?:\/\//i.test(text) ? text : `https://${text}`;
+    return `<a href="${escapeHtml(href)}">${escapeHtml(text)}</a>`;
+  }
+  return escapeHtml(text);
 }
 
 function renderSection(
@@ -646,6 +661,7 @@ function renderReusableTemplateCSS(
   const accent = tokens.color.accent?.value ?? heading?.color ?? "#111111";
   const bodyColor = tokens.color.body?.value ?? body?.color ?? "#171717";
   const ruleColor = tokens.color.rule?.value ?? accent;
+  const linkColor = tokens.color.link?.value ?? metadata?.color ?? bodyColor;
   const margins = page.margins ?? {
     top: "42pt",
     right: "42pt",
@@ -666,6 +682,7 @@ body { margin: 0; background: #f4f4f5; color: ${bodyColor}; font-family: ${fontF
 .rt-header-sidebar .rt-contact { max-width: none; text-align: left; }
 .rt-header h1 { margin: 0; font-family: ${fontFamily(name)}; font-size: ${pt(name?.fontSizePt, 24)}; line-height: 1; color: ${name?.color ?? accent}; font-weight: ${name?.fontWeight ?? "700"}; }
 .rt-contact { max-width: 55%; min-width: 0; text-align: right; font-family: ${fontFamily(metadata)}; font-size: ${pt(metadata?.fontSizePt, 9)}; color: ${metadata?.color ?? bodyColor}; line-height: ${metadata?.lineHeight ?? "1.25"}; overflow-wrap: anywhere; }
+.rt-contact a { color: ${linkColor}; text-decoration: none; }
 .rt-section { margin-top: ${pt(tokens.spacing.sectionGapPt?.value, 8)}; }
 .rt-section-title-left-rail .rt-section { display: grid; grid-template-columns: 24% 1fr; column-gap: 14pt; align-items: start; }
 .rt-section-title-left-rail .rt-section h2 { border-bottom: 0; padding-bottom: 0; }

@@ -224,6 +224,7 @@ describe("universal template import analysis", () => {
           color: "#222222",
           lineHeight: "1.2",
         }),
+        linkBlock("b6", "Portfolio", "https://example.com", "#2563EB"),
       ],
     };
 
@@ -250,6 +251,10 @@ describe("universal template import analysis", () => {
       fontWeight: "700",
     });
     expect(tokens.color.accent).toMatchObject({ value: "#0f766e" });
+    expect(tokens.color.link).toMatchObject({
+      value: "#2563EB",
+      evidenceRefs: ["b6"],
+    });
     expect(tokens.color.accent?.candidates).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ value: "#0f766e" }),
@@ -994,6 +999,63 @@ describe("universal template import analysis", () => {
     expect(html).toContain('class="rt-list-decimal"');
     expect(html).toContain("list-style-type: decimal");
   });
+
+  it("renders reusable contact links with inferred link color", () => {
+    const source: SourceDocumentIR = {
+      sourceType: "docx",
+      filename: "linked-contact.docx",
+      pages: [{ id: "page-1", number: 1, widthPt: 612, heightPt: 792 }],
+      rawText: "",
+      diagnostics: [],
+      blocks: [
+        styledBlock("b1", "Template Owner", { fontSizePt: 24, bold: true }),
+        linkBlock(
+          "b2",
+          "github.com/template-owner",
+          "https://github.com/template-owner",
+          "#2563EB",
+        ),
+        styledBlock("b3", "EXPERIENCE", { fontSizePt: 11, bold: true }),
+        tableRow("b4", ["Analyst", "Source Co", "2024"]),
+        bulletRow("b5", "Built source-backed link rendering."),
+      ],
+    };
+    const semantic = inferResumeSemanticIR(source);
+    const template = buildReusableResumeTemplateIR(
+      semantic,
+      inferImportedTemplateStyleTokens(source),
+      source,
+    );
+    const html = renderTailoredResumeWithReusableTemplate(
+      {
+        contact: {
+          name: "New Candidate",
+          email: "new@example.com",
+          github: "github.com/new-candidate",
+          linkedin: "linkedin.com/in/new-candidate",
+        },
+        summary: "",
+        experiences: [
+          {
+            title: "Operations Analyst",
+            company: "Delta Systems",
+            dates: "2026 - Present",
+            highlights: ["Rendered contact links."],
+          },
+        ],
+        projects: [],
+        skills: [],
+        education: [],
+      },
+      template,
+    );
+
+    expect(template.tokens.color.link?.value).toBe("#2563EB");
+    expect(html).toContain('href="mailto:new@example.com"');
+    expect(html).toContain('href="https://github.com/new-candidate"');
+    expect(html).toContain('href="https://linkedin.com/in/new-candidate"');
+    expect(html).toContain(".rt-contact a { color: #2563EB;");
+  });
 });
 
 function styledBlock(
@@ -1060,5 +1122,22 @@ function bulletRow(
         ],
       },
     ],
+  };
+}
+
+function linkBlock(
+  id: string,
+  text: string,
+  href: string,
+  color: string,
+): SourceDocumentIR["blocks"][number] {
+  return {
+    id,
+    pageId: "page-1",
+    type: "link",
+    text,
+    href,
+    style: { color },
+    runs: [{ text, href, style: { color } }],
   };
 }
