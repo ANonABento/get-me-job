@@ -177,12 +177,22 @@ export function RenderChunk({
       );
     }
 
-    case "deadline":
-      return opportunity.deadline ? (
+    case "deadline": {
+      if (!opportunity.deadline) return null;
+      // audit/09: scraper-side data often carries a trailing time
+      // ("May 19, 2026 9:00 AM"). For card display, the date alone is
+      // enough — strip ` H:MM[:SS][ AM/PM]` from the end. The original
+      // string is still in the DB for callers that want hour-precision.
+      const display = opportunity.deadline.replace(
+        /\s+\d{1,2}:\d{2}(:\d{2})?(\s*[AP]M)?$/i,
+        "",
+      );
+      return (
         <span className="text-sm text-muted-foreground">
-          Deadline {opportunity.deadline}
+          Deadline {display}
         </span>
-      ) : null;
+      );
+    }
 
     case "tags":
       return context.tags.length > 0 ? (
