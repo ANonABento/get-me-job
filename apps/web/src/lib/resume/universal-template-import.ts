@@ -1239,7 +1239,70 @@ function detectStyleSignals(
   );
   if (metadata) signals.push(styleSignal("metadata", metadata, 0.62));
 
+  if (source.sourceType === "tex") {
+    signals.push(...latexFallbackStyleSignals(blocks, sections));
+  }
+
   return dedupeStyleSignals(signals);
+}
+
+function latexFallbackStyleSignals(
+  blocks: SourceDocumentIR["blocks"],
+  sections: UniversalTemplateSectionSignal[],
+): UniversalTemplateStyleSignal[] {
+  if (!blocks.length || !sections.length) return [];
+  const sectionRefs = new Set(
+    sections.flatMap((section) => section.evidenceRefs),
+  );
+  const nameBlock = blocks[0];
+  const sectionBlock =
+    blocks.find((block) => sectionRefs.has(block.id)) ?? blocks[0];
+  const bodyBlock =
+    blocks.find(
+      (block) => !sectionRefs.has(block.id) && block.id !== nameBlock.id,
+    ) ?? blocks[0];
+  const metadataBlock = blocks.find((block) => isDateLike(block.text));
+  return [
+    fallbackStyleSignal("name", nameBlock, 0.58, {
+      fontSizePt: 16,
+      bold: true,
+      color: "#111111",
+    }),
+    fallbackStyleSignal("sectionHeading", sectionBlock, 0.62, {
+      fontSizePt: 10.5,
+      bold: true,
+      color: "#111111",
+    }),
+    fallbackStyleSignal("body", bodyBlock, 0.58, {
+      fontSizePt: 10,
+      color: "#111111",
+    }),
+    ...(metadataBlock
+      ? [
+          fallbackStyleSignal("metadata", metadataBlock, 0.52, {
+            fontSizePt: 9,
+            color: "#111111",
+          }),
+        ]
+      : []),
+  ];
+}
+
+function fallbackStyleSignal(
+  role: UniversalTemplateStyleSignal["role"],
+  block: SourceDocumentIR["blocks"][number],
+  confidence: number,
+  sample: UniversalTemplateStyleSignal["sample"],
+): UniversalTemplateStyleSignal {
+  return {
+    role,
+    confidence,
+    evidenceRefs: [block.id],
+    sample: {
+      fontFamily: "Latin Modern Roman, Computer Modern, Times New Roman, serif",
+      ...sample,
+    },
+  };
 }
 
 function styleSignal(
@@ -1309,8 +1372,8 @@ function scoreStyleCoverage(
   styleSignals: UniversalTemplateStyleSignal[],
   styledBlockCount: number,
 ): number {
-  if (!styledBlockCount) return 0;
   const roles = new Set(styleSignals.map((signal) => signal.role));
+  if (!styledBlockCount && !roles.size) return 0;
   return Math.min(
     1,
     Number(roles.has("body")) * 0.3 +

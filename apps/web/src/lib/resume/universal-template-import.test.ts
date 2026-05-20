@@ -288,6 +288,74 @@ describe("universal template import analysis", () => {
     expect(html).toContain("color: #7c3aed");
   });
 
+  it("infers reusable LaTeX style defaults when explicit run styles are absent", () => {
+    const source: SourceDocumentIR = {
+      sourceType: "tex",
+      filename: "plain-latex-resume.tex",
+      pages: [
+        {
+          id: "page-1",
+          number: 1,
+          widthPt: 612,
+          heightPt: 792,
+          margins: {
+            top: "46.8pt",
+            right: "46.8pt",
+            bottom: "46.8pt",
+            left: "46.8pt",
+          },
+        },
+      ],
+      rawText: "",
+      diagnostics: ["latex_style_hints_inferred"],
+      blocks: [
+        { id: "b1", pageId: "page-1", type: "paragraph", text: "Maya Chen" },
+        {
+          id: "b2",
+          pageId: "page-1",
+          type: "paragraph",
+          text: "maya@example.com | github.com/maya",
+        },
+        { id: "b3", pageId: "page-1", type: "heading", text: "Experience" },
+        {
+          id: "b4",
+          pageId: "page-1",
+          type: "paragraph",
+          text: "Engineer | Papertrail Labs | 2023 -- Present",
+        },
+        {
+          id: "b5",
+          pageId: "page-1",
+          type: "list-item",
+          text: "Built migration tooling",
+        },
+        { id: "b6", pageId: "page-1", type: "heading", text: "Education" },
+      ],
+    };
+
+    const analysis = analyzeUniversalTemplateImport(source);
+    const tokens = inferImportedTemplateStyleTokens(source);
+
+    expect(analysis.scores.styleCoverage).toBeGreaterThanOrEqual(0.8);
+    expect(analysis.readiness).not.toBe("low");
+    expect(tokens.typography.body).toMatchObject({
+      fontFamily: expect.stringContaining("Computer Modern"),
+      fontSizePt: 10,
+      color: "#111111",
+    });
+    expect(tokens.typography.sectionHeading).toMatchObject({
+      fontWeight: "700",
+      color: "#111111",
+    });
+    expect(tokens.color.accent).toMatchObject({ value: "#111111" });
+    expect(tokens.warnings).not.toContain(
+      "No reusable body typography token detected.",
+    );
+    expect(tokens.warnings).not.toContain(
+      "No reusable section heading typography token detected.",
+    );
+  });
+
   it("renders arbitrary tailored resume content through a saved reusable template", () => {
     const source: SourceDocumentIR = {
       sourceType: "docx",
