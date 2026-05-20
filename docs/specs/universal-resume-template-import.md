@@ -736,8 +736,8 @@ As of the latest implementation slice, the system has:
 - Semantic sections can be reordered from review with buttons or drag/drop and
   regenerate reusable artifacts from the updated semantic order.
 - Basic split/merge controls for semantic items, including explicit merge target
-  selection, preserving merged item headers as achievement text so user content
-  is not silently dropped.
+  selection and drag/drop merge targets, preserving merged item headers as
+  achievement text so user content is not silently dropped.
 - Source evidence blocks, inline runs, individual table cells, and nested table
   cell inline runs can be marked non-template/decorative from review; reusable
   semantic artifacts regenerate from the remaining evidence.
@@ -757,8 +757,7 @@ As of the latest implementation slice, the system has:
 Known remaining gaps:
 
 - Split controls are still bullet-origin operations; merge controls support
-  explicit item targets within the section. Item-level drag/drop is still not
-  complete.
+  explicit item targets and item drag/drop merge targets within the section.
 - Move-bullet controls support adjacent buttons, arbitrary item target
   selection, and bullet drag/drop within the section.
 - Decorative source marking supports whole blocks, inline runs, table cells, and

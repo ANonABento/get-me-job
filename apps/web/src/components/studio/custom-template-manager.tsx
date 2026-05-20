@@ -2459,6 +2459,7 @@ function SemanticSectionCard({
     itemIndex: number;
     bulletIndex: number;
   } | null>(null);
+  const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const dirty = title !== section.title || type !== section.type;
 
   useEffect(() => {
@@ -2718,6 +2719,16 @@ function SemanticSectionCard({
             migrationSaving={migrationSaving}
             onUpdateItem={updateItem}
             onMergeItemIntoTarget={mergeItemIntoTarget}
+            draggedItemIndex={draggedItemIndex}
+            onItemDragStart={(dragItemIndex) =>
+              setDraggedItemIndex(dragItemIndex)
+            }
+            onItemDragEnd={() => setDraggedItemIndex(null)}
+            onItemDrop={(targetItemIndex) => {
+              if (draggedItemIndex === null) return;
+              mergeItemIntoTarget(draggedItemIndex, targetItemIndex);
+              setDraggedItemIndex(null);
+            }}
             onMoveBullet={moveBullet}
             draggedBullet={draggedBullet}
             onBulletDragStart={(bulletItemIndex, bulletIndex) =>
@@ -2749,6 +2760,10 @@ function SemanticItemCard({
   migrationSaving,
   onUpdateItem,
   onMergeItemIntoTarget,
+  draggedItemIndex,
+  onItemDragStart,
+  onItemDragEnd,
+  onItemDrop,
   onMoveBullet,
   draggedBullet,
   onBulletDragStart,
@@ -2768,6 +2783,10 @@ function SemanticItemCard({
       Partial<Pick<SemanticDraftItem, "location" | "url" | "meta">>,
   ) => void;
   onMergeItemIntoTarget: (itemIndex: number, targetItemIndex: number) => void;
+  draggedItemIndex: number | null;
+  onItemDragStart: (itemIndex: number) => void;
+  onItemDragEnd: () => void;
+  onItemDrop: (targetItemIndex: number) => void;
   onMoveBullet: (
     itemIndex: number,
     bulletIndex: number,
@@ -2811,17 +2830,39 @@ function SemanticItemCard({
 
   return (
     <div
-      className="border-l pl-2"
+      className={`border-l pl-2 ${
+        draggedItemIndex === itemIndex ? "opacity-60" : ""
+      }`}
+      draggable={!migrationSaving && itemCount > 1}
       aria-label={`Semantic item ${semanticItemHeaderText(item) || `item ${itemIndex + 1}`}`}
+      onDragStart={(event) => {
+        if (draggedBullet) return;
+        event.stopPropagation();
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", `item:${itemIndex}`);
+        onItemDragStart(itemIndex);
+      }}
+      onDragEnd={() => {
+        onItemDragEnd();
+      }}
       onDragOver={(event) => {
-        if (migrationSaving || itemCount < 2 || !draggedBullet) return;
+        if (migrationSaving || itemCount < 2) return;
+        if (!draggedBullet && draggedItemIndex === null) return;
+        if (draggedItemIndex === itemIndex) return;
+        event.stopPropagation();
         event.preventDefault();
         event.dataTransfer.dropEffect = "move";
       }}
       onDrop={(event) => {
-        if (migrationSaving || !draggedBullet) return;
+        if (migrationSaving) return;
+        if (!draggedBullet && draggedItemIndex === null) return;
         event.preventDefault();
-        onBulletDrop(itemIndex);
+        event.stopPropagation();
+        if (draggedBullet) {
+          onBulletDrop(itemIndex);
+        } else if (draggedItemIndex !== null) {
+          onItemDrop(itemIndex);
+        }
       }}
     >
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_132px_auto]">
@@ -2963,6 +3004,7 @@ function SemanticItemCard({
                   : ""
               }
               onDragStart={(event) => {
+                event.stopPropagation();
                 event.dataTransfer.effectAllowed = "move";
                 event.dataTransfer.setData(
                   "text/plain",
@@ -2970,7 +3012,10 @@ function SemanticItemCard({
                 );
                 onBulletDragStart(itemIndex, bulletIndex);
               }}
-              onDragEnd={onBulletDragEnd}
+              onDragEnd={(event) => {
+                event.stopPropagation();
+                onBulletDragEnd();
+              }}
             >
               <div className="flex items-start justify-between gap-2">
                 <span>{bullet}</span>

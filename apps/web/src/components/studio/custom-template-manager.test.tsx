@@ -1840,6 +1840,84 @@ describe("CustomTemplateManagerDialog", () => {
     });
   });
 
+  it("lets reviewers drag semantic items into merge targets", async () => {
+    const patchBodies: unknown[] = [];
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/templates/migrate") {
+          return Response.json({
+            draft: migrationDraft(),
+            warnings: [],
+            confidence: "high",
+          });
+        }
+        if (url === "/api/templates/v3/preview") {
+          return Response.json({
+            html: "<html><body><article>Rendered migrated resume</article></body></html>",
+            pdfOptions: { format: "Letter" },
+          });
+        }
+        if (url === "/api/templates/migrations/draft-1") {
+          const body = JSON.parse(
+            String((init as RequestInit | undefined)?.body),
+          );
+          patchBodies.push(body);
+          const next = migrationDraft();
+          next.semanticResume = body.semanticResume;
+          return Response.json({ draft: next });
+        }
+        return Response.json({ templates: [] });
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderDialog();
+
+    const inputs =
+      document.querySelectorAll<HTMLInputElement>("input[type='file']");
+    fireEvent.change(inputs[0], {
+      target: {
+        files: [
+          new File(["%PDF-1.7"], "resume.pdf", {
+            type: "application/pdf",
+          }),
+        ],
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("resume.pdf")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Semantic Tree" }));
+
+    const sourceItem = screen.getByLabelText(
+      "Semantic item Platform Engineer | Beta | 2022 - 2024",
+    );
+    const targetItem = screen.getByLabelText(
+      "Semantic item Senior Engineer | Acme | 2024 - Present",
+    );
+    const dataTransfer = {
+      effectAllowed: "",
+      dropEffect: "",
+      setData: vi.fn(),
+      getData: vi.fn(),
+    };
+    fireEvent.dragStart(sourceItem, { dataTransfer });
+    fireEvent.dragOver(targetItem, { dataTransfer });
+    fireEvent.drop(targetItem, { dataTransfer });
+
+    await waitFor(() => {
+      const latest = patchBodies.at(-1) as ReturnType<typeof migrationDraft>;
+      expect(latest.semanticResume.sections[0].items).toHaveLength(1);
+      expect(latest.semanticResume.sections[0].items[0].bullets).toEqual([
+        "Built migration tooling.",
+        "Platform Engineer | Beta | 2022 - 2024",
+        "Improved fixture coverage.",
+      ]);
+    });
+  });
+
   it("surfaces fidelity and DOCX table risks in the mismatch report", async () => {
     const draft = {
       ...migrationDraft(),
