@@ -24,6 +24,7 @@ import {
 import { getTemplateForDocumentMode } from "@/lib/resume/template-data";
 import type {
   CoverLetterTemplateStyles,
+  ResumeTemplate,
   TemplateStyles,
 } from "@/lib/resume/template-data";
 import type { TipTapJSONContent } from "@/lib/editor/types";
@@ -52,6 +53,7 @@ function coverLetterStylesToEditorTemplateStyles(
 
 export interface ResumePreviewProps {
   templateId: string;
+  resolvedResumeTemplate?: ResumeTemplate;
   html?: string;
   content?: TipTapJSONContent;
   documentMode?: DocumentMode;
@@ -146,6 +148,7 @@ export function getPreviewEmptyStateContent(
 
 export function ResumePreview({
   templateId,
+  resolvedResumeTemplate,
   html,
   content,
   documentMode = "resume",
@@ -171,7 +174,10 @@ export function ResumePreview({
   );
   const [showDiff, setShowDiff] = useState(false);
 
-  const template = getTemplateForDocumentMode(documentMode, templateId);
+  const template =
+    documentMode === "resume" && resolvedResumeTemplate
+      ? resolvedResumeTemplate
+      : getTemplateForDocumentMode(documentMode, templateId);
   const isCoverLetter = documentMode === "cover_letter";
   const isVisualTemplateHtml =
     documentMode === "resume" && html?.includes("resume-v3");

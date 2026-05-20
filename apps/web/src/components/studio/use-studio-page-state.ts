@@ -154,6 +154,7 @@ interface StudioPageState {
   refreshCustomTemplates: () => Promise<ResumeTemplate[]>;
   saveStatus: StudioSaveStatus;
   sections: SectionState[];
+  selectedResumeTemplate: ResumeTemplate | undefined;
   selectedIds: Set<string>;
   stagedSelectionCount: number;
   setLinkedOpportunityId: (opportunityId: string) => void;
@@ -1476,6 +1477,7 @@ export function useStudioPageState(): StudioPageState {
     refreshCustomTemplates,
     saveStatus,
     sections,
+    selectedResumeTemplate,
     selectedIds,
     stagedSelectionCount,
     setAiPanelCollapsed,

@@ -381,6 +381,7 @@ function StudioPageContent() {
             >
               <ResumePreview
                 templateId={studio.templateId}
+                resolvedResumeTemplate={studio.selectedResumeTemplate}
                 html={studio.html}
                 documentMode={studio.documentMode}
                 onAddFromBank={() => studio.setEntryPickerOpen(true)}

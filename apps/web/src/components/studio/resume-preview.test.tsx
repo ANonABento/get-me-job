@@ -65,6 +65,43 @@ describe("ResumePreview", () => {
     expect(handleAddSection).toHaveBeenCalledTimes(1);
   });
 
+  it("uses a resolved saved custom template for editable resume styling", async () => {
+    render(
+      <ResumePreview
+        templateId="saved-custom-template"
+        resolvedResumeTemplate={{
+          id: "saved-custom-template",
+          name: "Saved Custom",
+          description: "Imported reusable template",
+          schemaVersion: 4,
+          styles: {
+            fontFamily: "Courier New, monospace",
+            fontSize: "10pt",
+            headerSize: "22pt",
+            sectionHeaderSize: "12pt",
+            lineHeight: "1.35",
+            accentColor: "#123456",
+            layout: "single-column",
+            headerStyle: "left",
+            bulletStyle: "dash",
+            sectionDivider: "line",
+          },
+        }}
+        content={content}
+      />,
+    );
+
+    const text = await screen.findByText("Focused product engineer");
+    const article = text.closest("article");
+
+    expect(article).not.toBeNull();
+    if (!article) throw new Error("Missing preview article");
+    expect(article).toHaveStyle({
+      fontFamily: "Courier New, monospace",
+      borderTop: "4px solid #123456",
+    });
+  });
+
   it("renders a View changes toggle for structured tailored resumes", async () => {
     render(
       <ResumePreview

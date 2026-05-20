@@ -775,3 +775,6 @@ Known remaining gaps:
   extraction, semantic, style, render, and app wiring statuses with review
   actions. The broader review workflow still needs the full save/reopen/add-new
   content exit-gate verification.
+- Reopened Studio previews now pass the resolved saved custom template into the
+  editable resume preview, so the editor does not fall back to built-in styling
+  when a saved V4 template id is selected.
