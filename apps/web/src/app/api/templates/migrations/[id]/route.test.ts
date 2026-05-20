@@ -413,6 +413,82 @@ describe("/api/templates/migrations/:id", () => {
     );
   });
 
+  it("marks source table cell runs as decorative and regenerates reusable artifacts from remaining evidence", async () => {
+    mocks.getTemplateMigrationDraft.mockReturnValueOnce({
+      ...sampleDraft(),
+      source: {
+        ...sampleDraft().source,
+        blocks: [
+          {
+            id: "block-row",
+            pageId: "page-1",
+            type: "table-row",
+            text: "Label: TypeScript",
+            cells: ["Label: TypeScript"],
+            cellMetadata: [
+              {
+                text: "Label: TypeScript",
+                blocks: [
+                  {
+                    id: "cell-block-1",
+                    type: "paragraph",
+                    text: "Label: TypeScript",
+                    runs: [{ text: "Label: " }, { text: "TypeScript" }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const response = await PATCH(
+      jsonRequest("PATCH", {
+        sourceCellRunDecisions: [
+          {
+            sourceBlockId: "block-row",
+            cellIndex: 0,
+            blockIndex: 0,
+            runIndex: 0,
+            decorative: true,
+          },
+        ],
+      }),
+      { params: { id: "draft-1" } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.updateTemplateMigrationDraft).toHaveBeenCalledWith(
+      "draft-1",
+      "user-1",
+      expect.objectContaining({
+        source: expect.objectContaining({
+          blocks: expect.arrayContaining([
+            expect.objectContaining({
+              id: "block-row",
+              cellMetadata: expect.arrayContaining([
+                expect.objectContaining({
+                  blocks: expect.arrayContaining([
+                    expect.objectContaining({
+                      runs: expect.arrayContaining([
+                        expect.objectContaining({
+                          text: "Label: ",
+                          decorative: true,
+                        }),
+                      ]),
+                    }),
+                  ]),
+                }),
+              ]),
+            }),
+          ]),
+        }),
+        reusableHtml: expect.not.stringContaining("Label:"),
+      }),
+    );
+  });
+
   it("resets style tokens from source evidence and regenerates reusable artifacts", async () => {
     const response = await PATCH(
       jsonRequest("PATCH", {

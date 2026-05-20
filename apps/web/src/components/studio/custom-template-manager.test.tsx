@@ -1142,6 +1142,111 @@ describe("CustomTemplateManagerDialog", () => {
     );
   });
 
+  it("lets reviewers mark table cell inline runs as non-template evidence", async () => {
+    const patchBodies: unknown[] = [];
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/templates/migrate") {
+          const draft = migrationDraftWithCellRuns();
+          return Response.json({
+            draft,
+            warnings: [],
+            confidence: "high",
+          });
+        }
+        if (url === "/api/templates/v3/preview") {
+          return Response.json({
+            html: "<html><body><article>Rendered migrated resume</article></body></html>",
+            pdfOptions: { format: "Letter" },
+          });
+        }
+        if (url === "/api/templates/migrations/draft-1") {
+          const body = JSON.parse(
+            String((init as RequestInit | undefined)?.body),
+          ) as {
+            sourceCellRunDecisions?: Array<{
+              sourceBlockId: string;
+              cellIndex: number;
+              blockIndex: number;
+              runIndex: number;
+              decorative: boolean;
+            }>;
+          };
+          patchBodies.push(body);
+          const next = migrationDraftWithCellRuns();
+          const decision = body.sourceCellRunDecisions?.[0];
+          const blocks = next.source.blocks as Array<{
+            id: string;
+            cellMetadata?: Array<{
+              blocks?: Array<{
+                runs?: Array<{ text: string; decorative?: boolean }>;
+              }>;
+            }>;
+          }>;
+          const run =
+            decision &&
+            blocks.find((candidate) => candidate.id === decision.sourceBlockId)
+              ?.cellMetadata?.[decision.cellIndex]?.blocks?.[
+              decision.blockIndex
+            ]?.runs?.[decision.runIndex];
+          if (run && decision) {
+            Object.assign(run, { decorative: decision.decorative });
+          }
+          return Response.json({ draft: next });
+        }
+        return Response.json({ templates: [] });
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderDialog();
+
+    const inputs =
+      document.querySelectorAll<HTMLInputElement>("input[type='file']");
+    fireEvent.change(inputs[0], {
+      target: {
+        files: [
+          new File(["%PDF-1.7"], "resume.pdf", {
+            type: "application/pdf",
+          }),
+        ],
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("resume.pdf")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Source Evidence" }));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Select source block Skills | PDF | DOCX",
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Mark run 1 from cell 1 block 1 in block-2 non-template",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(patchBodies.at(-1)).toEqual({
+        sourceCellRunDecisions: [
+          {
+            sourceBlockId: "block-2",
+            cellIndex: 0,
+            blockIndex: 0,
+            runIndex: 0,
+            decorative: true,
+          },
+        ],
+      });
+    });
+    expect((await screen.findAllByText("non-template")).length).toBeGreaterThan(
+      0,
+    );
+  });
+
   it("lets reviewers mark inline runs as non-template evidence", async () => {
     const patchBodies: unknown[] = [];
     const fetchMock = vi.fn(
@@ -2051,6 +2156,25 @@ function migrationDraft() {
     warnings: ["PDF text positions were used."],
     confidence: "high",
   };
+}
+
+function migrationDraftWithCellRuns() {
+  const draft = migrationDraft();
+  const tableBlock = draft.source.blocks.find(
+    (block) => block.id === "block-2",
+  );
+  if (tableBlock?.cellMetadata?.[0]) {
+    Object.assign(tableBlock.cellMetadata[0], {
+      blocks: [
+        {
+          id: "cell-block-1",
+          text: "Label: PDF",
+          runs: [{ text: "Label: " }, { text: "PDF" }],
+        },
+      ],
+    });
+  }
+  return draft;
 }
 
 function lowFidelityMigrationDraft() {

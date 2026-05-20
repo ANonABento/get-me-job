@@ -154,6 +154,14 @@ interface TemplateMigrationDraft {
       cellMetadata?: Array<{
         text: string;
         decorative?: boolean;
+        blocks?: Array<{
+          id: string;
+          text: string;
+          runs?: Array<{
+            text: string;
+            decorative?: boolean;
+          }>;
+        }>;
       }>;
       bbox?: {
         xPt: number;
@@ -630,6 +638,45 @@ export function CustomTemplateManagerDialog({
         title: decorative
           ? "Source run marked non-template"
           : "Source run restored",
+      });
+    } catch (error) {
+      addToast({
+        type: "error",
+        title: "Could not update source evidence",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setMigrationSaving(false);
+    }
+  }
+
+  async function handleMarkSelectedCellRunDecorative(
+    sourceBlockId: string,
+    cellIndex: number,
+    blockIndex: number,
+    runIndex: number,
+    decorative: boolean,
+  ) {
+    if (!migrationDraft) return;
+    setMigrationSaving(true);
+    try {
+      await patchMigrationDraft({
+        sourceCellRunDecisions: [
+          {
+            sourceBlockId,
+            cellIndex,
+            blockIndex,
+            runIndex,
+            decorative,
+          },
+        ],
+      });
+      addToast({
+        type: "success",
+        title: decorative
+          ? "Source cell run marked non-template"
+          : "Source cell run restored",
       });
     } catch (error) {
       addToast({
@@ -1130,6 +1177,9 @@ export function CustomTemplateManagerDialog({
                       onMarkSelectedRunDecorative={
                         handleMarkSelectedRunDecorative
                       }
+                      onMarkSelectedCellRunDecorative={
+                        handleMarkSelectedCellRunDecorative
+                      }
                       selectedExperienceIndex={selectedExperienceIndex}
                       selectedEducationIndex={selectedEducationIndex}
                       selectedProjectIndex={selectedProjectIndex}
@@ -1246,6 +1296,7 @@ function VisualTemplateReviewPanes({
   onMarkSelectedBlockDecorative,
   onMarkSelectedCellDecorative,
   onMarkSelectedRunDecorative,
+  onMarkSelectedCellRunDecorative,
   selectedExperienceIndex,
   selectedEducationIndex,
   selectedProjectIndex,
@@ -1277,6 +1328,13 @@ function VisualTemplateReviewPanes({
   ) => void | Promise<void>;
   onMarkSelectedRunDecorative: (
     sourceBlockId: string,
+    runIndex: number,
+    decorative: boolean,
+  ) => void | Promise<void>;
+  onMarkSelectedCellRunDecorative: (
+    sourceBlockId: string,
+    cellIndex: number,
+    blockIndex: number,
     runIndex: number,
     decorative: boolean,
   ) => void | Promise<void>;
@@ -1387,6 +1445,7 @@ function VisualTemplateReviewPanes({
               onMarkSelectedBlockDecorative={onMarkSelectedBlockDecorative}
               onMarkSelectedCellDecorative={onMarkSelectedCellDecorative}
               onMarkSelectedRunDecorative={onMarkSelectedRunDecorative}
+              onMarkSelectedCellRunDecorative={onMarkSelectedCellRunDecorative}
               migrationSaving={migrationSaving}
             />
           </div>
@@ -4280,6 +4339,7 @@ function SourceBlocksList({
   onMarkSelectedBlockDecorative,
   onMarkSelectedCellDecorative,
   onMarkSelectedRunDecorative,
+  onMarkSelectedCellRunDecorative,
   migrationSaving,
 }: {
   blocks: TemplateMigrationDraft["source"]["blocks"];
@@ -4293,6 +4353,13 @@ function SourceBlocksList({
   ) => void | Promise<void>;
   onMarkSelectedRunDecorative: (
     sourceBlockId: string,
+    runIndex: number,
+    decorative: boolean,
+  ) => void | Promise<void>;
+  onMarkSelectedCellRunDecorative: (
+    sourceBlockId: string,
+    cellIndex: number,
+    blockIndex: number,
     runIndex: number,
     decorative: boolean,
   ) => void | Promise<void>;
@@ -4338,33 +4405,80 @@ function SourceBlocksList({
             {selectedBlock.cellMetadata.map((cell, cellIndex) => (
               <div
                 key={`${selectedBlock.id}-cell-${cellIndex}`}
-                className="flex items-center justify-between gap-2 rounded-sm border border-border/70 bg-muted/20 px-2 py-1"
+                className="rounded-sm border border-border/70 bg-muted/20 px-2 py-1"
               >
-                <span className="min-w-0 truncate text-xs">
-                  {cell.decorative ? (
-                    <span className="mr-1 rounded-sm bg-amber-700/10 px-1 text-[10px] text-amber-800">
-                      non-template
-                    </span>
-                  ) : null}
-                  {cell.text}
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-6 shrink-0 px-1.5 text-[10px]"
-                  disabled={migrationSaving}
-                  aria-label={`${cell.decorative ? "Use" : "Mark"} cell ${cellIndex + 1} from ${selectedBlock.id} ${cell.decorative ? "as template" : "non-template"}`}
-                  onClick={() =>
-                    void onMarkSelectedCellDecorative(
-                      selectedBlock.id,
-                      cellIndex,
-                      !cell.decorative,
-                    )
-                  }
-                >
-                  {cell.decorative ? "Use" : "Ignore"}
-                </Button>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="min-w-0 truncate text-xs">
+                    {cell.decorative ? (
+                      <span className="mr-1 rounded-sm bg-amber-700/10 px-1 text-[10px] text-amber-800">
+                        non-template
+                      </span>
+                    ) : null}
+                    {cell.text}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 shrink-0 px-1.5 text-[10px]"
+                    disabled={migrationSaving}
+                    aria-label={`${cell.decorative ? "Use" : "Mark"} cell ${cellIndex + 1} from ${selectedBlock.id} ${cell.decorative ? "as template" : "non-template"}`}
+                    onClick={() =>
+                      void onMarkSelectedCellDecorative(
+                        selectedBlock.id,
+                        cellIndex,
+                        !cell.decorative,
+                      )
+                    }
+                  >
+                    {cell.decorative ? "Use" : "Ignore"}
+                  </Button>
+                </div>
+                {cell.blocks?.some((cellBlock) =>
+                  cellBlock.runs?.some((run) => run.text.trim()),
+                ) ? (
+                  <div className="mt-1 space-y-1">
+                    {cell.blocks.map((cellBlock, blockIndex) =>
+                      cellBlock.runs?.map((run, runIndex) => {
+                        if (!run.text.trim()) return null;
+                        return (
+                          <div
+                            key={`${selectedBlock.id}-cell-${cellIndex}-block-${blockIndex}-run-${runIndex}`}
+                            className="flex items-center justify-between gap-2 rounded-sm bg-background/70 px-1.5 py-0.5"
+                          >
+                            <span className="min-w-0 truncate text-[11px]">
+                              {run.decorative ? (
+                                <span className="mr-1 rounded-sm bg-amber-700/10 px-1 text-[10px] text-amber-800">
+                                  non-template
+                                </span>
+                              ) : null}
+                              {run.text}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-6 shrink-0 px-1.5 text-[10px]"
+                              disabled={migrationSaving}
+                              aria-label={`${run.decorative ? "Use" : "Mark"} run ${runIndex + 1} from cell ${cellIndex + 1} block ${blockIndex + 1} in ${selectedBlock.id} ${run.decorative ? "as template" : "non-template"}`}
+                              onClick={() =>
+                                void onMarkSelectedCellRunDecorative(
+                                  selectedBlock.id,
+                                  cellIndex,
+                                  blockIndex,
+                                  runIndex,
+                                  !run.decorative,
+                                )
+                              }
+                            >
+                              {run.decorative ? "Use" : "Ignore"}
+                            </Button>
+                          </div>
+                        );
+                      }),
+                    )}
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>

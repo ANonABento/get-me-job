@@ -62,6 +62,14 @@ const sourceRunDecisionSchema = z.object({
   decorative: z.boolean(),
 });
 
+const sourceCellRunDecisionSchema = z.object({
+  sourceBlockId: z.string().min(1),
+  cellIndex: z.number().int().min(0),
+  blockIndex: z.number().int().min(0),
+  runIndex: z.number().int().min(0),
+  decorative: z.boolean(),
+});
+
 const semanticContactSchema = z.object({
   name: z.string().default(""),
   email: z.string().default(""),
@@ -123,6 +131,7 @@ const updateMigrationSchema = z.object({
   sourceBlockDecisions: z.array(sourceBlockDecisionSchema).optional(),
   sourceCellDecisions: z.array(sourceCellDecisionSchema).optional(),
   sourceRunDecisions: z.array(sourceRunDecisionSchema).optional(),
+  sourceCellRunDecisions: z.array(sourceCellRunDecisionSchema).optional(),
   resetStyleTokens: z.boolean().optional(),
 });
 
@@ -195,6 +204,12 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   if (parsed.data.sourceRunDecisions?.length) {
     source = applySourceRunDecisions(source, parsed.data.sourceRunDecisions);
   }
+  if (parsed.data.sourceCellRunDecisions?.length) {
+    source = applySourceCellRunDecisions(
+      source,
+      parsed.data.sourceCellRunDecisions,
+    );
+  }
   if (parsed.data.slotCorrections?.length) {
     resume = applySlotCorrections(
       resume,
@@ -211,7 +226,8 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   if (
     (parsed.data.sourceBlockDecisions?.length ||
       parsed.data.sourceCellDecisions?.length ||
-      parsed.data.sourceRunDecisions?.length) &&
+      parsed.data.sourceRunDecisions?.length ||
+      parsed.data.sourceCellRunDecisions?.length) &&
     !parsed.data.slotCorrections?.length
   ) {
     templateV3 = rebuildVisualTemplateForSource(templateV3, source);
@@ -229,6 +245,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     (parsed.data.sourceBlockDecisions?.length ||
     parsed.data.sourceCellDecisions?.length ||
     parsed.data.sourceRunDecisions?.length ||
+    parsed.data.sourceCellRunDecisions?.length ||
     shouldResetStyleTokens
       ? inferResumeSemanticIR(effectiveSource)
       : styleTokens
@@ -394,6 +411,44 @@ function applySourceRunDecisions(
   };
 }
 
+function applySourceCellRunDecisions(
+  source: SourceDocumentIR,
+  decisions: Array<z.infer<typeof sourceCellRunDecisionSchema>>,
+): SourceDocumentIR {
+  const byId = new Map(
+    decisions.map((decision) => [
+      `${decision.sourceBlockId}:${decision.cellIndex}:${decision.blockIndex}:${decision.runIndex}`,
+      decision.decorative,
+    ]),
+  );
+  return {
+    ...source,
+    blocks: source.blocks.map((block) => {
+      if (!block.cellMetadata?.length) return block;
+      return {
+        ...block,
+        cellMetadata: block.cellMetadata.map((cell, cellIndex) => {
+          if (!cell.blocks?.length) return cell;
+          return {
+            ...cell,
+            blocks: cell.blocks.map((cellBlock, blockIndex) => {
+              if (!cellBlock.runs?.length) return cellBlock;
+              return {
+                ...cellBlock,
+                runs: cellBlock.runs.map((run, runIndex) => {
+                  const key = `${block.id}:${cellIndex}:${blockIndex}:${runIndex}`;
+                  if (!byId.has(key)) return run;
+                  return { ...run, decorative: byId.get(key) ?? false };
+                }),
+              };
+            }),
+          };
+        }),
+      };
+    }),
+  };
+}
+
 function sourceWithoutDecorativeBlocks(
   source: SourceDocumentIR,
 ): SourceDocumentIR {
@@ -412,9 +467,28 @@ function sourceWithoutDecorativeBlocks(
           };
         }
         if (!nextBlock.cellMetadata?.length) return nextBlock;
-        const cellMetadata = nextBlock.cellMetadata.filter(
-          (cell) => !cell.decorative,
-        );
+        const cellMetadata = nextBlock.cellMetadata
+          .filter((cell) => !cell.decorative)
+          .map((cell) => {
+            if (!cell.blocks?.length) return cell;
+            const blocks = cell.blocks
+              .map((cellBlock) => {
+                if (!cellBlock.runs?.length) return cellBlock;
+                const runs = cellBlock.runs.filter((run) => !run.decorative);
+                return {
+                  ...cellBlock,
+                  runs,
+                  text: runs.map((run) => run.text).join(""),
+                };
+              })
+              .filter((cellBlock) => cellBlock.text.trim().length > 0);
+            return {
+              ...cell,
+              blocks,
+              text: blocks.map((cellBlock) => cellBlock.text).join("\n"),
+            };
+          })
+          .filter((cell) => cell.text.trim().length > 0);
         return {
           ...nextBlock,
           text: cellMetadata.map((cell) => cell.text).join(" | "),

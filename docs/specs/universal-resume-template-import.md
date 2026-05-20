@@ -738,9 +738,9 @@ As of the latest implementation slice, the system has:
 - Basic split/merge controls for semantic items, including explicit merge target
   selection, preserving merged item headers as achievement text so user content
   is not silently dropped.
-- Source evidence blocks, top-level inline runs, and individual table cells can
-  be marked non-template/decorative from review; reusable semantic artifacts
-  regenerate from the remaining evidence.
+- Source evidence blocks, inline runs, individual table cells, and nested table
+  cell inline runs can be marked non-template/decorative from review; reusable
+  semantic artifacts regenerate from the remaining evidence.
 - DOCX vertical-merge continuation cells are ignored during semantic grouping so
   repeated layout labels do not become resume content.
 - Semantic item primary, secondary, date, location, URL, and metadata fields can
@@ -760,8 +760,8 @@ Known remaining gaps:
   explicit item targets within the section. Drag/drop is still not complete.
 - Move-bullet controls support adjacent buttons and arbitrary item target
   selection within the section; drag/drop is still not complete.
-- Decorative source marking supports whole blocks, top-level inline runs, and
-  table cells; nested table-cell inline run marking is still not complete.
+- Decorative source marking supports whole blocks, inline runs, table cells, and
+  nested table-cell inline runs.
 - Style token candidate selection currently covers colors, name typography, body
   typography, section-heading typography, entry-title typography, metadata
   typography, section spacing, divider widths, and layout controls.
