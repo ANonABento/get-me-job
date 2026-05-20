@@ -539,6 +539,112 @@ describe("CustomTemplateManagerDialog", () => {
     });
   });
 
+  it("lets reviewers drag semantic sections to reorder reusable artifacts", async () => {
+    const patchBodies: unknown[] = [];
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/templates/migrate") {
+          const draft = migrationDraft();
+          draft.semanticResume.sections = [
+            draft.semanticResume.sections[0],
+            {
+              id: "section-skills",
+              type: "skills",
+              title: "Skills",
+              confidence: 0.9,
+              evidenceRefs: ["block-2"],
+              items: [
+                {
+                  primary: "PDF, DOCX, LaTeX",
+                  secondary: "",
+                  dateRange: "",
+                  meta: [],
+                  bullets: [],
+                  confidence: 0.86,
+                  evidenceRefs: ["block-2"],
+                },
+              ],
+            },
+          ];
+          draft.reusableTemplate.sectionOrder = ["experience", "skills"];
+          return Response.json({
+            draft,
+            warnings: [],
+            confidence: "high",
+          });
+        }
+        if (url === "/api/templates/v3/preview") {
+          return Response.json({
+            html: "<html><body><article>Rendered migrated resume</article></body></html>",
+            pdfOptions: { format: "Letter" },
+          });
+        }
+        if (url === "/api/templates/migrations/draft-1") {
+          const body = JSON.parse(
+            String((init as RequestInit | undefined)?.body),
+          );
+          patchBodies.push(body);
+          const next = migrationDraft();
+          next.semanticResume = body.semanticResume;
+          next.reusableTemplate = {
+            ...next.reusableTemplate,
+            sectionOrder: body.semanticResume.sections.map(
+              (section: { type: string }) => section.type,
+            ),
+          };
+          return Response.json({ draft: next });
+        }
+        return Response.json({ templates: [] });
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderDialog();
+
+    const inputs =
+      document.querySelectorAll<HTMLInputElement>("input[type='file']");
+    fireEvent.change(inputs[0], {
+      target: {
+        files: [
+          new File(["%PDF-1.7"], "resume.pdf", {
+            type: "application/pdf",
+          }),
+        ],
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("resume.pdf")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Semantic Tree" }));
+
+    const dataTransfer = {
+      effectAllowed: "",
+      dropEffect: "",
+      setData: vi.fn(),
+      getData: vi.fn(),
+    };
+    fireEvent.dragStart(screen.getByLabelText("Semantic section Experience"), {
+      dataTransfer,
+    });
+    fireEvent.dragOver(screen.getByLabelText("Semantic section Skills"), {
+      dataTransfer,
+    });
+    fireEvent.drop(screen.getByLabelText("Semantic section Skills"), {
+      dataTransfer,
+    });
+
+    await waitFor(() => {
+      const latest = patchBodies.at(-1) as ReturnType<typeof migrationDraft>;
+      expect(
+        latest.semanticResume.sections.map(
+          (section: { type: string }) => section.type,
+        ),
+      ).toEqual(["skills", "experience"]);
+    });
+  });
+
   it("lets reviewers override style tokens before saving", async () => {
     const fetchMock = vi.fn(
       async (input: RequestInfo | URL, init?: RequestInit) => {

@@ -2333,9 +2333,16 @@ function SemanticTreePane({
 }) {
   const semantic = draft.semanticResume;
   const sections = semantic?.sections ?? [];
+  const [draggedSectionIndex, setDraggedSectionIndex] = useState<number | null>(
+    null,
+  );
   function moveSection(sectionIndex: number, direction: -1 | 1) {
+    moveSectionToIndex(sectionIndex, sectionIndex + direction);
+  }
+
+  function moveSectionToIndex(sectionIndex: number, targetIndex: number) {
     if (!semantic) return;
-    const targetIndex = sectionIndex + direction;
+    if (targetIndex === sectionIndex) return;
     if (targetIndex < 0 || targetIndex >= sections.length) return;
     const nextSections = [...sections];
     const [section] = nextSections.splice(sectionIndex, 1);
@@ -2345,6 +2352,12 @@ function SemanticTreePane({
       { ...semantic, sections: nextSections },
       "Section order updated",
     );
+  }
+
+  function handleSectionDrop(targetIndex: number) {
+    if (draggedSectionIndex === null) return;
+    moveSectionToIndex(draggedSectionIndex, targetIndex);
+    setDraggedSectionIndex(null);
   }
 
   return (
@@ -2382,7 +2395,11 @@ function SemanticTreePane({
               section={section}
               sectionIndex={sectionIndex}
               sectionCount={sections.length}
+              dragged={draggedSectionIndex === sectionIndex}
               onMoveSection={moveSection}
+              onDragStart={() => setDraggedSectionIndex(sectionIndex)}
+              onDragEnd={() => setDraggedSectionIndex(null)}
+              onDropSection={() => handleSectionDrop(sectionIndex)}
               onUpdateSection={onUpdateSection}
               onUpdateSemanticResume={onUpdateSemanticResume}
               migrationSaving={migrationSaving}
@@ -2408,7 +2425,11 @@ function SemanticSectionCard({
   section,
   sectionIndex,
   sectionCount,
+  dragged,
   onMoveSection,
+  onDragStart,
+  onDragEnd,
+  onDropSection,
   onUpdateSection,
   onUpdateSemanticResume,
   migrationSaving,
@@ -2417,7 +2438,11 @@ function SemanticSectionCard({
   section: SemanticDraftSection;
   sectionIndex: number;
   sectionCount: number;
+  dragged: boolean;
   onMoveSection: (sectionIndex: number, direction: -1 | 1) => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onDropSection: () => void;
   onUpdateSection: (
     sectionId: string,
     updates: { type?: SemanticSectionType; title?: string },
@@ -2569,7 +2594,28 @@ function SemanticSectionCard({
   }
 
   return (
-    <div className="rounded-sm border border-border bg-muted/10 p-2">
+    <div
+      className={`rounded-sm border border-border bg-muted/10 p-2 ${
+        dragged ? "opacity-60 ring-1 ring-primary" : ""
+      }`}
+      draggable={!migrationSaving && sectionCount > 1}
+      aria-label={`Semantic section ${section.title || section.type}`}
+      onDragStart={(event) => {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", String(sectionIndex));
+        onDragStart();
+      }}
+      onDragEnd={onDragEnd}
+      onDragOver={(event) => {
+        if (migrationSaving || sectionCount < 2) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        onDropSection();
+      }}
+    >
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px_auto]">
         <label className="space-y-1">
           <span className="block text-[10px] font-medium uppercase text-muted-foreground">
