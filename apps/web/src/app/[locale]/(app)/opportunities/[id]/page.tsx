@@ -578,10 +578,15 @@ export default function OpportunityDetailPage({
 
               <section className="rounded-lg border bg-card p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  {/* audit/17: aligning final non-editorial heading
+                      with the iter-5/8 mono-eyebrow treatment so the
+                      sidebar reads consistently top-to-bottom. */}
+                  <h2 className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
                     Linked Documents
                   </h2>
-                  <Badge variant="outline">{linkedDocumentCount}</Badge>
+                  {linkedDocumentCount > 0 && (
+                    <Badge variant="outline">{linkedDocumentCount}</Badge>
+                  )}
                 </div>
 
                 <div className="mt-4 space-y-4">

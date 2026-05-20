@@ -139,10 +139,14 @@ export function OpportunityContacts({
   return (
     <section className="rounded-lg border bg-card p-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        {/* audit/17: editorial mono-eyebrow heading + hide the 0-count
+            badge when no contacts attached (was always rendering "0"). */}
+        <h2 className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
           Contacts
         </h2>
-        <Badge variant="outline">{contacts.length}</Badge>
+        {contacts.length > 0 && (
+          <Badge variant="outline">{contacts.length}</Badge>
+        )}
       </div>
 
       <div className="mt-4 space-y-3">
