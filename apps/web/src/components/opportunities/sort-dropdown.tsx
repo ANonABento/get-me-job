@@ -24,16 +24,16 @@ export interface SortDropdownProps {
 
 export function SortDropdown({ value, onChange, ctx }: SortDropdownProps) {
   return (
-    <div className="flex items-center gap-2 px-4 py-3 border-b bg-card/60 backdrop-blur">
+    <div className="flex items-center gap-2">
       <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-      <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+      <span className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
         Sort
       </span>
       <Select
         value={value}
         onValueChange={(next) => onChange(next as OpportunitySortId)}
       >
-        <SelectTrigger className="h-8 w-[220px] text-sm">
+        <SelectTrigger className="h-8 w-[180px] text-sm">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

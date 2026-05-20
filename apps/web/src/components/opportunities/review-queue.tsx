@@ -75,7 +75,18 @@ export function getPendingOpportunities(jobs: Opportunity[]): Opportunity[] {
 }
 
 export function getOpportunityTags(job: Opportunity, limit = 6): string[] {
-  const tags = [...(job.tags || []), ...(job.requiredSkills || [])]
+  // Tag chunk shows only first-class tags. Required skills used to be
+  // merged in here, but that polluted the row with multi-sentence
+  // bullets like "Be comfortable working in a heavy fabrication
+  // environment" rendered as ugly chip-shaped badges. Short skill names
+  // (≤ 32 chars, no period) still pass through so a clean skills list
+  // ("React", "TypeScript") fills out an otherwise-empty tag row.
+  const isShortSkill = (value: string): boolean =>
+    value.length > 0 && value.length <= 32 && !/[.!?]/.test(value);
+  const tags = [
+    ...(job.tags || []),
+    ...(job.requiredSkills || []).filter(isShortSkill),
+  ]
     .map((tag) => tag.trim())
     .filter(Boolean);
 
@@ -321,160 +332,145 @@ export function OpportunityReviewQueue({
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="px-5 pb-4 pt-6">
-        <div className="mx-auto flex w-full max-w-md items-center justify-between md:max-w-5xl">
-          <div>
-            <Badge variant="secondary">Pending review</Badge>
-            <h1 className="mt-3 font-display text-2xl font-semibold tracking-tight">
-              Opportunities
-            </h1>
-          </div>
-          <div className="text-right">
-            <p className="font-display text-3xl font-bold tracking-tight text-primary">
-              {remainingCount}
-            </p>
-            <p className="text-xs text-muted-foreground">remaining</p>
-          </div>
-        </div>
-      </header>
+    <main className="flex flex-1 flex-col items-center px-4 pb-12 pt-6 md:pt-10">
+      <h1 className="sr-only">Review Queue — {remainingCount} pending</h1>
+      {/* F.1 — single-column card. Width caps mirror the old design
+          (mobile narrow, desktop comfortably wide) but the inner layout
+          is now chunk-driven so we don't need a hard-coded aside. The
+          page-level toolbar owns the count chip + sort/preset/layout
+          controls, so the card stage starts clean.
+          Top-aligned (not vertically centered) so the card sits near
+          the toolbar instead of stranded in cream. */}
+      <div className="relative h-[min(640px,80vh)] w-full max-w-md md:h-auto md:min-h-[520px] md:max-w-2xl">
+        {queue[1] && (
+          <div
+            className="absolute inset-x-3 top-5 h-[calc(100%-1.25rem)] rounded-lg border bg-card/50 shadow-sm"
+            aria-hidden="true"
+          />
+        )}
+        <AnimatePresence mode="popLayout">
+          <motion.article
+            key={activeJob.id}
+            drag
+            dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+            dragElastic={0.25}
+            onDragEnd={handleDragEnd}
+            initial={{ opacity: 0, y: 24, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{
+              opacity: 0,
+              x:
+                activeAction === "save"
+                  ? 320
+                  : activeAction === "dismiss"
+                    ? -320
+                    : 0,
+              y: activeAction === "apply" ? -360 : 0,
+              rotate:
+                activeAction === "save"
+                  ? 12
+                  : activeAction === "dismiss"
+                    ? -12
+                    : 0,
+              transition: { duration: 0.22 },
+            }}
+            className="absolute inset-0 flex cursor-grab flex-col overflow-hidden rounded-lg border bg-card shadow-xl active:cursor-grabbing"
+          >
+            <div className="flex-1 overflow-y-auto p-6 md:p-8">
+              {/* Header section — company + title block + status/badge chips */}
+              {enabled.header.length > 0 && (
+                <HeaderSection
+                  chunks={enabled.header}
+                  activeJob={activeJob}
+                  chunkContext={chunkContext}
+                />
+              )}
 
-      <main className="flex flex-1 items-center justify-center px-4 pb-28">
-        {/* F.1 — single-column card on both viewports. Width caps mirror
-            the old design (mobile narrow, desktop comfortably wide) but
-            the inner layout is now driven by the user's LayoutPreference
-            so we don't need a hard-coded aside. */}
-        <div className="relative h-[min(680px,72vh)] w-full max-w-md md:h-auto md:min-h-[520px] md:max-w-3xl">
-          {queue[1] && (
-            <div
-              className="absolute inset-x-3 top-5 h-[calc(100%-1.25rem)] rounded-lg border bg-card/50 shadow-sm"
-              aria-hidden="true"
-            />
-          )}
-          <AnimatePresence mode="popLayout">
-            <motion.article
-              key={activeJob.id}
-              drag
-              dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-              dragElastic={0.25}
-              onDragEnd={handleDragEnd}
-              initial={{ opacity: 0, y: 24, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{
-                opacity: 0,
-                x:
-                  activeAction === "save"
-                    ? 320
-                    : activeAction === "dismiss"
-                      ? -320
-                      : 0,
-                y: activeAction === "apply" ? -360 : 0,
-                rotate:
-                  activeAction === "save"
-                    ? 12
-                    : activeAction === "dismiss"
-                      ? -12
-                      : 0,
-                transition: { duration: 0.22 },
-              }}
-              className="absolute inset-0 flex cursor-grab flex-col overflow-hidden rounded-lg border bg-card shadow-xl active:cursor-grabbing"
-            >
-              <div className="flex-1 overflow-y-auto p-6 md:p-8">
-                {/* Header section — company + title block + status/badge chips */}
-                {enabled.header.length > 0 && (
-                  <HeaderSection
-                    chunks={enabled.header}
-                    activeJob={activeJob}
-                    chunkContext={chunkContext}
-                  />
-                )}
+              {/* Meta section — small chips strip */}
+              {enabled.meta.length > 0 && (
+                <div className="mt-5 flex flex-wrap items-center gap-2">
+                  {enabled.meta.map((chunk) => (
+                    <RenderChunk
+                      key={chunk}
+                      chunk={chunk}
+                      opportunity={activeJob}
+                      context={chunkContext}
+                    />
+                  ))}
+                </div>
+              )}
 
-                {/* Meta section — small chips strip */}
-                {enabled.meta.length > 0 && (
-                  <div className="mt-5 flex flex-wrap items-center gap-2">
-                    {enabled.meta.map((chunk) => (
+              {/* Body section — vertical flow of location/salary/deadline/tags/summary */}
+              {(enabled.body.length > 0 || salaryFallback) && (
+                <div className="mt-6 space-y-4">
+                  {enabled.body.map((chunk) => {
+                    // Legacy fallback: when inferred pay is missing we
+                    // still want to render the salary string at the
+                    // chunk's chosen position. Substitute a simple
+                    // span in place of the chunk.
+                    if (chunk === "salary" && salaryFallback) {
+                      return (
+                        <span
+                          key="salary-fallback"
+                          className="text-sm text-muted-foreground"
+                        >
+                          {salaryFallback}
+                        </span>
+                      );
+                    }
+                    return (
                       <RenderChunk
                         key={chunk}
                         chunk={chunk}
                         opportunity={activeJob}
                         context={chunkContext}
                       />
-                    ))}
-                  </div>
-                )}
-
-                {/* Body section — vertical flow of location/salary/deadline/tags/summary */}
-                {(enabled.body.length > 0 || salaryFallback) && (
-                  <div className="mt-6 space-y-4">
-                    {enabled.body.map((chunk) => {
-                      // Legacy fallback: when inferred pay is missing we
-                      // still want to render the salary string at the
-                      // chunk's chosen position. Substitute a simple
-                      // span in place of the chunk.
-                      if (chunk === "salary" && salaryFallback) {
-                        return (
-                          <span
-                            key="salary-fallback"
-                            className="text-sm text-muted-foreground"
-                          >
-                            {salaryFallback}
-                          </span>
-                        );
-                      }
-                      return (
-                        <RenderChunk
-                          key={chunk}
-                          chunk={chunk}
-                          opportunity={activeJob}
-                          context={chunkContext}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {primaryActionChunks.length > 0 && (
-                <div
-                  className={cn(
-                    "grid gap-2 border-t bg-background/80 p-4 backdrop-blur",
-                    primaryActionChunks.length === 1 && "grid-cols-1",
-                    primaryActionChunks.length === 2 && "grid-cols-2",
-                    primaryActionChunks.length === 3 && "grid-cols-3",
-                  )}
-                >
-                  {primaryActionChunks.map((chunk) => (
-                    <RenderChunk
-                      key={chunk}
-                      chunk={chunk}
-                      opportunity={activeJob}
-                      context={chunkContext}
-                    />
-                  ))}
+                    );
+                  })}
                 </div>
               )}
+            </div>
 
-              {/* P0 quick actions — passive lookups that don't mutate
+            {primaryActionChunks.length > 0 && (
+              <div
+                className={cn(
+                  "grid gap-2 border-t bg-background/80 p-4 backdrop-blur",
+                  primaryActionChunks.length === 1 && "grid-cols-1",
+                  primaryActionChunks.length === 2 && "grid-cols-2",
+                  primaryActionChunks.length === 3 && "grid-cols-3",
+                )}
+              >
+                {primaryActionChunks.map((chunk) => (
+                  <RenderChunk
+                    key={chunk}
+                    chunk={chunk}
+                    opportunity={activeJob}
+                    context={chunkContext}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* P0 quick actions — passive lookups that don't mutate
                   status. "Search company" googles the employer; "Open
                   original" round-trips to the source posting (for WW the
                   hash hook in the content script reopens the modal). */}
-              {quickActionChunks.length > 0 && (
-                <div className="grid grid-cols-2 gap-2 border-t bg-background/60 p-2 backdrop-blur">
-                  {quickActionChunks.map((chunk) => (
-                    <RenderChunk
-                      key={chunk}
-                      chunk={chunk}
-                      opportunity={activeJob}
-                      context={chunkContext}
-                    />
-                  ))}
-                </div>
-              )}
-            </motion.article>
-          </AnimatePresence>
-        </div>
-      </main>
-    </div>
+            {quickActionChunks.length > 0 && (
+              <div className="grid grid-cols-2 gap-2 border-t bg-background/60 p-2 backdrop-blur">
+                {quickActionChunks.map((chunk) => (
+                  <RenderChunk
+                    key={chunk}
+                    chunk={chunk}
+                    opportunity={activeJob}
+                    context={chunkContext}
+                  />
+                ))}
+              </div>
+            )}
+          </motion.article>
+        </AnimatePresence>
+      </div>
+    </main>
   );
 }
 

@@ -24,19 +24,23 @@ import {
 } from "./layout-chunks";
 
 export const DEFAULT_DESKTOP_LAYOUT: DeviceLayout = {
-  header: ["company", "title", "status-pill", "remote-badge", "source-badge"],
+  // The page-level header chip already says "PENDING N" so the in-card
+  // status-pill is redundant by default. Users who want it can flip the
+  // toggle in the layout builder.
+  header: ["company", "title", "remote-badge", "source-badge"],
   meta: ["applicants", "openings", "work-term", "level"],
   body: ["location", "salary", "deadline", "tags", "summary"],
   actions: ["dismiss", "apply", "save", "google-company", "open-original"],
-  disabled: ["applicant-ratio"],
+  disabled: ["status-pill", "applicant-ratio"],
 };
 
 export const DEFAULT_MOBILE_LAYOUT: DeviceLayout = {
-  header: ["company", "title", "status-pill"],
+  header: ["company", "title"],
   meta: ["applicants", "work-term"],
   body: ["salary", "deadline", "summary", "tags"],
   actions: ["dismiss", "apply", "save"],
   disabled: [
+    "status-pill",
     "remote-badge",
     "source-badge",
     "openings",

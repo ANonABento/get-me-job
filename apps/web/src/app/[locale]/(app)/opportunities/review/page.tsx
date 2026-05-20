@@ -7,7 +7,7 @@ import { OpportunityReviewQueue } from "@/components/opportunities/review-queue"
 import { PresetBar } from "@/components/opportunities/preset-bar";
 import { SortDropdown } from "@/components/opportunities/sort-dropdown";
 import { SavePresetDialog } from "@/components/opportunities/save-preset-dialog";
-import { LayoutBuilderSheet } from "@/components/opportunities/layout-builder-sheet";
+import { LayoutBuilderModal } from "@/components/opportunities/layout-builder-modal";
 import type { LayoutPreference } from "@/lib/opportunities/layout-chunks";
 import { migrateLayoutFromVisibleBadges } from "@/lib/opportunities/visible-badges-migration";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -72,11 +72,11 @@ export default function OpportunityReviewPage() {
   const [payDisplayCurrency, setPayDisplayCurrency] =
     useState<PayNormalizationCurrency>("USD");
   const [currencyRates, setCurrencyRates] = useState<CurrencyRateMap>({});
-  // F.1 — card layout. null = use defaults. The sheet edits a draft and
+  // F.1 — card layout. null = use defaults. The modal edits a draft and
   // PATCHes; we re-mirror the saved value here so the live card updates.
   const [layoutPreference, setLayoutPreference] =
     useState<LayoutPreference | null>(null);
-  const [layoutSheetOpen, setLayoutSheetOpen] = useState(false);
+  const [layoutModalOpen, setLayoutModalOpen] = useState(false);
   const { confirm: confirmDelete, dialog: confirmDialog } = useConfirmDialog();
 
   const fetchPageData = useCallback(async () => {
@@ -331,8 +331,16 @@ export default function OpportunityReviewPage() {
     );
   }
 
+  // Visible pending count for the toolbar pill. `visibleJobs` already
+  // includes everything after preset filters apply; we count the
+  // pending subset because the queue card itself only ever shows
+  // status === "pending" (see getPendingOpportunities).
+  const pendingCount = visibleJobs.filter(
+    (job) => job.status === "pending",
+  ).length;
+
   return (
-    <div className="relative min-h-screen">
+    <div className="relative flex min-h-screen flex-col">
       <Link
         href="/opportunities"
         className="fixed left-4 top-4 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full border bg-card/90 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground"
@@ -340,37 +348,51 @@ export default function OpportunityReviewPage() {
       >
         <ArrowLeft className="h-5 w-5" />
       </Link>
-      <div className="pl-16">
-        <PresetBar
-          presets={presets}
-          activePresetId={activePresetId}
-          onApply={applyPreset}
-          onClear={clearPreset}
-          onSaveCurrent={() => setSaveDialogOpen(true)}
-          onDelete={deletePreset}
-        />
-        <SortDropdown
-          value={effectiveSortId}
-          onChange={(next) => {
-            // Manual sort only takes effect when no preset is active.
-            // Picking a sort while a preset is applied clears the preset
-            // so the new sort sticks visibly — saves an extra click.
-            if (activePresetId) setActivePresetId(null);
-            setManualSortId(next);
-          }}
-        />
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => setLayoutSheetOpen(true)}
-          className="ml-1 gap-1.5"
-          aria-label="Customize card layout"
-        >
-          <LayoutPanelLeft className="h-4 w-4" />
-          Layout
-        </Button>
-      </div>
+      <header className="border-b bg-card/60 px-4 py-3 pl-16 backdrop-blur md:pl-20">
+        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <PresetBar
+              presets={presets}
+              activePresetId={activePresetId}
+              onApply={applyPreset}
+              onClear={clearPreset}
+              onSaveCurrent={() => setSaveDialogOpen(true)}
+              onDelete={deletePreset}
+            />
+            <span className="hidden h-5 w-px bg-border sm:block" />
+            <SortDropdown
+              value={effectiveSortId}
+              onChange={(next) => {
+                // Manual sort only takes effect when no preset is active.
+                // Picking a sort while a preset is applied clears the
+                // preset so the new sort sticks visibly.
+                if (activePresetId) setActivePresetId(null);
+                setManualSortId(next);
+              }}
+            />
+            <span className="hidden h-5 w-px bg-border sm:block" />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setLayoutModalOpen(true)}
+              className="h-8 gap-1.5 text-xs"
+              aria-label="Customize card layout"
+            >
+              <LayoutPanelLeft className="h-3.5 w-3.5" />
+              Layout
+            </Button>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+              Pending
+            </span>
+            <span className="font-display text-xl font-semibold tabular-nums text-primary">
+              {pendingCount}
+            </span>
+          </div>
+        </div>
+      </header>
       <OpportunityReviewQueue
         jobs={visibleJobs}
         updating={updating}
@@ -388,9 +410,9 @@ export default function OpportunityReviewPage() {
         defaultName={activePreset ? `${activePreset.name} (copy)` : undefined}
         onSubmit={savePreset}
       />
-      <LayoutBuilderSheet
-        open={layoutSheetOpen}
-        onOpenChange={setLayoutSheetOpen}
+      <LayoutBuilderModal
+        open={layoutModalOpen}
+        onOpenChange={setLayoutModalOpen}
         value={layoutPreference}
         onPersisted={setLayoutPreference}
       />

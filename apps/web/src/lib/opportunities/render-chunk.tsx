@@ -89,7 +89,7 @@ export function RenderChunk({
     case "applicants":
       return typeof opportunity.applicants === "number" ? (
         <MetaChip
-          emphasized={opportunity.applicants <= 25}
+          tone={applicantTone(opportunity.applicants)}
           label={`${opportunity.applicants} applicant${
             opportunity.applicants === 1 ? "" : "s"
           }`}
@@ -128,7 +128,7 @@ export function RenderChunk({
       return (
         <MetaChip
           label={`${ratio.toFixed(1)} per opening`}
-          emphasized={ratio <= 10}
+          tone={ratio <= 10 ? "good" : ratio <= 50 ? "neutral" : "warn"}
         />
       );
     }
@@ -210,7 +210,7 @@ export function RenderChunk({
       return (
         <ActionButton
           label="Dismiss"
-          icon={<X className="h-5 w-5" />}
+          icon={<X className="h-4 w-4" />}
           className="text-destructive"
           disabled={context.actionDisabled}
           onClick={() => context.onAction?.("dismiss")}
@@ -221,7 +221,7 @@ export function RenderChunk({
       return (
         <ActionButton
           label="Apply"
-          icon={<ExternalLink className="h-5 w-5" />}
+          icon={<ExternalLink className="h-4 w-4" />}
           disabled={context.actionDisabled || context.canApply === false}
           onClick={() => context.onAction?.("apply")}
         />
@@ -231,7 +231,7 @@ export function RenderChunk({
       return (
         <ActionButton
           label="Save"
-          icon={<Check className="h-5 w-5" />}
+          icon={<Check className="h-4 w-4" />}
           className="text-primary"
           disabled={context.actionDisabled}
           onClick={() => context.onAction?.("save")}
@@ -260,20 +260,34 @@ export function RenderChunk({
   }
 }
 
+type ChipTone = "neutral" | "good" | "warn";
+
+/**
+ * Maps the applicant count to a chip tone. WaterlooWorks postings under
+ * 25 applicants are unusually competitive gems (signal: "apply now"),
+ * 26–100 are average, 100+ are noisy/crowded.
+ */
+function applicantTone(count: number): ChipTone {
+  if (count <= 25) return "good";
+  if (count <= 100) return "neutral";
+  return "warn";
+}
+
 function MetaChip({
   label,
-  emphasized,
+  tone = "neutral",
 }: {
   label: string;
-  emphasized?: boolean;
+  tone?: ChipTone;
 }) {
   return (
     <span
       className={cn(
         "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs",
-        emphasized
-          ? "border-primary/30 bg-primary/10 text-primary"
-          : "border-border text-muted-foreground",
+        tone === "good" && "border-primary/30 bg-primary/10 text-primary",
+        tone === "warn" &&
+          "border-destructive/30 bg-destructive/10 text-destructive",
+        tone === "neutral" && "border-border text-muted-foreground",
       )}
     >
       {label}
@@ -298,7 +312,7 @@ function ActionButton({
     <button
       type="button"
       className={cn(
-        "flex h-16 flex-col items-center justify-center gap-1 rounded-xl border bg-card text-xs font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50",
+        "flex h-12 items-center justify-center gap-2 rounded-lg border bg-card text-sm font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
       disabled={disabled}

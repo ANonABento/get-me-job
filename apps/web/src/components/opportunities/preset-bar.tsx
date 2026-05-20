@@ -38,8 +38,8 @@ export function PresetBar({
 }: PresetBarProps) {
   const pinned = presets.filter((preset) => preset.pinned);
   return (
-    <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b bg-card/60 backdrop-blur">
-      <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
         Presets
       </span>
       {pinned.length === 0 && (
