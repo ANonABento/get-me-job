@@ -557,6 +557,8 @@ function renderLabHtml(
         metric("Stress repeats", stress ? stress.repeatedLineCount : "-", stress && stress.repeatedLineCount ? "warn" : "good"),
         metric("Source coverage", src ? pct(src.sourceLineCoverage) : "-", src && src.sourceLineCoverage < .55 ? "warn" : "good"),
         metric("Stress coverage", stress ? pct(stress.sourceLineCoverage) : "-", stress && stress.sourceLineCoverage < .55 ? "warn" : "good"),
+        metric("Semantic", item.universalAnalysis ? pct(item.universalAnalysis.scores.semanticCoverage) : "-", item.universalAnalysis && item.universalAnalysis.scores.semanticCoverage < .55 ? "warn" : "good"),
+        metric("Style", item.universalAnalysis ? pct(item.universalAnalysis.scores.styleCoverage) : "-", item.universalAnalysis && item.universalAnalysis.scores.styleCoverage < .55 ? "warn" : "good"),
         metric("Image diff", comparison ? num(comparison.meanAbsoluteDiff) : "-", comparison && comparison.meanAbsoluteDiff > 32 ? "bad" : "good"),
         metric("Changed pixels", comparison ? pct(comparison.changedPixelRatio) : "-", comparison && comparison.changedPixelRatio > .42 ? "bad" : "good"),
       ].join("");
@@ -569,6 +571,7 @@ function renderLabHtml(
         ["summary.json", base + "/summary.json"],
         ["template-v3.json", base + "/template-v3.json"],
         ["source-ir.json", base + "/source-ir.json"],
+        ["universal-template-analysis.json", base + "/universal-template-analysis.json"],
         ["source-report.json", base + "/source-report.json"],
         ["stress-report.json", base + "/stress-report.json"],
         ["source.html", src && src.htmlPath],

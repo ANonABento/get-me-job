@@ -10,6 +10,7 @@ import {
   compareVisualTemplateImages,
   verifyVisualTemplateRender,
 } from "@/lib/resume/template-visual-verification";
+import { analyzeUniversalTemplateImport } from "@/lib/resume/universal-template-import";
 
 interface Args {
   source: string;
@@ -39,6 +40,11 @@ async function main() {
   writeJson(path.join(args.outDir, "template-v3.json"), draft.templateV3);
   writeJson(path.join(args.outDir, "source-resume.json"), draft.resume);
   writeJson(path.join(args.outDir, "migration-fidelity.json"), draft.fidelity);
+  const universalAnalysis = analyzeUniversalTemplateImport(draft.source);
+  writeJson(
+    path.join(args.outDir, "universal-template-analysis.json"),
+    universalAnalysis,
+  );
 
   const referencePath = resolveReferencePath(sourcePath, args.reference);
   const referenceImagePath = referencePath
@@ -88,6 +94,7 @@ async function main() {
     templateName: draft.templateV3.name,
     reference: referencePath,
     referenceImagePath,
+    universalAnalysis,
     reports: reports.map(
       ({ mode, report, htmlPath, screenshotPath, imageComparison }) => ({
         mode,
