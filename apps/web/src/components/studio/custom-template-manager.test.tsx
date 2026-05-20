@@ -1693,6 +1693,74 @@ describe("CustomTemplateManagerDialog", () => {
     });
   });
 
+  it("lets reviewers split a semantic item from an item-level split point", async () => {
+    const patchBodies: unknown[] = [];
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/templates/migrate") {
+          return Response.json({
+            draft: migrationDraft(),
+            warnings: [],
+            confidence: "high",
+          });
+        }
+        if (url === "/api/templates/v3/preview") {
+          return Response.json({
+            html: "<html><body><article>Rendered migrated resume</article></body></html>",
+            pdfOptions: { format: "Letter" },
+          });
+        }
+        if (url === "/api/templates/migrations/draft-1") {
+          const body = JSON.parse(
+            String((init as RequestInit | undefined)?.body),
+          );
+          patchBodies.push(body);
+          const next = migrationDraft();
+          next.semanticResume = body.semanticResume;
+          return Response.json({ draft: next });
+        }
+        return Response.json({ templates: [] });
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderDialog();
+
+    const inputs =
+      document.querySelectorAll<HTMLInputElement>("input[type='file']");
+    fireEvent.change(inputs[0], {
+      target: {
+        files: [
+          new File(["%PDF-1.7"], "resume.pdf", {
+            type: "application/pdf",
+          }),
+        ],
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("resume.pdf")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Semantic Tree" }));
+    fireEvent.change(screen.getByLabelText("Split point for Senior Engineer"), {
+      target: { value: "0" },
+    });
+
+    await waitFor(() => {
+      const latest = patchBodies.at(-1) as ReturnType<typeof migrationDraft>;
+      const items = latest.semanticResume.sections[0].items;
+      expect(items).toHaveLength(3);
+      expect(items[0].primary).toBe("Senior Engineer");
+      expect(items[0].bullets).toEqual([]);
+      expect(items[1]).toMatchObject({
+        primary: "Built migration tooling.",
+        bullets: [],
+      });
+      expect(items[2].primary).toBe("Platform Engineer");
+    });
+  });
+
   it("lets reviewers merge semantic items without losing the merged header", async () => {
     const patchBodies: unknown[] = [];
     const fetchMock = vi.fn(

@@ -2811,6 +2811,8 @@ function SemanticItemCard({
     location !== (item.location ?? "") ||
     url !== (item.url ?? "") ||
     meta !== (item.meta ?? []).join(" | ");
+  const itemLabel = item.primary || `item ${itemIndex + 1}`;
+  const splitPointOptions = item.bullets ?? [];
 
   useEffect(() => {
     setPrimary(item.primary);
@@ -2937,7 +2939,7 @@ function SemanticItemCard({
             <select
               className="h-8 max-w-40 rounded-sm border border-border bg-background px-2 text-xs text-foreground"
               disabled={migrationSaving}
-              aria-label={`Merge target for ${item.primary || `item ${itemIndex + 1}`}`}
+              aria-label={`Merge target for ${itemLabel}`}
               value={String(itemIndex)}
               onChange={(event) =>
                 onMergeItemIntoTarget(
@@ -2949,6 +2951,29 @@ function SemanticItemCard({
               {itemLabels.map((label, optionIndex) => (
                 <option key={`${label}-${optionIndex}`} value={optionIndex}>
                   {optionIndex === itemIndex ? "Current item" : label}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          {splitPointOptions.length ? (
+            <select
+              className="h-8 max-w-40 rounded-sm border border-border bg-background px-2 text-xs text-foreground"
+              disabled={migrationSaving}
+              aria-label={`Split point for ${itemLabel}`}
+              value=""
+              onChange={(event) => {
+                const bulletIndex = Number(event.currentTarget.value);
+                if (Number.isNaN(bulletIndex)) return;
+                onSplitItemFromBullet(itemIndex, bulletIndex);
+              }}
+            >
+              <option value="">Split point</option>
+              {splitPointOptions.map((bullet, bulletIndex) => (
+                <option
+                  key={`${bullet}-${bulletIndex}`}
+                  value={String(bulletIndex)}
+                >
+                  {`Bullet ${bulletIndex + 1}: ${bullet.slice(0, 36)}`}
                 </option>
               ))}
             </select>
@@ -2996,7 +3021,7 @@ function SemanticItemCard({
             <li
               key={`${bullet}-${bulletIndex}`}
               draggable={!migrationSaving && itemCount > 1}
-              aria-label={`Semantic bullet ${bulletIndex + 1} from ${item.primary || `item ${itemIndex + 1}`}`}
+              aria-label={`Semantic bullet ${bulletIndex + 1} from ${itemLabel}`}
               className={
                 draggedBullet?.itemIndex === itemIndex &&
                 draggedBullet.bulletIndex === bulletIndex
@@ -3028,7 +3053,7 @@ function SemanticItemCard({
                         size="sm"
                         className="h-6 px-1.5 text-[10px]"
                         disabled={migrationSaving || itemIndex === 0}
-                        aria-label={`Move bullet ${bulletIndex + 1} from ${item.primary || `item ${itemIndex + 1}`} to previous item`}
+                        aria-label={`Move bullet ${bulletIndex + 1} from ${itemLabel} to previous item`}
                         onClick={() =>
                           onMoveBullet(itemIndex, bulletIndex, itemIndex - 1)
                         }
@@ -3043,7 +3068,7 @@ function SemanticItemCard({
                         disabled={
                           migrationSaving || itemIndex === itemCount - 1
                         }
-                        aria-label={`Move bullet ${bulletIndex + 1} from ${item.primary || `item ${itemIndex + 1}`} to next item`}
+                        aria-label={`Move bullet ${bulletIndex + 1} from ${itemLabel} to next item`}
                         onClick={() =>
                           onMoveBullet(itemIndex, bulletIndex, itemIndex + 1)
                         }
@@ -3053,7 +3078,7 @@ function SemanticItemCard({
                       <select
                         className="h-6 max-w-36 rounded-sm border border-border bg-background px-1 text-[10px] text-foreground"
                         disabled={migrationSaving}
-                        aria-label={`Move bullet ${bulletIndex + 1} target for ${item.primary || `item ${itemIndex + 1}`}`}
+                        aria-label={`Move bullet ${bulletIndex + 1} target for ${itemLabel}`}
                         value={String(itemIndex)}
                         onChange={(event) =>
                           onMoveBullet(
@@ -3080,7 +3105,7 @@ function SemanticItemCard({
                     size="sm"
                     className="h-6 px-1.5 text-[10px]"
                     disabled={migrationSaving}
-                    aria-label={`Split ${item.primary || `item ${itemIndex + 1}`} from bullet ${bulletIndex + 1}`}
+                    aria-label={`Split ${itemLabel} from bullet ${bulletIndex + 1}`}
                     onClick={() =>
                       onSplitItemFromBullet(itemIndex, bulletIndex)
                     }
