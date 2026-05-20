@@ -1,4 +1,5 @@
 import type { SourceDocumentIR } from "@/lib/resume/template-migration";
+import type { TailoredResume } from "@/lib/resume/generator";
 
 export type UniversalResumeSectionType =
   | "summary"
@@ -56,6 +57,53 @@ export interface UniversalTemplateImportAnalysis {
   repeatableSections: UniversalResumeSectionType[];
   styleSignals: UniversalTemplateStyleSignal[];
   warnings: string[];
+}
+
+export interface ResumeSemanticIR {
+  version: 1;
+  sourceType: SourceDocumentIR["sourceType"];
+  filename: string;
+  contact: SemanticContact;
+  sections: SemanticSection[];
+  warnings: string[];
+}
+
+export interface SemanticContact {
+  name: string;
+  email: string;
+  phone: string;
+  location: string;
+  linkedin: string;
+  github: string;
+  confidence: number;
+  evidenceRefs: string[];
+}
+
+export interface SemanticSection {
+  id: string;
+  type: UniversalResumeSectionType;
+  title: string;
+  items: SemanticResumeItem[];
+  confidence: number;
+  evidenceRefs: string[];
+}
+
+export interface SemanticResumeItem {
+  primary: string;
+  secondary?: string;
+  location?: string;
+  dateRange?: string;
+  meta: string[];
+  url?: string;
+  bullets: string[];
+  confidence: number;
+  evidenceRefs: string[];
+}
+
+interface SemanticSourceLine {
+  text: string;
+  sourceType: SourceDocumentIR["blocks"][number]["type"];
+  evidenceRefs: string[];
 }
 
 const SECTION_ALIASES: Array<{
@@ -186,6 +234,439 @@ export function analyzeUniversalTemplateImport(
     styleSignals,
     warnings,
   };
+}
+
+export function inferResumeSemanticIR(
+  source: SourceDocumentIR,
+): ResumeSemanticIR {
+  const lines = sourceLinesForSemanticMapping(source);
+  const sectionRuns = groupSemanticLinesBySection(lines);
+  const contactLines = lines.slice(
+    0,
+    sectionRuns[0]?.startIndex ?? Math.min(lines.length, 6),
+  );
+  const sections = sectionRuns.map((run, index) => ({
+    id: `section-${index + 1}`,
+    type: run.type,
+    title: run.title,
+    items: parseSemanticSectionItems(run.type, run.lines),
+    confidence: run.confidence,
+    evidenceRefs: run.evidenceRefs,
+  }));
+
+  return {
+    version: 1,
+    sourceType: source.sourceType,
+    filename: source.filename,
+    contact: inferSemanticContact(contactLines),
+    sections,
+    warnings: [
+      ...source.diagnostics,
+      ...(sections.length
+        ? []
+        : [
+            "No resume sections were detected; semantic template review required.",
+          ]),
+    ],
+  };
+}
+
+export function semanticIRToTailoredResume(
+  semantic: ResumeSemanticIR,
+): TailoredResume {
+  const section = (type: UniversalResumeSectionType) =>
+    semantic.sections.find((candidate) => candidate.type === type);
+  const summary = section("summary");
+  const skills = section("skills");
+  const certifications = section("certifications");
+  const awards = section("awards");
+
+  return {
+    contact: {
+      name: semantic.contact.name,
+      email: semantic.contact.email,
+      phone: semantic.contact.phone,
+      location: semantic.contact.location,
+      linkedin: semantic.contact.linkedin,
+      github: semantic.contact.github,
+    },
+    summary:
+      summary?.items
+        .flatMap((item) => [item.primary, ...item.bullets])
+        .filter(Boolean)
+        .join(" ") ?? "",
+    experiences:
+      section("experience")?.items.map((item) => ({
+        title: item.primary,
+        company: item.secondary ?? "",
+        dates: item.dateRange ?? item.meta.join(" - "),
+        highlights: item.bullets,
+      })) ?? [],
+    skills:
+      skills?.items.flatMap((item) =>
+        [item.primary, item.secondary, ...item.meta, ...item.bullets]
+          .filter((value): value is string => Boolean(value))
+          .flatMap(splitSkillText),
+      ) ?? [],
+    education:
+      section("education")?.items.map((item) => ({
+        institution: item.primary,
+        degree: item.secondary ?? "",
+        field: item.meta.slice(0, -1).join(" - "),
+        date: item.dateRange ?? item.meta.at(-1) ?? "",
+      })) ?? [],
+    projects:
+      section("projects")?.items.map((item) => ({
+        name: item.primary,
+        description: [item.secondary, ...item.meta].filter(Boolean).join(" - "),
+        highlights: item.bullets,
+      })) ?? [],
+    certifications:
+      certifications?.items.flatMap((item) =>
+        [item.primary, ...item.bullets].filter(Boolean),
+      ) ?? [],
+    awards:
+      awards?.items.flatMap((item) =>
+        [item.primary, ...item.bullets].filter(Boolean),
+      ) ?? [],
+  };
+}
+
+function sourceLinesForSemanticMapping(
+  source: SourceDocumentIR,
+): SemanticSourceLine[] {
+  return source.blocks.flatMap((block) => {
+    if (block.type !== "table-row" || !block.cellMetadata?.length) {
+      const text = block.text.trim();
+      return text
+        ? [
+            {
+              text: block.type === "list-item" ? `- ${text}` : text,
+              sourceType: block.type,
+              evidenceRefs: [block.id],
+            },
+          ]
+        : [];
+    }
+
+    const cellLines = block.cellMetadata.map((cell, cellIndex) =>
+      (cell.blocks ?? [])
+        .filter((cellBlock) => cellBlock.text.trim())
+        .map((cellBlock) => ({
+          text:
+            cellBlock.type === "list-item"
+              ? `- ${cellBlock.text.trim()}`
+              : cellBlock.text.trim(),
+          sourceType: cellBlock.type,
+          evidenceRefs: [`${block.id}:cell-${cellIndex + 1}:${cellBlock.id}`],
+        })),
+    );
+    const populatedCells = cellLines.filter((lines) => lines.length);
+    if (
+      populatedCells.length > 1 &&
+      populatedCells.every((lines) => lines.length === 1)
+    ) {
+      return [
+        {
+          text: populatedCells.map((lines) => lines[0].text).join(" | "),
+          sourceType: "table-row" as const,
+          evidenceRefs: [block.id],
+        },
+      ];
+    }
+
+    const expanded = cellLines.flat();
+    if (expanded.length) return expanded;
+    const fallback = block.cells?.length ? block.cells.join(" | ") : block.text;
+    return fallback.trim()
+      ? [
+          {
+            text: fallback.trim(),
+            sourceType: "table-row" as const,
+            evidenceRefs: [block.id],
+          },
+        ]
+      : [];
+  });
+}
+
+function groupSemanticLinesBySection(lines: SemanticSourceLine[]) {
+  const runs: Array<{
+    type: UniversalResumeSectionType;
+    title: string;
+    confidence: number;
+    evidenceRefs: string[];
+    startIndex: number;
+    lines: SemanticSourceLine[];
+  }> = [];
+  let current: (typeof runs)[number] | null = null;
+
+  lines.forEach((line, index) => {
+    const title = cleanSectionTitle(line.text);
+    const type = sectionTypeForTitle(title);
+    if (type) {
+      current = {
+        type,
+        title,
+        confidence: line.sourceType === "heading" ? 0.92 : 0.78,
+        evidenceRefs: line.evidenceRefs,
+        startIndex: index,
+        lines: [],
+      };
+      runs.push(current);
+      return;
+    }
+    current?.lines.push(line);
+  });
+
+  return runs;
+}
+
+function inferSemanticContact(lines: SemanticSourceLine[]): SemanticContact {
+  const text = lines.map((line) => line.text).join(" ");
+  const email = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] ?? "";
+  const phone =
+    text.match(/(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/)?.[0] ??
+    "";
+  const linkedin =
+    text.match(/(?:https?:\/\/)?(?:www\.)?linkedin\.com\/[^\s|]+/i)?.[0] ?? "";
+  const github =
+    text.match(/(?:https?:\/\/)?(?:www\.)?github\.com\/[^\s|]+/i)?.[0] ?? "";
+  const name =
+    lines
+      .map((line) => line.text.split("|")[0]?.trim() ?? "")
+      .find(
+        (line) =>
+          line &&
+          !line.includes("@") &&
+          !/\d{3}/.test(line) &&
+          !/linkedin|github|portfolio|http/i.test(line),
+      ) ?? "";
+
+  return {
+    name,
+    email,
+    phone,
+    location: "",
+    linkedin,
+    github,
+    confidence: roundRatio(
+      Number(Boolean(name)) * 0.45 +
+        Number(Boolean(email || phone || linkedin || github)) * 0.45 +
+        0.1,
+    ),
+    evidenceRefs: lines.flatMap((line) => line.evidenceRefs),
+  };
+}
+
+function parseSemanticSectionItems(
+  type: UniversalResumeSectionType,
+  lines: SemanticSourceLine[],
+): SemanticResumeItem[] {
+  if (type === "skills") return parseSkillItems(lines);
+  if (type === "summary") return parseSummaryItems(lines);
+  if (type === "education") return parseStructuredItems(lines, "education");
+  if (type === "experience") return parseStructuredItems(lines, "experience");
+  if (type === "projects") return parseStructuredItems(lines, "projects");
+  return parsePlainSemanticItems(lines);
+}
+
+function parseStructuredItems(
+  lines: SemanticSourceLine[],
+  sectionType: "education" | "experience" | "projects",
+): SemanticResumeItem[] {
+  const items: SemanticResumeItem[] = [];
+  let current: SemanticResumeItem | null = null;
+  for (const line of lines) {
+    if (isColumnHeaderLine(line.text)) continue;
+    if (current && !current.dateRange && isDateOnlyLine(line.text)) {
+      current.dateRange = line.text.trim();
+      current.evidenceRefs.push(...line.evidenceRefs);
+      continue;
+    }
+    const isBullet = isBulletLine(line.text);
+    const header = !isBullet ? parseHeaderLine(line.text, sectionType) : null;
+    if (header) {
+      if (current) items.push(current);
+      current = {
+        ...header,
+        bullets: [],
+        confidence: header.confidence,
+        evidenceRefs: line.evidenceRefs,
+      };
+      continue;
+    }
+    if (!current) {
+      current = {
+        primary: stripBulletMarker(line.text),
+        meta: [],
+        bullets: [],
+        confidence: 0.42,
+        evidenceRefs: line.evidenceRefs,
+      };
+      continue;
+    }
+    const content = stripBulletMarker(line.text);
+    if (current.bullets.length && !hasBulletMarker(line.text)) {
+      current.bullets[current.bullets.length - 1] =
+        `${current.bullets[current.bullets.length - 1]} ${content}`.trim();
+    } else {
+      current.bullets.push(content);
+    }
+    current.evidenceRefs.push(...line.evidenceRefs);
+  }
+  if (current) items.push(current);
+  return items.filter((item) => item.primary || item.bullets.length);
+}
+
+function parseHeaderLine(
+  text: string,
+  sectionType: "education" | "experience" | "projects",
+): Omit<SemanticResumeItem, "bullets" | "evidenceRefs"> | null {
+  const parts = splitHeaderParts(text);
+  const hasDate = parts.some(isDateLike);
+  const hasStructure = parts.length > 1;
+  if (!hasStructure && !hasDate && text.length > 100) return null;
+  if (!hasStructure && sectionType !== "projects") return null;
+
+  const dateIndex = parts.findIndex(isDateLike);
+  const dateRange = dateIndex >= 0 ? parts[dateIndex] : undefined;
+  const remaining = parts.filter((_part, index) => index !== dateIndex);
+  const [primary = text.trim(), secondary, ...meta] = remaining;
+
+  return {
+    primary,
+    secondary,
+    dateRange,
+    meta,
+    confidence: roundRatio(
+      0.55 + Number(hasStructure) * 0.2 + Number(hasDate) * 0.2,
+    ),
+  };
+}
+
+function parseSkillItems(lines: SemanticSourceLine[]): SemanticResumeItem[] {
+  return lines
+    .flatMap((line) =>
+      splitSkillText(line.text).map((skill) => ({
+        primary: skill,
+        meta: [],
+        bullets: [],
+        confidence: 0.72,
+        evidenceRefs: line.evidenceRefs,
+      })),
+    )
+    .filter((item) => item.primary);
+}
+
+function parseSummaryItems(lines: SemanticSourceLine[]): SemanticResumeItem[] {
+  const text = lines
+    .map((line) => stripBulletMarker(line.text))
+    .join(" ")
+    .trim();
+  return text
+    ? [
+        {
+          primary: text,
+          meta: [],
+          bullets: [],
+          confidence: 0.74,
+          evidenceRefs: lines.flatMap((line) => line.evidenceRefs),
+        },
+      ]
+    : [];
+}
+
+function parsePlainSemanticItems(
+  lines: SemanticSourceLine[],
+): SemanticResumeItem[] {
+  return lines
+    .map((line) => ({
+      primary: stripBulletMarker(line.text),
+      meta: [],
+      bullets: [],
+      confidence: isBulletLine(line.text) ? 0.65 : 0.58,
+      evidenceRefs: line.evidenceRefs,
+    }))
+    .filter((item) => item.primary);
+}
+
+function splitHeaderParts(text: string): string[] {
+  if (text.includes("|")) {
+    return text
+      .split(/\s+\|\s+/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+  }
+  const protectedDateRanges = text.replace(
+    /\b(\d{4})\s+([—-])\s+((?:present)|(?:\d{4}))/gi,
+    (_match, start: string, marker: string, end: string) =>
+      `${start}__DATE_DASH_${marker === "—" ? "EM" : "HY"}__${end}`,
+  );
+  return protectedDateRanges
+    .split(/\s*—\s*|\s+-\s+/)
+    .map((part) =>
+      part
+        .replace(/__DATE_DASH_EM__/g, " — ")
+        .replace(/__DATE_DASH_HY__/g, " - "),
+    )
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function splitSkillText(text: string): string[] {
+  return text
+    .split(/[,;|]/)
+    .map(stripBulletMarker)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function isBulletLine(text: string): boolean {
+  return hasBulletMarker(text) || text.length > 110;
+}
+
+function stripBulletMarker(text: string): string {
+  return text.replace(/^(?:-|\u2022|•|●|◦|▪|→|✓)\s*/, "").trim();
+}
+
+function hasBulletMarker(text: string): boolean {
+  return /^(?:-|\u2022|•|●|◦|▪|→|✓)\s*/.test(text);
+}
+
+function isDateLike(text: string): boolean {
+  return /\b(?:present|\d{4}|jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\b/i.test(
+    text,
+  );
+}
+
+function isDateOnlyLine(text: string): boolean {
+  return text.length <= 50 && isDateLike(text) && !/[|]/.test(text);
+}
+
+function isColumnHeaderLine(text: string): boolean {
+  const parts = splitHeaderParts(text).map((part) => part.toLowerCase());
+  if (parts.length < 2) return false;
+  const headerWords = new Set([
+    "role",
+    "title",
+    "position",
+    "organization",
+    "company",
+    "employer",
+    "date",
+    "dates",
+    "period",
+    "location",
+    "project",
+    "technologies",
+    "technology",
+    "tech stack",
+    "school",
+    "degree",
+    "institution",
+  ]);
+  return parts.every((part) => headerWords.has(part));
 }
 
 function buildSourceSignals({
