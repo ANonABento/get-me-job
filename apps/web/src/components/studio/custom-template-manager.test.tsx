@@ -716,6 +716,83 @@ describe("CustomTemplateManagerDialog", () => {
     });
   });
 
+  it("lets reviewers move bullets to an arbitrary semantic item", async () => {
+    const patchBodies: unknown[] = [];
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/templates/migrate") {
+          const draft = migrationDraft();
+          draft.semanticResume.sections[0].items.push({
+            primary: "Systems Engineer",
+            secondary: "Gamma",
+            dateRange: "2020 - 2022",
+            meta: [],
+            bullets: ["Kept systems reliable."],
+            confidence: 0.8,
+            evidenceRefs: ["block-2"],
+          });
+          return Response.json({
+            draft,
+            warnings: [],
+            confidence: "high",
+          });
+        }
+        if (url === "/api/templates/v3/preview") {
+          return Response.json({
+            html: "<html><body><article>Rendered migrated resume</article></body></html>",
+            pdfOptions: { format: "Letter" },
+          });
+        }
+        if (url === "/api/templates/migrations/draft-1") {
+          const body = JSON.parse(
+            String((init as RequestInit | undefined)?.body),
+          );
+          patchBodies.push(body);
+          const next = migrationDraft();
+          next.semanticResume = body.semanticResume;
+          return Response.json({ draft: next });
+        }
+        return Response.json({ templates: [] });
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderDialog();
+
+    const inputs =
+      document.querySelectorAll<HTMLInputElement>("input[type='file']");
+    fireEvent.change(inputs[0], {
+      target: {
+        files: [
+          new File(["%PDF-1.7"], "resume.pdf", {
+            type: "application/pdf",
+          }),
+        ],
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("resume.pdf")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Semantic Tree" }));
+    fireEvent.change(
+      screen.getByLabelText("Move bullet 1 target for Senior Engineer"),
+      {
+        target: { value: "2" },
+      },
+    );
+
+    await waitFor(() => {
+      const latest = patchBodies.at(-1) as ReturnType<typeof migrationDraft>;
+      expect(latest.semanticResume.sections[0].items[0].bullets).toEqual([]);
+      expect(latest.semanticResume.sections[0].items[2].bullets).toEqual([
+        "Built migration tooling.",
+        "Kept systems reliable.",
+      ]);
+    });
+  });
+
   it("lets reviewers mark source evidence as non-template", async () => {
     const patchBodies: unknown[] = [];
     const fetchMock = vi.fn(

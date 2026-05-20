@@ -647,7 +647,7 @@ As of the latest implementation slice, the system has:
 - A reusable renderer that consumes section order and entry component settings
   for header fields and bullet-vs-paragraph achievement rendering.
 - Basic semantic review controls for section type/title correction and moving
-  bullets between adjacent items.
+  bullets between adjacent or explicitly selected items.
 - Basic split/merge controls for semantic items, preserving merged item headers
   as achievement text so user content is not silently dropped.
 - Source evidence can be marked non-template/decorative from review; reusable
@@ -664,8 +664,8 @@ Known remaining gaps:
 
 - Split/merge semantic item controls are basic adjacent operations; arbitrary
   item targets and drag/drop are still not complete.
-- Move-bullet controls are basic adjacent-item controls; richer drag/drop or
-  arbitrary target selection is still not complete.
+- Move-bullet controls support adjacent buttons and arbitrary item target
+  selection within the section; drag/drop is still not complete.
 - Decorative source marking is block-level only; finer-grained row/cell/run
   marking is still not complete.
 - Style token candidate selection currently covers colors, body typography,

@@ -2234,11 +2234,16 @@ function SemanticSectionCard({
   function moveBullet(
     itemIndex: number,
     bulletIndex: number,
-    direction: -1 | 1,
+    targetItemIndex: number,
   ) {
     if (!semantic) return;
-    const targetItemIndex = itemIndex + direction;
-    if (targetItemIndex < 0 || targetItemIndex >= section.items.length) return;
+    if (
+      targetItemIndex === itemIndex ||
+      targetItemIndex < 0 ||
+      targetItemIndex >= section.items.length
+    ) {
+      return;
+    }
     const bullet = section.items[itemIndex]?.bullets?.[bulletIndex];
     if (!bullet) return;
     const nextSemantic: SemanticDraftResume = {
@@ -2253,7 +2258,9 @@ function SemanticSectionCard({
         }));
         items[itemIndex].bullets.splice(bulletIndex, 1);
         const insertionIndex =
-          direction < 0 ? items[targetItemIndex].bullets.length : 0;
+          targetItemIndex < itemIndex
+            ? items[targetItemIndex].bullets.length
+            : 0;
         items[targetItemIndex].bullets.splice(insertionIndex, 0, bullet);
         return { ...candidate, items };
       }),
@@ -2420,6 +2427,11 @@ function SemanticSectionCard({
             item={item}
             itemIndex={itemIndex}
             itemCount={section.items.length}
+            itemLabels={section.items.map(
+              (candidateItem, candidateIndex) =>
+                semanticItemHeaderText(candidateItem) ||
+                `Item ${candidateIndex + 1}`,
+            )}
             migrationSaving={migrationSaving}
             onUpdateItem={updateItem}
             onMergeItemIntoPrevious={mergeItemIntoPrevious}
@@ -2436,6 +2448,7 @@ function SemanticItemCard({
   item,
   itemIndex,
   itemCount,
+  itemLabels,
   migrationSaving,
   onUpdateItem,
   onMergeItemIntoPrevious,
@@ -2445,6 +2458,7 @@ function SemanticItemCard({
   item: SemanticDraftItem;
   itemIndex: number;
   itemCount: number;
+  itemLabels: string[];
   migrationSaving: boolean;
   onUpdateItem: (
     itemIndex: number,
@@ -2456,7 +2470,7 @@ function SemanticItemCard({
   onMoveBullet: (
     itemIndex: number,
     bulletIndex: number,
-    direction: -1 | 1,
+    targetItemIndex: number,
   ) => void;
   onSplitItemFromBullet: (itemIndex: number, bulletIndex: number) => void;
 }) {
@@ -2613,7 +2627,9 @@ function SemanticItemCard({
                         className="h-6 px-1.5 text-[10px]"
                         disabled={migrationSaving || itemIndex === 0}
                         aria-label={`Move bullet ${bulletIndex + 1} from ${item.primary || `item ${itemIndex + 1}`} to previous item`}
-                        onClick={() => onMoveBullet(itemIndex, bulletIndex, -1)}
+                        onClick={() =>
+                          onMoveBullet(itemIndex, bulletIndex, itemIndex - 1)
+                        }
                       >
                         Prev
                       </Button>
@@ -2626,10 +2642,34 @@ function SemanticItemCard({
                           migrationSaving || itemIndex === itemCount - 1
                         }
                         aria-label={`Move bullet ${bulletIndex + 1} from ${item.primary || `item ${itemIndex + 1}`} to next item`}
-                        onClick={() => onMoveBullet(itemIndex, bulletIndex, 1)}
+                        onClick={() =>
+                          onMoveBullet(itemIndex, bulletIndex, itemIndex + 1)
+                        }
                       >
                         Next
                       </Button>
+                      <select
+                        className="h-6 max-w-36 rounded-sm border border-border bg-background px-1 text-[10px] text-foreground"
+                        disabled={migrationSaving}
+                        aria-label={`Move bullet ${bulletIndex + 1} target for ${item.primary || `item ${itemIndex + 1}`}`}
+                        value={String(itemIndex)}
+                        onChange={(event) =>
+                          onMoveBullet(
+                            itemIndex,
+                            bulletIndex,
+                            Number(event.currentTarget.value),
+                          )
+                        }
+                      >
+                        {itemLabels.map((label, optionIndex) => (
+                          <option
+                            key={`${label}-${optionIndex}`}
+                            value={optionIndex}
+                          >
+                            {optionIndex === itemIndex ? "Current item" : label}
+                          </option>
+                        ))}
+                      </select>
                     </>
                   ) : null}
                   <Button
