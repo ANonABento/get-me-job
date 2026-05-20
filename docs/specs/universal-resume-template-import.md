@@ -740,7 +740,8 @@ As of the latest implementation slice, the system has:
   list styling, preserve source-backed list marker style where available, and
   render reusable contact links with inferred link color. Skills sections now
   use an explicit reusable `SkillList` child component instead of generic entry
-  rows.
+  rows, and education sections use an explicit reusable `EducationRow`
+  component.
 - Semantic contact inference uses hyperlink targets as source evidence, so
   generic visible labels like "GitHub" or "LinkedIn" still populate reusable
   contact fields from their hrefs.
@@ -803,7 +804,10 @@ Known remaining gaps:
 - V4 reusable templates model skills with a dedicated `SkillList` component so
   newly generated or edited skill arrays reflow without entry-header markup.
 - Dogfood scorecards require reusable templates to include renderable nested
-  component kinds such as `SectionHeading` plus `EntryList` or `SkillList`.
+  component kinds such as `SectionHeading` plus `EntryList`, `SkillList`, or
+  `EducationRow`.
+- V4 reusable templates model education entries with a dedicated `EducationRow`
+  component so edited education arrays reflow without generic entry markup.
 - App review mismatch reports now expose the same gate model as the lab:
   extraction, semantic, style, render, and app wiring statuses with review
   actions.

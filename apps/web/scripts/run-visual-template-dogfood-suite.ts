@@ -239,7 +239,8 @@ export function scoreCase(summary: Record<string, unknown>, item: SuiteCase) {
   const reusableComponentCount = reusableComponentKinds.length;
   const hasReusableSectionBody =
     reusableComponentKinds.includes("EntryList") ||
-    reusableComponentKinds.includes("SkillList");
+    reusableComponentKinds.includes("SkillList") ||
+    reusableComponentKinds.includes("EducationRow");
   const hasRequiredReusableComponents =
     reusableComponentKinds.includes("HeaderBlock") &&
     reusableComponentKinds.includes("Section") &&

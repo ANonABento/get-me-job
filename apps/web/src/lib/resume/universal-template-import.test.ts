@@ -511,6 +511,60 @@ describe("universal template import analysis", () => {
     expect(html).not.toContain('<section class="rt-entry">');
   });
 
+  it("models education as a reusable EducationRow component", () => {
+    const source: SourceDocumentIR = {
+      sourceType: "docx",
+      filename: "education-template.docx",
+      pages: [{ id: "page-1", number: 1, widthPt: 612, heightPt: 792 }],
+      rawText: "",
+      diagnostics: [],
+      blocks: [
+        styledBlock("b1", "Jordan Patel", { fontSizePt: 24, bold: true }),
+        styledBlock("b2", "EDUCATION", { fontSizePt: 11, bold: true }),
+        tableRow("b3", ["Source University", "BS CS", "2020"]),
+      ],
+    };
+    const semantic = inferResumeSemanticIR(source);
+    const template = buildReusableResumeTemplateIR(
+      semantic,
+      inferImportedTemplateStyleTokens(source),
+    );
+    const educationComponent = template.components.find(
+      (component) => component.kind === "Section",
+    );
+    const html = renderTailoredResumeWithReusableTemplate(
+      {
+        contact: { name: "New Candidate" },
+        summary: "",
+        experiences: [],
+        projects: [],
+        skills: [],
+        education: [
+          {
+            institution: "Runtime University",
+            degree: "BS",
+            field: "Computer Science",
+            date: "2026",
+          },
+        ],
+      },
+      template,
+    );
+
+    expect(educationComponent).toMatchObject({
+      kind: "Section",
+      sectionType: "education",
+      components: expect.arrayContaining([
+        expect.objectContaining({ kind: "EducationRow" }),
+      ]),
+    });
+    expect(html).toContain('class="rt-education-row"');
+    expect(html).toContain("Runtime University");
+    expect(html).toContain("BS — Computer Science");
+    expect(html).toContain("<time>2026</time>");
+    expect(html).not.toContain('<section class="rt-entry">');
+  });
+
   it("infers reusable LaTeX style defaults when explicit run styles are absent", () => {
     const source: SourceDocumentIR = {
       sourceType: "tex",

@@ -244,6 +244,10 @@ function genericSummary() {
         },
         {
           kind: "Section",
+          components: [{ kind: "SectionHeading" }, { kind: "EducationRow" }],
+        },
+        {
+          kind: "Section",
           components: [{ kind: "SectionHeading" }, { kind: "SkillList" }],
         },
       ],
