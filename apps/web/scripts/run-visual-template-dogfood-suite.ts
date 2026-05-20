@@ -912,6 +912,7 @@ function renderLabHtml(
       ["reference", "Reference"],
       ["render", "Source render"],
       ["reusable", "Reusable render"],
+      ["sourceIr", "Source evidence"],
       ["semantic", "Semantic tree"],
       ["style", "Style tokens"],
       ["reusableIr", "Reusable IR"],
@@ -982,6 +983,7 @@ function renderLabHtml(
       if (mode === "reference") return { label: "Reference", type: "image", path: item.referenceImagePath };
       if (mode === "render") return { label: "Source render", type: "image", path: src && src.screenshotPath };
       if (mode === "reusable") return { label: "Reusable render", type: "frame", path: item.reusableHtmlPath };
+      if (mode === "sourceIr") return { label: "Source evidence", type: "json", value: item.sourceIr };
       if (mode === "semantic") return { label: "Semantic tree", type: "json", value: item.semanticResume };
       if (mode === "style") return { label: "Style tokens", type: "json", value: item.styleTokens };
       if (mode === "reusableIr") return { label: "Reusable IR", type: "json", value: item.reusableTemplate };

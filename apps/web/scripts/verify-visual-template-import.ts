@@ -142,6 +142,7 @@ async function main() {
     templateName: draft.templateV3.name,
     reference: referencePath,
     referenceImagePath,
+    sourceIr: draft.source,
     universalAnalysis,
     semanticResume,
     styleTokens,

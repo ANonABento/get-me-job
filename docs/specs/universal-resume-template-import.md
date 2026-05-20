@@ -787,3 +787,5 @@ Known remaining gaps:
 - Tailor and opportunity generation routes now use the same V4-first render
   order as builder/export when rendering newly generated resume content with a
   saved reusable template.
+- The static dogfood lab includes source evidence as a first-class pane, not
+  only as a downloadable raw JSON artifact.
