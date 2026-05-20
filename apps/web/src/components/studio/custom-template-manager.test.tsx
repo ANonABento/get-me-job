@@ -625,6 +625,15 @@ describe("CustomTemplateManagerDialog", () => {
     fireEvent.change(screen.getByLabelText("Section heading font size"), {
       target: { value: "13" },
     });
+    fireEvent.change(
+      screen.getByLabelText("Entry title typography candidate"),
+      {
+        target: { value: "1" },
+      },
+    );
+    fireEvent.change(screen.getByLabelText("Entry title font size"), {
+      target: { value: "10.5" },
+    });
     fireEvent.change(screen.getByLabelText("Metadata typography candidate"), {
       target: { value: "1" },
     });
@@ -668,6 +677,10 @@ describe("CustomTemplateManagerDialog", () => {
         "Aptos, sans-serif",
       );
       expect(latest.styleTokens.typography.sectionHeading.fontSizePt).toBe(13);
+      expect(latest.styleTokens.typography.entryTitle.fontFamily).toBe(
+        "Georgia, serif",
+      );
+      expect(latest.styleTokens.typography.entryTitle.fontSizePt).toBe(10.5);
       expect(latest.styleTokens.typography.metadata.fontFamily).toBe(
         "Aptos, sans-serif",
       );
@@ -1483,6 +1496,20 @@ function migrationDraft() {
             {
               label: "Aptos, sans-serif (1 ref)",
               value: { fontFamily: "Aptos, sans-serif", fontSizePt: 14 },
+            },
+          ],
+        },
+        entryTitle: {
+          fontFamily: "Inter",
+          fontSizePt: 10,
+          candidates: [
+            {
+              label: "Inter 10pt (1 ref)",
+              value: { fontFamily: "Inter", fontSizePt: 10 },
+            },
+            {
+              label: "Georgia, serif 11pt (1 ref)",
+              value: { fontFamily: "Georgia, serif", fontSizePt: 11 },
             },
           ],
         },

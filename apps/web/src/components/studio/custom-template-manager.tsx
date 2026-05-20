@@ -2753,6 +2753,12 @@ function StyleTokensPane({
   const [headingSize, setHeadingSize] = useState(
     String(tokenNumber(tokens?.typography?.sectionHeading, "fontSizePt", 11)),
   );
+  const [entryTitleFont, setEntryTitleFont] = useState(
+    tokenString(tokens?.typography?.entryTitle, "fontFamily"),
+  );
+  const [entryTitleSize, setEntryTitleSize] = useState(
+    String(tokenNumber(tokens?.typography?.entryTitle, "fontSizePt", 10)),
+  );
   const [metadataFont, setMetadataFont] = useState(
     tokenString(tokens?.typography?.metadata, "fontFamily"),
   );
@@ -2787,6 +2793,9 @@ function StyleTokensPane({
   );
   const headingTypographyCandidates = typographyTokenCandidates(
     tokens?.typography?.sectionHeading,
+  );
+  const entryTitleTypographyCandidates = typographyTokenCandidates(
+    tokens?.typography?.entryTitle,
   );
   const metadataTypographyCandidates = typographyTokenCandidates(
     tokens?.typography?.metadata,
@@ -2824,6 +2833,12 @@ function StyleTokensPane({
     setHeadingSize(
       String(tokenNumber(tokens?.typography?.sectionHeading, "fontSizePt", 11)),
     );
+    setEntryTitleFont(
+      tokenString(tokens?.typography?.entryTitle, "fontFamily"),
+    );
+    setEntryTitleSize(
+      String(tokenNumber(tokens?.typography?.entryTitle, "fontSizePt", 10)),
+    );
     setMetadataFont(tokenString(tokens?.typography?.metadata, "fontFamily"));
     setMetadataSize(
       String(tokenNumber(tokens?.typography?.metadata, "fontSizePt", 9)),
@@ -2850,6 +2865,8 @@ function StyleTokensPane({
     const nextNameSize = Number(nameSize);
     const nextHeadingFont = headingFont.trim();
     const nextHeadingSize = Number(headingSize);
+    const nextEntryTitleFont = entryTitleFont.trim();
+    const nextEntryTitleSize = Number(entryTitleSize);
     const nextMetadataFont = metadataFont.trim();
     const nextMetadataSize = Number(metadataSize);
     const nextSectionGap = Number(sectionGap);
@@ -2882,6 +2899,17 @@ function StyleTokensPane({
         ...(nextHeadingFont ? { fontFamily: nextHeadingFont } : {}),
         ...(Number.isFinite(nextHeadingSize)
           ? { fontSizePt: nextHeadingSize }
+          : {}),
+        confidence: 1,
+        evidenceRefs: [],
+      },
+      entryTitle: {
+        ...(isRecord(next.typography?.entryTitle)
+          ? next.typography.entryTitle
+          : {}),
+        ...(nextEntryTitleFont ? { fontFamily: nextEntryTitleFont } : {}),
+        ...(Number.isFinite(nextEntryTitleSize)
+          ? { fontSizePt: nextEntryTitleSize }
           : {}),
         confidence: 1,
         evidenceRefs: [],
@@ -3098,6 +3126,53 @@ function StyleTokensPane({
               value={headingSize}
               aria-label="Section heading font size"
               onChange={(event) => setHeadingSize(event.currentTarget.value)}
+              inputMode="decimal"
+            />
+          </label>
+          <label className="space-y-1 text-xs text-muted-foreground">
+            <span>Entry title font</span>
+            <Input
+              value={entryTitleFont}
+              aria-label="Entry title font"
+              onChange={(event) => setEntryTitleFont(event.currentTarget.value)}
+              placeholder="Arial, sans-serif"
+            />
+            {entryTitleTypographyCandidates.length ? (
+              <select
+                className="h-8 w-full rounded-sm border border-border bg-background px-2 text-xs text-foreground"
+                aria-label="Entry title typography candidate"
+                value=""
+                onChange={(event) => {
+                  const candidate =
+                    entryTitleTypographyCandidates[
+                      Number(event.currentTarget.value)
+                    ];
+                  if (!candidate) return;
+                  if (candidate.value.fontFamily) {
+                    setEntryTitleFont(candidate.value.fontFamily);
+                  }
+                  if (typeof candidate.value.fontSizePt === "number") {
+                    setEntryTitleSize(String(candidate.value.fontSizePt));
+                  }
+                }}
+              >
+                <option value="">
+                  Current: {entryTitleFont || "detected"}
+                </option>
+                {entryTitleTypographyCandidates.map((candidate, index) => (
+                  <option key={`${candidate.label}-${index}`} value={index}>
+                    {candidate.label}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+          </label>
+          <label className="space-y-1 text-xs text-muted-foreground">
+            <span>Entry title size pt</span>
+            <Input
+              value={entryTitleSize}
+              aria-label="Entry title font size"
+              onChange={(event) => setEntryTitleSize(event.currentTarget.value)}
               inputMode="decimal"
             />
           </label>

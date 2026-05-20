@@ -1382,6 +1382,12 @@ function isDateLike(text: string): boolean {
   );
 }
 
+function isContactLike(text: string): boolean {
+  return /@|linkedin|github|portfolio|https?:\/\/|www\.|(?:\+?\d[\d\s().-]{7,})/i.test(
+    text,
+  );
+}
+
 function isDateOnlyLine(text: string): boolean {
   return text.length <= 50 && isDateLike(text) && !/[|]/.test(text);
 }
@@ -1555,9 +1561,12 @@ function detectStyleSignals(
     sections.flatMap((section) => section.evidenceRefs),
   );
   const sectionBlock = blocks.find((block) => sectionRefs.has(block.id));
-  if (sectionBlock?.style) {
+  if (sectionBlock && effectiveBlockStyle(sectionBlock)) {
     signals.push(styleSignal("sectionHeading", sectionBlock, 0.85));
   }
+
+  const entryTitle = firstEntryTitleBlock(blocks, sectionRefs);
+  if (entryTitle) signals.push(styleSignal("entryTitle", entryTitle, 0.66));
 
   const body = representativeStyledBlock(
     blocks.filter((block) => !sectionRefs.has(block.id)),
@@ -1578,6 +1587,39 @@ function detectStyleSignals(
   }
 
   return dedupeStyleSignals(signals);
+}
+
+function firstEntryTitleBlock(
+  blocks: SourceDocumentIR["blocks"],
+  sectionRefs: Set<string>,
+): SourceDocumentIR["blocks"][number] | undefined {
+  const firstSectionIndex = blocks.findIndex((block) =>
+    sectionRefs.has(block.id),
+  );
+  const candidateBlocks =
+    firstSectionIndex >= 0 ? blocks.slice(firstSectionIndex + 1) : blocks;
+  return candidateBlocks.find((block) => {
+    if (sectionRefs.has(block.id)) return false;
+    if (!effectiveBlockStyle(block)) return false;
+    if (block.type === "list-item") return false;
+    if (
+      block.cells?.length === 1 &&
+      block.cellMetadata?.[0]?.blocks?.[0]?.type === "list-item"
+    ) {
+      return false;
+    }
+    if (isContactLike(block.text)) return false;
+    if (isDateOnlyLine(block.text.trim())) return false;
+    return (
+      block.type === "table-row" ||
+      Boolean(block.style?.bold) ||
+      Boolean(
+        block.cellMetadata?.some((cell) =>
+          cell.blocks?.some((cellBlock) => cellBlock.style?.bold),
+        ),
+      )
+    );
+  });
 }
 
 function latexFallbackStyleSignals(
@@ -1644,19 +1686,43 @@ function styleSignal(
   block: SourceDocumentIR["blocks"][number],
   confidence: number,
 ): UniversalTemplateStyleSignal {
+  const style = effectiveBlockStyle(block);
   return {
     role,
     confidence,
     evidenceRefs: [block.id],
     sample: {
-      fontFamily: block.style?.fontFamily,
-      fontSizePt: block.style?.fontSizePt,
-      bold: block.style?.bold,
-      italic: block.style?.italic,
-      color: block.style?.color,
-      alignment: block.style?.alignment,
+      fontFamily: style?.fontFamily,
+      fontSizePt: style?.fontSizePt,
+      bold: style?.bold,
+      italic: style?.italic,
+      color: style?.color,
+      alignment: style?.alignment,
     },
   };
+}
+
+function effectiveBlockStyle(
+  block: SourceDocumentIR["blocks"][number],
+): SourceDocumentIR["blocks"][number]["style"] | undefined {
+  if (block.style) return block.style;
+
+  const cellWithBlockStyle = block.cellMetadata?.find((cell) =>
+    cell.blocks?.some((cellBlock) => cellBlock.style),
+  );
+  const cellBlockStyle = cellWithBlockStyle?.blocks?.find(
+    (cellBlock) => cellBlock.style,
+  )?.style;
+  if (cellBlockStyle) return cellBlockStyle;
+
+  const cellWithRunStyle = block.cellMetadata?.find((cell) =>
+    cell.blocks?.some((cellBlock) => cellBlock.runs.some((run) => run.style)),
+  );
+  const runStyle = cellWithRunStyle?.blocks
+    ?.find((cellBlock) => cellBlock.runs.some((run) => run.style))
+    ?.runs.find((run) => run.style)?.style;
+
+  return runStyle;
 }
 
 function dedupeStyleSignals(
@@ -1681,10 +1747,14 @@ function dedupeStyleSignals(
 function representativeStyledBlock(
   blocks: SourceDocumentIR["blocks"],
 ): SourceDocumentIR["blocks"][number] | undefined {
-  const styled = blocks.filter((block) => block.style?.fontSizePt);
-  if (!styled.length) return blocks.find((block) => block.style);
+  const styled = blocks.filter(
+    (block) => effectiveBlockStyle(block)?.fontSizePt,
+  );
+  if (!styled.length) return blocks.find((block) => effectiveBlockStyle(block));
   return styled.sort(
-    (a, b) => (a.style?.fontSizePt ?? 0) - (b.style?.fontSizePt ?? 0),
+    (a, b) =>
+      (effectiveBlockStyle(a)?.fontSizePt ?? 0) -
+      (effectiveBlockStyle(b)?.fontSizePt ?? 0),
   )[Math.floor(styled.length / 2)];
 }
 

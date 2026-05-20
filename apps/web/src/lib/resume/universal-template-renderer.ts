@@ -499,6 +499,7 @@ function renderReusableTemplateCSS(
   const body = tokens.typography.body;
   const name = tokens.typography.name ?? body;
   const heading = tokens.typography.sectionHeading ?? body;
+  const entryTitle = tokens.typography.entryTitle ?? body;
   const metadata = tokens.typography.metadata ?? body;
   const accent = tokens.color.accent?.value ?? heading?.color ?? "#111111";
   const bodyColor = tokens.color.body?.value ?? body?.color ?? "#171717";
@@ -531,7 +532,7 @@ body { margin: 0; background: #f4f4f5; color: ${bodyColor}; font-family: ${fontF
 .rt-items { display: grid; gap: ${pt(tokens.spacing.itemGapPt?.value, 4)}; }
 .rt-entry-head { display: flex; justify-content: space-between; gap: 12pt; align-items: baseline; min-width: 0; }
 .rt-entry-head > div { min-width: 0; }
-.rt-entry-head strong { font-weight: 700; }
+.rt-entry-head strong { font-family: ${fontFamily(entryTitle)}; font-size: ${pt(entryTitle?.fontSizePt, body?.fontSizePt ?? 10)}; color: ${entryTitle?.color ?? bodyColor}; font-weight: ${entryTitle?.fontWeight ?? "700"}; }
 .rt-entry-head span { margin-left: 3pt; }
 .rt-entry-head time { white-space: nowrap; text-align: right; font-size: ${pt(metadata?.fontSizePt, 9)}; color: ${metadata?.color ?? bodyColor}; }
 .rt-date-inline .rt-entry-head { justify-content: flex-start; flex-wrap: wrap; }

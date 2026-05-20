@@ -202,6 +202,12 @@ describe("universal template import analysis", () => {
         }),
         {
           ...tableRow("b4", ["Designer", "Studio", "2024 - Present"]),
+          style: {
+            fontFamily: "Aptos, sans-serif",
+            fontSizePt: 10.5,
+            bold: true,
+            color: "#222222",
+          },
           rowMetadata: {
             borders: {
               bottom: {
@@ -238,6 +244,11 @@ describe("universal template import analysis", () => {
       color: "#0f766e",
       textTransform: "uppercase",
     });
+    expect(tokens.typography.entryTitle).toMatchObject({
+      fontFamily: "Aptos, sans-serif",
+      fontSizePt: 10.5,
+      fontWeight: "700",
+    });
     expect(tokens.color.accent).toMatchObject({ value: "#0f766e" });
     expect(tokens.color.accent?.candidates).toEqual(
       expect.arrayContaining([
@@ -258,6 +269,15 @@ describe("universal template import analysis", () => {
           value: expect.objectContaining({
             fontFamily: "Aptos, sans-serif",
             fontSizePt: 11,
+          }),
+        }),
+      ]),
+    );
+    expect(tokens.typography.entryTitle?.candidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          value: expect.objectContaining({
+            fontFamily: "Aptos, sans-serif",
           }),
         }),
       ]),
@@ -540,6 +560,57 @@ describe("universal template import analysis", () => {
     expect(html).toContain("rt-header-stacked");
     expect(html).toContain("rt-date-below");
     expect(html).toContain("rt-section-title-left-rail");
+  });
+
+  it("renders entry title typography through reusable template styles", () => {
+    const source: SourceDocumentIR = {
+      sourceType: "docx",
+      filename: "entry-title-template.docx",
+      pages: [{ id: "page-1", number: 1, widthPt: 612, heightPt: 792 }],
+      rawText: "",
+      diagnostics: [],
+      blocks: [
+        styledBlock("b1", "Template Owner", { fontSizePt: 24, bold: true }),
+        styledBlock("b2", "EXPERIENCE", { fontSizePt: 11, bold: true }),
+        {
+          ...tableRow("b3", ["Role", "Company", "2024"]),
+          style: {
+            fontFamily: "Georgia, serif",
+            fontSizePt: 12,
+            bold: true,
+            color: "#334155",
+          },
+        },
+      ],
+    };
+    const semantic = inferResumeSemanticIR(source);
+    const template = buildReusableResumeTemplateIR(
+      semantic,
+      inferImportedTemplateStyleTokens(source),
+    );
+
+    const html = renderTailoredResumeWithReusableTemplate(
+      {
+        contact: { name: "New Candidate", email: "new@example.com" },
+        summary: "",
+        experiences: [
+          {
+            title: "Platform Engineer",
+            company: "Delta Systems",
+            dates: "2026 - Present",
+            highlights: [],
+          },
+        ],
+        projects: [],
+        skills: [],
+        education: [],
+      },
+      template,
+    );
+
+    expect(html).toContain(
+      ".rt-entry-head strong { font-family: Georgia, serif; font-size: 12pt;",
+    );
   });
 
   it("honors reusable section order while appending newly added sections", () => {
