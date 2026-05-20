@@ -23,7 +23,10 @@ import { BentoGrid } from "@/components/opportunities/bento-grid";
 import { useA11yTranslations } from "@/lib/i18n/use-a11y-translations";
 type QueueAction = "save" | "dismiss" | "apply";
 
-const DESCRIPTION_PREVIEW_LENGTH = 260;
+// Sized for the bento ABOUT-THE-ROLE cell (col-span 2, row-span 2).
+// 260 chars was the F.1 single-column limit; the wider cell fits ~600
+// before the user benefits from the Show more affordance.
+const DESCRIPTION_PREVIEW_LENGTH = 600;
 const SWIPE_DISTANCE_THRESHOLD = 110;
 const SWIPE_VELOCITY_THRESHOLD = 650;
 // Bento — desktop card capped at max-w-5xl (1024px) since the grid

@@ -12,7 +12,16 @@
  */
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Check, ExternalLink, Link2, MapPin, Search, X } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Link2,
+  MapPin,
+  Search,
+  X,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,7 +34,10 @@ import {
 import type { Opportunity } from "@/types/opportunity";
 import type { ChunkKey } from "./layout-chunks";
 
-const DESCRIPTION_PREVIEW_LENGTH = 260;
+// Keep in sync with review-queue.tsx — the queue truncates `preview`
+// before passing into context, but this constant gates the show-more
+// affordance inside the summary chunk.
+const DESCRIPTION_PREVIEW_LENGTH = 600;
 
 export interface RenderChunkContext {
   /** Truncated summary used by the `summary` chunk. */
@@ -196,10 +208,20 @@ export function RenderChunk({
               type="button"
               variant="ghost"
               size="sm"
-              className="mt-3 px-0"
+              className="mt-3 gap-1.5 px-0 text-primary hover:text-primary"
               onClick={() => context.setExpanded(!context.expanded)}
             >
-              {context.expanded ? "Show less" : "Show more"}
+              {context.expanded ? (
+                <>
+                  <ChevronUp className="h-3.5 w-3.5" />
+                  Show less
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-3.5 w-3.5" />
+                  Show more
+                </>
+              )}
             </Button>
           )}
         </div>

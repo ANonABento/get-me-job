@@ -119,10 +119,16 @@ describe("getOpportunityTags", () => {
 
 describe("getDescriptionPreview", () => {
   it("truncates long descriptions", () => {
-    const preview = getDescriptionPreview("a".repeat(300));
+    // audit/03 bumped the preview length to 600 for the bento card.
+    // Pass a string longer than the new cap to exercise truncation.
+    const preview = getDescriptionPreview("a".repeat(700));
 
-    expect(preview).toHaveLength(263);
+    expect(preview).toHaveLength(603);
     expect(preview.endsWith("...")).toBe(true);
+  });
+
+  it("returns descriptions under the cap unchanged", () => {
+    expect(getDescriptionPreview("short")).toBe("short");
   });
 });
 
