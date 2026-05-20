@@ -450,10 +450,17 @@ describe("universal template import analysis", () => {
     const html = renderReusableResumeTemplateHTML(semantic, template);
 
     expect(template.schemaVersion).toBe(4);
-    expect(template.components.map((component) => component.kind)).toEqual([
-      "HeaderBlock",
-      "Section",
-    ]);
+    expect(template.components).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "HeaderBlock",
+          components: expect.arrayContaining([
+            expect.objectContaining({ kind: "ContactLine" }),
+          ]),
+        }),
+        expect.objectContaining({ kind: "Section" }),
+      ]),
+    );
     expect(template.sectionOrder).toEqual(["experience"]);
     expect(html).toContain("Taylor Kim");
     expect(html).toContain("Staff Engineer");

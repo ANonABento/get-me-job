@@ -28,8 +28,15 @@ export interface HeaderBlockComponent {
   kind: "HeaderBlock";
   id: string;
   contactFields: Array<keyof ResumeSemanticIR["contact"]>;
+  components?: HeaderChildComponent[];
   evidenceRefs: string[];
 }
+
+export type HeaderChildComponent = {
+  kind: "ContactLine";
+  id: string;
+  contactFields: Array<keyof ResumeSemanticIR["contact"]>;
+};
 
 export interface SectionComponent {
   kind: "Section";
@@ -96,6 +103,13 @@ export function buildReusableResumeTemplateIR(
         kind: "HeaderBlock",
         id: "header",
         contactFields: ["email", "phone", "location", "linkedin", "github"],
+        components: [
+          {
+            kind: "ContactLine",
+            id: "header-contact-line",
+            contactFields: ["email", "phone", "location", "linkedin", "github"],
+          },
+        ],
         evidenceRefs: semantic.contact.evidenceRefs,
       },
       ...semantic.sections.map((section) =>
@@ -469,7 +483,11 @@ function renderHeader(
   semantic: ResumeSemanticIR,
   linkColor?: string,
 ): string {
-  const contact = component.contactFields
+  const contactLine = component.components?.find(
+    (child): child is HeaderChildComponent => child.kind === "ContactLine",
+  );
+  const contactFields = contactLine?.contactFields ?? component.contactFields;
+  const contact = contactFields
     .map((field) => renderContactField(field, semantic.contact[field]))
     .filter(Boolean)
     .join(" | ");

@@ -741,7 +741,7 @@ As of the latest implementation slice, the system has:
   render reusable contact links with inferred link color. Skills sections now
   use an explicit reusable `SkillList` child component instead of generic entry
   rows, and education sections use an explicit reusable `EducationRow`
-  component.
+  component. Headers now include an explicit nested `ContactLine` component.
 - Semantic contact inference uses hyperlink targets as source evidence, so
   generic visible labels like "GitHub" or "LinkedIn" still populate reusable
   contact fields from their hrefs.
@@ -808,6 +808,9 @@ Known remaining gaps:
   `EducationRow`.
 - V4 reusable templates model education entries with a dedicated `EducationRow`
   component so edited education arrays reflow without generic entry markup.
+- V4 reusable templates model header contact rendering with a nested
+  `ContactLine` component while retaining backwards compatibility for older
+  header field lists.
 - App review mismatch reports now expose the same gate model as the lab:
   extraction, semantic, style, render, and app wiring statuses with review
   actions.

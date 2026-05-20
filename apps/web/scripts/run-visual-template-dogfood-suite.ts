@@ -243,6 +243,7 @@ export function scoreCase(summary: Record<string, unknown>, item: SuiteCase) {
     reusableComponentKinds.includes("EducationRow");
   const hasRequiredReusableComponents =
     reusableComponentKinds.includes("HeaderBlock") &&
+    reusableComponentKinds.includes("ContactLine") &&
     reusableComponentKinds.includes("Section") &&
     reusableComponentKinds.includes("SectionHeading") &&
     hasReusableSectionBody;

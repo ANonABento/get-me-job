@@ -234,7 +234,10 @@ function genericSummary() {
     reusableTemplate: {
       sectionOrder: ["experience", "education", "skills"],
       components: [
-        { kind: "HeaderBlock" },
+        {
+          kind: "HeaderBlock",
+          components: [{ kind: "ContactLine" }],
+        },
         {
           kind: "Section",
           components: [
