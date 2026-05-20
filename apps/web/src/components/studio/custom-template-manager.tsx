@@ -144,6 +144,7 @@ interface TemplateMigrationDraft {
       text: string;
       pageId?: string;
       slotHint?: TemplateMigrationSlotPath;
+      decorative?: boolean;
       cells?: string[];
       bbox?: {
         xPt: number;
@@ -520,6 +521,36 @@ export function CustomTemplateManagerDialog({
       addToast({
         type: "error",
         title: "Could not assign source text",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setMigrationSaving(false);
+    }
+  }
+
+  async function handleMarkSelectedBlockDecorative(decorative: boolean) {
+    if (!migrationDraft || !selectedBlockId) return;
+    setMigrationSaving(true);
+    try {
+      await patchMigrationDraft({
+        sourceBlockDecisions: [
+          {
+            sourceBlockId: selectedBlockId,
+            decorative,
+          },
+        ],
+      });
+      addToast({
+        type: "success",
+        title: decorative
+          ? "Source block marked non-template"
+          : "Source block restored",
+      });
+    } catch (error) {
+      addToast({
+        type: "error",
+        title: "Could not update source evidence",
         description:
           error instanceof Error ? error.message : "Please try again.",
       });
@@ -975,6 +1006,9 @@ export function CustomTemplateManagerDialog({
                       onPaneChange={setReviewPane}
                       selectedBlockId={selectedBlockId}
                       onSelectBlock={setSelectedBlockId}
+                      onMarkSelectedBlockDecorative={
+                        handleMarkSelectedBlockDecorative
+                      }
                       selectedExperienceIndex={selectedExperienceIndex}
                       selectedEducationIndex={selectedEducationIndex}
                       selectedProjectIndex={selectedProjectIndex}
@@ -1086,6 +1120,7 @@ function VisualTemplateReviewPanes({
   onPaneChange,
   selectedBlockId,
   onSelectBlock,
+  onMarkSelectedBlockDecorative,
   selectedExperienceIndex,
   selectedEducationIndex,
   selectedProjectIndex,
@@ -1108,6 +1143,7 @@ function VisualTemplateReviewPanes({
   onPaneChange: (pane: ReviewPane) => void;
   selectedBlockId: string | null;
   onSelectBlock: (blockId: string) => void;
+  onMarkSelectedBlockDecorative: (decorative: boolean) => void | Promise<void>;
   selectedExperienceIndex: number;
   selectedEducationIndex: number;
   selectedProjectIndex: number;
@@ -1210,6 +1246,8 @@ function VisualTemplateReviewPanes({
               blocks={draft.source.blocks}
               selectedBlockId={selectedBlockId}
               onSelect={onSelectBlock}
+              onMarkSelectedBlockDecorative={onMarkSelectedBlockDecorative}
+              migrationSaving={migrationSaving}
             />
           </div>
         ) : activePane === "preview" ? (
@@ -2932,7 +2970,9 @@ function SourceLayoutPreview({
               className={`absolute overflow-hidden rounded-sm border px-0.5 text-left text-[6px] leading-none transition-colors ${
                 selectedBlockId === block.id
                   ? "border-primary bg-primary/20 text-primary"
-                  : "border-emerald-700/30 bg-emerald-700/10 text-emerald-950 hover:border-primary/60"
+                  : block.decorative
+                    ? "border-muted-foreground/30 bg-muted/60 text-muted-foreground"
+                    : "border-emerald-700/30 bg-emerald-700/10 text-emerald-950 hover:border-primary/60"
               }`}
               style={{
                 left: `${(bbox.xPt / page.widthPt!) * 100}%`,
@@ -2955,20 +2995,43 @@ function SourceBlocksList({
   blocks,
   selectedBlockId,
   onSelect,
+  onMarkSelectedBlockDecorative,
+  migrationSaving,
 }: {
   blocks: TemplateMigrationDraft["source"]["blocks"];
   selectedBlockId: string | null;
   onSelect: (blockId: string) => void;
+  onMarkSelectedBlockDecorative: (decorative: boolean) => void | Promise<void>;
+  migrationSaving: boolean;
 }) {
+  const selectedBlock = blocks.find((block) => block.id === selectedBlockId);
   return (
     <div className="mt-4">
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-xs font-medium uppercase text-muted-foreground">
           Source text
         </p>
-        <p className="text-[10px] text-muted-foreground">
-          {Math.min(blocks.length, 80)} blocks
-        </p>
+        <div className="flex items-center gap-2">
+          {selectedBlock ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-[11px]"
+              disabled={migrationSaving}
+              onClick={() =>
+                void onMarkSelectedBlockDecorative(!selectedBlock.decorative)
+              }
+            >
+              {selectedBlock.decorative
+                ? "Use as template"
+                : "Mark non-template"}
+            </Button>
+          ) : null}
+          <p className="text-[10px] text-muted-foreground">
+            {Math.min(blocks.length, 80)} blocks
+          </p>
+        </div>
       </div>
       <div className="max-h-[360px] space-y-1 overflow-auto rounded-md border bg-muted/10 p-2">
         {blocks.slice(0, 80).map((block) => (
@@ -2988,6 +3051,11 @@ function SourceBlocksList({
             {block.slotHint ? (
               <span className="mr-1 rounded-sm bg-background/70 px-1 text-[10px] text-muted-foreground">
                 {slotLabel(block.slotHint)}
+              </span>
+            ) : null}
+            {block.decorative ? (
+              <span className="mr-1 rounded-sm bg-amber-700/10 px-1 text-[10px] text-amber-800">
+                non-template
               </span>
             ) : null}
             {block.cells?.length ? (

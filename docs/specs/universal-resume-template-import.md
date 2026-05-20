@@ -650,6 +650,8 @@ As of the latest implementation slice, the system has:
   bullets between adjacent items.
 - Basic split/merge controls for semantic items, preserving merged item headers
   as achievement text so user content is not silently dropped.
+- Source evidence can be marked non-template/decorative from review; reusable
+  semantic artifacts regenerate from the remaining evidence.
 
 Known remaining gaps:
 
@@ -657,9 +659,10 @@ Known remaining gaps:
   editing of primary/secondary/date fields after a split is still not complete.
 - Move-bullet controls are basic adjacent-item controls; richer drag/drop or
   arbitrary target selection is still not complete.
+- Decorative source marking is block-level only; finer-grained row/cell/run
+  marking is still not complete.
 - Style token candidate selection is not complete; direct token overrides exist
   for only part of the desired surface.
-- Decorative/non-template source evidence marking is not complete.
 - DOCX table-heavy imports still need extraction and layout resilience work; the
   dogfood suite keeps this visible as a broad fixture class rather than a
   person-specific case.

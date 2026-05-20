@@ -98,6 +98,7 @@ export interface SourceBlock {
   type: "paragraph" | "heading" | "list-item" | "table-row" | "link";
   text: string;
   slotHint?: ResumeSlotPath;
+  decorative?: boolean;
   bbox?: {
     xPt: number;
     yPt: number;

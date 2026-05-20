@@ -255,6 +255,44 @@ describe("/api/templates/migrations/:id", () => {
       }),
     );
   });
+
+  it("marks source blocks as decorative and regenerates reusable artifacts from remaining evidence", async () => {
+    const response = await PATCH(
+      jsonRequest("PATCH", {
+        sourceBlockDecisions: [
+          {
+            sourceBlockId: "block-name",
+            decorative: true,
+          },
+        ],
+      }),
+      { params: { id: "draft-1" } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.updateTemplateMigrationDraft).toHaveBeenCalledWith(
+      "draft-1",
+      "user-1",
+      expect.objectContaining({
+        source: expect.objectContaining({
+          blocks: expect.arrayContaining([
+            expect.objectContaining({
+              id: "block-name",
+              decorative: true,
+              slotHint: undefined,
+            }),
+          ]),
+        }),
+        semanticResume: expect.objectContaining({
+          sections: expect.any(Array),
+        }),
+        reusableTemplate: expect.objectContaining({
+          schemaVersion: 4,
+        }),
+        reusableHtml: expect.any(String),
+      }),
+    );
+  });
 });
 
 function jsonRequest(method: string, body: unknown) {

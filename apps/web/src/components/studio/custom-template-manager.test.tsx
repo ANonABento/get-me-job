@@ -550,6 +550,85 @@ describe("CustomTemplateManagerDialog", () => {
     });
   });
 
+  it("lets reviewers mark source evidence as non-template", async () => {
+    const patchBodies: unknown[] = [];
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/templates/migrate") {
+          return Response.json({
+            draft: migrationDraft(),
+            warnings: [],
+            confidence: "high",
+          });
+        }
+        if (url === "/api/templates/v3/preview") {
+          return Response.json({
+            html: "<html><body><article>Rendered migrated resume</article></body></html>",
+            pdfOptions: { format: "Letter" },
+          });
+        }
+        if (url === "/api/templates/migrations/draft-1") {
+          const body = JSON.parse(
+            String((init as RequestInit | undefined)?.body),
+          );
+          patchBodies.push(body);
+          const next = migrationDraft();
+          for (const block of next.source.blocks) {
+            if (block.id !== body.sourceBlockDecisions?.[0]?.sourceBlockId) {
+              continue;
+            }
+            Object.assign(block, {
+              decorative: body.sourceBlockDecisions[0].decorative,
+              slotHint: undefined,
+            });
+          }
+          next.semanticResume = {
+            ...next.semanticResume,
+            sections: [],
+          };
+          next.reusableHtml =
+            "<html><body><article><h1>Reusable render</h1></article></body></html>";
+          return Response.json({ draft: next });
+        }
+        return Response.json({ templates: [] });
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderDialog();
+
+    const inputs =
+      document.querySelectorAll<HTMLInputElement>("input[type='file']");
+    fireEvent.change(inputs[0], {
+      target: {
+        files: [
+          new File(["%PDF-1.7"], "resume.pdf", {
+            type: "application/pdf",
+          }),
+        ],
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("resume.pdf")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Source Evidence" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mark non-template" }));
+
+    await waitFor(() => {
+      expect(patchBodies.at(-1)).toEqual({
+        sourceBlockDecisions: [
+          {
+            sourceBlockId: "block-1",
+            decorative: true,
+          },
+        ],
+      });
+    });
+    expect(await screen.findByText("non-template")).toBeInTheDocument();
+  });
+
   it("lets reviewers split a semantic item from a bullet", async () => {
     const patchBodies: unknown[] = [];
     const fetchMock = vi.fn(

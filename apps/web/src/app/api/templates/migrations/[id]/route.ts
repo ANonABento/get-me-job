@@ -26,6 +26,7 @@ import {
 } from "@/lib/resume/template-migration-fidelity";
 import {
   inferImportedTemplateStyleTokens,
+  inferResumeSemanticIR,
   semanticIRToTailoredResume,
   type ImportedTemplateStyleTokens,
   type ResumeSemanticIR,
@@ -42,6 +43,11 @@ const slotCorrectionSchema = z.object({
   sourceBlockId: z.string().min(1),
   path: resumeSlotPathSchema,
   index: z.number().int().min(0).optional(),
+});
+
+const sourceBlockDecisionSchema = z.object({
+  sourceBlockId: z.string().min(1),
+  decorative: z.boolean(),
 });
 
 const semanticContactSchema = z.object({
@@ -102,6 +108,7 @@ const updateMigrationSchema = z.object({
   semanticResume: semanticResumeSchema.optional(),
   styleTokens: z.object({}).passthrough().optional(),
   slotCorrections: z.array(slotCorrectionSchema).optional(),
+  sourceBlockDecisions: z.array(sourceBlockDecisionSchema).optional(),
 });
 
 interface RouteContext {
@@ -161,6 +168,12 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   let templateV3: DocumentTemplateV3 | undefined =
     parsed.data.templateV3 ?? draft.templateV3;
   let source = cloneSource(draft.source);
+  if (parsed.data.sourceBlockDecisions?.length) {
+    source = applySourceBlockDecisions(
+      source,
+      parsed.data.sourceBlockDecisions,
+    );
+  }
   if (parsed.data.slotCorrections?.length) {
     resume = applySlotCorrections(
       resume,
@@ -174,6 +187,13 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     source = applySourceSlotCorrections(source, parsed.data.slotCorrections);
     templateV3 = rebuildVisualTemplateForSource(templateV3, source);
   }
+  if (
+    parsed.data.sourceBlockDecisions?.length &&
+    !parsed.data.slotCorrections?.length
+  ) {
+    templateV3 = rebuildVisualTemplateForSource(templateV3, source);
+  }
+  const effectiveSource = sourceWithoutDecorativeBlocks(source);
   const semanticResume = parsed.data.semanticResume as
     | ResumeSemanticIR
     | undefined;
@@ -181,11 +201,16 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     | ImportedTemplateStyleTokens
     | undefined;
   const reusableSemanticResume =
-    semanticResume ?? (styleTokens ? draft.semanticResume : undefined);
+    semanticResume ??
+    (parsed.data.sourceBlockDecisions?.length
+      ? inferResumeSemanticIR(effectiveSource)
+      : styleTokens
+        ? draft.semanticResume
+        : undefined);
   const reusableStyleTokens = reusableSemanticResume
     ? (styleTokens ??
       draft.styleTokens ??
-      inferImportedTemplateStyleTokens(source))
+      inferImportedTemplateStyleTokens(effectiveSource))
     : undefined;
   const reusableTemplate =
     reusableSemanticResume && reusableStyleTokens
@@ -264,6 +289,36 @@ function applySourceSlotCorrections(
       const path = byId.get(block.id);
       return path ? { ...block, slotHint: path } : block;
     }),
+  };
+}
+
+function applySourceBlockDecisions(
+  source: SourceDocumentIR,
+  decisions: Array<z.infer<typeof sourceBlockDecisionSchema>>,
+): SourceDocumentIR {
+  const byId = new Map(
+    decisions.map((decision) => [decision.sourceBlockId, decision.decorative]),
+  );
+  return {
+    ...source,
+    blocks: source.blocks.map((block) => {
+      if (!byId.has(block.id)) return block;
+      const decorative = byId.get(block.id) ?? false;
+      return {
+        ...block,
+        decorative,
+        slotHint: decorative ? undefined : block.slotHint,
+      };
+    }),
+  };
+}
+
+function sourceWithoutDecorativeBlocks(
+  source: SourceDocumentIR,
+): SourceDocumentIR {
+  return {
+    ...source,
+    blocks: source.blocks.filter((block) => !block.decorative),
   };
 }
 
