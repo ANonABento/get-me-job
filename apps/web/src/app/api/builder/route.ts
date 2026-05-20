@@ -7,7 +7,10 @@ import {
   editableDocumentToResume,
   type EditableResumeDocument,
 } from "@/lib/builder/editor-document";
-import { getDocumentTemplateV3 } from "@/lib/db/template-migrations";
+import {
+  getReusableResumeTemplate,
+  getDocumentTemplateV3,
+} from "@/lib/db/template-migrations";
 import { generateResumeHTML } from "@/lib/resume/pdf";
 import { getTemplateWithCustom } from "@/lib/resume/templates";
 import { builderRequestSchema } from "@/lib/schemas";
@@ -70,6 +73,15 @@ async function renderBuilderResumeHtml(
   templateId: string,
   userId: string,
 ): Promise<string> {
+  const reusableTemplate = getReusableResumeTemplate(templateId, userId);
+  if (reusableTemplate) {
+    const { renderTailoredResumeWithReusableTemplate } =
+      await import("@/lib/resume/universal-template-renderer");
+    return renderTailoredResumeWithReusableTemplate(
+      resume,
+      reusableTemplate.template,
+    );
+  }
   const documentTemplateV3 = getDocumentTemplateV3(templateId, userId);
   if (documentTemplateV3) {
     const { generateResumeHTMLV3 } =

@@ -7,6 +7,7 @@ import {
 } from "@/lib/resume/universal-template-import";
 import {
   buildReusableResumeTemplateIR,
+  renderTailoredResumeWithReusableTemplate,
   renderReusableResumeTemplateHTML,
 } from "@/lib/resume/universal-template-renderer";
 import type { SourceDocumentIR } from "@/lib/resume/template-migration";
@@ -285,6 +286,58 @@ describe("universal template import analysis", () => {
     expect(html).toContain("Orbit Labs");
     expect(html).toContain("Created a configurable resume renderer");
     expect(html).toContain("color: #7c3aed");
+  });
+
+  it("renders arbitrary tailored resume content through a saved reusable template", () => {
+    const source: SourceDocumentIR = {
+      sourceType: "docx",
+      filename: "saved-template.docx",
+      pages: [{ id: "page-1", number: 1, widthPt: 612, heightPt: 792 }],
+      rawText: "",
+      diagnostics: [],
+      blocks: [
+        styledBlock("b1", "Template Owner", { fontSizePt: 24, bold: true }),
+        styledBlock("b2", "EXPERIENCE", { fontSizePt: 11, bold: true }),
+        tableRow("b3", ["Role", "Company", "2024"]),
+        bulletRow("b4", "Source-only bullet"),
+      ],
+    };
+    const semantic = inferResumeSemanticIR(source);
+    const template = buildReusableResumeTemplateIR(
+      semantic,
+      inferImportedTemplateStyleTokens(source),
+    );
+    const html = renderTailoredResumeWithReusableTemplate(
+      {
+        contact: { name: "New Candidate", email: "new@example.com" },
+        summary: "",
+        experiences: [
+          {
+            title: "Platform Engineer",
+            company: "Delta Systems",
+            dates: "2026 - Present",
+            highlights: ["Replaced template content safely"],
+          },
+        ],
+        projects: [
+          {
+            name: "Universal Importer",
+            description: "TypeScript",
+            highlights: ["Rendered project content through components"],
+          },
+        ],
+        skills: ["TypeScript", "PDF"],
+        education: [],
+      },
+      template,
+    );
+
+    expect(html).toContain("New Candidate");
+    expect(html).toContain("Platform Engineer");
+    expect(html).toContain("Replaced template content safely");
+    expect(html).toContain("Universal Importer");
+    expect(html).not.toContain("Template Owner");
+    expect(html).not.toContain("Source-only bullet");
   });
 });
 

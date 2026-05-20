@@ -81,6 +81,18 @@ export interface SavedDocumentTemplateV3 {
   updatedAt: string;
 }
 
+export interface SavedReusableResumeTemplate {
+  id: string;
+  userId: string;
+  name: string;
+  description: string | null;
+  sourceFilename: string | null;
+  sourceType: TemplateSourceType | null;
+  template: ReusableResumeTemplateIR;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export function ensureTemplateMigrationTables(): void {
   db.prepare(
     `CREATE TABLE IF NOT EXISTS template_migration_drafts (
@@ -134,9 +146,111 @@ export function ensureTemplateMigrationTables(): void {
       updated_at text NOT NULL
     )`,
   ).run();
+  db.prepare(
+    `CREATE TABLE IF NOT EXISTS document_templates_v4 (
+      id text PRIMARY KEY,
+      user_id text NOT NULL,
+      name text NOT NULL,
+      description text,
+      source_filename text,
+      source_type text,
+      template_json text NOT NULL,
+      created_at text NOT NULL,
+      updated_at text NOT NULL
+    )`,
+  ).run();
   ensureColumn("document_templates_v2", "source_type", "text");
   ensureColumn("document_templates_v3", "source_type", "text");
+  ensureColumn("document_templates_v4", "source_type", "text");
   copyLegacyColumn("document_templates_v2", "source_kind", "source_type");
+}
+
+export function saveReusableResumeTemplate(
+  userId: string,
+  template: ReusableResumeTemplateIR,
+): SavedReusableResumeTemplate {
+  ensureTemplateMigrationTables();
+  const now = nowIso();
+  const id = template.id || generateId();
+  const savedTemplate = { ...template, id };
+  const existing = getReusableResumeTemplate(id, userId);
+  if (existing) {
+    db.prepare(
+      `UPDATE document_templates_v4
+       SET name = ?, description = ?, source_filename = ?, source_type = ?,
+         template_json = ?, updated_at = ?
+       WHERE id = ? AND user_id = ?`,
+    ).run(
+      savedTemplate.name,
+      null,
+      savedTemplate.source?.filename ?? null,
+      savedTemplate.source?.type ?? null,
+      JSON.stringify(savedTemplate),
+      now,
+      id,
+      userId,
+    );
+  } else {
+    db.prepare(
+      `INSERT INTO document_templates_v4 (
+        id, user_id, name, description, source_filename, source_type,
+        template_json, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      id,
+      userId,
+      savedTemplate.name,
+      null,
+      savedTemplate.source?.filename ?? null,
+      savedTemplate.source?.type ?? null,
+      JSON.stringify(savedTemplate),
+      now,
+      now,
+    );
+  }
+  return {
+    id,
+    userId,
+    name: savedTemplate.name,
+    description: null,
+    sourceFilename: savedTemplate.source?.filename ?? null,
+    sourceType: savedTemplate.source?.type ?? null,
+    template: savedTemplate,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  };
+}
+
+export function getReusableResumeTemplate(
+  id: string,
+  userId: string,
+): SavedReusableResumeTemplate | null {
+  ensureTemplateMigrationTables();
+  const row = db
+    .prepare(
+      `SELECT id, user_id, name, description, source_filename, source_type,
+        template_json, created_at, updated_at
+       FROM document_templates_v4
+       WHERE id = ? AND user_id = ?`,
+    )
+    .get(id, userId) as TemplateRow | undefined;
+  return row ? rowToReusableTemplate(row) : null;
+}
+
+export function listReusableResumeTemplates(
+  userId: string,
+): SavedReusableResumeTemplate[] {
+  ensureTemplateMigrationTables();
+  const rows = db
+    .prepare(
+      `SELECT id, user_id, name, description, source_filename, source_type,
+        template_json, created_at, updated_at
+       FROM document_templates_v4
+       WHERE user_id = ?
+       ORDER BY updated_at DESC`,
+    )
+    .all(userId) as TemplateRow[];
+  return rows.map(rowToReusableTemplate);
 }
 
 export function saveDocumentTemplateV3(
@@ -549,6 +663,54 @@ export function updateDocumentTemplateV3Metadata(
   };
 }
 
+export function updateReusableResumeTemplateMetadata(
+  id: string,
+  userId: string,
+  updates: { name?: string; description?: string | null },
+): SavedReusableResumeTemplate | null {
+  const existing = getReusableResumeTemplate(id, userId);
+  if (!existing) return null;
+  const now = nowIso();
+  const template: ReusableResumeTemplateIR = {
+    ...existing.template,
+    name: updates.name ?? existing.template.name,
+  };
+  const description =
+    updates.description !== undefined
+      ? updates.description
+      : existing.description;
+  db.prepare(
+    `UPDATE document_templates_v4
+     SET name = ?, description = ?, template_json = ?, updated_at = ?
+     WHERE id = ? AND user_id = ?`,
+  ).run(
+    template.name,
+    description ?? null,
+    JSON.stringify(template),
+    now,
+    id,
+    userId,
+  );
+  return {
+    ...existing,
+    name: template.name,
+    description: description ?? null,
+    template,
+    updatedAt: now,
+  };
+}
+
+export function deleteReusableResumeTemplate(
+  id: string,
+  userId: string,
+): boolean {
+  ensureTemplateMigrationTables();
+  const result = db
+    .prepare(`DELETE FROM document_templates_v4 WHERE id = ? AND user_id = ?`)
+    .run(id, userId);
+  return result.changes > 0;
+}
+
 export function deleteDocumentTemplateV3(id: string, userId: string): boolean {
   ensureTemplateMigrationTables();
   const result = db
@@ -563,6 +725,21 @@ export function deleteDocumentTemplateV2(id: string, userId: string): boolean {
     .prepare(`DELETE FROM document_templates_v2 WHERE id = ? AND user_id = ?`)
     .run(id, userId);
   return result.changes > 0;
+}
+
+function rowToReusableTemplate(row: TemplateRow): SavedReusableResumeTemplate {
+  const template = JSON.parse(row.template_json) as ReusableResumeTemplateIR;
+  return {
+    id: row.id,
+    userId: row.user_id,
+    name: row.name,
+    description: row.description ?? null,
+    sourceFilename: row.source_filename ?? template.source?.filename ?? null,
+    sourceType: row.source_type ?? template.source?.type ?? null,
+    template,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
 
 function assessDraftFidelity(

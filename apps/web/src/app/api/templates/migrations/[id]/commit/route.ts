@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import {
   getTemplateMigrationDraft,
+  saveReusableResumeTemplate,
   saveDocumentTemplateV3,
   updateTemplateMigrationDraft,
 } from "@/lib/db/template-migrations";
@@ -53,7 +54,12 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
     );
   }
 
-  const saved = saveDocumentTemplateV3(authResult.userId, draft.templateV3);
+  const saved = draft.reusableTemplate
+    ? saveReusableResumeTemplate(authResult.userId, {
+        ...draft.reusableTemplate,
+        name: draft.templateV3.name ?? draft.reusableTemplate.name,
+      })
+    : saveDocumentTemplateV3(authResult.userId, draft.templateV3);
   const updated = updateTemplateMigrationDraft(params.id, authResult.userId, {
     status: "committed",
     committedTemplateId: saved.id,
@@ -67,7 +73,9 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
       sourceFilename: saved.sourceFilename,
       sourceType: saved.sourceType,
       schemaVersion: saved.template.schemaVersion,
-      documentTemplateV3: saved.template,
+      ...(saved.template.schemaVersion === 4
+        ? { reusableTemplate: saved.template }
+        : { documentTemplateV3: saved.template }),
       createdAt: saved.createdAt,
       updatedAt: saved.updatedAt,
     },

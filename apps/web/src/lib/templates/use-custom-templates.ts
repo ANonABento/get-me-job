@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ResumeTemplate } from "@/lib/resume/template-types";
 import type { DocumentTemplateV3 } from "@/lib/resume/template-v3";
+import type { ReusableResumeTemplateIR } from "@/lib/resume/universal-template-renderer";
 
 interface TemplateApiItem {
   id: string;
@@ -17,6 +18,7 @@ interface TemplateApiItem {
   sourceType?: string | null;
   schemaVersion?: number;
   documentTemplateV3?: DocumentTemplateV3;
+  reusableTemplate?: ReusableResumeTemplateIR;
   updatedAt?: string;
 }
 
@@ -38,13 +40,66 @@ async function fetchCustomTemplates(): Promise<ResumeTemplate[]> {
   const data = (await response.json()) as TemplatesApiResponse;
   return (data.templates ?? [])
     .filter(
-      (template) => template.type === "custom" && template.documentTemplateV3,
+      (template) =>
+        template.type === "custom" &&
+        (template.reusableTemplate || template.documentTemplateV3),
     )
     .map((template) =>
-      isDocumentTemplateV3Item(template)
-        ? documentTemplateV3ToResumeTemplate(template)
-        : unreachableTemplate(template),
+      isReusableTemplateItem(template)
+        ? reusableTemplateToResumeTemplate(template)
+        : isDocumentTemplateV3Item(template)
+          ? documentTemplateV3ToResumeTemplate(template)
+          : unreachableTemplate(template),
     );
+}
+
+function isReusableTemplateItem(
+  template: TemplateApiItem,
+): template is TemplateApiItem & {
+  reusableTemplate: ReusableResumeTemplateIR;
+} {
+  return Boolean(template.reusableTemplate);
+}
+
+function reusableTemplateToResumeTemplate(
+  template: TemplateApiItem & { reusableTemplate: ReusableResumeTemplateIR },
+): ResumeTemplate {
+  const reusableTemplate = template.reusableTemplate;
+  const body = reusableTemplate.tokens.typography.body;
+  const heading = reusableTemplate.tokens.typography.sectionHeading ?? body;
+  const name = reusableTemplate.tokens.typography.name ?? heading;
+  const accent =
+    reusableTemplate.tokens.color.accent?.value ??
+    heading?.color ??
+    name?.color ??
+    "#333333";
+
+  return {
+    id: template.id,
+    name: template.name,
+    description: template.description ?? "Reusable imported template",
+    schemaVersion: 4,
+    styles: {
+      fontFamily: body?.fontFamily ?? "'Helvetica Neue', Arial, sans-serif",
+      fontSize: `${body?.fontSizePt ?? 11}pt`,
+      headerSize: `${name?.fontSizePt ?? 20}pt`,
+      sectionHeaderSize: `${heading?.fontSizePt ?? 12}pt`,
+      lineHeight: body?.lineHeight ?? "1.4",
+      accentColor: accent,
+      layout:
+        reusableTemplate.tokens.layout.columns?.value === 2
+          ? "two-column"
+          : "single-column",
+      headerStyle:
+        reusableTemplate.tokens.layout.headerMode?.value === "stacked"
+          ? "centered"
+          : "left",
+      bulletStyle: "disc",
+      sectionDivider: reusableTemplate.tokens.rules.sectionDivider
+        ? "line"
+        : "space",
+    },
+  };
 }
 
 function isDocumentTemplateV3Item(

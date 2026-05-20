@@ -1,4 +1,5 @@
 import { escapeHtml } from "@/lib/html";
+import type { TailoredResume } from "@/lib/resume/generator";
 import type {
   ImportedTemplateStyleTokens,
   ResumeSemanticIR,
@@ -99,9 +100,144 @@ export function renderReusableResumeTemplateHTML(
     ${template.components
       .map((component) => renderComponent(component, semantic))
       .join("\n")}
+    ${renderAdditionalSections(template, semantic)}
   </article>
 </body>
 </html>`;
+}
+
+export function renderTailoredResumeWithReusableTemplate(
+  resume: TailoredResume,
+  template: ReusableResumeTemplateIR,
+): string {
+  return renderReusableResumeTemplateHTML(
+    tailoredResumeToSemanticIR(resume, template),
+    template,
+  );
+}
+
+export function tailoredResumeToSemanticIR(
+  resume: TailoredResume,
+  template: ReusableResumeTemplateIR,
+): ResumeSemanticIR {
+  const contact = resume.contact ?? { name: "" };
+  return {
+    version: 1,
+    sourceType: template.source.type,
+    filename: template.source.filename,
+    contact: {
+      name: contact.name ?? "",
+      email: contact.email ?? "",
+      phone: contact.phone ?? "",
+      location: contact.location ?? "",
+      linkedin: contact.linkedin ?? "",
+      github: contact.github ?? "",
+      confidence: 1,
+      evidenceRefs: [],
+    },
+    sections: [
+      resume.summary
+        ? {
+            id: "section-summary",
+            type: "summary",
+            title: titleForSection("summary", template),
+            items: [
+              {
+                primary: resume.summary,
+                meta: [],
+                bullets: [],
+                confidence: 1,
+                evidenceRefs: [],
+              },
+            ],
+            confidence: 1,
+            evidenceRefs: [],
+          }
+        : null,
+      resume.experiences.length
+        ? {
+            id: "section-experience",
+            type: "experience",
+            title: titleForSection("experience", template),
+            items: resume.experiences.map((experience) => ({
+              primary: experience.title,
+              secondary: experience.company,
+              dateRange: experience.dates,
+              meta: [],
+              bullets: experience.highlights,
+              confidence: 1,
+              evidenceRefs: [],
+            })),
+            confidence: 1,
+            evidenceRefs: [],
+          }
+        : null,
+      resume.projects?.length
+        ? {
+            id: "section-projects",
+            type: "projects",
+            title: titleForSection("projects", template),
+            items: resume.projects.map((project) => ({
+              primary: project.name,
+              secondary: project.description,
+              meta: [],
+              bullets: project.highlights,
+              confidence: 1,
+              evidenceRefs: [],
+            })),
+            confidence: 1,
+            evidenceRefs: [],
+          }
+        : null,
+      resume.skills.length
+        ? {
+            id: "section-skills",
+            type: "skills",
+            title: titleForSection("skills", template),
+            items: [
+              {
+                primary: resume.skills.join(", "),
+                meta: [],
+                bullets: [],
+                confidence: 1,
+                evidenceRefs: [],
+              },
+            ],
+            confidence: 1,
+            evidenceRefs: [],
+          }
+        : null,
+      resume.education.length
+        ? {
+            id: "section-education",
+            type: "education",
+            title: titleForSection("education", template),
+            items: resume.education.map((education) => ({
+              primary: education.institution,
+              secondary: [education.degree, education.field]
+                .filter(Boolean)
+                .join(" — "),
+              dateRange: education.date,
+              meta: [],
+              bullets: [],
+              confidence: 1,
+              evidenceRefs: [],
+            })),
+            confidence: 1,
+            evidenceRefs: [],
+          }
+        : null,
+      resume.certifications?.length
+        ? scalarListSection("certifications", resume.certifications, template)
+        : null,
+      resume.awards?.length
+        ? scalarListSection("awards", resume.awards, template)
+        : null,
+    ].filter((section): section is ResumeSemanticIR["sections"][number] =>
+      Boolean(section),
+    ),
+    warnings: [],
+  };
 }
 
 function sectionComponent(section: SemanticSection): SectionComponent {
@@ -134,6 +270,45 @@ function sectionComponent(section: SemanticSection): SectionComponent {
       },
     ],
   };
+}
+
+function scalarListSection(
+  type: Extract<UniversalResumeSectionType, "certifications" | "awards">,
+  values: string[],
+  template: ReusableResumeTemplateIR,
+): SemanticSection {
+  return {
+    id: `section-${type}`,
+    type,
+    title: titleForSection(type, template),
+    items: values.map((value) => ({
+      primary: value,
+      meta: [],
+      bullets: [],
+      confidence: 1,
+      evidenceRefs: [],
+    })),
+    confidence: 1,
+    evidenceRefs: [],
+  };
+}
+
+function titleForSection(
+  type: UniversalResumeSectionType,
+  template: ReusableResumeTemplateIR,
+): string {
+  const component = template.components.find(
+    (candidate): candidate is SectionComponent =>
+      candidate.kind === "Section" && candidate.sectionType === type,
+  );
+  return component?.title ?? defaultSectionTitle(type);
+}
+
+function defaultSectionTitle(type: UniversalResumeSectionType): string {
+  return type
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function renderComponent(
@@ -176,6 +351,24 @@ function renderSection(
       ${section.items.map((item) => renderEntry(item)).join("\n")}
     </div>
   </section>`;
+}
+
+function renderAdditionalSections(
+  template: ReusableResumeTemplateIR,
+  semantic: ResumeSemanticIR,
+): string {
+  const renderedTypes = new Set(
+    template.components
+      .filter(
+        (component): component is SectionComponent =>
+          component.kind === "Section",
+      )
+      .map((component) => component.sectionType),
+  );
+  return semantic.sections
+    .filter((section) => !renderedTypes.has(section.type))
+    .map((section) => renderSection(sectionComponent(section), semantic))
+    .join("\n");
 }
 
 function renderEntry(item: SemanticSection["items"][number]): string {

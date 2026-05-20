@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const templateMigrationMocks = vi.hoisted(() => ({
+  listReusableResumeTemplates: vi.fn(),
   listDocumentTemplatesV3: vi.fn(),
+  deleteReusableResumeTemplate: vi.fn(),
   deleteDocumentTemplateV3: vi.fn(),
+  updateReusableResumeTemplateMetadata: vi.fn(),
   updateDocumentTemplateV3Metadata: vi.fn(),
 }));
 
@@ -41,8 +44,13 @@ import {
 describe("/api/templates route contract", () => {
   beforeEach(() => {
     resetContractMocks();
+    templateMigrationMocks.listReusableResumeTemplates.mockReturnValue([]);
     templateMigrationMocks.listDocumentTemplatesV3.mockReturnValue([]);
+    templateMigrationMocks.deleteReusableResumeTemplate.mockReturnValue(false);
     templateMigrationMocks.deleteDocumentTemplateV3.mockReturnValue(false);
+    templateMigrationMocks.updateReusableResumeTemplateMetadata.mockReturnValue(
+      null,
+    );
     templateMigrationMocks.updateDocumentTemplateV3Metadata.mockReturnValue(
       null,
     );

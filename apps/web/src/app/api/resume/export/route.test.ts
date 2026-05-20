@@ -4,10 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   requireAuth: vi.fn(),
   getGeneratedResume: vi.fn(),
+  getReusableResumeTemplate: vi.fn(),
   getDocumentTemplateV3: vi.fn(),
+  listReusableResumeTemplates: vi.fn(),
   listDocumentTemplatesV3: vi.fn(),
   getTemplateWithCustom: vi.fn(),
   generateResumeHTML: vi.fn(),
+  renderTailoredResumeWithReusableTemplate: vi.fn(),
   generateResumeHTMLV3: vi.fn(),
   generatePDF: vi.fn(),
   convertContentToDocx: vi.fn(),
@@ -23,7 +26,9 @@ vi.mock("@/lib/db", () => ({
 }));
 
 vi.mock("@/lib/db/template-migrations", () => ({
+  getReusableResumeTemplate: mocks.getReusableResumeTemplate,
   getDocumentTemplateV3: mocks.getDocumentTemplateV3,
+  listReusableResumeTemplates: mocks.listReusableResumeTemplates,
   listDocumentTemplatesV3: mocks.listDocumentTemplatesV3,
 }));
 
@@ -37,6 +42,11 @@ vi.mock("@/lib/resume/pdf", () => ({
 
 vi.mock("@/lib/resume/template-v3-renderer", () => ({
   generateResumeHTMLV3: mocks.generateResumeHTMLV3,
+}));
+
+vi.mock("@/lib/resume/universal-template-renderer", () => ({
+  renderTailoredResumeWithReusableTemplate:
+    mocks.renderTailoredResumeWithReusableTemplate,
 }));
 
 vi.mock("@/lib/resume/pdf-export", () => ({
@@ -91,16 +101,42 @@ describe("resume export route", () => {
       id: "resume-1",
       contentJson: JSON.stringify(resume),
     });
+    mocks.getReusableResumeTemplate.mockReturnValue(null);
     mocks.getDocumentTemplateV3.mockReturnValue(null);
+    mocks.listReusableResumeTemplates.mockReturnValue([]);
     mocks.listDocumentTemplatesV3.mockReturnValue([]);
     mocks.getTemplateWithCustom.mockReturnValue(customTemplate);
     mocks.generateResumeHTML.mockReturnValue("<html>custom resume</html>");
+    mocks.renderTailoredResumeWithReusableTemplate.mockReturnValue(
+      "<html>v4 resume</html>",
+    );
     mocks.generateResumeHTMLV3.mockReturnValue("<html>v3 resume</html>");
     mocks.generatePDF.mockResolvedValue(new Uint8Array([1, 2, 3]));
     mocks.convertContentToDocx.mockResolvedValue(Buffer.from([4, 5, 6]));
   });
 
   it("lists committed V3 visual templates alongside built-in export templates", async () => {
+    mocks.listReusableResumeTemplates.mockReturnValue([
+      {
+        id: "v4-template",
+        name: "Reusable Semantic",
+        description: null,
+        sourceFilename: "resume.pdf",
+        sourceType: "pdf",
+        template: {
+          schemaVersion: 4,
+          id: "v4-template",
+          name: "Reusable Semantic",
+          tokens: {
+            layout: {},
+            typography: {},
+            color: {},
+            spacing: {},
+            rules: {},
+          },
+        },
+      },
+    ]);
     mocks.listDocumentTemplatesV3.mockReturnValue([
       {
         id: "v3-template",
@@ -136,9 +172,17 @@ describe("resume export route", () => {
 
     const response = await GET();
 
+    expect(mocks.listReusableResumeTemplates).toHaveBeenCalledWith("user-1");
     expect(mocks.listDocumentTemplatesV3).toHaveBeenCalledWith("user-1");
     await expect(response.json()).resolves.toMatchObject({
       templates: expect.arrayContaining([
+        expect.objectContaining({
+          id: "v4-template",
+          type: "custom",
+          schemaVersion: 4,
+          layout: "single-column",
+          sourceFilename: "resume.pdf",
+        }),
         expect.objectContaining({
           id: "v3-template",
           type: "custom",
@@ -197,6 +241,34 @@ describe("resume export route", () => {
     );
     expect(mocks.getTemplateWithCustom).not.toHaveBeenCalled();
     await expect(response.text()).resolves.toBe("<html>v3 resume</html>");
+  });
+
+  it("renders saved resume HTML with a committed reusable template", async () => {
+    const reusableTemplate = {
+      id: "v4-template",
+      template: { schemaVersion: 4, id: "v4-template", name: "Reusable" },
+    };
+    mocks.getReusableResumeTemplate.mockReturnValue(reusableTemplate);
+
+    const response = await POST(
+      exportRequest({
+        resumeId: "resume-1",
+        templateId: "v4-template",
+        format: "html",
+      }),
+    );
+
+    expect(mocks.getReusableResumeTemplate).toHaveBeenCalledWith(
+      "v4-template",
+      "user-1",
+    );
+    expect(mocks.renderTailoredResumeWithReusableTemplate).toHaveBeenCalledWith(
+      resume,
+      reusableTemplate.template,
+    );
+    expect(mocks.getDocumentTemplateV3).not.toHaveBeenCalled();
+    expect(mocks.getTemplateWithCustom).not.toHaveBeenCalled();
+    await expect(response.text()).resolves.toBe("<html>v4 resume</html>");
   });
 
   it("uses the custom-template HTML when exporting a saved resume to PDF", async () => {

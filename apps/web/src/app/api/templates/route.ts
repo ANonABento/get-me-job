@@ -11,8 +11,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import {
+  deleteReusableResumeTemplate,
   deleteDocumentTemplateV3,
+  listReusableResumeTemplates,
   listDocumentTemplatesV3,
+  updateReusableResumeTemplateMetadata,
   updateDocumentTemplateV3Metadata,
 } from "@/lib/db/template-migrations";
 import { TEMPLATES } from "@/lib/resume/templates";
@@ -49,7 +52,9 @@ export async function GET() {
   if (isAuthError(authResult)) return authResult;
 
   try {
+    const reusableRows = listReusableResumeTemplates(authResult.userId);
     const documentTemplateV3Rows = listDocumentTemplatesV3(authResult.userId);
+    const reusableTemplates = Array.isArray(reusableRows) ? reusableRows : [];
     const documentTemplatesV3 = Array.isArray(documentTemplateV3Rows)
       ? documentTemplateV3Rows
       : [];
@@ -59,6 +64,24 @@ export async function GET() {
       name: t.name,
       description: t.description,
       type: "built-in" as const,
+    }));
+
+    const customV4 = reusableTemplates.map((t) => ({
+      id: t.id,
+      name: t.name,
+      description:
+        t.description ??
+        (t.sourceType
+          ? `Reusable template from ${t.sourceType.toUpperCase()}`
+          : "Reusable template"),
+      type: "custom" as const,
+      customDescription: t.description,
+      sourceFilename: t.sourceFilename,
+      sourceType: t.sourceType,
+      schemaVersion: t.template.schemaVersion,
+      reusableTemplate: t.template,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
     }));
 
     const customV3 = documentTemplatesV3.map((t) => ({
@@ -80,7 +103,7 @@ export async function GET() {
     }));
 
     return successResponse({
-      templates: [...builtIn, ...customV3],
+      templates: [...builtIn, ...customV4, ...customV3],
     });
   } catch (error) {
     console.error("List templates error:", error);
@@ -118,8 +141,10 @@ export async function DELETE(request: NextRequest) {
       return ApiErrors.badRequest("Template ID is required");
     }
 
-    const deletedV3 = deleteDocumentTemplateV3(id, authResult.userId);
-    if (!deletedV3) {
+    const deleted =
+      deleteReusableResumeTemplate(id, authResult.userId) ||
+      deleteDocumentTemplateV3(id, authResult.userId);
+    if (!deleted) {
       return ApiErrors.notFound("Template");
     }
 
@@ -143,11 +168,16 @@ export async function PATCH(request: NextRequest) {
     }
 
     const { id, name, description } = parseResult.data;
-    const updatedV3 = updateDocumentTemplateV3Metadata(id, authResult.userId, {
-      name,
-      description,
-    });
-    if (!updatedV3) {
+    const updated =
+      updateReusableResumeTemplateMetadata(id, authResult.userId, {
+        name,
+        description,
+      }) ??
+      updateDocumentTemplateV3Metadata(id, authResult.userId, {
+        name,
+        description,
+      });
+    if (!updated) {
       return ApiErrors.notFound("Template");
     }
 

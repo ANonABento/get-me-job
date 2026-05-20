@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   requireAuth: vi.fn(),
   getTemplateMigrationDraft: vi.fn(),
+  saveReusableResumeTemplate: vi.fn(),
   saveDocumentTemplateV3: vi.fn(),
   updateTemplateMigrationDraft: vi.fn(),
 }));
@@ -15,6 +16,7 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("@/lib/db/template-migrations", () => ({
   getTemplateMigrationDraft: mocks.getTemplateMigrationDraft,
+  saveReusableResumeTemplate: mocks.saveReusableResumeTemplate,
   saveDocumentTemplateV3: mocks.saveDocumentTemplateV3,
   updateTemplateMigrationDraft: mocks.updateTemplateMigrationDraft,
 }));
@@ -26,6 +28,16 @@ describe("/api/templates/migrations/:id/commit", () => {
     vi.clearAllMocks();
     mocks.requireAuth.mockResolvedValue({ userId: "user-1" });
     mocks.getTemplateMigrationDraft.mockReturnValue(sampleDraft());
+    mocks.saveReusableResumeTemplate.mockReturnValue({
+      id: "template-v4",
+      name: "Imported Resume",
+      description: null,
+      sourceFilename: "resume.pdf",
+      sourceType: "pdf",
+      template: sampleReusableTemplate(),
+      createdAt: "2026-05-19T00:00:00.000Z",
+      updatedAt: "2026-05-19T00:00:00.000Z",
+    });
     mocks.saveDocumentTemplateV3.mockReturnValue({
       id: "template-v3",
       name: "Imported Resume",
@@ -73,6 +85,46 @@ describe("/api/templates/migrations/:id/commit", () => {
       draft: {
         status: "committed",
         committedTemplateId: "template-v3",
+      },
+    });
+  });
+
+  it("saves a reusable template when the reviewed draft has V4 artifacts", async () => {
+    mocks.getTemplateMigrationDraft.mockReturnValue({
+      ...sampleDraft(),
+      reusableTemplate: sampleReusableTemplate(),
+    });
+    mocks.updateTemplateMigrationDraft.mockReturnValue({
+      ...sampleDraft(),
+      status: "committed",
+      committedTemplateId: "template-v4",
+    });
+
+    const response = await POST(
+      new NextRequest(
+        "http://localhost/api/templates/migrations/draft-1/commit",
+        {
+          method: "POST",
+        },
+      ),
+      { params: { id: "draft-1" } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.saveReusableResumeTemplate).toHaveBeenCalledWith(
+      "user-1",
+      expect.objectContaining({
+        schemaVersion: 4,
+        id: "template-v4",
+        name: "Imported Resume",
+      }),
+    );
+    expect(mocks.saveDocumentTemplateV3).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toMatchObject({
+      template: {
+        id: "template-v4",
+        schemaVersion: 4,
+        reusableTemplate: expect.objectContaining({ id: "template-v4" }),
       },
     });
   });
@@ -207,5 +259,42 @@ function sampleLowFidelityV3Draft() {
       repeatGroups: [],
       diagnostics: [],
     },
+  };
+}
+
+function sampleReusableTemplate() {
+  return {
+    schemaVersion: 4,
+    id: "template-v4",
+    name: "Imported Resume",
+    source: { filename: "resume.pdf", type: "pdf" },
+    page: {
+      size: "letter",
+      widthPt: 612,
+      heightPt: 792,
+      confidence: 1,
+      evidenceRefs: [],
+    },
+    tokens: {
+      version: 1,
+      sourceType: "pdf",
+      filename: "resume.pdf",
+      page: {
+        size: "letter",
+        widthPt: 612,
+        heightPt: 792,
+        confidence: 1,
+        evidenceRefs: [],
+      },
+      typography: {},
+      color: {},
+      spacing: {},
+      rules: {},
+      layout: {},
+      warnings: [],
+    },
+    components: [],
+    sectionOrder: [],
+    diagnostics: [],
   };
 }

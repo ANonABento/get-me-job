@@ -5,7 +5,10 @@
  * @response ResumeTemplatesResponse from @/types/api
  */
 import { TEMPLATES } from "@/lib/resume/pdf";
-import { listDocumentTemplatesV3 } from "@/lib/db/template-migrations";
+import {
+  listReusableResumeTemplates,
+  listDocumentTemplatesV3,
+} from "@/lib/db/template-migrations";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { successResponse, errorResponse } from "@/lib/api-utils";
 
@@ -23,6 +26,18 @@ export async function GET() {
       type: "built-in" as const,
     }));
 
+    const reusable = listReusableResumeTemplates(authResult.userId).map(
+      (t) => ({
+        id: t.id,
+        name: t.name,
+        description: t.description ?? "Reusable template",
+        type: "custom" as const,
+        schemaVersion: 4,
+        sourceFilename: t.sourceFilename,
+        sourceType: t.sourceType,
+      }),
+    );
+
     const custom = listDocumentTemplatesV3(authResult.userId).map((t) => ({
       id: t.id,
       name: t.name,
@@ -33,7 +48,7 @@ export async function GET() {
       sourceType: t.sourceType,
     }));
 
-    return successResponse({ templates: [...builtIn, ...custom] });
+    return successResponse({ templates: [...builtIn, ...reusable, ...custom] });
   } catch (error) {
     console.error("List templates error:", error);
     return errorResponse("internal_error", "Failed to list templates");

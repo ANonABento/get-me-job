@@ -11,7 +11,9 @@ import { z } from "zod";
 import { requireAuth, isAuthError } from "@/lib/auth";
 import { getGeneratedResume } from "@/lib/db";
 import {
+  getReusableResumeTemplate,
   getDocumentTemplateV3,
+  listReusableResumeTemplates,
   listDocumentTemplatesV3,
 } from "@/lib/db/template-migrations";
 import type { TailoredResume } from "@/lib/resume/generator";
@@ -51,6 +53,7 @@ export async function GET() {
   if (isAuthError(authResult)) return authResult;
 
   const { LATEX_TEMPLATES } = await import("@/lib/resume/latex-generator");
+  const reusableTemplates = listReusableResumeTemplates(authResult.userId);
   const v3Templates = listDocumentTemplatesV3(authResult.userId);
   return NextResponse.json({
     templates: [
@@ -60,6 +63,19 @@ export async function GET() {
         description: t.description,
         layout: t.layout,
         type: "built-in" as const,
+      })),
+      ...reusableTemplates.map((template) => ({
+        id: template.id,
+        name: template.name,
+        description: template.description ?? "Reusable template",
+        layout:
+          template.template.tokens.layout.columns?.value === 2
+            ? "two-column"
+            : "single-column",
+        type: "custom" as const,
+        schemaVersion: 4,
+        sourceFilename: template.sourceFilename,
+        sourceType: template.sourceType,
       })),
       ...v3Templates.map((template) => ({
         id: template.id,
@@ -109,6 +125,15 @@ async function renderResumeHtml(
   templateId: string,
   userId: string,
 ): Promise<string> {
+  const reusableTemplate = getReusableResumeTemplate(templateId, userId);
+  if (reusableTemplate) {
+    const { renderTailoredResumeWithReusableTemplate } =
+      await import("@/lib/resume/universal-template-renderer");
+    return renderTailoredResumeWithReusableTemplate(
+      resume,
+      reusableTemplate.template,
+    );
+  }
   const documentTemplateV3 = getDocumentTemplateV3(templateId, userId);
   if (documentTemplateV3) {
     const { generateResumeHTMLV3 } =
@@ -292,25 +317,37 @@ export async function POST(request: NextRequest) {
     }
 
     const { generatePDF } = await import("@/lib/resume/pdf-export");
-    const documentTemplateV3 = resume
-      ? getDocumentTemplateV3(templateId, authResult.userId)
+    const reusableTemplate = resume
+      ? getReusableResumeTemplate(templateId, authResult.userId)
       : null;
+    const documentTemplateV3 =
+      resume && !reusableTemplate
+        ? getDocumentTemplateV3(templateId, authResult.userId)
+        : null;
     const normalizedPageSettings = normalizePageSettings(
       (pageSettings as Partial<PageSettings> | undefined) ??
         DEFAULT_PAGE_SETTINGS,
     );
-    const pdfOptions: ServerPDFOptions = documentTemplateV3
+    const pdfOptions: ServerPDFOptions = reusableTemplate
       ? {
           format:
-            documentTemplateV3.template.page.size.toLowerCase() === "a4"
+            reusableTemplate.template.page.size.toLowerCase() === "a4"
               ? "A4"
               : "Letter",
           margin: { top: "0", right: "0", bottom: "0", left: "0" },
         }
-      : {
-          format: normalizedPageSettings.size === "a4" ? "A4" : "Letter",
-          margin: pageSettingsToPdfMargin(normalizedPageSettings),
-        };
+      : documentTemplateV3
+        ? {
+            format:
+              documentTemplateV3.template.page.size.toLowerCase() === "a4"
+                ? "A4"
+                : "Letter",
+            margin: { top: "0", right: "0", bottom: "0", left: "0" },
+          }
+        : {
+            format: normalizedPageSettings.size === "a4" ? "A4" : "Letter",
+            margin: pageSettingsToPdfMargin(normalizedPageSettings),
+          };
     const pdfBuffer = await generatePDF(html, {
       format: pdfOptions.format,
       margin: pdfOptions.margin,
