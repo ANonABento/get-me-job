@@ -33,6 +33,8 @@ import {
 import type { BentoLayoutPreference } from "@/lib/opportunities/bento-layout";
 
 import { BentoLayoutBuilder } from "./bento-layout-builder";
+import { BentoGrid } from "./bento-grid";
+import { LAYOUT_PREVIEW_OPPORTUNITY } from "@/lib/opportunities/layout-preview-fixture";
 
 const DEBOUNCE_MS = 300;
 
@@ -113,18 +115,54 @@ export function LayoutBuilderModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  // Static preview context so the BentoGrid can render the fixture
+  // without needing real callbacks. Action buttons in the preview are
+  // no-ops; "Show more" toggles are also stubbed.
+  const previewContext = {
+    preview:
+      LAYOUT_PREVIEW_OPPORTUNITY.summary.slice(0, 260) +
+      (LAYOUT_PREVIEW_OPPORTUNITY.summary.length > 260 ? "…" : ""),
+    expanded: false,
+    setExpanded: () => undefined,
+    tags: LAYOUT_PREVIEW_OPPORTUNITY.tags ?? [],
+    payDisplayUnit: "annual" as const,
+    payDisplayCurrency: "USD",
+    onAction: () => undefined,
+    actionDisabled: false,
+    canApply: true,
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!max-w-5xl">
+      <DialogContent className="!w-[min(95vw,1500px)] !max-w-none">
         <DialogHeader>
           <DialogTitle>Card layout</DialogTitle>
           <DialogDescription>
-            Drag chunks between cells, resize, regroup. Set a mobile priority
-            below so phones show the most important cells first.
+            Drag chunks between cells, resize, regroup. The preview on the right
+            shows exactly how the review card will render.
           </DialogDescription>
         </DialogHeader>
-        <div className="max-h-[70vh] overflow-y-auto">
-          <BentoLayoutBuilder value={draft} onChange={handleChange} />
+        <div className="grid max-h-[78vh] grid-cols-1 gap-6 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          {/* Editor — left column on wide viewports. */}
+          <div className="min-w-0">
+            <BentoLayoutBuilder value={draft} onChange={handleChange} />
+          </div>
+          {/* Live preview — right column. Sticky on wide viewports so the
+              card stays visible while the user scrolls the editor. */}
+          <aside className="min-w-0 lg:sticky lg:top-0 lg:self-start">
+            <p className="mb-2 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+              Live preview · Desktop
+            </p>
+            <div className="rounded-lg border bg-card p-4 shadow-sm">
+              <BentoGrid
+                layout={draft.desktop}
+                mobileExpandedCount={draft.mobile.expandedCount}
+                device="desktop"
+                opportunity={LAYOUT_PREVIEW_OPPORTUNITY}
+                context={previewContext}
+              />
+            </div>
+          </aside>
         </div>
       </DialogContent>
     </Dialog>

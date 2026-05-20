@@ -342,8 +342,11 @@ export default function OpportunityReviewPage() {
         <ArrowLeft className="h-5 w-5" />
       </Link>
       <header className="border-b bg-card/60 px-4 py-3 pl-16 backdrop-blur md:pl-20">
-        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        {/* Single-row toolbar at wide viewports: presets + sort + layout
+            on the left, PENDING chip on the right. Wraps below the
+            md breakpoint so phones get a clean stack. */}
+        <div className="mx-auto flex w-full items-center justify-between gap-4">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
             <PresetBar
               presets={presets}
               activePresetId={activePresetId}
@@ -376,7 +379,7 @@ export default function OpportunityReviewPage() {
               Layout
             </Button>
           </div>
-          <div className="flex items-baseline gap-2">
+          <div className="flex shrink-0 items-baseline gap-2">
             <span className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
               Pending
             </span>

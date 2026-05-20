@@ -304,9 +304,10 @@ export function OpportunityReviewQueue({
   return (
     <main className="flex flex-1 flex-col items-center px-4 pb-12 pt-6 md:pt-10">
       <h1 className="sr-only">Review Queue — {remainingCount} pending</h1>
-      {/* Bento card. Desktop bumped to max-w-5xl (1024px) so the grid
-          breathes properly. Mobile keeps the narrow swipe-deck width. */}
-      <div className="relative h-[min(640px,80vh)] w-full max-w-md md:h-auto md:max-w-5xl">
+      {/* Bento card. Desktop uses ~95vw with a generous max so the grid
+          fills the screen instead of stranding cream on the sides.
+          Mobile keeps the narrow swipe-deck width. */}
+      <div className="relative h-[min(640px,80vh)] w-full max-w-md md:h-auto md:w-[min(100%,1600px)] md:max-w-none">
         {queue[1] && (
           <div
             className="absolute inset-x-3 top-5 h-[calc(100%-1.25rem)] rounded-lg border bg-card/50 shadow-sm md:relative md:inset-x-0 md:top-0 md:h-0"
