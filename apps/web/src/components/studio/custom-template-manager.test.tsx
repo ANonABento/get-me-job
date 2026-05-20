@@ -511,7 +511,10 @@ describe("CustomTemplateManagerDialog", () => {
             color: {
               ...next.styleTokens.color,
               body: { value: "#111111" },
-              accent: { value: "#2563eb" },
+              accent: {
+                ...next.styleTokens.color.accent,
+                value: "#2563eb",
+              },
             },
           };
           next.reusableHtml =
@@ -552,6 +555,75 @@ describe("CustomTemplateManagerDialog", () => {
       expect(patchBodies.at(-1)).toEqual({ resetStyleTokens: true });
     });
     expect(screen.getByLabelText("Accent color")).toHaveValue("#2563eb");
+  });
+
+  it("lets reviewers choose inferred style token candidates", async () => {
+    const patchBodies: unknown[] = [];
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/templates/migrate") {
+          return Response.json({
+            draft: migrationDraft(),
+            warnings: [],
+            confidence: "high",
+          });
+        }
+        if (url === "/api/templates/v3/preview") {
+          return Response.json({
+            html: "<html><body><article>Rendered migrated resume</article></body></html>",
+            pdfOptions: { format: "Letter" },
+          });
+        }
+        if (url === "/api/templates/migrations/draft-1") {
+          const body = JSON.parse(
+            String((init as RequestInit | undefined)?.body),
+          );
+          patchBodies.push(body);
+          const next = migrationDraft();
+          next.styleTokens = body.styleTokens;
+          return Response.json({ draft: next });
+        }
+        return Response.json({ templates: [] });
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderDialog();
+
+    const inputs =
+      document.querySelectorAll<HTMLInputElement>("input[type='file']");
+    fireEvent.change(inputs[0], {
+      target: {
+        files: [
+          new File(["%PDF-1.7"], "resume.pdf", {
+            type: "application/pdf",
+          }),
+        ],
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("resume.pdf")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Style Tokens" }));
+    fireEvent.change(screen.getByLabelText("Accent color candidate"), {
+      target: { value: "#0f766e" },
+    });
+    fireEvent.change(screen.getByLabelText("Body font candidate"), {
+      target: { value: "Georgia, serif" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Apply style overrides" }),
+    );
+
+    await waitFor(() => {
+      const latest = patchBodies.at(-1) as ReturnType<typeof migrationDraft>;
+      expect(latest.styleTokens.color.accent.value).toBe("#0f766e");
+      expect(latest.styleTokens.typography.body.fontFamily).toBe(
+        "Georgia, serif",
+      );
+    });
   });
 
   it("lets reviewers move bullets between semantic items", async () => {
@@ -1155,10 +1227,32 @@ function migrationDraft() {
     styleTokens: {
       page: { widthPt: 612, heightPt: 792 },
       typography: {
-        body: { fontFamily: "Inter", fontSizePt: 11 },
+        body: {
+          fontFamily: "Inter",
+          fontSizePt: 11,
+          candidates: [
+            {
+              label: "Inter (4 refs)",
+              value: { fontFamily: "Inter" },
+            },
+            {
+              label: "Georgia, serif (2 refs)",
+              value: { fontFamily: "Georgia, serif" },
+            },
+          ],
+        },
         sectionHeading: { fontWeight: "700", textTransform: "uppercase" },
       },
-      color: { body: { value: "#111111" }, accent: { value: "#2563eb" } },
+      color: {
+        body: { value: "#111111" },
+        accent: {
+          value: "#2563eb",
+          candidates: [
+            { label: "#2563eb (3 refs)", value: "#2563eb" },
+            { label: "#0f766e (2 refs)", value: "#0f766e" },
+          ],
+        },
+      },
       spacing: { sectionGapPt: { value: 8 } },
       rules: { sectionDivider: { widthPt: 0.75, color: "#2563eb" } },
       layout: { headerMode: { value: "split" } },

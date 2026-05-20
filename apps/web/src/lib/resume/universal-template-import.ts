@@ -165,9 +165,18 @@ export interface ImportedTypographyToken {
   alignment?: string;
   confidence: number;
   evidenceRefs: string[];
+  candidates?: ImportedTokenCandidate<Partial<ImportedTypographyToken>>[];
 }
 
 export interface ImportedScalarToken<T> {
+  value: T;
+  confidence: number;
+  evidenceRefs: string[];
+  candidates?: ImportedTokenCandidate<T>[];
+}
+
+export interface ImportedTokenCandidate<T> {
+  label: string;
   value: T;
   confidence: number;
   evidenceRefs: string[];
@@ -426,6 +435,18 @@ export function inferImportedTemplateStyleTokens(
       typographyTokenFromSignal(signal, source),
     ]),
   ) as ImportedTemplateStyleTokens["typography"];
+  if (typography.body) {
+    typography.body = {
+      ...typography.body,
+      candidates: typographyCandidatesForRole(source, "body"),
+    };
+  }
+  if (typography.sectionHeading) {
+    typography.sectionHeading = {
+      ...typography.sectionHeading,
+      candidates: typographyCandidatesForRole(source, "sectionHeading"),
+    };
+  }
   const page = inferPageStyleToken(source);
   const colors = inferColorTokens(source, typography);
   const spacing = inferSpacingTokens(source);
@@ -504,6 +525,7 @@ function inferColorTokens(
     .filter((item): item is { id: string; color: string } =>
       Boolean(item.color),
     );
+  const colorCandidates = colorTokenCandidates(styleColors);
   const bodyColor = typography.body?.color;
   const accentColor =
     typography.sectionHeading?.color ??
@@ -517,16 +539,22 @@ function inferColorTokens(
 
   return {
     accent: accentColor
-      ? scalarToken(
-          accentColor,
-          typography.sectionHeading?.confidence ?? 0.58,
-          evidenceRefsForColor(styleColors, accentColor),
-        )
+      ? {
+          ...scalarToken(
+            accentColor,
+            typography.sectionHeading?.confidence ?? 0.58,
+            evidenceRefsForColor(styleColors, accentColor),
+          ),
+          candidates: colorCandidates,
+        }
       : undefined,
     body: fallbackBody
-      ? scalarToken(fallbackBody, typography.body?.confidence ?? 0.56, [
-          ...(typography.body?.evidenceRefs ?? []),
-        ])
+      ? {
+          ...scalarToken(fallbackBody, typography.body?.confidence ?? 0.56, [
+            ...(typography.body?.evidenceRefs ?? []),
+          ]),
+          candidates: colorCandidates,
+        }
       : undefined,
     muted: typography.metadata?.color
       ? scalarToken(
@@ -695,6 +723,62 @@ function evidenceRefsForColor(
     .filter((item) => item.color === color)
     .slice(0, 8)
     .map((item) => item.id);
+}
+
+function colorTokenCandidates(
+  colors: Array<{ id: string; color: string }>,
+): ImportedTokenCandidate<string>[] {
+  const byColor = new Map<string, string[]>();
+  for (const item of colors) {
+    const refs = byColor.get(item.color) ?? [];
+    refs.push(item.id);
+    byColor.set(item.color, refs);
+  }
+  return Array.from(byColor.entries())
+    .sort((a, b) => b[1].length - a[1].length)
+    .slice(0, 6)
+    .map(([color, refs]) => ({
+      label: `${color} (${refs.length} refs)`,
+      value: color,
+      confidence: roundRatio(Math.min(0.95, 0.45 + refs.length / 10)),
+      evidenceRefs: refs.slice(0, 8),
+    }));
+}
+
+function typographyCandidatesForRole(
+  source: SourceDocumentIR,
+  role: "body" | "sectionHeading",
+): ImportedTokenCandidate<Partial<ImportedTypographyToken>>[] {
+  const byFamily = new Map<string, SourceDocumentIR["blocks"]>();
+  for (const block of source.blocks) {
+    const family = block.style?.fontFamily;
+    if (!family) continue;
+    const blocks = byFamily.get(family) ?? [];
+    blocks.push(block);
+    byFamily.set(family, blocks);
+  }
+  return Array.from(byFamily.entries())
+    .sort((a, b) => b[1].length - a[1].length)
+    .slice(0, 6)
+    .map(([fontFamily, blocks]) => {
+      const sizes = blocks
+        .map((block) => block.style?.fontSizePt)
+        .filter((size): size is number => typeof size === "number");
+      const fontSizePt = sizes.length
+        ? role === "sectionHeading"
+          ? Math.max(...sizes)
+          : median(sizes)
+        : null;
+      return {
+        label: `${fontFamily} (${blocks.length} refs)`,
+        value: {
+          fontFamily,
+          ...(fontSizePt ? { fontSizePt } : {}),
+        },
+        confidence: roundRatio(Math.min(0.95, 0.45 + blocks.length / 10)),
+        evidenceRefs: blocks.slice(0, 8).map((block) => block.id),
+      };
+    });
 }
 
 function firstBorder(source: SourceDocumentIR): ImportedRuleToken | null {

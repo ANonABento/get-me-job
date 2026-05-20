@@ -239,6 +239,19 @@ describe("universal template import analysis", () => {
       textTransform: "uppercase",
     });
     expect(tokens.color.accent).toMatchObject({ value: "#0f766e" });
+    expect(tokens.color.accent?.candidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ value: "#0f766e" }),
+        expect.objectContaining({ value: "#222222" }),
+      ]),
+    );
+    expect(tokens.typography.body?.candidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          value: expect.objectContaining({ fontFamily: "Aptos, sans-serif" }),
+        }),
+      ]),
+    );
     expect(tokens.rules.sectionDivider).toMatchObject({
       widthPt: 0.75,
       color: "#0f766e",

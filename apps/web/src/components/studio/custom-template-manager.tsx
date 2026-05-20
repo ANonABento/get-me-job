@@ -2684,6 +2684,8 @@ function StyleTokensPane({
     tokenValue(tokens?.spacing?.sectionGapPt, "8"),
   );
   const [margins, setMargins] = useState(() => pageMargins(tokens));
+  const accentCandidates = scalarTokenCandidates(tokens?.color?.accent);
+  const bodyFontCandidates = typographyFontCandidates(tokens?.typography?.body);
 
   useEffect(() => {
     setAccentColor(tokenValue(tokens?.color?.accent, "#111111"));
@@ -2763,6 +2765,21 @@ function StyleTokensPane({
               onChange={(event) => setAccentColor(event.currentTarget.value)}
               placeholder="#111111"
             />
+            {accentCandidates.length ? (
+              <select
+                className="h-8 w-full rounded-sm border border-border bg-background px-2 text-xs text-foreground"
+                aria-label="Accent color candidate"
+                value={accentColor}
+                onChange={(event) => setAccentColor(event.currentTarget.value)}
+              >
+                <option value={accentColor}>Current: {accentColor}</option>
+                {accentCandidates.map((candidate) => (
+                  <option key={candidate.value} value={candidate.value}>
+                    {candidate.label}
+                  </option>
+                ))}
+              </select>
+            ) : null}
           </label>
           <label className="space-y-1 text-xs text-muted-foreground">
             <span>Body font</span>
@@ -2772,6 +2789,21 @@ function StyleTokensPane({
               onChange={(event) => setBodyFont(event.currentTarget.value)}
               placeholder="Arial, sans-serif"
             />
+            {bodyFontCandidates.length ? (
+              <select
+                className="h-8 w-full rounded-sm border border-border bg-background px-2 text-xs text-foreground"
+                aria-label="Body font candidate"
+                value={bodyFont}
+                onChange={(event) => setBodyFont(event.currentTarget.value)}
+              >
+                <option value={bodyFont}>Current: {bodyFont}</option>
+                {bodyFontCandidates.map((candidate) => (
+                  <option key={candidate.value} value={candidate.value}>
+                    {candidate.label}
+                  </option>
+                ))}
+              </select>
+            ) : null}
           </label>
           <label className="space-y-1 text-xs text-muted-foreground">
             <span>Divider width pt</span>
@@ -3116,6 +3148,48 @@ function tokenString(value: unknown, key: string, fallback = ""): string {
 function tokenNumber(value: unknown, key: string, fallback: number): number {
   if (isRecord(value) && typeof value[key] === "number") return value[key];
   return fallback;
+}
+
+function scalarTokenCandidates(
+  value: unknown,
+): Array<{ label: string; value: string }> {
+  if (!isRecord(value) || !Array.isArray(value.candidates)) return [];
+  return value.candidates
+    .map((candidate) => {
+      if (!isRecord(candidate) || typeof candidate.value !== "string") {
+        return null;
+      }
+      return {
+        value: candidate.value,
+        label:
+          typeof candidate.label === "string"
+            ? candidate.label
+            : candidate.value,
+      };
+    })
+    .filter((candidate): candidate is { label: string; value: string } =>
+      Boolean(candidate),
+    );
+}
+
+function typographyFontCandidates(
+  value: unknown,
+): Array<{ label: string; value: string }> {
+  if (!isRecord(value) || !Array.isArray(value.candidates)) return [];
+  return value.candidates
+    .map((candidate) => {
+      if (!isRecord(candidate) || !isRecord(candidate.value)) return null;
+      const fontFamily = candidate.value.fontFamily;
+      if (typeof fontFamily !== "string") return null;
+      return {
+        value: fontFamily,
+        label:
+          typeof candidate.label === "string" ? candidate.label : fontFamily,
+      };
+    })
+    .filter((candidate): candidate is { label: string; value: string } =>
+      Boolean(candidate),
+    );
 }
 
 function pageMargins(tokens: TemplateMigrationDraft["styleTokens"]): {

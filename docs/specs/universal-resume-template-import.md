@@ -656,6 +656,8 @@ As of the latest implementation slice, the system has:
   be corrected directly from review after import or split.
 - Style token overrides can be reset back to inferred values from current source
   evidence.
+- Style token candidate lists are inferred for colors/body fonts and can be
+  selected from review where present.
 
 Known remaining gaps:
 
@@ -665,8 +667,9 @@ Known remaining gaps:
   arbitrary target selection is still not complete.
 - Decorative source marking is block-level only; finer-grained row/cell/run
   marking is still not complete.
-- Style token candidate selection is not complete; direct token overrides and
-  reset-to-inferred exist for only part of the desired surface.
+- Style token candidate selection currently covers colors/body fonts; richer
+  candidates for spacing, rules, layout, and typography roles are still not
+  complete.
 - DOCX table-heavy imports still need extraction and layout resilience work; the
   dogfood suite keeps this visible as a broad fixture class rather than a
   person-specific case.
