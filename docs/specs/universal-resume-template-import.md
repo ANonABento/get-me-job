@@ -733,6 +733,8 @@ As of the latest implementation slice, the system has:
   for header fields and bullet-vs-paragraph achievement rendering.
 - Basic semantic review controls for section type/title correction and moving
   bullets between adjacent or explicitly selected items.
+- Semantic sections can be reordered from review and regenerate reusable
+  artifacts from the updated semantic order.
 - Basic split/merge controls for semantic items, including explicit merge target
   selection, preserving merged item headers as achievement text so user content
   is not silently dropped.

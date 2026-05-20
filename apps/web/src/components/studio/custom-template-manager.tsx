@@ -2225,6 +2225,20 @@ function SemanticTreePane({
 }) {
   const semantic = draft.semanticResume;
   const sections = semantic?.sections ?? [];
+  function moveSection(sectionIndex: number, direction: -1 | 1) {
+    if (!semantic) return;
+    const targetIndex = sectionIndex + direction;
+    if (targetIndex < 0 || targetIndex >= sections.length) return;
+    const nextSections = [...sections];
+    const [section] = nextSections.splice(sectionIndex, 1);
+    if (!section) return;
+    nextSections.splice(targetIndex, 0, section);
+    void onUpdateSemanticResume(
+      { ...semantic, sections: nextSections },
+      "Section order updated",
+    );
+  }
+
   return (
     <div className="rounded-md border bg-muted/20 p-3">
       <div className="flex items-center justify-between gap-2">
@@ -2253,11 +2267,14 @@ function SemanticTreePane({
           </p>
         </div>
         {sections.length ? (
-          sections.map((section) => (
+          sections.map((section, sectionIndex) => (
             <SemanticSectionCard
               key={section.id}
               semantic={semantic}
               section={section}
+              sectionIndex={sectionIndex}
+              sectionCount={sections.length}
+              onMoveSection={moveSection}
               onUpdateSection={onUpdateSection}
               onUpdateSemanticResume={onUpdateSemanticResume}
               migrationSaving={migrationSaving}
@@ -2281,12 +2298,18 @@ function SemanticTreePane({
 function SemanticSectionCard({
   semantic,
   section,
+  sectionIndex,
+  sectionCount,
+  onMoveSection,
   onUpdateSection,
   onUpdateSemanticResume,
   migrationSaving,
 }: {
   semantic: SemanticDraftResume | undefined;
   section: SemanticDraftSection;
+  sectionIndex: number;
+  sectionCount: number;
+  onMoveSection: (sectionIndex: number, direction: -1 | 1) => void;
   onUpdateSection: (
     sectionId: string,
     updates: { type?: SemanticSectionType; title?: string },
@@ -2495,6 +2518,32 @@ function SemanticSectionCard({
         </span>
         <span>{formatConfidence(section.confidence)} confidence</span>
         <span>{section.items.length} items</span>
+        {sectionCount > 1 ? (
+          <span className="ml-auto flex gap-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-6 px-1.5 text-[10px]"
+              disabled={migrationSaving || sectionIndex === 0}
+              aria-label={`Move ${section.title || section.type} section up`}
+              onClick={() => onMoveSection(sectionIndex, -1)}
+            >
+              Up
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-6 px-1.5 text-[10px]"
+              disabled={migrationSaving || sectionIndex === sectionCount - 1}
+              aria-label={`Move ${section.title || section.type} section down`}
+              onClick={() => onMoveSection(sectionIndex, 1)}
+            >
+              Down
+            </Button>
+          </span>
+        ) : null}
       </div>
       <div className="mt-2 space-y-2">
         {section.items.slice(0, 8).map((item, itemIndex) => (
