@@ -991,7 +991,7 @@ function sourceLinesForSemanticMapping(
     }
 
     const cellLines = block.cellMetadata.map((cell, cellIndex) =>
-      cell.decorative
+      cell.decorative || cell.verticalMerge === "continue"
         ? []
         : (cell.blocks ?? [])
             .filter((cellBlock) => cellBlock.text.trim())

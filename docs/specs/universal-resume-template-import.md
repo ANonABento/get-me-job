@@ -654,6 +654,8 @@ As of the latest implementation slice, the system has:
 - Source evidence blocks and individual table cells can be marked
   non-template/decorative from review; reusable semantic artifacts regenerate
   from the remaining evidence.
+- DOCX vertical-merge continuation cells are ignored during semantic grouping so
+  repeated layout labels do not become resume content.
 - Semantic item primary, secondary, date, location, URL, and metadata fields can
   be corrected directly from review after import or split.
 - Style token overrides can be reset back to inferred values from current source
@@ -678,6 +680,7 @@ Known remaining gaps:
   typography, section spacing, divider widths, and layout controls.
 - DOCX table-heavy imports still need extraction and layout resilience work; the
   dogfood suite keeps this visible as a broad fixture class rather than a
-  person-specific case.
+  person-specific case. Vertical-merge semantic duplication has a regression
+  guard, but broader source-text coverage and overflow resilience remain open.
 - The lab is useful for verification, but app review needs to expose the same
   model in a clearer workflow.

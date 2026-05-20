@@ -452,6 +452,62 @@ describe("universal template import analysis", () => {
     ).not.toMatch(/React|TypeScript|Design Systems|Performance/);
   });
 
+  it("ignores DOCX vertical-merge continuation labels during semantic grouping", () => {
+    const source: SourceDocumentIR = {
+      sourceType: "docx",
+      filename: "vertical-merge-experience.docx",
+      pages: [{ id: "page-1", number: 1, widthPt: 612, heightPt: 792 }],
+      rawText: "",
+      diagnostics: [],
+      blocks: [
+        styledBlock("b1", "Morgan Lee", { fontSizePt: 22, bold: true }),
+        styledBlock("b2", "EXPERIENCE", { fontSizePt: 11, bold: true }),
+        tableRow("b3", ["Backend Engineer", "Acme", "2022 - Present"]),
+        {
+          ...tableRow("b4", ["Backend Engineer", "Built resilient APIs"]),
+          cellMetadata: [
+            {
+              text: "Backend Engineer",
+              verticalMerge: "continue",
+              blocks: [
+                {
+                  id: "b4-cell-1",
+                  type: "paragraph",
+                  text: "Backend Engineer",
+                  runs: [{ text: "Backend Engineer" }],
+                },
+              ],
+            },
+            {
+              text: "Built resilient APIs",
+              blocks: [
+                {
+                  id: "b4-cell-2",
+                  type: "paragraph",
+                  text: "Built resilient APIs",
+                  runs: [{ text: "Built resilient APIs" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const semantic = inferResumeSemanticIR(source);
+    const experience = semantic.sections.find(
+      (section) => section.type === "experience",
+    );
+
+    expect(experience?.items).toHaveLength(1);
+    expect(experience?.items[0]).toMatchObject({
+      primary: "Backend Engineer",
+      secondary: "Acme",
+      dateRange: "2022 - Present",
+      bullets: ["Built resilient APIs"],
+    });
+  });
+
   it("renders arbitrary tailored resume content through a saved reusable template", () => {
     const source: SourceDocumentIR = {
       sourceType: "docx",
