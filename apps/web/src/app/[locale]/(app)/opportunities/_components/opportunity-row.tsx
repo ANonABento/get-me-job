@@ -111,10 +111,14 @@ export function OpportunityRow({
       data-testid="opportunity-row"
     >
       <div className="flex items-start gap-4">
+        {/* audit/04: avatar was size="lg" (32px) — bigger than the 16px
+            title, which gave it more visual weight than the content. The
+            md variant (20px) keeps a row-anchoring glyph without
+            competing with the title. */}
         <CompanyGlyph
           company={opportunity.company}
-          size="lg"
-          className="flex-shrink-0"
+          size="md"
+          className="mt-0.5 flex-shrink-0"
         />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
