@@ -128,7 +128,7 @@ function OpportunityFieldSections({
               return (
                 <div
                   key={field.key}
-                  className="grid gap-3 px-5 py-4 sm:grid-cols-[180px_minmax(0,1fr)]"
+                  className="group grid gap-3 px-5 py-4 sm:grid-cols-[180px_minmax(0,1fr)]"
                 >
                   <div className="text-sm font-medium text-muted-foreground">
                     {field.label}
@@ -220,7 +220,13 @@ function OpportunityFieldSections({
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 shrink-0"
+                            // Hide the pencil at idle to keep the section
+                            // chrome quiet; reveal on row-hover, on
+                            // keyboard focus into the row, or for any
+                            // currently-focused button (touch). This
+                            // matches the "edit-on-intent" pattern of
+                            // Linear/Notion field rows.
+                            className="h-8 w-8 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
                             onClick={() => onStartEditing(field)}
                             aria-label={`Edit ${field.label}`}
                           >
