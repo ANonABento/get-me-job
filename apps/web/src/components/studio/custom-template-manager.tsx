@@ -247,6 +247,8 @@ type SemanticDraftResume = NonNullable<
   TemplateMigrationDraft["semanticResume"]
 >;
 
+type SemanticDraftItem = SemanticDraftSection["items"][number];
+
 const slotAssignmentOptions: Array<[TemplateMigrationSlotPath, string]> = [
   ["contact.name", "Name"],
   ["contact.email", "Email"],
@@ -2304,6 +2306,27 @@ function SemanticSectionCard({
     void onUpdateSemanticResume(nextSemantic, "Semantic items merged");
   }
 
+  function updateItem(
+    itemIndex: number,
+    updates: Pick<SemanticDraftItem, "primary"> &
+      Partial<Pick<SemanticDraftItem, "secondary" | "dateRange">>,
+  ) {
+    if (!semantic) return;
+    const nextSemantic: SemanticDraftResume = {
+      ...semantic,
+      sections: (semantic.sections ?? []).map((candidate) => {
+        if (candidate.id !== section.id) return candidate;
+        return {
+          ...candidate,
+          items: candidate.items.map((item, index) =>
+            index === itemIndex ? { ...item, ...updates, confidence: 1 } : item,
+          ),
+        };
+      }),
+    };
+    void onUpdateSemanticResume(nextSemantic, "Semantic item updated");
+  }
+
   return (
     <div className="rounded-sm border border-border bg-muted/10 p-2">
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px_auto]">
@@ -2365,97 +2388,187 @@ function SemanticSectionCard({
       </div>
       <div className="mt-2 space-y-2">
         {section.items.slice(0, 8).map((item, itemIndex) => (
-          <div key={`${section.id}-${itemIndex}`} className="border-l pl-2">
-            <div className="flex items-start justify-between gap-2">
-              <p className="font-medium text-foreground">
-                {item.primary || "Untitled item"}
-              </p>
-              <div className="flex shrink-0 items-center gap-1">
-                {item.dateRange ? (
-                  <p className="text-[10px] text-muted-foreground">
-                    {item.dateRange}
-                  </p>
-                ) : null}
-                {section.items.length > 1 ? (
+          <SemanticItemCard
+            key={`${section.id}-${itemIndex}`}
+            item={item}
+            itemIndex={itemIndex}
+            itemCount={section.items.length}
+            migrationSaving={migrationSaving}
+            onUpdateItem={updateItem}
+            onMergeItemIntoPrevious={mergeItemIntoPrevious}
+            onMoveBullet={moveBullet}
+            onSplitItemFromBullet={splitItemFromBullet}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SemanticItemCard({
+  item,
+  itemIndex,
+  itemCount,
+  migrationSaving,
+  onUpdateItem,
+  onMergeItemIntoPrevious,
+  onMoveBullet,
+  onSplitItemFromBullet,
+}: {
+  item: SemanticDraftItem;
+  itemIndex: number;
+  itemCount: number;
+  migrationSaving: boolean;
+  onUpdateItem: (
+    itemIndex: number,
+    updates: Pick<SemanticDraftItem, "primary"> &
+      Partial<Pick<SemanticDraftItem, "secondary" | "dateRange">>,
+  ) => void;
+  onMergeItemIntoPrevious: (itemIndex: number) => void;
+  onMoveBullet: (
+    itemIndex: number,
+    bulletIndex: number,
+    direction: -1 | 1,
+  ) => void;
+  onSplitItemFromBullet: (itemIndex: number, bulletIndex: number) => void;
+}) {
+  const [primary, setPrimary] = useState(item.primary);
+  const [secondary, setSecondary] = useState(item.secondary ?? "");
+  const [dateRange, setDateRange] = useState(item.dateRange ?? "");
+  const dirty =
+    primary !== item.primary ||
+    secondary !== (item.secondary ?? "") ||
+    dateRange !== (item.dateRange ?? "");
+
+  useEffect(() => {
+    setPrimary(item.primary);
+    setSecondary(item.secondary ?? "");
+    setDateRange(item.dateRange ?? "");
+  }, [item.primary, item.secondary, item.dateRange]);
+
+  return (
+    <div className="border-l pl-2">
+      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_132px_auto]">
+        <label className="space-y-1">
+          <span className="block text-[10px] font-medium uppercase text-muted-foreground">
+            Primary
+          </span>
+          <Input
+            value={primary}
+            aria-label={`Primary for semantic item ${itemIndex + 1}`}
+            className="h-8 text-xs"
+            onChange={(event) => setPrimary(event.currentTarget.value)}
+          />
+        </label>
+        <label className="space-y-1">
+          <span className="block text-[10px] font-medium uppercase text-muted-foreground">
+            Secondary
+          </span>
+          <Input
+            value={secondary}
+            aria-label={`Secondary for semantic item ${itemIndex + 1}`}
+            className="h-8 text-xs"
+            onChange={(event) => setSecondary(event.currentTarget.value)}
+          />
+        </label>
+        <label className="space-y-1">
+          <span className="block text-[10px] font-medium uppercase text-muted-foreground">
+            Date
+          </span>
+          <Input
+            value={dateRange}
+            aria-label={`Date for semantic item ${itemIndex + 1}`}
+            className="h-8 text-xs"
+            onChange={(event) => setDateRange(event.currentTarget.value)}
+          />
+        </label>
+        <div className="flex items-end gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8"
+            disabled={!dirty || migrationSaving || !primary.trim()}
+            aria-label={`Save semantic item ${itemIndex + 1}`}
+            onClick={() =>
+              onUpdateItem(itemIndex, {
+                primary: primary.trim(),
+                secondary: secondary.trim() || undefined,
+                dateRange: dateRange.trim() || undefined,
+              })
+            }
+          >
+            Save
+          </Button>
+          {itemCount > 1 ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8"
+              disabled={migrationSaving || itemIndex === 0}
+              aria-label={`Merge ${item.primary || `item ${itemIndex + 1}`} into previous item`}
+              onClick={() => onMergeItemIntoPrevious(itemIndex)}
+            >
+              Merge
+            </Button>
+          ) : null}
+        </div>
+      </div>
+      {item.bullets?.length ? (
+        <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted-foreground">
+          {item.bullets.slice(0, 5).map((bullet, bulletIndex) => (
+            <li key={`${bullet}-${bulletIndex}`}>
+              <div className="flex items-start justify-between gap-2">
+                <span>{bullet}</span>
+                <span className="flex shrink-0 gap-1">
+                  {itemCount > 1 ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-6 px-1.5 text-[10px]"
+                        disabled={migrationSaving || itemIndex === 0}
+                        aria-label={`Move bullet ${bulletIndex + 1} from ${item.primary || `item ${itemIndex + 1}`} to previous item`}
+                        onClick={() => onMoveBullet(itemIndex, bulletIndex, -1)}
+                      >
+                        Prev
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-6 px-1.5 text-[10px]"
+                        disabled={
+                          migrationSaving || itemIndex === itemCount - 1
+                        }
+                        aria-label={`Move bullet ${bulletIndex + 1} from ${item.primary || `item ${itemIndex + 1}`} to next item`}
+                        onClick={() => onMoveBullet(itemIndex, bulletIndex, 1)}
+                      >
+                        Next
+                      </Button>
+                    </>
+                  ) : null}
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     className="h-6 px-1.5 text-[10px]"
-                    disabled={migrationSaving || itemIndex === 0}
-                    aria-label={`Merge ${item.primary || `item ${itemIndex + 1}`} into previous item`}
-                    onClick={() => mergeItemIntoPrevious(itemIndex)}
+                    disabled={migrationSaving}
+                    aria-label={`Split ${item.primary || `item ${itemIndex + 1}`} from bullet ${bulletIndex + 1}`}
+                    onClick={() =>
+                      onSplitItemFromBullet(itemIndex, bulletIndex)
+                    }
                   >
-                    Merge
+                    Split
                   </Button>
-                ) : null}
+                </span>
               </div>
-            </div>
-            {item.secondary ? (
-              <p className="mt-0.5 text-muted-foreground">{item.secondary}</p>
-            ) : null}
-            {item.bullets?.length ? (
-              <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted-foreground">
-                {item.bullets.slice(0, 5).map((bullet, bulletIndex) => (
-                  <li key={`${bullet}-${bulletIndex}`}>
-                    <div className="flex items-start justify-between gap-2">
-                      <span>{bullet}</span>
-                      <span className="flex shrink-0 gap-1">
-                        {section.items.length > 1 ? (
-                          <>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-6 px-1.5 text-[10px]"
-                              disabled={migrationSaving || itemIndex === 0}
-                              aria-label={`Move bullet ${bulletIndex + 1} from ${item.primary || `item ${itemIndex + 1}`} to previous item`}
-                              onClick={() =>
-                                moveBullet(itemIndex, bulletIndex, -1)
-                              }
-                            >
-                              Prev
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-6 px-1.5 text-[10px]"
-                              disabled={
-                                migrationSaving ||
-                                itemIndex === section.items.length - 1
-                              }
-                              aria-label={`Move bullet ${bulletIndex + 1} from ${item.primary || `item ${itemIndex + 1}`} to next item`}
-                              onClick={() =>
-                                moveBullet(itemIndex, bulletIndex, 1)
-                              }
-                            >
-                              Next
-                            </Button>
-                          </>
-                        ) : null}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-6 px-1.5 text-[10px]"
-                          disabled={migrationSaving}
-                          aria-label={`Split ${item.primary || `item ${itemIndex + 1}`} from bullet ${bulletIndex + 1}`}
-                          onClick={() =>
-                            splitItemFromBullet(itemIndex, bulletIndex)
-                          }
-                        >
-                          Split
-                        </Button>
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-        ))}
-      </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }
