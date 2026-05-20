@@ -243,10 +243,10 @@ export function OpportunityActions({
   return (
     <>
       <section className="rounded-lg border bg-card p-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <h2 className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
           Actions
         </h2>
-        <div className="mt-4 grid gap-3">
+        <div className="mt-3 grid gap-3">
           <Button
             type="button"
             className="justify-start bg-primary text-primary-foreground hover:bg-primary/90"
@@ -255,6 +255,12 @@ export function OpportunityActions({
             <Send className="mr-2 h-4 w-4" />
             Apply
           </Button>
+          {/* audit/05: AI helper actions visually grouped under a sub-
+              header so the Apply CTA above doesn't have to compete with
+              5 equally-styled outline buttons stacked below it. */}
+          <p className="mt-1 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+            AI helpers
+          </p>
           <Button
             type="button"
             variant="outline"
