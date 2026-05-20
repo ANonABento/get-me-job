@@ -436,17 +436,14 @@ export function inferImportedTemplateStyleTokens(
       typographyTokenFromSignal(signal, source),
     ]),
   ) as ImportedTemplateStyleTokens["typography"];
-  if (typography.body) {
-    typography.body = {
-      ...typography.body,
-      candidates: typographyCandidatesForRole(source, "body"),
-    };
-  }
-  if (typography.sectionHeading) {
-    typography.sectionHeading = {
-      ...typography.sectionHeading,
-      candidates: typographyCandidatesForRole(source, "sectionHeading"),
-    };
+  for (const role of typographyCandidateRoles) {
+    const token = typography[role];
+    if (token) {
+      typography[role] = {
+        ...token,
+        candidates: typographyCandidatesForRole(source, role),
+      };
+    }
   }
   const page = inferPageStyleToken(source);
   const colors = inferColorTokens(source, typography);
@@ -762,9 +759,18 @@ function colorTokenCandidates(
     }));
 }
 
+const typographyCandidateRoles = [
+  "name",
+  "sectionHeading",
+  "entryTitle",
+  "body",
+  "metadata",
+  "bullet",
+] as const;
+
 function typographyCandidatesForRole(
   source: SourceDocumentIR,
-  role: "body" | "sectionHeading",
+  role: (typeof typographyCandidateRoles)[number],
 ): ImportedTokenCandidate<Partial<ImportedTypographyToken>>[] {
   const byFamily = new Map<string, SourceDocumentIR["blocks"]>();
   for (const block of source.blocks) {
@@ -781,13 +787,9 @@ function typographyCandidatesForRole(
       const sizes = blocks
         .map((block) => block.style?.fontSizePt)
         .filter((size): size is number => typeof size === "number");
-      const fontSizePt = sizes.length
-        ? role === "sectionHeading"
-          ? Math.max(...sizes)
-          : median(sizes)
-        : null;
+      const fontSizePt = typographyCandidateFontSize(role, sizes);
       return {
-        label: `${fontFamily} (${blocks.length} refs)`,
+        label: `${fontFamily}${fontSizePt ? ` ${fontSizePt}pt` : ""} (${blocks.length} refs)`,
         value: {
           fontFamily,
           ...(fontSizePt ? { fontSizePt } : {}),
@@ -796,6 +798,18 @@ function typographyCandidatesForRole(
         evidenceRefs: blocks.slice(0, 8).map((block) => block.id),
       };
     });
+}
+
+function typographyCandidateFontSize(
+  role: (typeof typographyCandidateRoles)[number],
+  sizes: number[],
+): number | null {
+  if (!sizes.length) return null;
+  if (role === "metadata") return Math.min(...sizes);
+  if (role === "name" || role === "sectionHeading" || role === "entryTitle") {
+    return Math.max(...sizes);
+  }
+  return median(sizes);
 }
 
 function numericTokenCandidates(

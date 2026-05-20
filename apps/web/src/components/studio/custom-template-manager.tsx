@@ -2677,6 +2677,15 @@ function StyleTokensPane({
   const [bodyFont, setBodyFont] = useState(
     tokenString(tokens?.typography?.body, "fontFamily"),
   );
+  const [bodySize, setBodySize] = useState(
+    String(tokenNumber(tokens?.typography?.body, "fontSizePt", 10)),
+  );
+  const [headingFont, setHeadingFont] = useState(
+    tokenString(tokens?.typography?.sectionHeading, "fontFamily"),
+  );
+  const [headingSize, setHeadingSize] = useState(
+    String(tokenNumber(tokens?.typography?.sectionHeading, "fontSizePt", 11)),
+  );
   const [dividerWidth, setDividerWidth] = useState(
     tokenNumber(tokens?.rules?.sectionDivider, "widthPt", 0.75),
   );
@@ -2685,7 +2694,12 @@ function StyleTokensPane({
   );
   const [margins, setMargins] = useState(() => pageMargins(tokens));
   const accentCandidates = scalarTokenCandidates(tokens?.color?.accent);
-  const bodyFontCandidates = typographyFontCandidates(tokens?.typography?.body);
+  const bodyTypographyCandidates = typographyTokenCandidates(
+    tokens?.typography?.body,
+  );
+  const headingTypographyCandidates = typographyTokenCandidates(
+    tokens?.typography?.sectionHeading,
+  );
   const dividerWidthCandidates = numericTokenCandidates(
     tokens?.rules?.sectionDivider,
   );
@@ -2696,6 +2710,15 @@ function StyleTokensPane({
   useEffect(() => {
     setAccentColor(tokenValue(tokens?.color?.accent, "#111111"));
     setBodyFont(tokenString(tokens?.typography?.body, "fontFamily"));
+    setBodySize(
+      String(tokenNumber(tokens?.typography?.body, "fontSizePt", 10)),
+    );
+    setHeadingFont(
+      tokenString(tokens?.typography?.sectionHeading, "fontFamily"),
+    );
+    setHeadingSize(
+      String(tokenNumber(tokens?.typography?.sectionHeading, "fontSizePt", 11)),
+    );
     setDividerWidth(
       tokenNumber(tokens?.rules?.sectionDivider, "widthPt", 0.75),
     );
@@ -2707,6 +2730,9 @@ function StyleTokensPane({
     const next = editableStyleTokens(tokens);
     const nextAccent = accentColor.trim();
     const nextBodyFont = bodyFont.trim();
+    const nextBodySize = Number(bodySize);
+    const nextHeadingFont = headingFont.trim();
+    const nextHeadingSize = Number(headingSize);
     const nextSectionGap = Number(sectionGap);
     next.color = {
       ...(next.color ?? {}),
@@ -2718,6 +2744,18 @@ function StyleTokensPane({
       body: {
         ...(isRecord(next.typography?.body) ? next.typography.body : {}),
         ...(nextBodyFont ? { fontFamily: nextBodyFont } : {}),
+        ...(Number.isFinite(nextBodySize) ? { fontSizePt: nextBodySize } : {}),
+        confidence: 1,
+        evidenceRefs: [],
+      },
+      sectionHeading: {
+        ...(isRecord(next.typography?.sectionHeading)
+          ? next.typography.sectionHeading
+          : {}),
+        ...(nextHeadingFont ? { fontFamily: nextHeadingFont } : {}),
+        ...(Number.isFinite(nextHeadingSize)
+          ? { fontSizePt: nextHeadingSize }
+          : {}),
         confidence: 1,
         evidenceRefs: [],
       },
@@ -2795,21 +2833,85 @@ function StyleTokensPane({
               onChange={(event) => setBodyFont(event.currentTarget.value)}
               placeholder="Arial, sans-serif"
             />
-            {bodyFontCandidates.length ? (
+            {bodyTypographyCandidates.length ? (
               <select
                 className="h-8 w-full rounded-sm border border-border bg-background px-2 text-xs text-foreground"
-                aria-label="Body font candidate"
-                value={bodyFont}
-                onChange={(event) => setBodyFont(event.currentTarget.value)}
+                aria-label="Body typography candidate"
+                value=""
+                onChange={(event) => {
+                  const candidate =
+                    bodyTypographyCandidates[Number(event.currentTarget.value)];
+                  if (!candidate) return;
+                  if (candidate.value.fontFamily) {
+                    setBodyFont(candidate.value.fontFamily);
+                  }
+                  if (typeof candidate.value.fontSizePt === "number") {
+                    setBodySize(String(candidate.value.fontSizePt));
+                  }
+                }}
               >
-                <option value={bodyFont}>Current: {bodyFont}</option>
-                {bodyFontCandidates.map((candidate) => (
-                  <option key={candidate.value} value={candidate.value}>
+                <option value="">Current: {bodyFont || "detected"}</option>
+                {bodyTypographyCandidates.map((candidate, index) => (
+                  <option key={`${candidate.label}-${index}`} value={index}>
                     {candidate.label}
                   </option>
                 ))}
               </select>
             ) : null}
+          </label>
+          <label className="space-y-1 text-xs text-muted-foreground">
+            <span>Body size pt</span>
+            <Input
+              value={bodySize}
+              aria-label="Body font size"
+              onChange={(event) => setBodySize(event.currentTarget.value)}
+              inputMode="decimal"
+            />
+          </label>
+          <label className="space-y-1 text-xs text-muted-foreground">
+            <span>Section heading font</span>
+            <Input
+              value={headingFont}
+              aria-label="Section heading font"
+              onChange={(event) => setHeadingFont(event.currentTarget.value)}
+              placeholder="Arial, sans-serif"
+            />
+            {headingTypographyCandidates.length ? (
+              <select
+                className="h-8 w-full rounded-sm border border-border bg-background px-2 text-xs text-foreground"
+                aria-label="Section heading typography candidate"
+                value=""
+                onChange={(event) => {
+                  const candidate =
+                    headingTypographyCandidates[
+                      Number(event.currentTarget.value)
+                    ];
+                  if (!candidate) return;
+                  if (candidate.value.fontFamily) {
+                    setHeadingFont(candidate.value.fontFamily);
+                  }
+                  if (typeof candidate.value.fontSizePt === "number") {
+                    setHeadingSize(String(candidate.value.fontSizePt));
+                  }
+                }}
+              >
+                <option value="">Current: {headingFont || "detected"}</option>
+                {headingTypographyCandidates.map((candidate, index) => (
+                  <option key={`${candidate.label}-${index}`} value={index}>
+                    {candidate.label}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+          </label>
+          <label className="space-y-1 text-xs text-muted-foreground">
+            <span>Heading size pt</span>
+            <Input
+              value={headingSize}
+              aria-label="Section heading font size"
+              onChange={(event) => setHeadingSize(event.currentTarget.value)}
+              inputMode="decimal"
+            />
           </label>
           <label className="space-y-1 text-xs text-muted-foreground">
             <span>Divider width pt</span>
@@ -3212,23 +3314,39 @@ function scalarTokenCandidates(
     );
 }
 
-function typographyFontCandidates(
-  value: unknown,
-): Array<{ label: string; value: string }> {
+function typographyTokenCandidates(value: unknown): Array<{
+  label: string;
+  value: { fontFamily?: string; fontSizePt?: number };
+}> {
   if (!isRecord(value) || !Array.isArray(value.candidates)) return [];
   return value.candidates
     .map((candidate) => {
       if (!isRecord(candidate) || !isRecord(candidate.value)) return null;
       const fontFamily = candidate.value.fontFamily;
-      if (typeof fontFamily !== "string") return null;
+      const fontSizePt = candidate.value.fontSizePt;
+      if (typeof fontFamily !== "string" && typeof fontSizePt !== "number") {
+        return null;
+      }
       return {
-        value: fontFamily,
+        value: {
+          ...(typeof fontFamily === "string" ? { fontFamily } : {}),
+          ...(typeof fontSizePt === "number" ? { fontSizePt } : {}),
+        },
         label:
-          typeof candidate.label === "string" ? candidate.label : fontFamily,
+          typeof candidate.label === "string"
+            ? candidate.label
+            : [fontFamily, fontSizePt ? `${fontSizePt}pt` : null]
+                .filter(Boolean)
+                .join(" "),
       };
     })
-    .filter((candidate): candidate is { label: string; value: string } =>
-      Boolean(candidate),
+    .filter(
+      (
+        candidate,
+      ): candidate is {
+        label: string;
+        value: { fontFamily?: string; fontSizePt?: number };
+      } => Boolean(candidate),
     );
 }
 

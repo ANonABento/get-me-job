@@ -610,8 +610,17 @@ describe("CustomTemplateManagerDialog", () => {
     fireEvent.change(screen.getByLabelText("Accent color candidate"), {
       target: { value: "#0f766e" },
     });
-    fireEvent.change(screen.getByLabelText("Body font candidate"), {
-      target: { value: "Georgia, serif" },
+    fireEvent.change(screen.getByLabelText("Body typography candidate"), {
+      target: { value: "1" },
+    });
+    fireEvent.change(
+      screen.getByLabelText("Section heading typography candidate"),
+      {
+        target: { value: "1" },
+      },
+    );
+    fireEvent.change(screen.getByLabelText("Section heading font size"), {
+      target: { value: "13" },
     });
     fireEvent.change(screen.getByLabelText("Section divider width candidate"), {
       target: { value: "1.25" },
@@ -629,6 +638,11 @@ describe("CustomTemplateManagerDialog", () => {
       expect(latest.styleTokens.typography.body.fontFamily).toBe(
         "Georgia, serif",
       );
+      expect(latest.styleTokens.typography.body.fontSizePt).toBe(11);
+      expect(latest.styleTokens.typography.sectionHeading.fontFamily).toBe(
+        "Aptos, sans-serif",
+      );
+      expect(latest.styleTokens.typography.sectionHeading.fontSizePt).toBe(13);
       expect(latest.styleTokens.rules.sectionDivider.widthPt).toBe(1.25);
       expect(latest.styleTokens.spacing.sectionGapPt.value).toBe(12);
     });
@@ -1241,15 +1255,30 @@ function migrationDraft() {
           candidates: [
             {
               label: "Inter (4 refs)",
-              value: { fontFamily: "Inter" },
+              value: { fontFamily: "Inter", fontSizePt: 11 },
             },
             {
               label: "Georgia, serif (2 refs)",
-              value: { fontFamily: "Georgia, serif" },
+              value: { fontFamily: "Georgia, serif", fontSizePt: 11 },
             },
           ],
         },
-        sectionHeading: { fontWeight: "700", textTransform: "uppercase" },
+        sectionHeading: {
+          fontFamily: "Inter",
+          fontSizePt: 12,
+          fontWeight: "700",
+          textTransform: "uppercase",
+          candidates: [
+            {
+              label: "Inter (2 refs)",
+              value: { fontFamily: "Inter", fontSizePt: 12 },
+            },
+            {
+              label: "Aptos, sans-serif (1 ref)",
+              value: { fontFamily: "Aptos, sans-serif", fontSizePt: 14 },
+            },
+          ],
+        },
       },
       color: {
         body: { value: "#111111" },

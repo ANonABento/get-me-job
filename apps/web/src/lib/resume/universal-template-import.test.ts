@@ -252,6 +252,16 @@ describe("universal template import analysis", () => {
         }),
       ]),
     );
+    expect(tokens.typography.sectionHeading?.candidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          value: expect.objectContaining({
+            fontFamily: "Aptos, sans-serif",
+            fontSizePt: 11,
+          }),
+        }),
+      ]),
+    );
     expect(tokens.rules.sectionDivider).toMatchObject({
       widthPt: 0.75,
       color: "#0f766e",
