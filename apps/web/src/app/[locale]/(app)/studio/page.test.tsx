@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import { KeyboardShortcutsProvider } from "@/components/keyboard-shortcuts";
 import { ToastProvider } from "@/components/ui/toast";
+import { clearCustomTemplateCache } from "@/lib/templates/use-custom-templates";
 import StudioPage from "./page";
 import type { BankEntry } from "@/types";
 
@@ -42,6 +43,12 @@ vi.mock("@/components/builder/section-list", () => ({
 
 vi.mock("@/components/studio/resume-preview", () => ({
   ResumePreview: (props: {
+    templateId?: string;
+    resolvedResumeTemplate?: {
+      id: string;
+      name: string;
+      schemaVersion?: number;
+    };
     html?: string;
     content?: unknown;
     onAddFromBank?: () => void;
@@ -190,6 +197,47 @@ function pressShortcut(
   });
 }
 
+function reusableTemplateApiItem(id: string) {
+  return {
+    schemaVersion: 4,
+    id,
+    name: "Reusable Resume",
+    source: { filename: "resume.pdf", type: "pdf" },
+    page: { widthPt: 612, heightPt: 792, marginPt: 36 },
+    tokens: {
+      page: { widthPt: 612, heightPt: 792, marginPt: 36 },
+      typography: {
+        body: {
+          fontFamily: "Courier New, monospace",
+          fontSizePt: 10,
+          lineHeight: "1.35",
+        },
+        name: {
+          fontFamily: "Courier New, monospace",
+          fontSizePt: 22,
+          lineHeight: "1.1",
+        },
+        sectionHeading: {
+          fontFamily: "Courier New, monospace",
+          fontSizePt: 12,
+          lineHeight: "1.2",
+        },
+      },
+      color: { accent: { value: "#123456" } },
+      spacing: {},
+      rules: { sectionDivider: { widthPt: 1, color: "#123456" } },
+      layout: {
+        columns: { value: 1 },
+        headerMode: { value: "stacked" },
+      },
+      warnings: [],
+    },
+    components: [],
+    sectionOrder: ["experience", "skills"],
+    diagnostics: [],
+  };
+}
+
 async function flushMicrotasks() {
   await act(async () => {
     await Promise.resolve();
@@ -200,6 +248,7 @@ describe("StudioPage", () => {
   beforeEach(() => {
     mockShowErrorToast.mockClear();
     mockResumePreview.mockClear();
+    clearCustomTemplateCache();
     mockStorage();
     vi.stubGlobal(
       "fetch",
@@ -786,6 +835,118 @@ describe("StudioPage", () => {
     // became just "PDF" (with a description below). Match by regex so
     // either label survives a future copy revision.
     expect(screen.getByRole("menuitem", { name: /^PDF/i })).toBeInTheDocument();
+  });
+
+  it("reopens a saved reusable template and applies it to newly added content", async () => {
+    mockStorage({
+      "taida:builder:versions:resume": JSON.stringify([
+        {
+          id: "saved-reusable-template",
+          kind: "manual",
+          name: "Saved reusable template",
+          savedAt: "2026-05-20T12:00:00.000Z",
+          state: {
+            documentMode: "resume",
+            selectedIds: [],
+            sections: [
+              "experience",
+              "skill",
+              "project",
+              "education",
+              "certification",
+            ].map((id) => ({ id, visible: true })),
+            templateId: "v4-template",
+            html: "<p>Saved custom preview</p>",
+          },
+        },
+      ]),
+    });
+    const builderBodies: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url === "/api/templates") {
+          return new Response(
+            JSON.stringify({
+              templates: [
+                {
+                  id: "v4-template",
+                  name: "Reusable Resume",
+                  type: "custom",
+                  reusableTemplate: reusableTemplateApiItem("v4-template"),
+                },
+              ],
+            }),
+            { status: 200 },
+          );
+        }
+
+        if (url === "/api/builder") {
+          if (typeof init?.body === "string") {
+            builderBodies.push(JSON.parse(init.body));
+          }
+          return new Response(
+            JSON.stringify({
+              html: "<p>Generated with reusable template</p>",
+              resume: {
+                contact: { name: "Jane Doe" },
+                summary: "Generated summary",
+                experiences: [],
+                skills: ["TypeScript"],
+                education: [],
+              },
+            }),
+            { status: 200 },
+          );
+        }
+
+        return new Response(JSON.stringify({ entries: bankEntries }), {
+          status: 200,
+        });
+      }),
+    );
+
+    renderStudioPage();
+
+    await waitFor(() =>
+      expect(mockResumePreview).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          templateId: "v4-template",
+          resolvedResumeTemplate: expect.objectContaining({
+            id: "v4-template",
+            schemaVersion: 4,
+          }),
+        }),
+      ),
+    );
+    expect(screen.getByTestId("resume-html")).toHaveTextContent(
+      "Saved custom preview",
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Toggle entry" }),
+    );
+
+    await waitFor(() =>
+      expect(builderBodies).toEqual([
+        expect.objectContaining({
+          entryIds: ["entry-1"],
+          templateId: "v4-template",
+        }),
+      ]),
+    );
+    await waitFor(() =>
+      expect(mockResumePreview).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          templateId: "v4-template",
+          resolvedResumeTemplate: expect.objectContaining({
+            id: "v4-template",
+            schemaVersion: 4,
+          }),
+          content: expect.objectContaining({ type: "doc" }),
+        }),
+      ),
+    );
   });
 
   it("shows a save failure status when browser storage rejects a version", async () => {
