@@ -2195,6 +2195,77 @@ function SemanticSectionCard({
     void onUpdateSemanticResume(nextSemantic, "Bullet moved");
   }
 
+  function splitItemFromBullet(itemIndex: number, bulletIndex: number) {
+    if (!semantic) return;
+    const item = section.items[itemIndex];
+    const bullet = item?.bullets?.[bulletIndex]?.trim();
+    if (!item || !bullet) return;
+    const nextSemantic: SemanticDraftResume = {
+      ...semantic,
+      sections: (semantic.sections ?? []).map((candidate) => {
+        if (candidate.id !== section.id) return candidate;
+        const items = candidate.items.map((candidateItem) => ({
+          ...candidateItem,
+          meta: [...(candidateItem.meta ?? [])],
+          bullets: [...(candidateItem.bullets ?? [])],
+          evidenceRefs: [...(candidateItem.evidenceRefs ?? [])],
+        }));
+        const original = items[itemIndex];
+        const movedBullets = original.bullets.slice(bulletIndex + 1);
+        items[itemIndex] = {
+          ...original,
+          bullets: original.bullets.slice(0, bulletIndex),
+        };
+        items.splice(itemIndex + 1, 0, {
+          primary: bullet,
+          meta: [],
+          bullets: movedBullets,
+          confidence: Math.min(original.confidence ?? 0.7, 0.7),
+          evidenceRefs: [...(original.evidenceRefs ?? [])],
+        });
+        return { ...candidate, items };
+      }),
+    };
+    void onUpdateSemanticResume(nextSemantic, "Semantic item split");
+  }
+
+  function mergeItemIntoPrevious(itemIndex: number) {
+    if (!semantic || itemIndex <= 0) return;
+    const item = section.items[itemIndex];
+    if (!item) return;
+    const nextSemantic: SemanticDraftResume = {
+      ...semantic,
+      sections: (semantic.sections ?? []).map((candidate) => {
+        if (candidate.id !== section.id) return candidate;
+        const items = candidate.items.map((candidateItem) => ({
+          ...candidateItem,
+          meta: [...(candidateItem.meta ?? [])],
+          bullets: [...(candidateItem.bullets ?? [])],
+          evidenceRefs: [...(candidateItem.evidenceRefs ?? [])],
+        }));
+        const previous = items[itemIndex - 1];
+        const current = items[itemIndex];
+        const mergedHeader = semanticItemHeaderText(current);
+        previous.bullets = [
+          ...previous.bullets,
+          ...(mergedHeader ? [mergedHeader] : []),
+          ...current.bullets,
+        ];
+        previous.evidenceRefs = uniqueStrings([
+          ...previous.evidenceRefs,
+          ...current.evidenceRefs,
+        ]);
+        previous.confidence = Math.min(
+          previous.confidence ?? 0.7,
+          current.confidence ?? 0.7,
+        );
+        items.splice(itemIndex, 1);
+        return { ...candidate, items };
+      }),
+    };
+    void onUpdateSemanticResume(nextSemantic, "Semantic items merged");
+  }
+
   return (
     <div className="rounded-sm border border-border bg-muted/10 p-2">
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px_auto]">
@@ -2257,15 +2328,30 @@ function SemanticSectionCard({
       <div className="mt-2 space-y-2">
         {section.items.slice(0, 8).map((item, itemIndex) => (
           <div key={`${section.id}-${itemIndex}`} className="border-l pl-2">
-            <div className="flex items-baseline justify-between gap-2">
+            <div className="flex items-start justify-between gap-2">
               <p className="font-medium text-foreground">
                 {item.primary || "Untitled item"}
               </p>
-              {item.dateRange ? (
-                <p className="shrink-0 text-[10px] text-muted-foreground">
-                  {item.dateRange}
-                </p>
-              ) : null}
+              <div className="flex shrink-0 items-center gap-1">
+                {item.dateRange ? (
+                  <p className="text-[10px] text-muted-foreground">
+                    {item.dateRange}
+                  </p>
+                ) : null}
+                {section.items.length > 1 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 px-1.5 text-[10px]"
+                    disabled={migrationSaving || itemIndex === 0}
+                    aria-label={`Merge ${item.primary || `item ${itemIndex + 1}`} into previous item`}
+                    onClick={() => mergeItemIntoPrevious(itemIndex)}
+                  >
+                    Merge
+                  </Button>
+                ) : null}
+              </div>
             </div>
             {item.secondary ? (
               <p className="mt-0.5 text-muted-foreground">{item.secondary}</p>
@@ -2276,39 +2362,54 @@ function SemanticSectionCard({
                   <li key={`${bullet}-${bulletIndex}`}>
                     <div className="flex items-start justify-between gap-2">
                       <span>{bullet}</span>
-                      {section.items.length > 1 ? (
-                        <span className="flex shrink-0 gap-1">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-6 px-1.5 text-[10px]"
-                            disabled={migrationSaving || itemIndex === 0}
-                            aria-label={`Move bullet ${bulletIndex + 1} from ${item.primary || `item ${itemIndex + 1}`} to previous item`}
-                            onClick={() =>
-                              moveBullet(itemIndex, bulletIndex, -1)
-                            }
-                          >
-                            Prev
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-6 px-1.5 text-[10px]"
-                            disabled={
-                              migrationSaving ||
-                              itemIndex === section.items.length - 1
-                            }
-                            aria-label={`Move bullet ${bulletIndex + 1} from ${item.primary || `item ${itemIndex + 1}`} to next item`}
-                            onClick={() =>
-                              moveBullet(itemIndex, bulletIndex, 1)
-                            }
-                          >
-                            Next
-                          </Button>
-                        </span>
-                      ) : null}
+                      <span className="flex shrink-0 gap-1">
+                        {section.items.length > 1 ? (
+                          <>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-6 px-1.5 text-[10px]"
+                              disabled={migrationSaving || itemIndex === 0}
+                              aria-label={`Move bullet ${bulletIndex + 1} from ${item.primary || `item ${itemIndex + 1}`} to previous item`}
+                              onClick={() =>
+                                moveBullet(itemIndex, bulletIndex, -1)
+                              }
+                            >
+                              Prev
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-6 px-1.5 text-[10px]"
+                              disabled={
+                                migrationSaving ||
+                                itemIndex === section.items.length - 1
+                              }
+                              aria-label={`Move bullet ${bulletIndex + 1} from ${item.primary || `item ${itemIndex + 1}`} to next item`}
+                              onClick={() =>
+                                moveBullet(itemIndex, bulletIndex, 1)
+                              }
+                            >
+                              Next
+                            </Button>
+                          </>
+                        ) : null}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-6 px-1.5 text-[10px]"
+                          disabled={migrationSaving}
+                          aria-label={`Split ${item.primary || `item ${itemIndex + 1}`} from bullet ${bulletIndex + 1}`}
+                          onClick={() =>
+                            splitItemFromBullet(itemIndex, bulletIndex)
+                          }
+                        >
+                          Split
+                        </Button>
+                      </span>
                     </div>
                   </li>
                 ))}
@@ -2677,6 +2778,24 @@ function TokenSummaryCard({ title, value }: { title: string; value: string }) {
 
 function formatConfidence(value: number | undefined): string {
   return `${Math.round((value ?? 0) * 100)}%`;
+}
+
+function semanticItemHeaderText(
+  item: SemanticDraftSection["items"][number],
+): string {
+  return [
+    item.primary,
+    item.secondary,
+    item.location,
+    ...(item.meta ?? []),
+    item.dateRange,
+  ]
+    .filter(Boolean)
+    .join(" | ");
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return Array.from(new Set(values.filter(Boolean)));
 }
 
 function formatTokenJson(value: unknown): string {

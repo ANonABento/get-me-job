@@ -648,10 +648,13 @@ As of the latest implementation slice, the system has:
   for header fields and bullet-vs-paragraph achievement rendering.
 - Basic semantic review controls for section type/title correction and moving
   bullets between adjacent items.
+- Basic split/merge controls for semantic items, preserving merged item headers
+  as achievement text so user content is not silently dropped.
 
 Known remaining gaps:
 
-- Split/merge semantic items are not complete in the app review UI.
+- Split/merge semantic item controls are basic adjacent operations; richer
+  editing of primary/secondary/date fields after a split is still not complete.
 - Move-bullet controls are basic adjacent-item controls; richer drag/drop or
   arbitrary target selection is still not complete.
 - Style token candidate selection is not complete; direct token overrides exist
