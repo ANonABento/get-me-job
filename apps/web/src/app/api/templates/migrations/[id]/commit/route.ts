@@ -29,21 +29,20 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
     );
   }
 
-  if (!draft.templateV3) {
+  if (!draft.reusableTemplate && !draft.templateV3) {
     return NextResponse.json(
       {
-        error: "This draft does not contain a V3 visual template.",
+        error: "This draft does not contain a reusable or V3 visual template.",
         code: "visual_template_missing",
       },
       { status: 422 },
     );
   }
 
-  const visualFidelity = assessVisualTemplateFidelity(
-    draft.source,
-    draft.templateV3,
-  );
-  if (visualFidelity.status === "low") {
+  const visualFidelity = draft.templateV3
+    ? assessVisualTemplateFidelity(draft.source, draft.templateV3)
+    : null;
+  if (!draft.reusableTemplate && visualFidelity?.status === "low") {
     return NextResponse.json(
       {
         error: LOW_VISUAL_FIDELITY_MESSAGE,
@@ -57,7 +56,7 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
   const saved = draft.reusableTemplate
     ? saveReusableResumeTemplate(authResult.userId, {
         ...draft.reusableTemplate,
-        name: draft.templateV3.name ?? draft.reusableTemplate.name,
+        name: draft.templateV3?.name ?? draft.reusableTemplate.name,
       })
     : saveDocumentTemplateV3(authResult.userId, draft.templateV3);
   const updated = updateTemplateMigrationDraft(params.id, authResult.userId, {

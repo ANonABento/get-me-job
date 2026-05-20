@@ -152,6 +152,44 @@ describe("/api/templates/migrations/:id/commit", () => {
       fidelity: { status: "low" },
     });
   });
+
+  it("saves reusable V4 artifacts even when legacy V3 evidence is low fidelity", async () => {
+    mocks.getTemplateMigrationDraft.mockReturnValue({
+      ...sampleLowFidelityV3Draft(),
+      reusableTemplate: sampleReusableTemplate(),
+    });
+    mocks.updateTemplateMigrationDraft.mockReturnValue({
+      ...sampleLowFidelityV3Draft(),
+      status: "committed",
+      committedTemplateId: "template-v4",
+    });
+
+    const response = await POST(
+      new NextRequest(
+        "http://localhost/api/templates/migrations/draft-1/commit",
+        {
+          method: "POST",
+        },
+      ),
+      { params: { id: "draft-1" } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.saveReusableResumeTemplate).toHaveBeenCalledWith(
+      "user-1",
+      expect.objectContaining({
+        schemaVersion: 4,
+        name: "Broken visual template",
+      }),
+    );
+    expect(mocks.saveDocumentTemplateV3).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toMatchObject({
+      template: {
+        id: "template-v4",
+        schemaVersion: 4,
+      },
+    });
+  });
 });
 
 function sampleDraft() {

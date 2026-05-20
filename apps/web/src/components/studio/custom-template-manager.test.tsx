@@ -270,6 +270,58 @@ describe("CustomTemplateManagerDialog", () => {
     ).toBeDisabled();
   });
 
+  it("does not block saving when reusable V4 artifacts exist with weak V3 evidence", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/templates/migrate") {
+        return Response.json({
+          draft: {
+            ...lowFidelityMigrationDraft(),
+            confidence: "low",
+            reusableTemplate: migrationDraft().reusableTemplate,
+            reusableHtml: migrationDraft().reusableHtml,
+          },
+          warnings: [],
+          confidence: "low",
+        });
+      }
+      if (url === "/api/templates/v3/preview") {
+        return Response.json({
+          html: "<html><body><article>Partial preview</article></body></html>",
+          pdfOptions: { format: "Letter" },
+        });
+      }
+      return Response.json({ templates: [] });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderDialog();
+
+    const inputs =
+      document.querySelectorAll<HTMLInputElement>("input[type='file']");
+    fireEvent.change(inputs[0], {
+      target: {
+        files: [
+          new File(["%PDF-1.7"], "resume.pdf", {
+            type: "application/pdf",
+          }),
+        ],
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Review carefully")).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByText(
+        "Could not read enough layout structure from this file. Try DOCX/LaTeX, or use a selectable PDF with visible text.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Save visual template" }),
+    ).not.toBeDisabled();
+  });
+
   it("lets reviewers correct semantic section mappings and regenerate reusable artifacts", async () => {
     const fetchMock = vi.fn(
       async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -697,6 +749,8 @@ function migrationDraft() {
 function lowFidelityMigrationDraft() {
   return {
     ...migrationDraft(),
+    reusableTemplate: undefined,
+    reusableHtml: undefined,
     templateV3: {
       schemaVersion: 3,
       id: "template-v3",

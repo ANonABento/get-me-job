@@ -1767,7 +1767,9 @@ function migrationReadiness(draft: TemplateMigrationDraft): {
 function visualTemplateBlockingMessage(
   draft: TemplateMigrationDraft,
 ): string | null {
-  return draft.templateV3 && draft.fidelity?.status === "low"
+  return !draft.reusableTemplate &&
+    draft.templateV3 &&
+    draft.fidelity?.status === "low"
     ? LOW_VISUAL_FIDELITY_MESSAGE
     : null;
 }
