@@ -79,8 +79,12 @@ export function RenderChunk({
       );
 
     case "title":
+      // audit/12: was text-3xl md:text-4xl (30/36px). On a 390px-wide
+      // review deck the 3xl wraps a typical "Senior Frontend Engineer"
+      // to 2 lines and eats vertical density when scanning a queue.
+      // Drop mobile to text-2xl (24px); desktop md:text-4xl unchanged.
       return (
-        <h2 className="mt-2 font-display text-3xl font-bold leading-tight tracking-tight md:text-4xl">
+        <h2 className="mt-2 font-display text-2xl font-bold leading-tight tracking-tight md:text-4xl">
           {opportunity.title}
         </h2>
       );
