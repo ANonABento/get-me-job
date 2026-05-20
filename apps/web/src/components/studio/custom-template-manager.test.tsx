@@ -77,28 +77,39 @@ describe("CustomTemplateManagerDialog", () => {
 
     await waitFor(() => {
       expect(screen.getByText("resume.pdf")).toBeInTheDocument();
-      expect(screen.getByText("Rendered preview")).toBeInTheDocument();
+      expect(screen.getAllByText("Reusable render").length).toBeGreaterThan(0);
       expect(screen.getByText("Ready to save")).toBeInTheDocument();
       expect(screen.getByText("Style captured")).toBeInTheDocument();
-      expect(screen.getByText("Detected structure")).toBeInTheDocument();
-      expect(screen.getByText("Outer table")).toBeInTheDocument();
     });
-    fireEvent.click(screen.getByRole("button", { name: "Original" }));
+    fireEvent.click(screen.getByRole("button", { name: "Semantic Tree" }));
+    expect(screen.getByText("Semantic tree")).toBeInTheDocument();
+    expect(screen.getByText("Experience")).toBeInTheDocument();
+    expect(screen.getByText("Built migration tooling.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Style Tokens" }));
+    expect(screen.getByText("Style tokens")).toBeInTheDocument();
+    expect(screen.getByText("Reusable components")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Structure" }));
+    expect(screen.getByText("Detected structure")).toBeInTheDocument();
+    expect(screen.getByText("Outer table")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Source Evidence" }));
     expect(screen.getByText("Source layout")).toBeInTheDocument();
-
-    await waitFor(() => {
-      expect(screen.getByTitle("Visual template preview")).toBeInTheDocument();
-    });
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/templates/v3/preview",
-      expect.objectContaining({ method: "POST" }),
-    );
     expect(
       screen.getByLabelText("Select source block Jane Rivera"),
     ).toBeInTheDocument();
     expect(screen.getAllByText("Name").length).toBeGreaterThan(0);
     expect(screen.getByText("DOCX")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Visual Evidence" }));
+    expect(screen.getByText("Visual evidence render")).toBeInTheDocument();
 
+    await waitFor(() => {
+      expect(screen.getByTitle("Visual evidence render")).toBeInTheDocument();
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/templates/v3/preview",
+      expect.objectContaining({ method: "POST" }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Source Evidence" }));
     fireEvent.click(screen.getByText("Skills | PDF | DOCX"));
     fireEvent.click(screen.getByRole("button", { name: "Structure" }));
     fireEvent.click(screen.getByRole("button", { name: "Mark repeat" }));
@@ -423,6 +434,68 @@ function migrationDraft() {
       ],
       diagnostics: [],
     },
+    universalAnalysis: {
+      readiness: "ready",
+      scores: {
+        sourceEvidence: 0.9,
+        semanticCoverage: 0.85,
+        styleCoverage: 0.8,
+        layoutResilience: 0.75,
+      },
+      warnings: [],
+    },
+    semanticResume: {
+      contact: {
+        name: "Jane Rivera",
+        email: "jane@example.com",
+        confidence: 0.95,
+      },
+      sections: [
+        {
+          id: "section-experience",
+          type: "experience",
+          title: "Experience",
+          confidence: 0.9,
+          items: [
+            {
+              primary: "Senior Engineer",
+              secondary: "Acme",
+              dateRange: "2024 - Present",
+              bullets: ["Built migration tooling."],
+              confidence: 0.86,
+            },
+          ],
+        },
+      ],
+      warnings: [],
+    },
+    styleTokens: {
+      page: { widthPt: 612, heightPt: 792 },
+      typography: {
+        body: { fontFamily: "Inter", fontSizePt: 11 },
+        sectionHeading: { fontWeight: "700", textTransform: "uppercase" },
+      },
+      color: { body: { value: "#111111" }, accent: { value: "#2563eb" } },
+      spacing: { sectionGapPt: { value: 8 } },
+      rules: { sectionDivider: { widthPt: 0.75, color: "#2563eb" } },
+      layout: { headerMode: { value: "split" } },
+      warnings: [],
+    },
+    reusableTemplate: {
+      schemaVersion: 4,
+      sectionOrder: ["experience"],
+      components: [
+        { kind: "HeaderBlock", id: "header" },
+        {
+          kind: "Section",
+          id: "section-experience",
+          sectionType: "experience",
+        },
+      ],
+      diagnostics: [],
+    },
+    reusableHtml:
+      "<html><body><article><h1>Jane Rivera</h1><section>Reusable render</section></article></body></html>",
     fidelity: {
       score: 86,
       status: "ready",

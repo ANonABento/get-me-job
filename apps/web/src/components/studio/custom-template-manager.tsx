@@ -88,7 +88,13 @@ type VisualTemplateV3 = {
   repeatGroups?: V3RepeatGroup[];
 } & Record<string, unknown>;
 
-type ReviewPane = "original" | "structure" | "preview";
+type ReviewPane =
+  | "reusable"
+  | "semantic"
+  | "style"
+  | "structure"
+  | "original"
+  | "preview";
 
 type V3RepeatCollection =
   | "experiences"
@@ -138,6 +144,54 @@ interface TemplateMigrationDraft {
   resume: TailoredResume;
   template: TemplateMigrationTemplate;
   templateV3?: VisualTemplateV3;
+  universalAnalysis?: {
+    readiness?: string;
+    scores?: Record<string, number>;
+    warnings?: string[];
+  };
+  semanticResume?: {
+    contact?: {
+      name?: string;
+      email?: string;
+      phone?: string;
+      location?: string;
+      linkedin?: string;
+      github?: string;
+      confidence?: number;
+    };
+    sections?: Array<{
+      id: string;
+      type: string;
+      title: string;
+      confidence?: number;
+      items: Array<{
+        primary: string;
+        secondary?: string;
+        location?: string;
+        dateRange?: string;
+        meta?: string[];
+        bullets?: string[];
+        confidence?: number;
+      }>;
+    }>;
+    warnings?: string[];
+  };
+  styleTokens?: {
+    page?: Record<string, unknown>;
+    typography?: Record<string, unknown>;
+    color?: Record<string, unknown>;
+    spacing?: Record<string, unknown>;
+    rules?: Record<string, unknown>;
+    layout?: Record<string, unknown>;
+    warnings?: string[];
+  };
+  reusableTemplate?: {
+    schemaVersion?: number;
+    sectionOrder?: string[];
+    components?: Array<{ kind?: string; sectionType?: string; id?: string }>;
+    diagnostics?: string[];
+  };
+  reusableHtml?: string;
   fidelity?: {
     score: number;
     status: "ready" | "review" | "low";
@@ -326,7 +380,7 @@ export function CustomTemplateManagerDialog({
       setSelectedExperienceIndex(0);
       setSelectedEducationIndex(0);
       setSelectedProjectIndex(0);
-      setReviewPane("structure");
+      setReviewPane(body.draft.reusableHtml ? "reusable" : "structure");
       addToast({
         type: "success",
         title: "Layout reference ready",
@@ -844,9 +898,17 @@ export function CustomTemplateManagerDialog({
                 <div className="bg-muted/10 p-4">
                   <div className="space-y-3 lg:sticky lg:top-4">
                     <TemplatePreview
-                      html={previewHtml}
-                      loading={previewLoading}
-                      error={previewError}
+                      title={
+                        migrationDraft.reusableHtml
+                          ? "Reusable render"
+                          : "Visual evidence render"
+                      }
+                      emptyMessage="Preview will appear after the template draft renders."
+                      html={migrationDraft.reusableHtml ?? previewHtml}
+                      loading={
+                        migrationDraft.reusableHtml ? false : previewLoading
+                      }
+                      error={migrationDraft.reusableHtml ? null : previewError}
                     />
                     {visualTemplateBlockingMessage(migrationDraft) ? (
                       <div className="rounded-md border border-amber-700/25 bg-amber-700/10 px-3 py-2 text-xs leading-5 text-amber-900">
@@ -966,14 +1028,17 @@ function VisualTemplateReviewPanes({
     <div className="rounded-md border border-border bg-background">
       <div className="border-b border-border p-2">
         <div
-          className="grid gap-1 rounded-sm bg-muted/40 p-1 text-xs sm:grid-cols-3"
+          className="grid gap-1 rounded-sm bg-muted/40 p-1 text-xs sm:grid-cols-3 lg:grid-cols-6"
           aria-label="Visual template review panes"
         >
           {(
             [
-              ["original", "Original"],
+              ["reusable", "Reusable Render"],
+              ["semantic", "Semantic Tree"],
+              ["style", "Style Tokens"],
               ["structure", "Structure"],
-              ["preview", "Template Preview"],
+              ["original", "Source Evidence"],
+              ["preview", "Visual Evidence"],
             ] as Array<[ReviewPane, string]>
           ).map(([pane, label]) => (
             <button
@@ -992,7 +1057,23 @@ function VisualTemplateReviewPanes({
         </div>
       </div>
       <div className="p-3">
-        {activePane === "original" ? (
+        {activePane === "reusable" ? (
+          <TemplatePreview
+            title="Reusable render"
+            emptyMessage="Reusable render will appear after semantic template generation."
+            html={draft.reusableHtml ?? ""}
+            loading={false}
+            error={
+              draft.reusableHtml
+                ? null
+                : "Reusable render is unavailable for this draft."
+            }
+          />
+        ) : activePane === "semantic" ? (
+          <SemanticTreePane draft={draft} />
+        ) : activePane === "style" ? (
+          <StyleTokensPane draft={draft} />
+        ) : activePane === "original" ? (
           <div className="space-y-3">
             <SourceLayoutPreview
               draft={draft}
@@ -1007,6 +1088,8 @@ function VisualTemplateReviewPanes({
           </div>
         ) : activePane === "preview" ? (
           <TemplatePreview
+            title="Visual evidence render"
+            emptyMessage="Visual evidence render will appear after the V3 draft renders."
             html={previewHtml}
             loading={previewLoading}
             error={previewError}
@@ -1820,6 +1903,177 @@ function migrationNotes(draft: TemplateMigrationDraft): string[] {
   });
 }
 
+function SemanticTreePane({ draft }: { draft: TemplateMigrationDraft }) {
+  const semantic = draft.semanticResume;
+  const sections = semantic?.sections ?? [];
+  return (
+    <div className="rounded-md border bg-muted/20 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium uppercase text-muted-foreground">
+          Semantic tree
+        </p>
+        <p className="text-[10px] text-muted-foreground">
+          {sections.length} sections
+        </p>
+      </div>
+      <div className="mt-2 max-h-[420px] space-y-3 overflow-auto rounded-sm border bg-background p-3 text-xs">
+        <div>
+          <p className="font-medium text-foreground">
+            {semantic?.contact?.name || draft.resume.contact.name || "Contact"}
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            {[
+              semantic?.contact?.email,
+              semantic?.contact?.phone,
+              semantic?.contact?.location,
+              semantic?.contact?.linkedin,
+              semantic?.contact?.github,
+            ]
+              .filter(Boolean)
+              .join(" | ") || "No contact details detected"}
+          </p>
+        </div>
+        {sections.length ? (
+          sections.map((section) => (
+            <div
+              key={section.id}
+              className="rounded-sm border border-border bg-muted/10 p-2"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-medium text-foreground">
+                  {section.title || section.type}
+                </p>
+                <span className="rounded-sm bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
+                  {section.type}
+                </span>
+              </div>
+              <div className="mt-2 space-y-2">
+                {section.items.slice(0, 8).map((item, index) => (
+                  <div
+                    key={`${section.id}-${index}`}
+                    className="border-l border-border pl-2"
+                  >
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="font-medium text-foreground">
+                        {item.primary || "Untitled item"}
+                      </p>
+                      {item.dateRange ? (
+                        <p className="shrink-0 text-[10px] text-muted-foreground">
+                          {item.dateRange}
+                        </p>
+                      ) : null}
+                    </div>
+                    {item.secondary ? (
+                      <p className="mt-0.5 text-muted-foreground">
+                        {item.secondary}
+                      </p>
+                    ) : null}
+                    {item.bullets?.length ? (
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted-foreground">
+                        {item.bullets.slice(0, 5).map((bullet) => (
+                          <li key={bullet}>{bullet}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-muted-foreground">
+            Semantic sections are unavailable for this draft.
+          </p>
+        )}
+        {semantic?.warnings?.length ? (
+          <div className="rounded-sm border border-amber-700/20 bg-amber-700/5 p-2 text-amber-800">
+            {semantic.warnings.slice(0, 4).join(" ")}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function StyleTokensPane({ draft }: { draft: TemplateMigrationDraft }) {
+  const tokens = draft.styleTokens;
+  const analysis = draft.universalAnalysis;
+  const template = draft.reusableTemplate;
+  return (
+    <div className="rounded-md border bg-muted/20 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium uppercase text-muted-foreground">
+          Style tokens
+        </p>
+        <p className="text-[10px] text-muted-foreground">
+          {analysis?.readiness ?? "unknown"} readiness
+        </p>
+      </div>
+      <div className="mt-2 grid gap-3 lg:grid-cols-2">
+        <TokenSummaryCard title="Page" value={formatTokenJson(tokens?.page)} />
+        <TokenSummaryCard
+          title="Typography"
+          value={formatTokenJson(tokens?.typography)}
+        />
+        <TokenSummaryCard
+          title="Color"
+          value={formatTokenJson(tokens?.color)}
+        />
+        <TokenSummaryCard
+          title="Spacing"
+          value={formatTokenJson(tokens?.spacing)}
+        />
+        <TokenSummaryCard
+          title="Rules"
+          value={formatTokenJson(tokens?.rules)}
+        />
+        <TokenSummaryCard
+          title="Reusable components"
+          value={
+            template?.components?.length
+              ? template.components
+                  .map((component) =>
+                    component.sectionType
+                      ? `${component.kind}:${component.sectionType}`
+                      : component.kind,
+                  )
+                  .filter(Boolean)
+                  .join("\n")
+              : "No reusable components available"
+          }
+        />
+      </div>
+      {tokens?.warnings?.length || template?.diagnostics?.length ? (
+        <div className="mt-3 rounded-sm border border-amber-700/20 bg-amber-700/5 p-2 text-xs text-amber-800">
+          {[...(tokens?.warnings ?? []), ...(template?.diagnostics ?? [])]
+            .slice(0, 6)
+            .join(" ")}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function TokenSummaryCard({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="min-h-24 rounded-sm border border-border bg-background p-2">
+      <p className="text-[10px] font-medium uppercase text-muted-foreground">
+        {title}
+      </p>
+      <pre className="mt-1 whitespace-pre-wrap break-words text-[11px] leading-5 text-foreground">
+        {value}
+      </pre>
+    </div>
+  );
+}
+
+function formatTokenJson(value: unknown): string {
+  if (!value || (isRecord(value) && Object.keys(value).length === 0)) {
+    return "Not detected";
+  }
+  return JSON.stringify(value, null, 2);
+}
+
 function SourceLayoutPreview({
   draft,
   selectedBlockId,
@@ -1951,10 +2205,14 @@ function SourceBlocksList({
 }
 
 function TemplatePreview({
+  title,
+  emptyMessage,
   html,
   loading,
   error,
 }: {
+  title: string;
+  emptyMessage: string;
   html: string;
   loading: boolean;
   error: string | null;
@@ -1963,7 +2221,7 @@ function TemplatePreview({
     <div className="rounded-md border bg-muted/20 p-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-medium uppercase text-muted-foreground">
-          Rendered preview
+          {title}
         </p>
         {loading ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
@@ -1974,13 +2232,13 @@ function TemplatePreview({
           <div className="p-4 text-xs text-muted-foreground">{error}</div>
         ) : html ? (
           <iframe
-            title="Visual template preview"
+            title={title}
             className="h-[278%] w-[278%] origin-top-left scale-[0.36] bg-background"
             srcDoc={html}
           />
         ) : (
           <div className="p-4 text-xs text-muted-foreground">
-            Preview will appear after the visual template draft renders.
+            {emptyMessage}
           </div>
         )}
       </div>
