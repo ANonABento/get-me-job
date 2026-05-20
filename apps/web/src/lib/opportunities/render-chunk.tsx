@@ -239,6 +239,32 @@ export function RenderChunk({
       );
     }
 
+    // P1 of bento-builder-redesign-spec: structured sub-sections of
+    // the posting body. Each chunk returns null when its source array
+    // is empty, so users only see what the posting actually has.
+    case "responsibilities":
+      return opportunity.responsibilities &&
+        opportunity.responsibilities.length > 0 ? (
+        <BulletList items={opportunity.responsibilities} max={6} />
+      ) : null;
+
+    case "required-skills":
+      return opportunity.requiredSkills &&
+        opportunity.requiredSkills.length > 0 ? (
+        <ChipCluster items={opportunity.requiredSkills} variant="outline" />
+      ) : null;
+
+    case "preferred-skills":
+      return opportunity.preferredSkills &&
+        opportunity.preferredSkills.length > 0 ? (
+        <ChipCluster items={opportunity.preferredSkills} variant="secondary" />
+      ) : null;
+
+    case "benefits":
+      return opportunity.benefits && opportunity.benefits.length > 0 ? (
+        <BulletList items={opportunity.benefits} max={4} />
+      ) : null;
+
     case "dismiss":
       return (
         <ActionButton
@@ -405,5 +431,53 @@ function QuickActionLink({
       {icon}
       <span className="truncate">{label}</span>
     </Link>
+  );
+}
+
+/**
+ * Compact bulleted list used by the responsibilities + benefits chunks
+ * (P1 of bento-builder-redesign-spec). Shows the first `max` items
+ * verbatim and a "+ N more" tail when the source array overflows.
+ */
+function BulletList({ items, max }: { items: string[]; max: number }) {
+  const visible = items.slice(0, max);
+  const overflow = items.length - visible.length;
+  return (
+    <ul className="space-y-1.5 text-sm leading-6 text-muted-foreground">
+      {visible.map((item) => (
+        <li key={item} className="flex gap-2">
+          <span aria-hidden="true" className="text-muted-foreground/60">
+            ·
+          </span>
+          <span className="min-w-0 flex-1">{item}</span>
+        </li>
+      ))}
+      {overflow > 0 && (
+        <li className="text-xs text-muted-foreground/80">+ {overflow} more</li>
+      )}
+    </ul>
+  );
+}
+
+/**
+ * Skill-chip cluster — used by the required-skills + preferred-skills
+ * chunks. `variant="outline"` for the must-haves; `variant="secondary"`
+ * for the nice-to-haves, so the user can scan importance at a glance.
+ */
+function ChipCluster({
+  items,
+  variant,
+}: {
+  items: string[];
+  variant: "outline" | "secondary";
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {items.map((item) => (
+        <Badge key={item} variant={variant}>
+          {item}
+        </Badge>
+      ))}
+    </div>
   );
 }

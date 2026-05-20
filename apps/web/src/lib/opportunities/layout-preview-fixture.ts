@@ -27,8 +27,19 @@ export const LAYOUT_PREVIEW_OPPORTUNITY: Opportunity = {
   workTerm: "Fall 2026",
   summary:
     "Build the next generation of our editor experience. You'll lead a small team of frontend engineers, set technical direction, and ship features that thousands of users touch every day. We move fast, ship often, and prefer pragmatism over purity.",
-  responsibilities: ["Lead frontend architecture", "Mentor junior engineers"],
+  responsibilities: [
+    "Lead frontend architecture across the editor surfaces",
+    "Mentor junior engineers and run weekly design reviews",
+    "Set the testing + accessibility bar for the team",
+    "Pair with design on the next generation of our component library",
+  ],
   requiredSkills: ["React", "TypeScript", "Next.js"],
+  preferredSkills: ["dnd-kit", "Playwright", "WebGL"],
+  benefits: [
+    "Health + dental from day one",
+    "Remote-first; quarterly company offsites",
+    "$1,500 home-office stipend",
+  ],
   salaryMin: 120_000,
   salaryMax: 160_000,
   salaryCurrency: "USD",

@@ -34,7 +34,20 @@ describe("layoutPreferenceSchema", () => {
         "source-badge",
       ],
       meta: ["applicants", "openings", "work-term", "level", "applicant-ratio"],
-      body: ["location", "salary", "deadline", "tags", "summary"],
+      body: [
+        "location",
+        "salary",
+        "deadline",
+        "tags",
+        "summary",
+        // P1 of bento-builder-redesign-spec — structured sub-sections
+        // of the posting body. Schema must accept them as valid body
+        // chunks.
+        "responsibilities",
+        "required-skills",
+        "preferred-skills",
+        "benefits",
+      ],
       actions: ["dismiss", "apply", "save", "google-company", "open-original"],
       disabled: [],
     };

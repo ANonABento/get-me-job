@@ -31,7 +31,17 @@ export const DEFAULT_DESKTOP_LAYOUT: DeviceLayout = {
   meta: ["applicants", "openings", "work-term", "level"],
   body: ["location", "salary", "deadline", "tags", "summary"],
   actions: ["dismiss", "apply", "save", "google-company", "open-original"],
-  disabled: ["status-pill", "applicant-ratio"],
+  // The four structured-body chunks shipped in P1 of
+  // bento-builder-redesign-spec default to disabled so we don't try
+  // to render empty sections for postings without these fields.
+  disabled: [
+    "status-pill",
+    "applicant-ratio",
+    "responsibilities",
+    "required-skills",
+    "preferred-skills",
+    "benefits",
+  ],
 };
 
 export const DEFAULT_MOBILE_LAYOUT: DeviceLayout = {
@@ -49,6 +59,12 @@ export const DEFAULT_MOBILE_LAYOUT: DeviceLayout = {
     "location",
     "google-company",
     "open-original",
+    // Same rationale as desktop — mobile cards rarely benefit from
+    // the structured sub-section chunks; users opt-in.
+    "responsibilities",
+    "required-skills",
+    "preferred-skills",
+    "benefits",
   ],
 };
 

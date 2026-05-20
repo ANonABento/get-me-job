@@ -116,8 +116,20 @@ export const DEFAULT_DESKTOP_BENTO: BentoDeviceLayout = {
   ],
   // Chunks the user can drag back in. We default-park `status-pill`
   // (redundant with the toolbar PENDING chip), `source-badge` (rare),
-  // and `applicant-ratio` (niche).
-  disabled: ["status-pill", "source-badge", "applicant-ratio"],
+  // and `applicant-ratio` (niche). P1 of bento-builder-redesign-spec
+  // adds the four structured-body chunks here too — not every posting
+  // has responsibilities / skills / benefits arrays populated, so we
+  // let users opt-in by dragging them onto the card rather than
+  // surface empty cells by default.
+  disabled: [
+    "status-pill",
+    "source-badge",
+    "applicant-ratio",
+    "responsibilities",
+    "required-skills",
+    "preferred-skills",
+    "benefits",
+  ],
 };
 
 export const DEFAULT_BENTO_LAYOUT: BentoLayoutPreference = {
