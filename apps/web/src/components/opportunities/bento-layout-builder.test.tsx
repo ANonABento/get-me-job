@@ -228,3 +228,96 @@ describe("BentoLayoutBuilder — tone palette (P2)", () => {
     expect(screen.queryAllByText(/^Rows$/).length).toBe(0);
   });
 });
+
+describe("BentoLayoutBuilder — arrow-key cell control (P4)", () => {
+  // Helper: find the grip handle for the first cell. Aria-label is the
+  // P4 string "Drag cell <Label>. Arrow keys move, shift+arrow resizes."
+  function findFirstGrip() {
+    return screen.getAllByRole("button", { name: /^Drag cell / })[0]!;
+  }
+
+  it("ArrowRight on a focused grip moves the cell right by one column", () => {
+    const onChange = vi.fn();
+    render(
+      <BentoLayoutBuilder value={DEFAULT_BENTO_LAYOUT} onChange={onChange} />,
+    );
+
+    const grip = findFirstGrip();
+    act(() => {
+      grip.focus();
+    });
+    fireEvent.keyDown(grip, { key: "ArrowRight" });
+
+    expect(onChange).toHaveBeenCalled();
+    const next = onChange.mock.calls.at(-1)![0] as BentoLayoutPreference;
+    const movedCell = next.desktop.cells.find(
+      (c) => c.id === DEFAULT_BENTO_LAYOUT.desktop.cells[0]!.id,
+    );
+    expect(movedCell).toBeDefined();
+    // First default cell ("identity") sits at gridCol: 1; ArrowRight
+    // increments to 2 (clamped against columns - colSpan + 1).
+    expect(movedCell!.gridCol).toBe(2);
+    // gridRow + spans unchanged.
+    expect(movedCell!.gridRow).toBe(
+      DEFAULT_BENTO_LAYOUT.desktop.cells[0]!.gridRow,
+    );
+    expect(movedCell!.colSpan).toBe(
+      DEFAULT_BENTO_LAYOUT.desktop.cells[0]!.colSpan,
+    );
+  });
+
+  it("Shift+ArrowDown resizes the cell taller by one row", () => {
+    const onChange = vi.fn();
+    render(
+      <BentoLayoutBuilder value={DEFAULT_BENTO_LAYOUT} onChange={onChange} />,
+    );
+
+    const grip = findFirstGrip();
+    act(() => {
+      grip.focus();
+    });
+    fireEvent.keyDown(grip, { key: "ArrowDown", shiftKey: true });
+
+    expect(onChange).toHaveBeenCalled();
+    const next = onChange.mock.calls.at(-1)![0] as BentoLayoutPreference;
+    const resized = next.desktop.cells.find(
+      (c) => c.id === DEFAULT_BENTO_LAYOUT.desktop.cells[0]!.id,
+    )!;
+    expect(resized.rowSpan).toBe(
+      DEFAULT_BENTO_LAYOUT.desktop.cells[0]!.rowSpan + 1,
+    );
+    // gridCol/gridRow stay put.
+    expect(resized.gridCol).toBe(
+      DEFAULT_BENTO_LAYOUT.desktop.cells[0]!.gridCol,
+    );
+    expect(resized.gridRow).toBe(
+      DEFAULT_BENTO_LAYOUT.desktop.cells[0]!.gridRow,
+    );
+  });
+
+  it("does not move past the grid edge (left bound)", () => {
+    const onChange = vi.fn();
+    render(
+      <BentoLayoutBuilder value={DEFAULT_BENTO_LAYOUT} onChange={onChange} />,
+    );
+
+    const grip = findFirstGrip();
+    act(() => {
+      grip.focus();
+    });
+    // First default cell is at gridCol: 1 already; ArrowLeft should
+    // be a no-op (clamped to >= 1).
+    fireEvent.keyDown(grip, { key: "ArrowLeft" });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("grip aria-label explains the keyboard control to screen readers", () => {
+    render(
+      <BentoLayoutBuilder value={DEFAULT_BENTO_LAYOUT} onChange={vi.fn()} />,
+    );
+    const grip = findFirstGrip();
+    expect(grip.getAttribute("aria-label")).toMatch(
+      /Arrow keys move, shift\+arrow resizes/,
+    );
+  });
+});

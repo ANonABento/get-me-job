@@ -303,6 +303,43 @@ export function BentoLayoutBuilder({
     });
   };
 
+  /**
+   * P4 keyboard a11y: arrow keys on a focused cell-drag handle nudge
+   * the cell by 1 grid unit; Shift+arrow resizes by 1 unit instead.
+   * Bounds are clamped against the current column count + a sane
+   * minimum of 1x1.
+   */
+  const nudgeCell = (
+    id: string,
+    direction: "left" | "right" | "up" | "down",
+    mode: "move" | "resize",
+  ) => {
+    const cell = desktop.cells.find((c) => c.id === id);
+    if (!cell) return;
+    if (mode === "move") {
+      const dx = direction === "left" ? -1 : direction === "right" ? 1 : 0;
+      const dy = direction === "up" ? -1 : direction === "down" ? 1 : 0;
+      const nextCol = Math.max(
+        1,
+        Math.min(desktop.columns - cell.colSpan + 1, cell.gridCol + dx),
+      );
+      const nextRow = Math.max(1, cell.gridRow + dy);
+      if (nextCol === cell.gridCol && nextRow === cell.gridRow) return;
+      updateCell(id, { gridCol: nextCol, gridRow: nextRow });
+      return;
+    }
+    // Resize mode — left/up shrinks, right/down grows. Width clamps to
+    // [1, columns-(gridCol-1)] so the cell stays inside the grid;
+    // height clamps to [1, 8] which matches the schema's maxH.
+    const dw = direction === "left" ? -1 : direction === "right" ? 1 : 0;
+    const dh = direction === "up" ? -1 : direction === "down" ? 1 : 0;
+    const maxW = desktop.columns - cell.gridCol + 1;
+    const nextW = Math.max(1, Math.min(maxW, cell.colSpan + dw));
+    const nextH = Math.max(1, Math.min(8, cell.rowSpan + dh));
+    if (nextW === cell.colSpan && nextH === cell.rowSpan) return;
+    updateCell(id, { colSpan: nextW, rowSpan: nextH });
+  };
+
   const removeCell = (id: string) => {
     const cell = desktop.cells.find((c) => c.id === id);
     if (!cell) return;
@@ -500,6 +537,9 @@ export function BentoLayoutBuilder({
                       cell={cell}
                       onUpdate={(updates) => updateCell(cell.id, updates)}
                       onRemove={() => removeCell(cell.id)}
+                      onNudge={(direction, mode) =>
+                        nudgeCell(cell.id, direction, mode)
+                      }
                     />
                   </div>
                 ))}
@@ -571,16 +611,42 @@ function CellEditor({
   cell,
   onUpdate,
   onRemove,
+  onNudge,
 }: {
   cell: BentoCell;
   onUpdate(updates: Partial<BentoCell>): void;
   onRemove(): void;
+  onNudge(
+    direction: "left" | "right" | "up" | "down",
+    mode: "move" | "resize",
+  ): void;
 }) {
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: `${CELL_PREFIX}${cell.id}`,
   });
 
   const tone = cell.tone ?? "default";
+
+  /**
+   * P4 keyboard a11y: arrow keys nudge cell position; Shift+arrow
+   * resizes. The handler lives on the grip button so users tab to a
+   * cell's drag handle, then use the keyboard like they would the
+   * mouse. RGL v1.5 doesn't ship arrow-key support natively, so we
+   * provide it here.
+   */
+  const handleGripKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    const direction = (
+      {
+        ArrowLeft: "left",
+        ArrowRight: "right",
+        ArrowUp: "up",
+        ArrowDown: "down",
+      } as const
+    )[event.key];
+    if (!direction) return;
+    event.preventDefault();
+    onNudge(direction, event.shiftKey ? "resize" : "move");
+  };
 
   return (
     <div
@@ -600,8 +666,9 @@ function CellEditor({
             way. */}
         <button
           type="button"
-          className="bento-cell-drag-handle cursor-grab rounded p-0.5 text-muted-foreground hover:bg-muted active:cursor-grabbing"
-          aria-label={`Drag cell ${cell.label || cell.id}`}
+          onKeyDown={handleGripKeyDown}
+          className="bento-cell-drag-handle cursor-grab rounded p-0.5 text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary active:cursor-grabbing"
+          aria-label={`Drag cell ${cell.label || cell.id}. Arrow keys move, shift+arrow resizes.`}
         >
           <GripVertical className="h-4 w-4" />
         </button>

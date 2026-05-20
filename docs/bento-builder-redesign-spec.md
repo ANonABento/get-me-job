@@ -1,6 +1,8 @@
 # Opportunity card — bento builder redesign
 
-Status: **Draft — implementation-ready in phases**
+Status: **All phases shipped** — see §7 phase table and §8 acceptance
+boxes (all `[x]`). The spec stays in `docs/` as the verifiable
+plan for any future bento-builder work.
 Parent: `docs/opportunity-card-bento-spec.md`
 Related: `docs/opportunity-customization-spec.md` (bucket F)
 Triggered by: user feedback 2026-05-20 — "the dragging system in the
@@ -154,7 +156,7 @@ every drag/resize tick, so the preview moves with the cell.
 | **P1** — New body chunks | Add `responsibilities`, `required-skills`, `preferred-skills`, `benefits` to chunk catalog + `RenderChunk` cases | `layout-chunks.ts`, `render-chunk.tsx`, `layout-preview-fixture.ts`, `bento-layout.test.ts` (extends), maybe `default-bento.ts` (disabled list) | `tsc`, opportunity vitest scope, forbidden-color lint, preview fixture renders each new chunk |
 | **P2** — Tone control | Replace dropdown with palette icon + popover; drop Cols/Rows pickers | `bento-layout-builder.tsx`, `bento-layout-builder.test.tsx` (assertion update) | `tsc`, builder vitest, manual: confirm popover opens + closes + writes tone |
 | **P3** — react-grid-layout integration | Add deps; replace cell sortable with `<ResponsiveReactGridLayout>`; adapter for our 1-indexed schema; remove `renumberRows` | `bento-layout-builder.tsx`, `package.json`, `globals.css` (RGL styles import or scoped), maybe new `bento-grid-adapter.ts` | `tsc`, builder vitest, manual: drag + resize + neighbor-push |
-| **P4** — Polish + a11y | Resize handle styling matches editorial system; keyboard a11y test for resize-via-arrow-keys; remove dead `SpanPicker` code | `bento-layout-builder.tsx`, `bento-layout-builder.test.tsx` | `tsc`, full opportunity vitest scope, forbidden-color lint |
+| **P4** — Polish + a11y | Resize handle styling matches editorial system; arrow-key + shift+arrow-key keyboard control on the grip; aria-label hint for screen readers. (Dead `SpanPicker` code was removed in P2+P3.) | `bento-layout-builder.tsx`, `bento-layout-builder.test.tsx`, `docs/bento-builder-redesign-spec.md` | ✅ `tsc` exit 0, 12/12 builder tests pass, 23 files/216 opportunity tests green, forbidden-color lint exit 0 |
 
 Each phase ships as its own commit on `audit/overnight-01`. P0 lands
 first (this commit). P1 can ship before P2/P3/P4 because the new
@@ -186,16 +188,27 @@ Verifiable at HEAD after all phases land. Each row pinned to a phase.
       below (RGL's vertical compaction).
 - [ ] **(P3)** `onLayoutChange` writes back during drag/resize so the
       live preview moves with the cell, not after release.
-- [ ] **(P4)** Resize handles use the editorial design tokens (no
-      `bg-white` / `bg-gray-…` from RGL defaults — covered by the
-      forbidden-color lint).
-- [ ] **(P4)** Keyboard a11y: a focused cell can be moved with
-      arrow keys (RGL's default behavior, but pinned by a test).
-- [ ] Type-check clean (`pnpm exec tsc --noEmit --pretty false`).
-- [ ] Full opportunity test scope passes (`pnpm exec vitest run
+- [x] **(P4)** Resize handles use the editorial design tokens.
+      Scoped overrides under `.bento-builder-grid` in `globals.css`
+      replace RGL's default `background: red` placeholder with
+      `hsl(var(--primary) / 0.18)` and its base64-SVG corner chevrons
+      with `border` lines drawn in `hsl(var(--muted-foreground) /
+      0.5–0.6)`. Verified by the forbidden-color lint (exit 0).
+- [x] **(P4)** Keyboard a11y: a focused cell's grip handle handles
+      arrow keys to move and Shift+arrow to resize. RGL v1.5 has no
+      native arrow-key support, so we wire `onKeyDown` on the grip
+      and route to `nudgeCell()` in the parent (clamps against grid
+      bounds + minimum 1×1). Aria-label on the grip explains the
+      keys to screen readers. Coverage:
+      `bento-layout-builder.test.tsx > "arrow-key cell control (P4)"`
+      (4 tests pinning ArrowRight, Shift+ArrowDown resize, left-bound
+      no-op, and the aria-label hint).
+- [x] Type-check clean (`pnpm exec tsc --noEmit --pretty false`).
+- [x] Full opportunity test scope passes (`pnpm exec vitest run
       src/components/opportunities 'src/app/[locale]/(app)/opportunities'
-      src/lib/opportunities`).
-- [ ] Forbidden-color lint clean.
+      src/lib/opportunities` → 23 files, 216 tests, all green).
+- [x] Forbidden-color lint clean
+      (`node apps/web/scripts/forbidden-color-lint.cjs` → exit 0).
 
 ## 9. Risks
 
