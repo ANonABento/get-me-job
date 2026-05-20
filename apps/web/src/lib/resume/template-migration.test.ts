@@ -659,6 +659,49 @@ describe("template migration source extraction", () => {
       }),
     });
     expect(draft.fidelity.score).toBeGreaterThan(50);
+    expect(draft.universalAnalysis).toMatchObject({
+      version: 1,
+      sourceType: "tex",
+      filename: "resume.tex",
+      repeatableSections: expect.arrayContaining(["experience"]),
+    });
+    expect(draft.semanticResume).toMatchObject({
+      version: 1,
+      contact: expect.objectContaining({
+        name: "Jane Rivera",
+        email: "jane@example.com",
+      }),
+      sections: expect.arrayContaining([
+        expect.objectContaining({
+          type: "experience",
+          items: expect.arrayContaining([
+            expect.objectContaining({
+              bullets: expect.arrayContaining([
+                "Built reusable template migration.",
+              ]),
+            }),
+          ]),
+        }),
+      ]),
+    });
+    expect(draft.styleTokens).toMatchObject({
+      version: 1,
+      sourceType: "tex",
+      page: expect.objectContaining({
+        widthPt: expect.any(Number),
+        heightPt: expect.any(Number),
+      }),
+    });
+    expect(draft.reusableTemplate).toMatchObject({
+      schemaVersion: 4,
+      sectionOrder: expect.arrayContaining(["summary", "experience", "skills"]),
+      components: expect.arrayContaining([
+        expect.objectContaining({ kind: "HeaderBlock" }),
+        expect.objectContaining({ kind: "Section", sectionType: "experience" }),
+      ]),
+    });
+    expect(draft.reusableHtml).toContain("Jane Rivera");
+    expect(draft.reusableHtml).toContain("Built reusable template migration.");
   });
 
   it("creates a V3 visual template draft with DOCX table cells as first-class nodes", async () => {

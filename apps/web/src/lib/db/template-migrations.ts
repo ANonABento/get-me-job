@@ -8,10 +8,17 @@ import {
   assessTemplateMigrationFidelity,
   type TemplateMigrationFidelityLike,
 } from "@/lib/resume/template-migration-fidelity";
-import type {
-  SourceDocumentIR,
-  TemplateMigrationDraft,
+import {
+  buildReusableTemplateArtifacts,
+  type SourceDocumentIR,
+  type TemplateMigrationDraft,
 } from "@/lib/resume/template-migration";
+import type {
+  ImportedTemplateStyleTokens,
+  ResumeSemanticIR,
+  UniversalTemplateImportAnalysis,
+} from "@/lib/resume/universal-template-import";
+import type { ReusableResumeTemplateIR } from "@/lib/resume/universal-template-renderer";
 import type { TailoredResume } from "@/lib/resume/generator";
 import type { TemplateSourceType } from "@/lib/templates/import";
 
@@ -25,6 +32,11 @@ interface DraftRow {
   resume_json: string;
   template_json: string;
   template_v3_json?: string | null;
+  universal_analysis_json?: string | null;
+  semantic_resume_json?: string | null;
+  style_tokens_json?: string | null;
+  reusable_template_json?: string | null;
+  reusable_html?: string | null;
   fidelity_report_json?: string | null;
   warnings_json: string;
   confidence: "high" | "medium" | "low";
@@ -89,6 +101,11 @@ export function ensureTemplateMigrationTables(): void {
   ).run();
   ensureColumn("template_migration_drafts", "fidelity_report_json", "text");
   ensureColumn("template_migration_drafts", "template_v3_json", "text");
+  ensureColumn("template_migration_drafts", "universal_analysis_json", "text");
+  ensureColumn("template_migration_drafts", "semantic_resume_json", "text");
+  ensureColumn("template_migration_drafts", "style_tokens_json", "text");
+  ensureColumn("template_migration_drafts", "reusable_template_json", "text");
+  ensureColumn("template_migration_drafts", "reusable_html", "text");
   ensureColumn("template_migration_drafts", "source_type", "text");
   copyLegacyColumn("template_migration_drafts", "source_kind", "source_type");
   db.prepare(
@@ -218,9 +235,11 @@ export function saveTemplateMigrationDraft(
   db.prepare(
     `INSERT INTO template_migration_drafts (
       id, user_id, status, source_filename, source_type, source_ir_json,
-      resume_json, template_json, template_v3_json, fidelity_report_json, warnings_json, confidence,
+      resume_json, template_json, template_v3_json, universal_analysis_json,
+      semantic_resume_json, style_tokens_json, reusable_template_json,
+      reusable_html, fidelity_report_json, warnings_json, confidence,
       committed_template_id, created_at, updated_at${legacyColumns.sql}
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${legacyColumns.placeholders})`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${legacyColumns.placeholders})`,
   ).run(
     draft.id,
     draft.userId,
@@ -231,6 +250,11 @@ export function saveTemplateMigrationDraft(
     JSON.stringify(draft.resume),
     JSON.stringify(draft.template),
     JSON.stringify(draft.templateV3),
+    JSON.stringify(draft.universalAnalysis ?? null),
+    JSON.stringify(draft.semanticResume ?? null),
+    JSON.stringify(draft.styleTokens ?? null),
+    JSON.stringify(draft.reusableTemplate ?? null),
+    draft.reusableHtml ?? null,
     JSON.stringify(draft.fidelity),
     JSON.stringify(draft.warnings),
     draft.confidence,
@@ -250,7 +274,9 @@ export function getTemplateMigrationDraft(
   const row = db
     .prepare(
       `SELECT id, user_id, status, source_filename, source_type, source_ir_json,
-        resume_json, template_json, template_v3_json, fidelity_report_json, warnings_json, confidence,
+        resume_json, template_json, template_v3_json, universal_analysis_json,
+        semantic_resume_json, style_tokens_json, reusable_template_json,
+        reusable_html, fidelity_report_json, warnings_json, confidence,
         committed_template_id, created_at, updated_at
        FROM template_migration_drafts
        WHERE id = ? AND user_id = ?`,
@@ -267,6 +293,11 @@ export function updateTemplateMigrationDraft(
     resume?: TailoredResume;
     template?: DocumentTemplateV2;
     templateV3?: DocumentTemplateV3;
+    universalAnalysis?: UniversalTemplateImportAnalysis;
+    semanticResume?: ResumeSemanticIR;
+    styleTokens?: ImportedTemplateStyleTokens;
+    reusableTemplate?: ReusableResumeTemplateIR;
+    reusableHtml?: string;
     fidelity?: TemplateMigrationFidelityLike;
     warnings?: string[];
     status?: TemplateMigrationDraft["status"];
@@ -275,16 +306,46 @@ export function updateTemplateMigrationDraft(
 ): TemplateMigrationDraft | null {
   const existing = getTemplateMigrationDraft(id, userId);
   if (!existing) return null;
+  const source = updates.source ?? existing.source;
+  const derivedArtifacts =
+    updates.source &&
+    (!updates.universalAnalysis ||
+      !updates.semanticResume ||
+      !updates.styleTokens ||
+      !updates.reusableTemplate ||
+      !updates.reusableHtml)
+      ? buildReusableTemplateArtifacts(source)
+      : null;
   const next: TemplateMigrationDraft = {
     ...existing,
-    source: updates.source ?? existing.source,
+    source,
     resume: updates.resume ?? existing.resume,
     template: updates.template ?? existing.template,
     templateV3: updates.templateV3 ?? existing.templateV3,
+    universalAnalysis:
+      updates.universalAnalysis ??
+      derivedArtifacts?.universalAnalysis ??
+      existing.universalAnalysis,
+    semanticResume:
+      updates.semanticResume ??
+      derivedArtifacts?.semanticResume ??
+      existing.semanticResume,
+    styleTokens:
+      updates.styleTokens ??
+      derivedArtifacts?.styleTokens ??
+      existing.styleTokens,
+    reusableTemplate:
+      updates.reusableTemplate ??
+      derivedArtifacts?.reusableTemplate ??
+      existing.reusableTemplate,
+    reusableHtml:
+      updates.reusableHtml ??
+      derivedArtifacts?.reusableHtml ??
+      existing.reusableHtml,
     fidelity:
       updates.fidelity ??
       assessDraftFidelity(
-        updates.source ?? existing.source,
+        source,
         updates.template ?? existing.template,
         updates.templateV3 ?? existing.templateV3,
       ),
@@ -299,7 +360,8 @@ export function updateTemplateMigrationDraft(
   db.prepare(
     `UPDATE template_migration_drafts
      SET status = ?, source_ir_json = ?, resume_json = ?, template_json = ?, template_v3_json = ?,
-       fidelity_report_json = ?, warnings_json = ?,
+       universal_analysis_json = ?, semantic_resume_json = ?, style_tokens_json = ?,
+       reusable_template_json = ?, reusable_html = ?, fidelity_report_json = ?, warnings_json = ?,
        committed_template_id = ?, updated_at = ?
      WHERE id = ? AND user_id = ?`,
   ).run(
@@ -308,6 +370,11 @@ export function updateTemplateMigrationDraft(
     JSON.stringify(next.resume),
     JSON.stringify(next.template),
     JSON.stringify(next.templateV3),
+    JSON.stringify(next.universalAnalysis ?? null),
+    JSON.stringify(next.semanticResume ?? null),
+    JSON.stringify(next.styleTokens ?? null),
+    JSON.stringify(next.reusableTemplate ?? null),
+    next.reusableHtml ?? null,
     JSON.stringify(next.fidelity),
     JSON.stringify(next.warnings),
     next.committedTemplateId ?? null,
@@ -509,35 +576,57 @@ function assessDraftFidelity(
 }
 
 function rowToDraft(row: DraftRow): TemplateMigrationDraft {
+  const source = JSON.parse(row.source_ir_json) as SourceDocumentIR;
+  const template = JSON.parse(row.template_json) as DocumentTemplateV2;
+  const templateV3 = row.template_v3_json
+    ? (JSON.parse(row.template_v3_json) as DocumentTemplateV3)
+    : legacyTemplateV3Fallback(template);
+  const reusableArtifacts =
+    row.universal_analysis_json &&
+    row.semantic_resume_json &&
+    row.style_tokens_json &&
+    row.reusable_template_json &&
+    row.reusable_html
+      ? null
+      : buildReusableTemplateArtifacts(source);
   return {
     id: row.id,
     userId: row.user_id,
     status: row.status,
     sourceFilename: row.source_filename,
     sourceType: row.source_type,
-    source: JSON.parse(row.source_ir_json) as SourceDocumentIR,
+    source,
     resume: JSON.parse(row.resume_json) as TailoredResume,
-    template: JSON.parse(row.template_json) as DocumentTemplateV2,
-    templateV3: row.template_v3_json
-      ? (JSON.parse(row.template_v3_json) as DocumentTemplateV3)
-      : legacyTemplateV3Fallback(
-          JSON.parse(row.template_json) as DocumentTemplateV2,
-        ),
+    template,
+    templateV3,
+    universalAnalysis:
+      parseJson<UniversalTemplateImportAnalysis>(row.universal_analysis_json) ??
+      reusableArtifacts?.universalAnalysis,
+    semanticResume:
+      parseJson<ResumeSemanticIR>(row.semantic_resume_json) ??
+      reusableArtifacts?.semanticResume,
+    styleTokens:
+      parseJson<ImportedTemplateStyleTokens>(row.style_tokens_json) ??
+      reusableArtifacts?.styleTokens,
+    reusableTemplate:
+      parseJson<ReusableResumeTemplateIR>(row.reusable_template_json) ??
+      reusableArtifacts?.reusableTemplate,
+    reusableHtml: row.reusable_html ?? reusableArtifacts?.reusableHtml,
     fidelity: row.fidelity_report_json
       ? (JSON.parse(row.fidelity_report_json) as TemplateMigrationFidelityLike)
-      : assessDraftFidelity(
-          JSON.parse(row.source_ir_json) as SourceDocumentIR,
-          JSON.parse(row.template_json) as DocumentTemplateV2,
-          row.template_v3_json
-            ? (JSON.parse(row.template_v3_json) as DocumentTemplateV3)
-            : null,
-        ),
+      : assessDraftFidelity(source, template, templateV3),
     warnings: JSON.parse(row.warnings_json) as string[],
     confidence: row.confidence,
     committedTemplateId: row.committed_template_id ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+function parseJson<T>(json: string | null | undefined): T | undefined {
+  if (!json) return undefined;
+  const parsed = JSON.parse(json) as T | null;
+  return parsed ?? undefined;
 }
 
 function legacyTemplateV3Fallback(

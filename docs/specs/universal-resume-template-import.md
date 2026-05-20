@@ -364,6 +364,12 @@ Reference resemblance is a diagnostic score, not the main pass/fail gate.
 - Upgrade standalone lab to show reference, reusable render, semantic tree,
   style tokens, stress render, and mismatch report.
 - Bring the same review model back into the app import flow.
+- Persist reusable semantic artifacts on migration drafts so the app and lab
+  inspect the same payload.
+- Let the import review switch between visual evidence render and reusable
+  semantic render.
+- Treat the source render as debugger evidence, not the template that will be
+  saved.
 
 ### Phase 6: Legacy Cleanup
 
@@ -371,6 +377,65 @@ Reference resemblance is a diagnostic score, not the main pass/fail gate.
   templates.
 - Ensure the template dropdown only surfaces saved reusable templates.
 - Keep migration compatibility for existing saved templates.
+- Commit `schemaVersion: 4` reusable templates as the preferred saved template
+  type once the review UI can edit sections and style tokens.
+
+### Phase 7: Broad Verification Harness
+
+- Build a fixture manifest with source files, expected semantic sections, and
+  expected style traits.
+- Render each fixture in three modes: reference/source preview, reusable render,
+  and stress render.
+- Capture screenshots and JSON summaries for every fixture.
+- Produce scorecards for semantic coverage, style token coverage, layout
+  resilience, and visual-family resemblance.
+- Run the same harness on user-provided examples without special-case code.
+
+## App Contract
+
+`TemplateMigrationDraft` is the handoff between import, review, and commit.
+New drafts should include both legacy visual artifacts and reusable semantic
+artifacts:
+
+```ts
+interface TemplateMigrationDraft {
+  source: SourceDocumentIR;
+  resume: TailoredResume;
+  templateV3: DocumentTemplateV3; // visual evidence/debug path
+  universalAnalysis: UniversalTemplateImportAnalysis;
+  semanticResume: ResumeSemanticIR;
+  styleTokens: ImportedTemplateStyleTokens;
+  reusableTemplate: ReusableResumeTemplateIR;
+  reusableHtml: string;
+}
+```
+
+Rules:
+
+- `source`, `universalAnalysis`, `semanticResume`, `styleTokens`, and
+  `reusableTemplate` must remain source-independent and evidence-backed.
+- App review must not infer reusable behavior from `templateV3` absolute source
+  boxes.
+- Slot corrections or source edits must regenerate semantic/style/reusable
+  artifacts.
+- Old drafts may omit reusable fields; loaders should derive them from
+  `source` as a compatibility fallback.
+
+## Commit Contract
+
+Until the review UI can edit semantic components, commits may continue saving
+V3 visual templates for compatibility. The final commit path should save
+`ReusableResumeTemplateIR` as the primary template model and keep V3 only as
+debug evidence.
+
+Save readiness should require:
+
+- semantic coverage above the configured threshold.
+- at least one reusable repeatable section when source contains repeatable
+  content.
+- style token confidence for page, body text, and section headings.
+- a stress render without duplicate content or severe overflow.
+- visible warnings for low-confidence section, item, or style mappings.
 
 ## Phase 1 Deliverables
 

@@ -29,6 +29,19 @@ import {
   assessTemplateMigrationFidelity,
   type TemplateMigrationFidelityLike,
 } from "@/lib/resume/template-migration-fidelity";
+import {
+  analyzeUniversalTemplateImport,
+  inferImportedTemplateStyleTokens,
+  inferResumeSemanticIR,
+  type ImportedTemplateStyleTokens,
+  type ResumeSemanticIR,
+  type UniversalTemplateImportAnalysis,
+} from "@/lib/resume/universal-template-import";
+import {
+  buildReusableResumeTemplateIR,
+  renderReusableResumeTemplateHTML,
+  type ReusableResumeTemplateIR,
+} from "@/lib/resume/universal-template-renderer";
 
 export interface SourceDocumentIR {
   sourceType: TemplateSourceType;
@@ -130,6 +143,11 @@ export interface TemplateMigrationDraft {
   resume: TailoredResume;
   template: DocumentTemplateV2;
   templateV3: DocumentTemplateV3;
+  universalAnalysis?: UniversalTemplateImportAnalysis;
+  semanticResume?: ResumeSemanticIR;
+  styleTokens?: ImportedTemplateStyleTokens;
+  reusableTemplate?: ReusableResumeTemplateIR;
+  reusableHtml?: string;
   fidelity: TemplateMigrationFidelityLike;
   warnings: string[];
   confidence: "high" | "medium" | "low";
@@ -195,6 +213,7 @@ export async function createTemplateMigrationDraft({
     filename.replace(/\.[^.]+$/, "").slice(0, 100) || "Visual template",
     source,
   );
+  const reusableArtifacts = buildReusableTemplateArtifacts(source);
   const fidelity = assessVisualTemplateFidelity(source, templateV3);
 
   return {
@@ -207,12 +226,40 @@ export async function createTemplateMigrationDraft({
     resume,
     template,
     templateV3,
+    ...reusableArtifacts,
     fidelity,
     warnings: [...extracted.warnings, ...source.diagnostics],
     confidence: extracted.confidence,
     createdAt: now,
     updatedAt: now,
     committedTemplateId: null,
+  };
+}
+
+export function buildReusableTemplateArtifacts(source: SourceDocumentIR): {
+  universalAnalysis: UniversalTemplateImportAnalysis;
+  semanticResume: ResumeSemanticIR;
+  styleTokens: ImportedTemplateStyleTokens;
+  reusableTemplate: ReusableResumeTemplateIR;
+  reusableHtml: string;
+} {
+  const universalAnalysis = analyzeUniversalTemplateImport(source);
+  const semanticResume = inferResumeSemanticIR(source);
+  const styleTokens = inferImportedTemplateStyleTokens(source);
+  const reusableTemplate = buildReusableResumeTemplateIR(
+    semanticResume,
+    styleTokens,
+  );
+  const reusableHtml = renderReusableResumeTemplateHTML(
+    semanticResume,
+    reusableTemplate,
+  );
+  return {
+    universalAnalysis,
+    semanticResume,
+    styleTokens,
+    reusableTemplate,
+    reusableHtml,
   };
 }
 
