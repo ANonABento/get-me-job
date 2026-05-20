@@ -405,6 +405,13 @@ function renderLabHtml(
       font: 11px/1.45 var(--mono);
       white-space: pre-wrap;
     }
+    .pane-body .json {
+      margin-top: 0;
+      max-height: none;
+      width: 100%;
+      min-height: 100%;
+      border: 1px solid rgba(23,21,20,.16);
+    }
     .range {
       display: inline-grid;
       grid-template-columns: auto 120px;
@@ -460,10 +467,14 @@ function renderLabHtml(
   </div>
   <script>
     const suite = ${data};
-    const state = { caseIndex: 0, left: "reference", right: "render", overlay: 50 };
+    const state = { caseIndex: 0, left: "reference", right: "reusable", overlay: 50 };
     const modes = [
       ["reference", "Reference"],
       ["render", "Source render"],
+      ["reusable", "Reusable render"],
+      ["semantic", "Semantic tree"],
+      ["style", "Style tokens"],
+      ["reusableIr", "Reusable IR"],
       ["diff", "Diff"],
       ["stress", "Stress render"],
       ["html", "Rendered HTML"],
@@ -519,6 +530,10 @@ function renderLabHtml(
       const comparison = src && src.imageComparison;
       if (mode === "reference") return { label: "Reference", type: "image", path: item.referenceImagePath };
       if (mode === "render") return { label: "Source render", type: "image", path: src && src.screenshotPath };
+      if (mode === "reusable") return { label: "Reusable render", type: "frame", path: item.reusableHtmlPath };
+      if (mode === "semantic") return { label: "Semantic tree", type: "json", value: item.semanticResume };
+      if (mode === "style") return { label: "Style tokens", type: "json", value: item.styleTokens };
+      if (mode === "reusableIr") return { label: "Reusable IR", type: "json", value: item.reusableTemplate };
       if (mode === "diff") return { label: "Diff", type: "image", path: comparison && comparison.diffPath };
       if (mode === "stress") return { label: "Stress render", type: "image", path: stress && stress.screenshotPath };
       if (mode === "html") return { label: "Rendered HTML", type: "frame", path: src && src.htmlPath };
@@ -538,6 +553,9 @@ function renderLabHtml(
         pane.innerHTML = '<img class="preview" src="' + data.path + '" alt="' + data.label + '">';
       } else if (data.type === "frame" && data.path) {
         pane.innerHTML = '<iframe class="preview" src="' + data.path + '"></iframe>';
+      } else if (data.type === "json" && data.value) {
+        pane.innerHTML = '<pre class="json"></pre>';
+        pane.querySelector("pre").textContent = JSON.stringify(data.value, null, 2);
       } else if (data.type === "overlay" && data.reference && data.render) {
         pane.innerHTML = '<div class="overlay-stage" style="--overlay-opacity:' + (state.overlay / 100) + '"><img src="' + data.reference + '" alt="Reference"><img class="top" src="' + data.render + '" alt="Render"></div>';
       } else {
@@ -559,6 +577,8 @@ function renderLabHtml(
         metric("Stress coverage", stress ? pct(stress.sourceLineCoverage) : "-", stress && stress.sourceLineCoverage < .55 ? "warn" : "good"),
         metric("Semantic", item.universalAnalysis ? pct(item.universalAnalysis.scores.semanticCoverage) : "-", item.universalAnalysis && item.universalAnalysis.scores.semanticCoverage < .55 ? "warn" : "good"),
         metric("Style", item.universalAnalysis ? pct(item.universalAnalysis.scores.styleCoverage) : "-", item.universalAnalysis && item.universalAnalysis.scores.styleCoverage < .55 ? "warn" : "good"),
+        metric("Reusable sections", item.reusableTemplate ? item.reusableTemplate.sectionOrder.length : "-", item.reusableTemplate && !item.reusableTemplate.sectionOrder.length ? "warn" : "good"),
+        metric("Reusable components", item.reusableTemplate ? item.reusableTemplate.components.length : "-", item.reusableTemplate && item.reusableTemplate.components.length < 2 ? "warn" : "good"),
         metric("Image diff", comparison ? num(comparison.meanAbsoluteDiff) : "-", comparison && comparison.meanAbsoluteDiff > 32 ? "bad" : "good"),
         metric("Changed pixels", comparison ? pct(comparison.changedPixelRatio) : "-", comparison && comparison.changedPixelRatio > .42 ? "bad" : "good"),
       ].join("");
@@ -624,6 +644,7 @@ function makeBrowserSummary(
         outDir: string;
         source: string;
         referenceImagePath?: string | null;
+        reusableHtmlPath?: string | null;
         reports: Array<Record<string, unknown>>;
       };
       return {
@@ -631,6 +652,9 @@ function makeBrowserSummary(
         caseDir: relativeForHtml(outDir, summary.outDir),
         referenceImagePath: summary.referenceImagePath
           ? relativeForHtml(outDir, summary.referenceImagePath)
+          : null,
+        reusableHtmlPath: summary.reusableHtmlPath
+          ? relativeForHtml(outDir, summary.reusableHtmlPath)
           : null,
         reports: summary.reports.map((report) =>
           rewriteReportPaths(report, outDir),
