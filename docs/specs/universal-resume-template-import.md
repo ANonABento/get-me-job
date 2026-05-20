@@ -377,6 +377,8 @@ Reference resemblance is a diagnostic score, not the main pass/fail gate.
   templates.
 - Ensure the template dropdown only surfaces built-in templates and saved
   `schemaVersion: 4` reusable custom templates.
+- Apply the same V4-first listing rule to every normal template-selection
+  surface, including Studio and opportunity generation actions.
 - Keep legacy `schemaVersion: 3` visual templates out of normal selection
   lists by default.
 - Allow explicit legacy listing only for management/debug views that need to
