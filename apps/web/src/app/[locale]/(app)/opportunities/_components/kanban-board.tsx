@@ -356,6 +356,15 @@ function OpportunityKanbanCard({
   const deadline = opportunity.deadline
     ? `Due ${formatOpportunityDate(opportunity.deadline, locale)}`
     : undefined;
+  // audit/07: the column header already names the lane (Pending /
+  // Saved / Applied / Interviewing / Offer). Repeating the same status
+  // pill inside every card in that lane is redundant. The only lane
+  // that genuinely needs the pill is "Closed", which can hold
+  // rejected / expired / dismissed sub-statuses — there, the pill
+  // tells the user which sub-state without expanding the card.
+  const isClosedSubStatus = (CLOSED_SUB_STATUSES as readonly string[]).includes(
+    opportunity.status,
+  );
 
   return (
     <article
@@ -401,7 +410,7 @@ function OpportunityKanbanCard({
           <Badge variant="outline" className="max-w-full truncate">
             {location}
           </Badge>
-          <StatusPill status={opportunity.status} />
+          {isClosedSubStatus && <StatusPill status={opportunity.status} />}
         </div>
         {deadline ? <div className="truncate">{deadline}</div> : null}
         <div className="flex flex-wrap gap-1.5 pt-1">
