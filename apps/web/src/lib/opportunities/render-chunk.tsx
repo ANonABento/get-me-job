@@ -244,6 +244,11 @@ export function RenderChunk({
         <ActionButton
           label="Apply"
           icon={<ExternalLink className="h-4 w-4" />}
+          // audit/06: Apply is THE goal of the review queue. Promote
+          // it to a primary CTA (filled brand) so it stands above the
+          // outline-styled Dismiss/Save siblings. The swipe gesture
+          // (up = apply) is implicit; the button is the explicit path.
+          className="border-primary bg-primary text-primary-foreground hover:bg-primary/90"
           disabled={context.actionDisabled || context.canApply === false}
           onClick={() => context.onAction?.("apply")}
         />
