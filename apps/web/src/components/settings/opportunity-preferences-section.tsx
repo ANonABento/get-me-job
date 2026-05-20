@@ -32,12 +32,12 @@ import {
   type PayNormalizationCurrency,
   type PayNormalizationUnit,
 } from "@slothing/shared/schemas";
-import { LayoutBuilder } from "@/components/opportunities/layout-builder";
+import { BentoLayoutBuilder } from "@/components/opportunities/bento-layout-builder";
 import {
-  DEFAULT_LAYOUT,
-  getEffectiveLayout,
-} from "@/lib/opportunities/default-layout";
-import type { LayoutPreference } from "@/lib/opportunities/layout-chunks";
+  DEFAULT_BENTO_LAYOUT,
+  getEffectiveBentoLayout,
+} from "@/lib/opportunities/default-bento";
+import type { BentoLayoutPreference } from "@/lib/opportunities/bento-layout";
 
 const VISIBLE_BADGE_KEYS = [
   "applicants",
@@ -73,7 +73,7 @@ interface Preferences {
   scrapeDedupeEnabled: boolean;
   payNormalizationUnit: PayNormalizationUnit;
   payNormalizationCurrency: PayNormalizationCurrency;
-  layoutPreference: LayoutPreference | null;
+  layoutPreference: BentoLayoutPreference | null;
 }
 
 const PAY_UNIT_LABELS: Record<PayNormalizationUnit, string> = {
@@ -263,14 +263,14 @@ export function OpportunityPreferencesSection() {
         <div>
           <Label className="text-sm font-medium">Card layout</Label>
           <p className="mt-1 text-xs text-muted-foreground">
-            Reorder or hide chunks on the review-queue card. Desktop and mobile
-            keep separate layouts. Same builder also lives in the review queue
-            (open via the Layout button next to Sort).
+            Drag chunks between cells, resize cells, and set a mobile priority.
+            Same builder lives in the review queue (open via the Layout button
+            next to Sort).
           </p>
           <div className="mt-3">
-            <LayoutBuilder
-              value={getEffectiveLayout(
-                preferences.layoutPreference ?? DEFAULT_LAYOUT,
+            <BentoLayoutBuilder
+              value={getEffectiveBentoLayout(
+                preferences.layoutPreference ?? DEFAULT_BENTO_LAYOUT,
               )}
               onChange={(next) => void patch({ layoutPreference: next })}
             />

@@ -27,22 +27,25 @@ import {
 import { useErrorToast } from "@/hooks/use-error-toast";
 import { readJsonResponse } from "@/lib/http";
 import {
-  DEFAULT_LAYOUT,
-  getEffectiveLayout,
-} from "@/lib/opportunities/default-layout";
-import type { LayoutPreference } from "@/lib/opportunities/layout-chunks";
+  DEFAULT_BENTO_LAYOUT,
+  getEffectiveBentoLayout,
+} from "@/lib/opportunities/default-bento";
+import type { BentoLayoutPreference } from "@/lib/opportunities/bento-layout";
 
-import { LayoutBuilder } from "./layout-builder";
+import { BentoLayoutBuilder } from "./bento-layout-builder";
 
 const DEBOUNCE_MS = 300;
 
 interface LayoutBuilderModalProps {
   open: boolean;
   onOpenChange(open: boolean): void;
-  /** Current layout (from the page's preferences fetch). */
-  value: LayoutPreference | null | undefined;
+  /**
+   * Current stored layout (raw — could be bento, legacy F.1, or null).
+   * `getEffectiveBentoLayout` normalises it before the builder mounts.
+   */
+  value: unknown;
   /** Called on every successful persist so the page can re-render the live card. */
-  onPersisted(next: LayoutPreference): void;
+  onPersisted(next: BentoLayoutPreference): void;
 }
 
 export function LayoutBuilderModal({
@@ -54,8 +57,8 @@ export function LayoutBuilderModal({
   const showErrorToast = useErrorToast();
   // Local draft so dragging doesn't fire a PATCH per move. The debounce
   // below flushes after the user stops interacting.
-  const [draft, setDraft] = useState<LayoutPreference>(() =>
-    getEffectiveLayout(value ?? DEFAULT_LAYOUT),
+  const [draft, setDraft] = useState<BentoLayoutPreference>(() =>
+    getEffectiveBentoLayout(value ?? DEFAULT_BENTO_LAYOUT),
   );
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -64,12 +67,12 @@ export function LayoutBuilderModal({
   // from a prior session.
   useEffect(() => {
     if (open) {
-      setDraft(getEffectiveLayout(value ?? DEFAULT_LAYOUT));
+      setDraft(getEffectiveBentoLayout(value ?? DEFAULT_BENTO_LAYOUT));
     }
   }, [open, value]);
 
   const persist = useCallback(
-    async (next: LayoutPreference) => {
+    async (next: BentoLayoutPreference) => {
       try {
         const response = await fetch("/api/preferences/opportunities", {
           method: "PATCH",
@@ -88,7 +91,7 @@ export function LayoutBuilderModal({
     [onPersisted, showErrorToast],
   );
 
-  const handleChange = (next: LayoutPreference) => {
+  const handleChange = (next: BentoLayoutPreference) => {
     setDraft(next);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -112,17 +115,16 @@ export function LayoutBuilderModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!max-w-4xl">
+      <DialogContent className="!max-w-5xl">
         <DialogHeader>
           <DialogTitle>Card layout</DialogTitle>
           <DialogDescription>
-            Drag chunks within each section to reorder. Toggle the eye to hide a
-            chunk without losing its position. Desktop and mobile keep separate
-            layouts.
+            Drag chunks between cells, resize, regroup. Set a mobile priority
+            below so phones show the most important cells first.
           </DialogDescription>
         </DialogHeader>
         <div className="max-h-[70vh] overflow-y-auto">
-          <LayoutBuilder value={draft} onChange={handleChange} />
+          <BentoLayoutBuilder value={draft} onChange={handleChange} />
         </div>
       </DialogContent>
     </Dialog>

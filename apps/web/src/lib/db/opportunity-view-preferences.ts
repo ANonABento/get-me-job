@@ -19,8 +19,8 @@ import {
   PAY_NORMALIZATION_UNITS,
   opportunityAutoTagRuleSchema,
 } from "@slothing/shared/schemas";
-import type { LayoutPreference } from "@/lib/opportunities/layout-chunks";
-import { layoutPreferenceSchema } from "@/lib/opportunities/layout-chunks";
+import type { BentoLayoutPreference } from "@/lib/opportunities/bento-layout";
+import { getEffectiveBentoLayout } from "@/lib/opportunities/default-bento";
 
 export type DisplayDensity = "comfortable" | "compact";
 
@@ -57,7 +57,7 @@ export interface OpportunityViewPreferences {
   payNormalizationCurrency: PayNormalizationCurrency;
   // Card layout builder (F.1) — null means "use defaults". Stored as a
   // JSON blob so adding a new chunk doesn't require a schema migration.
-  layoutPreference: LayoutPreference | null;
+  layoutPreference: BentoLayoutPreference | null;
 }
 
 export const DEFAULT_VIEW_PREFERENCES: OpportunityViewPreferences = {
@@ -194,12 +194,15 @@ function mergeWithDefaults(
   };
 }
 
-function parseLayoutPreference(raw?: string): LayoutPreference | null {
+function parseLayoutPreference(raw?: string): BentoLayoutPreference | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
-    const result = layoutPreferenceSchema.safeParse(parsed);
-    return result.success ? result.data : null;
+    // Accept either the new bento shape or a legacy F.1 layout — the
+    // migration helper handles both. Returning null here would force
+    // the user back to the default; instead we always normalize so
+    // even a stale row produces a sensible bento.
+    return getEffectiveBentoLayout(parsed);
   } catch {
     return null;
   }

@@ -8,7 +8,7 @@ import { PresetBar } from "@/components/opportunities/preset-bar";
 import { SortDropdown } from "@/components/opportunities/sort-dropdown";
 import { SavePresetDialog } from "@/components/opportunities/save-preset-dialog";
 import { LayoutBuilderModal } from "@/components/opportunities/layout-builder-modal";
-import type { LayoutPreference } from "@/lib/opportunities/layout-chunks";
+import type { BentoLayoutPreference } from "@/lib/opportunities/bento-layout";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { OpportunitiesReviewSkeleton } from "@/components/skeletons/opportunities-review-skeleton";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ interface OpportunityPreferencesResponse {
   preferences?: {
     payNormalizationUnit?: PayNormalizationUnit;
     payNormalizationCurrency?: PayNormalizationCurrency;
-    layoutPreference?: LayoutPreference | null;
+    layoutPreference?: BentoLayoutPreference | null;
     visibleBadges?: string[];
   };
 }
@@ -73,8 +73,8 @@ export default function OpportunityReviewPage() {
   const [currencyRates, setCurrencyRates] = useState<CurrencyRateMap>({});
   // F.1 — card layout. null = use defaults. The modal edits a draft and
   // PATCHes; we re-mirror the saved value here so the live card updates.
-  const [layoutPreference, setLayoutPreference] =
-    useState<LayoutPreference | null>(null);
+  const [layoutPreference, setBentoLayoutPreference] =
+    useState<BentoLayoutPreference | null>(null);
   const [layoutModalOpen, setLayoutModalOpen] = useState(false);
   const { confirm: confirmDelete, dialog: confirmDialog } = useConfirmDialog();
 
@@ -134,7 +134,7 @@ export default function OpportunityReviewPage() {
       // chained migrations, and the new builder is the canonical edit
       // surface anyway.
       if (preferencesData.preferences?.layoutPreference) {
-        setLayoutPreference(preferencesData.preferences.layoutPreference);
+        setBentoLayoutPreference(preferencesData.preferences.layoutPreference);
       }
       if (ratesData.rates) {
         setCurrencyRates(ratesData.rates);
@@ -407,7 +407,7 @@ export default function OpportunityReviewPage() {
         open={layoutModalOpen}
         onOpenChange={setLayoutModalOpen}
         value={layoutPreference}
-        onPersisted={setLayoutPreference}
+        onPersisted={setBentoLayoutPreference}
       />
       {confirmDialog}
     </div>
