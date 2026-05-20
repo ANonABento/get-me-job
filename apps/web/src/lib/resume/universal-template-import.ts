@@ -100,6 +100,87 @@ export interface SemanticResumeItem {
   evidenceRefs: string[];
 }
 
+export interface ImportedTemplateStyleTokens {
+  version: 1;
+  sourceType: SourceDocumentIR["sourceType"];
+  filename: string;
+  page: ImportedPageStyleToken;
+  typography: Partial<
+    Record<
+      "name" | "sectionHeading" | "entryTitle" | "body" | "metadata" | "bullet",
+      ImportedTypographyToken
+    >
+  >;
+  color: {
+    accent?: ImportedScalarToken<string>;
+    body?: ImportedScalarToken<string>;
+    muted?: ImportedScalarToken<string>;
+    rule?: ImportedScalarToken<string>;
+    bullet?: ImportedScalarToken<string>;
+    link?: ImportedScalarToken<string>;
+  };
+  spacing: {
+    sectionGapPt?: ImportedScalarToken<number>;
+    itemGapPt?: ImportedScalarToken<number>;
+    bulletGapPt?: ImportedScalarToken<number>;
+    lineHeight?: ImportedScalarToken<string>;
+  };
+  rules: {
+    sectionDivider?: ImportedRuleToken;
+    headerDivider?: ImportedRuleToken;
+  };
+  layout: {
+    headerMode?: ImportedScalarToken<
+      "single-line" | "split" | "stacked" | "sidebar"
+    >;
+    dateAlignment?: ImportedScalarToken<
+      "right-column" | "inline" | "below" | "unknown"
+    >;
+    sectionTitlePlacement?: ImportedScalarToken<
+      "above" | "left-rail" | "inline"
+    >;
+    columns?: ImportedScalarToken<number>;
+  };
+  warnings: string[];
+}
+
+export interface ImportedPageStyleToken {
+  size: string;
+  widthPt: number;
+  heightPt: number;
+  margins?: SourceDocumentIR["pages"][number]["margins"];
+  background?: string;
+  confidence: number;
+  evidenceRefs: string[];
+}
+
+export interface ImportedTypographyToken {
+  fontFamily?: string;
+  fontSizePt?: number;
+  lineHeight?: string;
+  color?: string;
+  fontWeight?: string;
+  fontStyle?: "normal" | "italic";
+  textTransform?: "none" | "uppercase";
+  alignment?: string;
+  confidence: number;
+  evidenceRefs: string[];
+}
+
+export interface ImportedScalarToken<T> {
+  value: T;
+  confidence: number;
+  evidenceRefs: string[];
+}
+
+export interface ImportedRuleToken {
+  widthPt: number;
+  color: string;
+  style: "solid" | "dashed" | "dotted" | "double" | "none";
+  confidence: number;
+  evidenceRefs: string[];
+}
+
 interface SemanticSourceLine {
   text: string;
   sourceType: SourceDocumentIR["blocks"][number]["type"];
@@ -330,6 +411,333 @@ export function semanticIRToTailoredResume(
         [item.primary, ...item.bullets].filter(Boolean),
       ) ?? [],
   };
+}
+
+export function inferImportedTemplateStyleTokens(
+  source: SourceDocumentIR,
+): ImportedTemplateStyleTokens {
+  const sections = detectSectionSignals(source);
+  const styleSignals = detectStyleSignals(source, sections);
+  const typography = Object.fromEntries(
+    styleSignals.map((signal) => [
+      signal.role,
+      typographyTokenFromSignal(signal, source),
+    ]),
+  ) as ImportedTemplateStyleTokens["typography"];
+  const page = inferPageStyleToken(source);
+  const colors = inferColorTokens(source, typography);
+  const spacing = inferSpacingTokens(source);
+  const rules = inferRuleTokens(source, colors);
+  const layout = inferLayoutTokens(source);
+  const warnings = [
+    ...(typography.body ? [] : ["No reusable body typography token detected."]),
+    ...(typography.sectionHeading
+      ? []
+      : ["No reusable section heading typography token detected."]),
+    ...(colors.accent ? [] : ["No accent color token detected from source."]),
+  ];
+
+  return {
+    version: 1,
+    sourceType: source.sourceType,
+    filename: source.filename,
+    page,
+    typography,
+    color: colors,
+    spacing,
+    rules,
+    layout,
+    warnings,
+  };
+}
+
+function inferPageStyleToken(source: SourceDocumentIR): ImportedPageStyleToken {
+  const page = source.pages[0];
+  const widthPt = page?.widthPt ?? 612;
+  const heightPt = page?.heightPt ?? 792;
+  return {
+    size:
+      Math.abs(widthPt - 595) < 8 && Math.abs(heightPt - 842) < 8
+        ? "a4"
+        : "letter",
+    widthPt,
+    heightPt,
+    margins: page?.margins,
+    confidence: page?.widthPt && page.heightPt ? 0.9 : 0.45,
+    evidenceRefs: page ? [page.id] : [],
+  };
+}
+
+function typographyTokenFromSignal(
+  signal: UniversalTemplateStyleSignal,
+  source: SourceDocumentIR,
+): ImportedTypographyToken {
+  const block = source.blocks.find((item) =>
+    signal.evidenceRefs.includes(item.id),
+  );
+  const text = block?.text.trim() ?? "";
+  return {
+    fontFamily: signal.sample.fontFamily,
+    fontSizePt: signal.sample.fontSizePt,
+    lineHeight: block?.style?.lineHeight,
+    color: signal.sample.color,
+    fontWeight: signal.sample.bold ? "700" : undefined,
+    fontStyle: signal.sample.italic ? "italic" : "normal",
+    textTransform:
+      text && text === text.toUpperCase() && /[A-Z]/.test(text)
+        ? "uppercase"
+        : "none",
+    alignment: signal.sample.alignment,
+    confidence: signal.confidence,
+    evidenceRefs: signal.evidenceRefs,
+  };
+}
+
+function inferColorTokens(
+  source: SourceDocumentIR,
+  typography: ImportedTemplateStyleTokens["typography"],
+): ImportedTemplateStyleTokens["color"] {
+  const styleColors = source.blocks
+    .map((block) => ({ id: block.id, color: block.style?.color }))
+    .filter((item): item is { id: string; color: string } =>
+      Boolean(item.color),
+    );
+  const bodyColor = typography.body?.color;
+  const accentColor =
+    typography.sectionHeading?.color ??
+    mostCommon(
+      styleColors
+        .map((item) => item.color)
+        .filter((color) => color !== bodyColor),
+    );
+  const fallbackBody =
+    bodyColor ?? mostCommon(styleColors.map((item) => item.color));
+
+  return {
+    accent: accentColor
+      ? scalarToken(
+          accentColor,
+          typography.sectionHeading?.confidence ?? 0.58,
+          evidenceRefsForColor(styleColors, accentColor),
+        )
+      : undefined,
+    body: fallbackBody
+      ? scalarToken(fallbackBody, typography.body?.confidence ?? 0.56, [
+          ...(typography.body?.evidenceRefs ?? []),
+        ])
+      : undefined,
+    muted: typography.metadata?.color
+      ? scalarToken(
+          typography.metadata.color,
+          typography.metadata.confidence,
+          typography.metadata.evidenceRefs,
+        )
+      : undefined,
+    rule: accentColor
+      ? scalarToken(
+          accentColor,
+          0.5,
+          evidenceRefsForColor(styleColors, accentColor),
+        )
+      : undefined,
+    bullet: accentColor
+      ? scalarToken(
+          accentColor,
+          0.5,
+          evidenceRefsForColor(styleColors, accentColor),
+        )
+      : undefined,
+    link: undefined,
+  };
+}
+
+function inferSpacingTokens(
+  source: SourceDocumentIR,
+): ImportedTemplateStyleTokens["spacing"] {
+  const boxes = source.blocks
+    .map((block) => ({ id: block.id, box: block.bbox, type: block.type }))
+    .filter(
+      (
+        item,
+      ): item is {
+        id: string;
+        box: NonNullable<SourceDocumentIR["blocks"][number]["bbox"]>;
+        type: SourceDocumentIR["blocks"][number]["type"];
+      } => Boolean(item.box),
+    )
+    .sort((a, b) => a.box.yPt - b.box.yPt);
+  const gaps = boxes
+    .slice(1)
+    .map(
+      (item, index) =>
+        item.box.yPt - (boxes[index].box.yPt + boxes[index].box.heightPt),
+    )
+    .filter((gap) => gap >= 0 && gap < 80);
+  const textLineHeights = source.blocks
+    .map((block) => block.style?.lineHeight)
+    .filter((lineHeight): lineHeight is string => Boolean(lineHeight));
+  const medianGap = median(gaps);
+  const largerGaps = gaps.filter((gap) => medianGap && gap > medianGap * 1.6);
+
+  return {
+    sectionGapPt:
+      largerGaps.length && median(largerGaps)
+        ? scalarToken(
+            roundPt(median(largerGaps)!),
+            0.58,
+            boxes.map((box) => box.id).slice(0, 6),
+          )
+        : undefined,
+    itemGapPt: medianGap
+      ? scalarToken(
+          roundPt(medianGap),
+          0.55,
+          boxes.map((box) => box.id).slice(0, 6),
+        )
+      : undefined,
+    bulletGapPt: medianGap
+      ? scalarToken(
+          roundPt(Math.max(1, medianGap * 0.5)),
+          0.45,
+          boxes.map((box) => box.id).slice(0, 6),
+        )
+      : undefined,
+    lineHeight: textLineHeights.length
+      ? scalarToken(mostCommon(textLineHeights)!, 0.72, [])
+      : undefined,
+  };
+}
+
+function inferRuleTokens(
+  source: SourceDocumentIR,
+  colors: ImportedTemplateStyleTokens["color"],
+): ImportedTemplateStyleTokens["rules"] {
+  const borderedBlocks = source.blocks.filter(
+    (block) =>
+      block.rowMetadata?.borders ||
+      block.tableMetadata?.borders ||
+      block.cellMetadata?.some((cell) => cell.borders),
+  );
+  const border = firstBorder(source);
+  if (!border) return {};
+  return {
+    sectionDivider: {
+      widthPt: border.widthPt,
+      color: border.color || colors.rule?.value || "#000000",
+      style: border.style,
+      confidence: 0.68,
+      evidenceRefs: borderedBlocks.slice(0, 4).map((block) => block.id),
+    },
+  };
+}
+
+function inferLayoutTokens(
+  source: SourceDocumentIR,
+): ImportedTemplateStyleTokens["layout"] {
+  const page = source.pages[0];
+  const boxes = source.blocks
+    .map((block) => block.bbox)
+    .filter(
+      (box): box is NonNullable<SourceDocumentIR["blocks"][number]["bbox"]> =>
+        Boolean(box),
+    );
+  const headerBlocks = source.blocks.slice(0, 5);
+  const rightAlignedDates = source.blocks.filter(
+    (block) =>
+      isDateLike(block.text) &&
+      (block.style?.alignment === "right" ||
+        block.cellMetadata?.some(
+          (cell) => cell.alignment === "right" && isDateLike(cell.text),
+        ) ||
+        (page?.widthPt &&
+          block.bbox &&
+          block.bbox.xPt + block.bbox.widthPt > page.widthPt * 0.66)),
+  );
+  const columns = inferColumnCount(page?.widthPt, boxes);
+
+  return {
+    headerMode: scalarToken(
+      headerBlocks.some((block) => block.text.includes("|"))
+        ? "single-line"
+        : "stacked",
+      0.55,
+      headerBlocks.map((block) => block.id),
+    ),
+    dateAlignment: scalarToken(
+      rightAlignedDates.length ? "right-column" : "unknown",
+      rightAlignedDates.length ? 0.72 : 0.35,
+      rightAlignedDates.slice(0, 6).map((block) => block.id),
+    ),
+    sectionTitlePlacement: scalarToken("above", 0.55, []),
+    columns: scalarToken(columns, columns > 1 ? 0.7 : 0.55, []),
+  };
+}
+
+function scalarToken<T>(
+  value: T,
+  confidence: number,
+  evidenceRefs: string[],
+): ImportedScalarToken<T> {
+  return {
+    value,
+    confidence: roundRatio(confidence),
+    evidenceRefs,
+  };
+}
+
+function evidenceRefsForColor(
+  colors: Array<{ id: string; color: string }>,
+  color: string,
+): string[] {
+  return colors
+    .filter((item) => item.color === color)
+    .slice(0, 8)
+    .map((item) => item.id);
+}
+
+function firstBorder(source: SourceDocumentIR): ImportedRuleToken | null {
+  for (const block of source.blocks) {
+    const candidates = [
+      block.rowMetadata?.borders?.bottom,
+      block.rowMetadata?.borders?.top,
+      block.tableMetadata?.borders?.bottom,
+      block.tableMetadata?.borders?.top,
+      ...(block.cellMetadata ?? []).flatMap((cell) => [
+        cell.borders?.bottom,
+        cell.borders?.top,
+      ]),
+    ].filter(Boolean);
+    const border = candidates.find(
+      (item) => item && item.style !== "none" && item.widthPt > 0,
+    );
+    if (border) {
+      return {
+        widthPt: border.widthPt,
+        color: border.color,
+        style: border.style,
+        confidence: 0.68,
+        evidenceRefs: [block.id],
+      };
+    }
+  }
+  return null;
+}
+
+function inferColumnCount(
+  pageWidthPt: number | undefined,
+  boxes: Array<NonNullable<SourceDocumentIR["blocks"][number]["bbox"]>>,
+): number {
+  if (!pageWidthPt || boxes.length < 8) return 1;
+  const centers = boxes
+    .filter((box) => box.widthPt > 12 && box.heightPt > 4)
+    .map((box) => box.xPt + box.widthPt / 2)
+    .sort((a, b) => a - b);
+  if (centers.length < 8) return 1;
+  let largestGap = 0;
+  for (let index = 1; index < centers.length; index += 1) {
+    largestGap = Math.max(largestGap, centers[index] - centers[index - 1]);
+  }
+  return largestGap > pageWidthPt * 0.12 ? 2 : 1;
 }
 
 function sourceLinesForSemanticMapping(
@@ -953,6 +1361,24 @@ function cleanSectionTitle(text: string): string {
 function average(values: number[]): number {
   if (!values.length) return 0;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function median(values: number[]): number | null {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.floor((sorted.length - 1) / 2)];
+}
+
+function mostCommon<T>(values: T[]): T | undefined {
+  const counts = new Map<T, number>();
+  for (const value of values) {
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+  return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0];
+}
+
+function roundPt(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 function roundRatio(value: number): number {

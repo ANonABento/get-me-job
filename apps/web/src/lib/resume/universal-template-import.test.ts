@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   analyzeUniversalTemplateImport,
+  inferImportedTemplateStyleTokens,
   inferResumeSemanticIR,
   semanticIRToTailoredResume,
 } from "@/lib/resume/universal-template-import";
@@ -153,6 +154,91 @@ describe("universal template import analysis", () => {
       description: "React - TypeScript",
       highlights: ["Created configurable project cards and bullet groups"],
     });
+  });
+
+  it("extracts reusable style tokens without depending on one resume design", () => {
+    const source: SourceDocumentIR = {
+      sourceType: "docx",
+      filename: "colored-table-resume.docx",
+      pages: [
+        {
+          id: "page-1",
+          number: 1,
+          widthPt: 612,
+          heightPt: 792,
+          margins: {
+            top: "36pt",
+            right: "42pt",
+            bottom: "36pt",
+            left: "42pt",
+          },
+        },
+      ],
+      rawText: "",
+      diagnostics: [],
+      blocks: [
+        styledBlock("b1", "Riley Chen", {
+          fontFamily: "Aptos Display, sans-serif",
+          fontSizePt: 24,
+          bold: true,
+          color: "#222222",
+        }),
+        styledBlock("b2", "riley@example.com", {
+          fontSizePt: 9,
+          color: "#444444",
+          alignment: "right",
+        }),
+        styledBlock("b3", "EXPERIENCE", {
+          fontFamily: "Aptos, sans-serif",
+          fontSizePt: 11,
+          bold: true,
+          color: "#0f766e",
+        }),
+        {
+          ...tableRow("b4", ["Designer", "Studio", "2024 - Present"]),
+          rowMetadata: {
+            borders: {
+              bottom: {
+                widthPt: 0.75,
+                color: "#0f766e",
+                style: "solid",
+              },
+            },
+          },
+        },
+        styledBlock("b5", "Built systems", {
+          fontFamily: "Aptos, sans-serif",
+          fontSizePt: 10,
+          color: "#222222",
+          lineHeight: "1.2",
+        }),
+      ],
+    };
+
+    const tokens = inferImportedTemplateStyleTokens(source);
+
+    expect(tokens.page).toMatchObject({
+      size: "letter",
+      widthPt: 612,
+      heightPt: 792,
+      confidence: 0.9,
+    });
+    expect(tokens.typography.name).toMatchObject({
+      fontFamily: "Aptos Display, sans-serif",
+      fontSizePt: 24,
+      fontWeight: "700",
+    });
+    expect(tokens.typography.sectionHeading).toMatchObject({
+      color: "#0f766e",
+      textTransform: "uppercase",
+    });
+    expect(tokens.color.accent).toMatchObject({ value: "#0f766e" });
+    expect(tokens.rules.sectionDivider).toMatchObject({
+      widthPt: 0.75,
+      color: "#0f766e",
+      style: "solid",
+    });
+    expect(tokens.layout.dateAlignment?.value).toBe("right-column");
   });
 });
 

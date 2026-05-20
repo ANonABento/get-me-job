@@ -12,6 +12,7 @@ import {
 } from "@/lib/resume/template-visual-verification";
 import {
   analyzeUniversalTemplateImport,
+  inferImportedTemplateStyleTokens,
   inferResumeSemanticIR,
 } from "@/lib/resume/universal-template-import";
 
@@ -45,11 +46,13 @@ async function main() {
   writeJson(path.join(args.outDir, "migration-fidelity.json"), draft.fidelity);
   const universalAnalysis = analyzeUniversalTemplateImport(draft.source);
   const semanticResume = inferResumeSemanticIR(draft.source);
+  const styleTokens = inferImportedTemplateStyleTokens(draft.source);
   writeJson(
     path.join(args.outDir, "universal-template-analysis.json"),
     universalAnalysis,
   );
   writeJson(path.join(args.outDir, "semantic-resume-ir.json"), semanticResume);
+  writeJson(path.join(args.outDir, "style-tokens.json"), styleTokens);
 
   const referencePath = resolveReferencePath(sourcePath, args.reference);
   const referenceImagePath = referencePath
@@ -101,6 +104,7 @@ async function main() {
     referenceImagePath,
     universalAnalysis,
     semanticResume,
+    styleTokens,
     reports: reports.map(
       ({ mode, report, htmlPath, screenshotPath, imageComparison }) => ({
         mode,

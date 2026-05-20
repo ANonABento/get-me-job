@@ -573,6 +573,7 @@ function renderLabHtml(
         ["source-ir.json", base + "/source-ir.json"],
         ["universal-template-analysis.json", base + "/universal-template-analysis.json"],
         ["semantic-resume-ir.json", base + "/semantic-resume-ir.json"],
+        ["style-tokens.json", base + "/style-tokens.json"],
         ["source-report.json", base + "/source-report.json"],
         ["stress-report.json", base + "/stress-report.json"],
         ["source.html", src && src.htmlPath],
