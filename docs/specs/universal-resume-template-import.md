@@ -329,6 +329,45 @@ Scores:
 
 Reference resemblance is a diagnostic score, not the main pass/fail gate.
 
+Fixture coverage rules:
+
+- A fixture class is the unit of coverage. A specific resume file is only one
+  example within a class.
+- User-provided resumes may be used to reproduce bugs, but fixes must graduate
+  into anonymized or generated fixtures that capture the source pattern:
+  table-heavy DOCX, dense PDF, macro-heavy LaTeX, no-bullet resume, and so on.
+- A fixture is not allowed to pass only because its source content matches the
+  stress resume. Stress renders must replace names, employers, schools,
+  projects, bullets, and dates with unrelated data.
+- The harness must report both per-fixture results and missing fixture classes.
+  A green per-fixture run is not sufficient if the matrix is missing required
+  classes.
+- Importer code must not branch on fixture filename, person name, school,
+  employer, project name, or resume-specific wording.
+
+Reusable-template gates:
+
+- `semanticCoverage`: expected sections, item headers, dates, metadata, and
+  bullets were recovered with evidence refs.
+- `styleCoverage`: page geometry, body type, section-heading type, accent/rule
+  color, spacing rhythm, and bullet treatment were inferred or explicitly
+  marked unavailable.
+- `layoutResilience`: source-content render and stress render avoid severe
+  overflow, duplicate content, clipped text, and fixed source-only boxes.
+- `sourceCoverage`: normalized source lines are either represented in semantic
+  data, marked decorative/non-template, or reported as unresolved evidence.
+- `reviewability`: every failed or weak gate produces a visible review action in
+  both the standalone lab and app mismatch report.
+
+Diagnostic-only gates:
+
+- `visualFamilyResemblance`: screenshot/image comparison should flag when the
+  render no longer belongs to the source's visual family. It should not force
+  absolute-position replication into V4 reusable templates.
+- `pixelDiff`: exact pixel difference is useful for debugging extraction and
+  regression drift, but it must not be used as the saved-template success
+  definition.
+
 ## Phased Implementation Plan
 
 ### Phase 1: Analysis Boundary
@@ -404,6 +443,49 @@ Reference resemblance is a diagnostic score, not the main pass/fail gate.
 - Keep fixture-class coverage as a separate gate from per-fixture pass/fail:
   current examples may pass while the matrix still shows missing categories
   such as academic CVs or resumes with no bullets.
+
+### Phase 8: Import Quality Hardening
+
+- Promote every dogfood failure into one of five buckets:
+  extraction, semantic inference, style token inference, reusable rendering, or
+  app wiring.
+- For extraction failures, add evidence IR assertions before touching renderer
+  code.
+- For semantic failures, add expected-section/item/bullet assertions using
+  anonymized fixture data.
+- For style failures, add token candidate assertions with evidence refs.
+- For renderer failures, add source-content and stress-content screenshots plus
+  overflow/duplication metrics.
+- For app-wiring failures, add review UI tests that prove the mismatch report
+  exposes the same issue seen in the lab.
+- Keep a short "known broad failure modes" list in this spec so work does not
+  drift into hand-tuned fixes for the latest uploaded resume.
+
+### Phase 9: User-Facing Template Editing
+
+- Replace the confusing review-template workflow with a clearer import
+  workbench:
+  source evidence, inferred template, stress preview, corrections, and save
+  readiness.
+- Add direct controls for the reusable template concepts users actually edit:
+  header layout, section ordering, divider style, type scale, spacing, bullet
+  treatment, entry metadata placement, and section inclusion.
+- Keep low-level source/block controls available behind an evidence/debug pane.
+- Show "saved template output" separately from "source/debug render" so users do
+  not confuse pixel evidence with the reusable template.
+- Persist all corrections as semantic/style/token operations, not as ad hoc DOM
+  edits.
+
+### Phase 10: Legacy Removal And Guardrails
+
+- Delete or quarantine legacy pathways once V4 import, review, render, export,
+  and template selection are covered by tests.
+- Keep read-only compatibility for existing V3 ids until a migration path has
+  been verified.
+- Add regression tests that fail if a normal route prefers a legacy V3 visual
+  template over a saved V4 reusable template.
+- Add data migration notes before removing any database columns or old draft
+  fields.
 
 ## App Contract
 

@@ -1314,6 +1314,85 @@ describe("CustomTemplateManagerDialog", () => {
       ]);
     });
   });
+
+  it("surfaces fidelity and DOCX table risks in the mismatch report", async () => {
+    const draft = {
+      ...migrationDraft(),
+      sourceFilename: "table-resume.docx",
+      sourceType: "docx",
+      universalAnalysis: {
+        readiness: "review",
+        scores: {
+          semanticCoverage: 0.92,
+          styleCoverage: 0.88,
+          layoutResilience: 0.58,
+          sourceEvidence: 0.62,
+        },
+        warnings: [],
+      },
+      fidelity: {
+        score: 61,
+        status: "review",
+        checks: [
+          {
+            id: "render_completeness",
+            label: "Render completeness",
+            score: 0.45,
+            passed: false,
+            detail:
+              "Stress render overflowed after replacing source content with unrelated candidate data.",
+          },
+          {
+            id: "table_structure",
+            label: "Table structure",
+            score: 0.7,
+            passed: false,
+            detail:
+              "DOCX table rows were detected; confirm which cells are reusable content.",
+          },
+        ],
+      },
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/templates/migrate") {
+        return Response.json({ draft });
+      }
+      return Response.json({ templates: [] });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderDialog();
+
+    const inputs =
+      document.querySelectorAll<HTMLInputElement>("input[type='file']");
+    fireEvent.change(inputs[0], {
+      target: {
+        files: [
+          new File(["PK"], "table-resume.docx", {
+            type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          }),
+        ],
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("table-resume.docx")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Mismatch Report" }));
+
+    expect(screen.getByText("Weak layout resilience")).toBeInTheDocument();
+    expect(screen.getByText("Weak source evidence")).toBeInTheDocument();
+    expect(screen.getByText("Render completeness")).toBeInTheDocument();
+    expect(screen.getByText("Table structure")).toBeInTheDocument();
+    expect(screen.getByText("Table-heavy DOCX review")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Stress render overflowed after replacing source content/,
+      ),
+    ).toBeInTheDocument();
+  });
 });
 
 function migrationDraft() {

@@ -222,6 +222,7 @@ interface TemplateMigrationDraft {
       passed: boolean;
       detail: string;
     }>;
+    metrics?: Record<string, number | null | undefined>;
   };
   warnings: string[];
   confidence: "high" | "medium" | "low";
@@ -3577,6 +3578,47 @@ function mismatchReportItems(draft: TemplateMigrationDraft): Array<{
       tone: "warning",
     });
   }
+  if ((scores.layoutResilience ?? 1) < 0.75) {
+    items.push({
+      area: "render",
+      label: "Weak layout resilience",
+      detail: `Layout resilience is ${formatConfidence(scores.layoutResilience)}.`,
+      action:
+        "Check the reusable and stress renders for overflow, clipping, fixed source boxes, or duplicated content.",
+      tone: "warning",
+    });
+  }
+  if ((scores.sourceEvidence ?? 1) < 0.75) {
+    items.push({
+      area: "source",
+      label: "Weak source evidence",
+      detail: `Source evidence is ${formatConfidence(scores.sourceEvidence)}.`,
+      action:
+        "Use Source Evidence to confirm unresolved blocks are content, decorative layout, or unsupported source structure.",
+      tone: "warning",
+    });
+  }
+  for (const check of draft.fidelity?.checks ?? []) {
+    if (check.passed) continue;
+    items.push({
+      area: fidelityCheckArea(check.id),
+      label: check.label,
+      detail: check.detail,
+      action: fidelityCheckAction(check.id),
+      tone: draft.fidelity?.status === "low" ? "danger" : "warning",
+    });
+  }
+  if (hasDocxTableEvidence(draft)) {
+    items.push({
+      area: "source",
+      label: "Table-heavy DOCX review",
+      detail:
+        "This import includes DOCX table evidence, which often mixes reusable resume content with layout-only cells.",
+      action:
+        "Review table cells in Source Evidence, mark labels or decorative cells non-template, then confirm the reusable and stress renders still preserve the intended section rhythm.",
+      tone: "info",
+    });
+  }
   for (const section of draft.semanticResume?.sections ?? []) {
     if ((section.confidence ?? 1) < 0.7) {
       items.push({
@@ -3622,6 +3664,42 @@ function mismatchReportItems(draft: TemplateMigrationDraft): Array<{
     });
   }
   return items;
+}
+
+function hasDocxTableEvidence(draft: TemplateMigrationDraft): boolean {
+  const sourceType = draft.sourceType || draft.sourceFilename;
+  const isDocx = sourceType.toLowerCase().includes("docx");
+  if (!isDocx) return false;
+  return draft.source.blocks.some(
+    (block) =>
+      block.type === "table-row" ||
+      (block.cellMetadata?.length ?? 0) > 0 ||
+      (block.cells?.length ?? 0) > 0,
+  );
+}
+
+function fidelityCheckArea(id: string): string {
+  if (/page|geometry|cell|table/i.test(id)) return "source";
+  if (/slot|semantic|mapping/i.test(id)) return "semantic";
+  if (/style|token/i.test(id)) return "style";
+  if (/render|preview|repeat|completeness/i.test(id)) return "render";
+  return "fidelity";
+}
+
+function fidelityCheckAction(id: string): string {
+  if (/page|geometry|cell|table/i.test(id)) {
+    return "Inspect Source Evidence before saving; unsupported layout structure should be marked decorative or corrected through semantic/style controls.";
+  }
+  if (/slot|semantic|mapping/i.test(id)) {
+    return "Check the Semantic Tree and fix section, item, or bullet mappings before saving.";
+  }
+  if (/style|token/i.test(id)) {
+    return "Check Style Tokens and choose the closest reusable typography, color, spacing, or rule candidate.";
+  }
+  if (/render|preview|repeat|completeness/i.test(id)) {
+    return "Check reusable and stress previews for clipped content, repeated lines, or missing repeatable sections.";
+  }
+  return "Review the related source evidence, semantic tree, style tokens, and render previews before saving.";
 }
 
 function TokenSummaryCard({ title, value }: { title: string; value: string }) {
