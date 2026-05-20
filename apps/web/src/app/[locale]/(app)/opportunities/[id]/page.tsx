@@ -493,8 +493,10 @@ export default function OpportunityDetailPage({
                   {/* audit/11: detail-page H1 picks up font-display per
                       the editorial system (CLAUDE.md: "Headings use
                       font-display tracking-tight"). Was inheriting the
-                      body font; matches the bento title now. */}
-                  <h1 className="font-display text-3xl font-semibold tracking-tight">
+                      body font; matches the bento title now.
+                      audit/14: text-2xl on mobile, text-3xl on md+ —
+                      matches the bento title responsive treatment. */}
+                  <h1 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">
                     {opportunity.title}
                   </h1>
                   <p className="mt-2 text-lg text-muted-foreground">
