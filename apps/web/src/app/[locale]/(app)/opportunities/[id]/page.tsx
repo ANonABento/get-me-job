@@ -107,8 +107,14 @@ function OpportunityFieldSections({
     <>
       {OPPORTUNITY_FIELD_SECTIONS.map((section) => (
         <section key={section.id} className="rounded-lg border bg-card">
-          <div className="border-b px-5 py-4">
-            <h2 className="text-base font-semibold">{section.title}</h2>
+          {/* audit/08: section headings now use the editorial mono-
+              eyebrow treatment (same as the Actions / AI helpers
+              sub-headers shipped in iter-5). Section names also
+              renamed in utils.ts: Core → Role, etc. */}
+          <div className="border-b px-5 py-3">
+            <h2 className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+              {section.title}
+            </h2>
           </div>
           <div className="divide-y">
             {section.fields.map((field) => {
@@ -516,8 +522,10 @@ export default function OpportunityDetailPage({
 
             <Suspense fallback={<SkeletonCard />}>
               <section className="rounded-lg border bg-card">
-                <div className="flex items-center justify-between border-b px-5 py-4">
-                  <h2 className="text-base font-semibold">Notes</h2>
+                <div className="flex items-center justify-between border-b px-5 py-3">
+                  <h2 className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                    Notes
+                  </h2>
                   <span className="text-xs text-muted-foreground">
                     {notesSaveState === "saving" && "Saving notes..."}
                     {notesSaveState === "saved" && "Notes saved"}

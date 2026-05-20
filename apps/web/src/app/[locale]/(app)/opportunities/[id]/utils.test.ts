@@ -33,7 +33,8 @@ const opportunity: JobDescription = {
 describe("opportunity detail utils", () => {
   it("defines the requested detail sections", () => {
     expect(OPPORTUNITY_FIELD_SECTIONS.map((section) => section.title)).toEqual([
-      "Core",
+      // audit/08 renamed "Core" → "Role" to match the bento ROLE cell.
+      "Role",
       "Location",
       "Details",
       "Compensation",

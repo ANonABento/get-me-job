@@ -100,7 +100,7 @@ export const OPPORTUNITY_TYPE_OPTIONS: OpportunityFieldOption[] = JOB_TYPES.map(
 export const OPPORTUNITY_FIELD_SECTIONS: OpportunityFieldSection[] = [
   {
     id: "core",
-    title: "Core",
+    title: "Role",
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "company", label: "Company", type: "text" },
