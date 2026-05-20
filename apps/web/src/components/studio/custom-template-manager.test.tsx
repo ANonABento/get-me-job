@@ -613,6 +613,9 @@ describe("CustomTemplateManagerDialog", () => {
     fireEvent.change(screen.getByLabelText("Body typography candidate"), {
       target: { value: "1" },
     });
+    fireEvent.change(screen.getByLabelText("Name typography candidate"), {
+      target: { value: "1" },
+    });
     fireEvent.change(
       screen.getByLabelText("Section heading typography candidate"),
       {
@@ -621,6 +624,12 @@ describe("CustomTemplateManagerDialog", () => {
     );
     fireEvent.change(screen.getByLabelText("Section heading font size"), {
       target: { value: "13" },
+    });
+    fireEvent.change(screen.getByLabelText("Metadata typography candidate"), {
+      target: { value: "1" },
+    });
+    fireEvent.change(screen.getByLabelText("Metadata font size"), {
+      target: { value: "8" },
     });
     fireEvent.change(screen.getByLabelText("Section divider width candidate"), {
       target: { value: "1.25" },
@@ -651,10 +660,18 @@ describe("CustomTemplateManagerDialog", () => {
         "Georgia, serif",
       );
       expect(latest.styleTokens.typography.body.fontSizePt).toBe(11);
+      expect(latest.styleTokens.typography.name.fontFamily).toBe(
+        "Aptos Display, sans-serif",
+      );
+      expect(latest.styleTokens.typography.name.fontSizePt).toBe(24);
       expect(latest.styleTokens.typography.sectionHeading.fontFamily).toBe(
         "Aptos, sans-serif",
       );
       expect(latest.styleTokens.typography.sectionHeading.fontSizePt).toBe(13);
+      expect(latest.styleTokens.typography.metadata.fontFamily).toBe(
+        "Aptos, sans-serif",
+      );
+      expect(latest.styleTokens.typography.metadata.fontSizePt).toBe(8);
       expect(latest.styleTokens.rules.sectionDivider.widthPt).toBe(1.25);
       expect(latest.styleTokens.spacing.sectionGapPt.value).toBe(12);
       expect(latest.styleTokens.layout.headerMode.value).toBe("stacked");
@@ -1422,6 +1439,23 @@ function migrationDraft() {
     styleTokens: {
       page: { widthPt: 612, heightPt: 792 },
       typography: {
+        name: {
+          fontFamily: "Inter",
+          fontSizePt: 22,
+          candidates: [
+            {
+              label: "Inter 22pt (1 ref)",
+              value: { fontFamily: "Inter", fontSizePt: 22 },
+            },
+            {
+              label: "Aptos Display, sans-serif 24pt (1 ref)",
+              value: {
+                fontFamily: "Aptos Display, sans-serif",
+                fontSizePt: 24,
+              },
+            },
+          ],
+        },
         body: {
           fontFamily: "Inter",
           fontSizePt: 11,
@@ -1449,6 +1483,20 @@ function migrationDraft() {
             {
               label: "Aptos, sans-serif (1 ref)",
               value: { fontFamily: "Aptos, sans-serif", fontSizePt: 14 },
+            },
+          ],
+        },
+        metadata: {
+          fontFamily: "Inter",
+          fontSizePt: 9,
+          candidates: [
+            {
+              label: "Inter 9pt (1 ref)",
+              value: { fontFamily: "Inter", fontSizePt: 9 },
+            },
+            {
+              label: "Aptos, sans-serif 9pt (1 ref)",
+              value: { fontFamily: "Aptos, sans-serif", fontSizePt: 9 },
             },
           ],
         },

@@ -2741,11 +2741,23 @@ function StyleTokensPane({
   const [bodySize, setBodySize] = useState(
     String(tokenNumber(tokens?.typography?.body, "fontSizePt", 10)),
   );
+  const [nameFont, setNameFont] = useState(
+    tokenString(tokens?.typography?.name, "fontFamily"),
+  );
+  const [nameSize, setNameSize] = useState(
+    String(tokenNumber(tokens?.typography?.name, "fontSizePt", 24)),
+  );
   const [headingFont, setHeadingFont] = useState(
     tokenString(tokens?.typography?.sectionHeading, "fontFamily"),
   );
   const [headingSize, setHeadingSize] = useState(
     String(tokenNumber(tokens?.typography?.sectionHeading, "fontSizePt", 11)),
+  );
+  const [metadataFont, setMetadataFont] = useState(
+    tokenString(tokens?.typography?.metadata, "fontFamily"),
+  );
+  const [metadataSize, setMetadataSize] = useState(
+    String(tokenNumber(tokens?.typography?.metadata, "fontSizePt", 9)),
   );
   const [dividerWidth, setDividerWidth] = useState(
     tokenNumber(tokens?.rules?.sectionDivider, "widthPt", 0.75),
@@ -2770,8 +2782,14 @@ function StyleTokensPane({
   const bodyTypographyCandidates = typographyTokenCandidates(
     tokens?.typography?.body,
   );
+  const nameTypographyCandidates = typographyTokenCandidates(
+    tokens?.typography?.name,
+  );
   const headingTypographyCandidates = typographyTokenCandidates(
     tokens?.typography?.sectionHeading,
+  );
+  const metadataTypographyCandidates = typographyTokenCandidates(
+    tokens?.typography?.metadata,
   );
   const dividerWidthCandidates = numericTokenCandidates(
     tokens?.rules?.sectionDivider,
@@ -2796,11 +2814,19 @@ function StyleTokensPane({
     setBodySize(
       String(tokenNumber(tokens?.typography?.body, "fontSizePt", 10)),
     );
+    setNameFont(tokenString(tokens?.typography?.name, "fontFamily"));
+    setNameSize(
+      String(tokenNumber(tokens?.typography?.name, "fontSizePt", 24)),
+    );
     setHeadingFont(
       tokenString(tokens?.typography?.sectionHeading, "fontFamily"),
     );
     setHeadingSize(
       String(tokenNumber(tokens?.typography?.sectionHeading, "fontSizePt", 11)),
+    );
+    setMetadataFont(tokenString(tokens?.typography?.metadata, "fontFamily"));
+    setMetadataSize(
+      String(tokenNumber(tokens?.typography?.metadata, "fontSizePt", 9)),
     );
     setDividerWidth(
       tokenNumber(tokens?.rules?.sectionDivider, "widthPt", 0.75),
@@ -2820,8 +2846,12 @@ function StyleTokensPane({
     const nextAccent = accentColor.trim();
     const nextBodyFont = bodyFont.trim();
     const nextBodySize = Number(bodySize);
+    const nextNameFont = nameFont.trim();
+    const nextNameSize = Number(nameSize);
     const nextHeadingFont = headingFont.trim();
     const nextHeadingSize = Number(headingSize);
+    const nextMetadataFont = metadataFont.trim();
+    const nextMetadataSize = Number(metadataSize);
     const nextSectionGap = Number(sectionGap);
     const nextColumns = Number(columns);
     next.color = {
@@ -2838,6 +2868,13 @@ function StyleTokensPane({
         confidence: 1,
         evidenceRefs: [],
       },
+      name: {
+        ...(isRecord(next.typography?.name) ? next.typography.name : {}),
+        ...(nextNameFont ? { fontFamily: nextNameFont } : {}),
+        ...(Number.isFinite(nextNameSize) ? { fontSizePt: nextNameSize } : {}),
+        confidence: 1,
+        evidenceRefs: [],
+      },
       sectionHeading: {
         ...(isRecord(next.typography?.sectionHeading)
           ? next.typography.sectionHeading
@@ -2845,6 +2882,17 @@ function StyleTokensPane({
         ...(nextHeadingFont ? { fontFamily: nextHeadingFont } : {}),
         ...(Number.isFinite(nextHeadingSize)
           ? { fontSizePt: nextHeadingSize }
+          : {}),
+        confidence: 1,
+        evidenceRefs: [],
+      },
+      metadata: {
+        ...(isRecord(next.typography?.metadata)
+          ? next.typography.metadata
+          : {}),
+        ...(nextMetadataFont ? { fontFamily: nextMetadataFont } : {}),
+        ...(Number.isFinite(nextMetadataSize)
+          ? { fontSizePt: nextMetadataSize }
           : {}),
         confidence: 1,
         evidenceRefs: [],
@@ -2966,6 +3014,49 @@ function StyleTokensPane({
             />
           </label>
           <label className="space-y-1 text-xs text-muted-foreground">
+            <span>Name font</span>
+            <Input
+              value={nameFont}
+              aria-label="Name font"
+              onChange={(event) => setNameFont(event.currentTarget.value)}
+              placeholder="Arial, sans-serif"
+            />
+            {nameTypographyCandidates.length ? (
+              <select
+                className="h-8 w-full rounded-sm border border-border bg-background px-2 text-xs text-foreground"
+                aria-label="Name typography candidate"
+                value=""
+                onChange={(event) => {
+                  const candidate =
+                    nameTypographyCandidates[Number(event.currentTarget.value)];
+                  if (!candidate) return;
+                  if (candidate.value.fontFamily) {
+                    setNameFont(candidate.value.fontFamily);
+                  }
+                  if (typeof candidate.value.fontSizePt === "number") {
+                    setNameSize(String(candidate.value.fontSizePt));
+                  }
+                }}
+              >
+                <option value="">Current: {nameFont || "detected"}</option>
+                {nameTypographyCandidates.map((candidate, index) => (
+                  <option key={`${candidate.label}-${index}`} value={index}>
+                    {candidate.label}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+          </label>
+          <label className="space-y-1 text-xs text-muted-foreground">
+            <span>Name size pt</span>
+            <Input
+              value={nameSize}
+              aria-label="Name font size"
+              onChange={(event) => setNameSize(event.currentTarget.value)}
+              inputMode="decimal"
+            />
+          </label>
+          <label className="space-y-1 text-xs text-muted-foreground">
             <span>Section heading font</span>
             <Input
               value={headingFont}
@@ -3007,6 +3098,51 @@ function StyleTokensPane({
               value={headingSize}
               aria-label="Section heading font size"
               onChange={(event) => setHeadingSize(event.currentTarget.value)}
+              inputMode="decimal"
+            />
+          </label>
+          <label className="space-y-1 text-xs text-muted-foreground">
+            <span>Metadata font</span>
+            <Input
+              value={metadataFont}
+              aria-label="Metadata font"
+              onChange={(event) => setMetadataFont(event.currentTarget.value)}
+              placeholder="Arial, sans-serif"
+            />
+            {metadataTypographyCandidates.length ? (
+              <select
+                className="h-8 w-full rounded-sm border border-border bg-background px-2 text-xs text-foreground"
+                aria-label="Metadata typography candidate"
+                value=""
+                onChange={(event) => {
+                  const candidate =
+                    metadataTypographyCandidates[
+                      Number(event.currentTarget.value)
+                    ];
+                  if (!candidate) return;
+                  if (candidate.value.fontFamily) {
+                    setMetadataFont(candidate.value.fontFamily);
+                  }
+                  if (typeof candidate.value.fontSizePt === "number") {
+                    setMetadataSize(String(candidate.value.fontSizePt));
+                  }
+                }}
+              >
+                <option value="">Current: {metadataFont || "detected"}</option>
+                {metadataTypographyCandidates.map((candidate, index) => (
+                  <option key={`${candidate.label}-${index}`} value={index}>
+                    {candidate.label}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+          </label>
+          <label className="space-y-1 text-xs text-muted-foreground">
+            <span>Metadata size pt</span>
+            <Input
+              value={metadataSize}
+              aria-label="Metadata font size"
+              onChange={(event) => setMetadataSize(event.currentTarget.value)}
               inputMode="decimal"
             />
           </label>
