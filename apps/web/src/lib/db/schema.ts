@@ -284,6 +284,28 @@ export const interviewAnswers = sqliteTable("interview_answers", {
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const interviewFollowUps = sqliteTable(
+  "interview_follow_ups",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().default(DEFAULT_USER_ID),
+    sessionId: text("session_id").notNull(),
+    questionIndex: integer("question_index").notNull(),
+    followUpQuestion: text("follow_up_question").notNull(),
+    answer: text("answer").notNull(),
+    feedback: text("feedback"),
+    createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("idx_interview_follow_ups_session_question").on(
+      table.userId,
+      table.sessionId,
+      table.questionIndex,
+      table.createdAt,
+    ),
+  ],
+);
+
 // Reminders table
 export const reminders = sqliteTable("reminders", {
   id: text("id").primaryKey(),

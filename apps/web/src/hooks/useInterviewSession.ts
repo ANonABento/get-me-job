@@ -19,6 +19,7 @@ import {
 } from "@/lib/constants";
 import type { Opportunity } from "@/types/opportunity";
 import type {
+  FollowUpExchange,
   InterviewMode,
   InterviewQuestion,
   InterviewSession,
@@ -92,6 +93,29 @@ async function fetchJson<T>(
   }
 
   return (await response.json()) as T;
+}
+
+function groupFollowUpsByQuestion(
+  followUps: FollowUpExchange[] | undefined,
+  questionCount: number,
+): FollowUpExchange[][] {
+  const grouped: FollowUpExchange[][] = Array.from(
+    { length: questionCount },
+    () => [],
+  );
+
+  for (const followUp of followUps ?? []) {
+    const questionIndex = followUp.questionIndex;
+    if (
+      typeof questionIndex === "number" &&
+      questionIndex >= 0 &&
+      questionIndex < questionCount
+    ) {
+      grouped[questionIndex].push(followUp);
+    }
+  }
+
+  return grouped;
 }
 
 export function useInterviewSession(): UseInterviewSessionReturn {
@@ -232,7 +256,10 @@ export function useInterviewSession(): UseInterviewSessionReturn {
         feedback: pastSession.questions.map(
           (_, questionIndex) => answerMap.get(questionIndex)?.feedback || "",
         ),
-        followUps: [],
+        followUps: groupFollowUpsByQuestion(
+          pastSession.followUps,
+          pastSession.questions.length,
+        ),
         mode: pastSession.mode,
         skipped: pastSession.questions.map(
           (_, questionIndex) =>

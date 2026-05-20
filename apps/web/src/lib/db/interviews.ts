@@ -30,8 +30,19 @@ export interface InterviewAnswer {
   createdAt: string;
 }
 
+export interface InterviewFollowUp {
+  id: string;
+  sessionId: string;
+  questionIndex: number;
+  followUpQuestion: string;
+  answer: string;
+  feedback?: string;
+  createdAt: string;
+}
+
 export interface InterviewSessionWithAnswers extends InterviewSession {
   answers: InterviewAnswer[];
+  followUps: InterviewFollowUp[];
 }
 
 let interviewSessionsSchemaEnsured = false;
@@ -56,6 +67,23 @@ function tryExec(statement: string): void {
 
 export function ensureInterviewSessionsSchema(): void {
   if (interviewSessionsSchemaEnsured) return;
+
+  tryExec(`
+    CREATE TABLE IF NOT EXISTS interview_follow_ups (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT 'default',
+      session_id TEXT NOT NULL,
+      question_index INTEGER NOT NULL,
+      follow_up_question TEXT NOT NULL,
+      answer TEXT NOT NULL,
+      feedback TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  tryExec(`
+    CREATE INDEX IF NOT EXISTS idx_interview_follow_ups_session_question
+    ON interview_follow_ups(user_id, session_id, question_index, created_at)
+  `);
 
   try {
     tryExec("ALTER TABLE interview_sessions ADD COLUMN category TEXT");
@@ -124,6 +152,92 @@ export function ensureInterviewSessionsSchema(): void {
 
 function rowJobId(value: string | null | undefined): string | null {
   return value || null;
+}
+
+function getInterviewAnswersForSessions(
+  sessionIds: string[],
+  userId: string,
+): Map<string, InterviewAnswer[]> {
+  const answersBySession = new Map<string, InterviewAnswer[]>();
+  if (sessionIds.length === 0) return answersBySession;
+
+  const placeholders = sessionIds.map(() => "?").join(", ");
+  const rows = db
+    .prepare(
+      `
+      SELECT id, session_id, question_index, answer, feedback, created_at
+      FROM interview_answers
+      WHERE user_id = ? AND session_id IN (${placeholders})
+      ORDER BY session_id, question_index, created_at
+    `,
+    )
+    .all(userId, ...sessionIds) as Array<{
+    id: string;
+    session_id: string;
+    question_index: number;
+    answer: string;
+    feedback: string | null;
+    created_at: string;
+  }>;
+
+  for (const row of rows) {
+    const list = answersBySession.get(row.session_id) ?? [];
+    list.push({
+      id: row.id,
+      sessionId: row.session_id,
+      questionIndex: row.question_index,
+      answer: row.answer,
+      feedback: row.feedback || undefined,
+      createdAt: row.created_at,
+    });
+    answersBySession.set(row.session_id, list);
+  }
+
+  return answersBySession;
+}
+
+function getInterviewFollowUpsForSessions(
+  sessionIds: string[],
+  userId: string,
+): Map<string, InterviewFollowUp[]> {
+  const followUpsBySession = new Map<string, InterviewFollowUp[]>();
+  if (sessionIds.length === 0) return followUpsBySession;
+
+  const placeholders = sessionIds.map(() => "?").join(", ");
+  const rows = db
+    .prepare(
+      `
+      SELECT id, session_id, question_index, follow_up_question, answer, feedback, created_at
+      FROM interview_follow_ups
+      WHERE user_id = ? AND session_id IN (${placeholders})
+      ORDER BY session_id, question_index, created_at
+    `,
+    )
+    .all(userId, ...sessionIds) as Array<{
+    id: string;
+    session_id: string;
+    question_index: number;
+    follow_up_question: string;
+    answer: string;
+    feedback: string | null;
+    created_at: string;
+  }>;
+
+  for (const row of rows) {
+    const list = followUpsBySession.get(row.session_id) ?? [];
+    list.push({
+      id: row.id,
+      sessionId: row.session_id,
+      questionIndex: row.question_index,
+      followUpQuestion: row.follow_up_question,
+      answer: row.answer,
+      feedback: row.feedback || undefined,
+      createdAt: row.created_at,
+    });
+    followUpsBySession.set(row.session_id, list);
+  }
+
+  return followUpsBySession;
 }
 
 // Create a new interview session
@@ -216,21 +330,9 @@ export function getInterviewSession(
 
   if (!row) return null;
 
-  const answersStmt = db.prepare(`
-    SELECT id, session_id, question_index, answer, feedback, created_at
-    FROM interview_answers
-    WHERE session_id = ? AND user_id = ?
-    ORDER BY question_index
-  `);
-
-  const answerRows = answersStmt.all(id, userId) as Array<{
-    id: string;
-    session_id: string;
-    question_index: number;
-    answer: string;
-    feedback: string | null;
-    created_at: string;
-  }>;
+  const answers = getInterviewAnswersForSessions([id], userId).get(id) ?? [];
+  const followUps =
+    getInterviewFollowUpsForSessions([id], userId).get(id) ?? [];
 
   return {
     id: row.id,
@@ -242,14 +344,8 @@ export function getInterviewSession(
     status: row.status as "in_progress" | "completed",
     startedAt: row.started_at,
     completedAt: row.completed_at || undefined,
-    answers: answerRows.map((a) => ({
-      id: a.id,
-      sessionId: a.session_id,
-      questionIndex: a.question_index,
-      answer: a.answer,
-      feedback: a.feedback || undefined,
-      createdAt: a.created_at,
-    })),
+    answers,
+    followUps,
   };
 }
 
@@ -257,7 +353,7 @@ export function getInterviewSession(
 export function getInterviewSessions(
   jobId: string | undefined,
   userId: string,
-): InterviewSession[] {
+): InterviewSessionWithAnswers[] {
   ensureInterviewSessionsSchema();
   let query = `
     SELECT id, job_id, category, profile_id, mode, questions_json, status, started_at, completed_at
@@ -287,6 +383,13 @@ export function getInterviewSessions(
     completed_at: string | null;
   }>;
 
+  const sessionIds = rows.map((row) => row.id);
+  const answersBySession = getInterviewAnswersForSessions(sessionIds, userId);
+  const followUpsBySession = getInterviewFollowUpsForSessions(
+    sessionIds,
+    userId,
+  );
+
   return rows.map((row) => ({
     id: row.id,
     jobId: rowJobId(row.job_id),
@@ -297,6 +400,8 @@ export function getInterviewSessions(
     status: row.status as "in_progress" | "completed",
     startedAt: row.started_at,
     completedAt: row.completed_at || undefined,
+    answers: answersBySession.get(row.id) ?? [],
+    followUps: followUpsBySession.get(row.id) ?? [],
   }));
 }
 
@@ -347,6 +452,57 @@ export function addInterviewAnswer(
   };
 }
 
+export function addInterviewFollowUp(
+  sessionId: string,
+  questionIndex: number,
+  followUpQuestion: string,
+  answer: string,
+  feedback: string | undefined,
+  userId: string,
+): InterviewFollowUp {
+  ensureInterviewSessionsSchema();
+  const id = generateId();
+  const now = nowIso();
+
+  const stmt = db.prepare(`
+    INSERT INTO interview_follow_ups (
+      id, user_id, session_id, question_index, follow_up_question, answer, feedback, created_at
+    )
+    SELECT ?, ?, ?, ?, ?, ?, ?, ?
+    WHERE EXISTS (
+      SELECT 1 FROM interview_sessions
+      WHERE id = ? AND user_id = ?
+    )
+  `);
+
+  const result = stmt.run(
+    id,
+    userId,
+    sessionId,
+    questionIndex,
+    followUpQuestion,
+    answer,
+    feedback || null,
+    now,
+    sessionId,
+    userId,
+  ) as { changes?: number } | undefined;
+
+  if (result?.changes === 0) {
+    throw new Error("Session not found");
+  }
+
+  return {
+    id,
+    sessionId,
+    questionIndex,
+    followUpQuestion,
+    answer,
+    feedback,
+    createdAt: now,
+  };
+}
+
 // Complete an interview session
 export function completeInterviewSession(
   sessionId: string,
@@ -379,6 +535,11 @@ export function deleteInterviewSession(id: string, userId: string): void {
     "DELETE FROM interview_answers WHERE session_id = ? AND user_id = ?",
   );
   deleteAnswers.run(id, userId);
+
+  const deleteFollowUps = db.prepare(
+    "DELETE FROM interview_follow_ups WHERE session_id = ? AND user_id = ?",
+  );
+  deleteFollowUps.run(id, userId);
 
   const deleteSession = db.prepare(
     "DELETE FROM interview_sessions WHERE id = ? AND user_id = ?",

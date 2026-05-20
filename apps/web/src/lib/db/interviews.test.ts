@@ -20,6 +20,7 @@ import {
   getInterviewSession,
   getInterviewSessions,
   addInterviewAnswer,
+  addInterviewFollowUp,
   completeInterviewSession,
   deleteInterviewSession,
   getRecentInterviewSessions,
@@ -196,6 +197,9 @@ describe("Interview Database Functions", () => {
         if (sql.includes("interview_answers")) {
           return { all: vi.fn().mockReturnValue(mockAnswerRows) };
         }
+        if (sql.includes("interview_follow_ups")) {
+          return { all: vi.fn().mockReturnValue([]) };
+        }
         return { get: vi.fn(), all: vi.fn() };
       });
 
@@ -224,6 +228,7 @@ describe("Interview Database Functions", () => {
             createdAt: "2024-01-15T10:05:00.000Z",
           },
         ],
+        followUps: [],
       });
     });
 
@@ -253,6 +258,12 @@ describe("Interview Database Functions", () => {
       (db.prepare as Mock).mockImplementation((sql: string) => {
         if (sql.includes("interview_sessions")) {
           return { get: vi.fn().mockReturnValue(mockSessionRow) };
+        }
+        if (sql.includes("interview_answers")) {
+          return { all: vi.fn().mockReturnValue([]) };
+        }
+        if (sql.includes("interview_follow_ups")) {
+          return { all: vi.fn().mockReturnValue([]) };
         }
         return { all: vi.fn().mockReturnValue([]) };
       });
@@ -289,8 +300,14 @@ describe("Interview Database Functions", () => {
         },
       ];
 
-      (db.prepare as Mock).mockReturnValue({
-        all: vi.fn().mockReturnValue(mockRows),
+      (db.prepare as Mock).mockImplementation((sql: string) => {
+        if (sql.includes("FROM interview_answers")) {
+          return { all: vi.fn().mockReturnValue([]) };
+        }
+        if (sql.includes("FROM interview_follow_ups")) {
+          return { all: vi.fn().mockReturnValue([]) };
+        }
+        return { all: vi.fn().mockReturnValue(mockRows) };
       });
 
       const result = getInterviewSessions(undefined, TEST_USER_ID);
@@ -407,6 +424,72 @@ describe("Interview Database Functions", () => {
     });
   });
 
+  describe("addInterviewFollowUp", () => {
+    it("should add a follow-up answer to a session", () => {
+      const mockRun = vi.fn();
+      (db.prepare as Mock).mockReturnValue({ run: mockRun });
+
+      const result = addInterviewFollowUp(
+        "session-1",
+        0,
+        "What was the result?",
+        "We reduced review time by 20%.",
+        "Strong measurable result.",
+        TEST_USER_ID,
+      );
+
+      expect(mockRun).toHaveBeenCalledWith(
+        "test-session-id",
+        TEST_USER_ID,
+        "session-1",
+        0,
+        "What was the result?",
+        "We reduced review time by 20%.",
+        "Strong measurable result.",
+        expect.any(String),
+        "session-1",
+        TEST_USER_ID,
+      );
+      expect(result).toEqual({
+        id: "test-session-id",
+        sessionId: "session-1",
+        questionIndex: 0,
+        followUpQuestion: "What was the result?",
+        answer: "We reduced review time by 20%.",
+        feedback: "Strong measurable result.",
+        createdAt: expect.any(String),
+      });
+    });
+
+    it("should reject follow-ups for sessions outside the provided user", () => {
+      const mockRun = vi.fn().mockReturnValue({ changes: 0 });
+      (db.prepare as Mock).mockReturnValue({ run: mockRun });
+
+      expect(() =>
+        addInterviewFollowUp(
+          "session-1",
+          0,
+          "What changed?",
+          "The team shipped faster.",
+          undefined,
+          "user-123",
+        ),
+      ).toThrow("Session not found");
+      expect(mockRun).toHaveBeenCalledWith(
+        "test-session-id",
+        "user-123",
+        "session-1",
+        0,
+        "What changed?",
+        "The team shipped faster.",
+        null,
+        expect.any(String),
+        "session-1",
+        "user-123",
+      );
+    });
+  });
+
   describe("completeInterviewSession", () => {
     it("should mark session as completed", () => {
       const mockRun = vi.fn();
@@ -437,7 +520,7 @@ describe("Interview Database Functions", () => {
       deleteInterviewSession("session-1", TEST_USER_ID);
 
       expect(mockGet).toHaveBeenCalledWith("session-1", TEST_USER_ID);
-      expect(mockRun).toHaveBeenCalledTimes(2);
+      expect(mockRun).toHaveBeenCalledTimes(3);
       expect(mockRun).toHaveBeenCalledWith("session-1", TEST_USER_ID);
       expect(mockRun).toHaveBeenCalledWith("session-1", TEST_USER_ID);
     });

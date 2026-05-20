@@ -96,6 +96,11 @@ export function buildLocalDevCleanSlateStatements(
     },
     { sql: "DELETE FROM salary_offers WHERE user_id = ?", params: userParam },
     {
+      sql: "DELETE FROM interview_follow_ups WHERE user_id = ?",
+      params: userParam,
+      requiredTable: "interview_follow_ups",
+    },
+    {
       sql: "DELETE FROM interview_answers WHERE user_id = ?",
       params: userParam,
     },

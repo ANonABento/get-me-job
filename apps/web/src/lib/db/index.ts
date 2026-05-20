@@ -132,6 +132,7 @@ export {
   generatedResumes,
   interviewSessions,
   interviewAnswers,
+  interviewFollowUps,
   reminders,
   notifications,
   externalCalendarEvents,

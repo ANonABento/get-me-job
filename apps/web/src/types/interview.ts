@@ -19,9 +19,12 @@ export interface InterviewQuestion {
 }
 
 export interface FollowUpExchange {
+  id?: string;
+  questionIndex?: number;
   followUpQuestion: string;
   answer: string;
   feedback: string;
+  createdAt?: string;
 }
 
 export interface CurrentFollowUp {
@@ -66,4 +69,5 @@ export interface PastSession {
   completedAt?: string;
   questions: InterviewQuestion[];
   answers?: PastSessionAnswer[];
+  followUps?: FollowUpExchange[];
 }

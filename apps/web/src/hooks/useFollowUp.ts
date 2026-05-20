@@ -19,6 +19,14 @@ interface FollowUpApiResponse {
 
 interface FollowUpAnswerResponse {
   feedback?: string;
+  followUp?: {
+    id?: string;
+    questionIndex?: number;
+    followUpQuestion: string;
+    answer: string;
+    feedback?: string;
+    createdAt?: string;
+  };
 }
 
 interface UseFollowUpArgs {
@@ -127,15 +135,27 @@ export function useFollowUp({
     setSubmittingFollowUp(true);
 
     try {
+      const questionIndex = session.currentIndex - 1;
+      const apiUrl = session.id
+        ? `/api/interview/sessions/${session.id}/follow-up`
+        : "/api/interview/answer";
+      const requestBody = session.id
+        ? {
+            questionIndex,
+            followUpQuestion: currentFollowUp.question,
+            answer: currentAnswer,
+          }
+        : {
+            jobId: session.jobId,
+            answer: currentAnswer,
+          };
+
       const data = await fetchJson<FollowUpAnswerResponse>(
-        "/api/interview/answer",
+        apiUrl,
         {
           method: "POST",
           headers: JSON_HEADERS,
-          body: JSON.stringify({
-            jobId: session.jobId,
-            answer: currentAnswer,
-          }),
+          body: JSON.stringify(requestBody),
         },
         "Failed to submit follow-up answer",
       );
@@ -146,7 +166,6 @@ export function useFollowUp({
           return currentSession;
         }
 
-        const questionIndex = currentSession.currentIndex - 1;
         if (questionIndex < 0) {
           return currentSession;
         }
@@ -160,9 +179,13 @@ export function useFollowUp({
         }
 
         nextFollowUps[questionIndex].push({
-          followUpQuestion: currentFollowUp.question,
-          answer: currentAnswer,
-          feedback: data.feedback || "",
+          id: data.followUp?.id,
+          questionIndex,
+          followUpQuestion:
+            data.followUp?.followUpQuestion || currentFollowUp.question,
+          answer: data.followUp?.answer || currentAnswer,
+          feedback: data.followUp?.feedback || data.feedback || "",
+          createdAt: data.followUp?.createdAt,
         });
         didUpdateFollowUps = true;
 
