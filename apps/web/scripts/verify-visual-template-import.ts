@@ -56,6 +56,7 @@ async function main() {
   const reusableTemplate = buildReusableResumeTemplateIR(
     semanticResume,
     styleTokens,
+    draft.source,
   );
   const reusableHtml = renderReusableResumeTemplateHTML(
     semanticResume,

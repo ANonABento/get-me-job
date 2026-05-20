@@ -899,6 +899,51 @@ describe("universal template import analysis", () => {
     expect(html).not.toContain("2026 - Present");
     expect(html).not.toContain("Source-only bullet");
   });
+
+  it("infers paragraph achievement rendering from non-list source evidence", () => {
+    const source: SourceDocumentIR = {
+      sourceType: "docx",
+      filename: "paragraph-achievements.docx",
+      pages: [{ id: "page-1", number: 1, widthPt: 612, heightPt: 792 }],
+      rawText: "",
+      diagnostics: [],
+      blocks: [
+        styledBlock("b1", "Template Owner", { fontSizePt: 24, bold: true }),
+        styledBlock("b2", "EXPERIENCE", { fontSizePt: 11, bold: true }),
+        tableRow("b3", ["Analyst", "Source Co", "2024"]),
+        tableRow("b4", ["Maintained narrative achievement text."]),
+      ],
+    };
+    const semantic = inferResumeSemanticIR(source);
+    const template = buildReusableResumeTemplateIR(
+      semantic,
+      inferImportedTemplateStyleTokens(source),
+      source,
+    );
+
+    const html = renderTailoredResumeWithReusableTemplate(
+      {
+        contact: { name: "New Candidate", email: "new@example.com" },
+        summary: "",
+        experiences: [
+          {
+            title: "Operations Analyst",
+            company: "Delta Systems",
+            dates: "2026 - Present",
+            highlights: ["Maintained paragraph-style achievements."],
+          },
+        ],
+        projects: [],
+        skills: [],
+        education: [],
+      },
+      template,
+    );
+
+    expect(html).toContain("Maintained paragraph-style achievements.");
+    expect(html).toContain("rt-entry-lines");
+    expect(html).not.toContain("<ul>");
+  });
 });
 
 function styledBlock(

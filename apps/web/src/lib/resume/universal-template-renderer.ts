@@ -44,6 +44,18 @@ export type SectionChildComponent =
   | { kind: "SectionHeading"; id: string; title: string }
   | { kind: "EntryList"; id: string; itemComponent: EntryComponent };
 
+export interface ReusableTemplateSourceEvidence {
+  blocks: Array<{
+    id: string;
+    type?: string;
+    text?: string;
+    cellMetadata?: Array<{
+      text?: string;
+      blocks?: Array<{ type?: string; text?: string }>;
+    }>;
+  }>;
+}
+
 function layoutClassValue(value: string | undefined, fallback: string): string {
   return (value || fallback).replace(/[^a-z0-9-]+/gi, "-").toLowerCase();
 }
@@ -63,6 +75,7 @@ export interface EntryComponent {
 export function buildReusableResumeTemplateIR(
   semantic: ResumeSemanticIR,
   tokens: ImportedTemplateStyleTokens,
+  sourceEvidence?: ReusableTemplateSourceEvidence,
 ): ReusableResumeTemplateIR {
   return {
     schemaVersion: 4,
@@ -81,7 +94,9 @@ export function buildReusableResumeTemplateIR(
         contactFields: ["email", "phone", "location", "linkedin", "github"],
         evidenceRefs: semantic.contact.evidenceRefs,
       },
-      ...semantic.sections.map((section) => sectionComponent(section)),
+      ...semantic.sections.map((section) =>
+        sectionComponent(section, sourceEvidence),
+      ),
     ],
     sectionOrder: semantic.sections.map((section) => section.type),
     diagnostics: [...semantic.warnings, ...tokens.warnings],
@@ -253,7 +268,10 @@ export function tailoredResumeToSemanticIR(
   };
 }
 
-function sectionComponent(section: SemanticSection): SectionComponent {
+function sectionComponent(
+  section: SemanticSection,
+  sourceEvidence?: ReusableTemplateSourceEvidence,
+): SectionComponent {
   return {
     kind: "Section",
     id: `section-${section.type}`,
@@ -278,11 +296,35 @@ function sectionComponent(section: SemanticSection): SectionComponent {
             meta: true,
             dateRange: true,
           },
-          bulletList: true,
+          bulletList: inferSectionBulletList(section, sourceEvidence),
         },
       },
     ],
   };
+}
+
+function inferSectionBulletList(
+  section: SemanticSection,
+  sourceEvidence?: ReusableTemplateSourceEvidence,
+): boolean {
+  if (
+    !section.items.some((item) => item.bullets.some((bullet) => bullet.trim()))
+  ) {
+    return true;
+  }
+  if (!sourceEvidence?.blocks.length) return true;
+  const sourceBlocksById = new Map(
+    sourceEvidence.blocks.map((block) => [block.id, block]),
+  );
+  const referencedBlocks = section.items
+    .flatMap((item) => item.evidenceRefs)
+    .map((ref) => sourceBlocksById.get(ref))
+    .filter(
+      (block): block is ReusableTemplateSourceEvidence["blocks"][number] =>
+        Boolean(block),
+    );
+  if (!referencedBlocks.length) return true;
+  return referencedBlocks.some(hasVisualBulletEvidence);
 }
 
 function scalarListSection(
@@ -451,6 +493,25 @@ function defaultEntryComponent(id: string): EntryComponent {
     },
     bulletList: true,
   };
+}
+
+function hasVisualBulletEvidence(
+  block: ReusableTemplateSourceEvidence["blocks"][number],
+): boolean {
+  if (block.type === "list-item") return true;
+  if (looksLikeBulletText(block.text ?? "")) return true;
+  return (block.cellMetadata ?? []).some((cell) => {
+    if (looksLikeBulletText(cell.text ?? "")) return true;
+    return (cell.blocks ?? []).some(
+      (cellBlock) =>
+        cellBlock.type === "list-item" ||
+        looksLikeBulletText(cellBlock.text ?? ""),
+    );
+  });
+}
+
+function looksLikeBulletText(text: string): boolean {
+  return /^\s*(?:[-*]|\u2022|\u2023|\u25e6|\u2043|\d+[.)])\s+/.test(text);
 }
 
 function renderEntry(

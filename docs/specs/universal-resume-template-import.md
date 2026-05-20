@@ -731,7 +731,10 @@ As of the latest implementation slice, the system has:
   visual-family trait coverage, with failures bucketed by pipeline stage. The
   strict fixture suite currently passes with scorecards enforced.
 - A reusable renderer that consumes section order and entry component settings
-  for header fields and bullet-vs-paragraph achievement rendering.
+  for header fields and bullet-vs-paragraph achievement rendering. During
+  migration, V4 reusable artifacts now infer bullet-vs-paragraph achievement
+  rendering from source visual evidence instead of defaulting every section to
+  list styling.
 - Basic semantic review controls for section type/title correction and moving
   bullets between adjacent, dragged, or explicitly selected items.
 - Semantic sections can be reordered from review with buttons or drag/drop and
@@ -779,6 +782,8 @@ Known remaining gaps:
 - Current manifest scorecards pass under `--strict-scorecards`; visual
   no-bullet traits are checked against source evidence rather than semantic
   achievement modeling.
+- V4 reusable templates preserve paragraph-forward achievement rendering when
+  the imported source has achievement text without visual list markers.
 - App review mismatch reports now expose the same gate model as the lab:
   extraction, semantic, style, render, and app wiring statuses with review
   actions.

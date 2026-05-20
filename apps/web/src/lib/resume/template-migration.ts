@@ -253,6 +253,7 @@ export function buildReusableTemplateArtifacts(source: SourceDocumentIR): {
   const reusableTemplate = buildReusableResumeTemplateIR(
     semanticResume,
     styleTokens,
+    source,
   );
   const reusableHtml = renderReusableResumeTemplateHTML(
     semanticResume,
