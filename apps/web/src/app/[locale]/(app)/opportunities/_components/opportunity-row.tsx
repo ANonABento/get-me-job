@@ -125,9 +125,16 @@ export function OpportunityRow({
             <span className="text-[13px] font-medium text-ink-2">
               {opportunity.company}
             </span>
-            <StatusPill stage={stage}>
-              {STATUS_LABEL[opportunity.status]}
-            </StatusPill>
+            {/* audit/19: hide the pill for "pending" — that's the
+                default state of every freshly-captured row, so 50
+                "Pending" pills lined up convey zero signal. Saved /
+                Applied / Interviewing / Offer / Rejected still render
+                because they DO carry meaning vs the pending baseline. */}
+            {opportunity.status !== "pending" && (
+              <StatusPill stage={stage}>
+                {STATUS_LABEL[opportunity.status]}
+              </StatusPill>
+            )}
           </div>
           <h3 className="mt-1 font-display text-[16px] font-semibold tracking-tight text-ink">
             {opportunity.title}
