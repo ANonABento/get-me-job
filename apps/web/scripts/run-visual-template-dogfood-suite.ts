@@ -9,12 +9,14 @@ interface SuiteCase {
   source: string;
   reference?: string;
   fixtureClass?: string;
+  fixtureClasses?: string[];
   expectedSections?: string[];
   expectedStyleTraits?: string[];
 }
 
 interface FixtureManifest {
   version: 1;
+  requiredFixtureClasses?: string[];
   cases: SuiteCase[];
 }
 
@@ -41,14 +43,13 @@ const defaultCases: SuiteCase[] = [
 function main() {
   const args = parseArgs(process.argv.slice(2));
   mkdirSync(args.outDir, { recursive: true });
+  const manifest = loadManifest(args.manifest);
   const cases: SuiteCase[] = args.sources.length
     ? args.sources.map((source) => ({
         name: sanitizeBasename(path.basename(source)),
         source,
       }))
-    : loadManifestCases(args.manifest).filter((item) =>
-        existsSync(item.source),
-      );
+    : manifest.cases.filter((item) => existsSync(item.source));
 
   const summaries = [];
   for (const item of cases) {
@@ -75,7 +76,8 @@ function main() {
     const scorecard = scoreCase(summary, item);
     summary.fixture = {
       name: item.name,
-      class: item.fixtureClass ?? "ad-hoc",
+      class: item.fixtureClass ?? item.fixtureClasses?.[0] ?? "ad-hoc",
+      classes: fixtureClassesFor(item),
       expectedSections: item.expectedSections ?? [],
       expectedStyleTraits: item.expectedStyleTraits ?? [],
     };
@@ -91,11 +93,16 @@ function main() {
     summaries.push(summary);
   }
 
+  const fixtureCoverage = computeFixtureCoverage(
+    args.sources.length ? [] : manifest.requiredFixtureClasses,
+    cases,
+  );
   const suiteSummary = {
     createdAt: new Date().toISOString(),
     outDir: args.outDir,
     caseCount: summaries.length,
     aggregate: aggregateScorecards(summaries),
+    fixtureCoverage,
     cases: summaries,
   };
   writeFileSync(
@@ -112,6 +119,12 @@ function main() {
   console.log(
     `[visual-template-suite] lab ${path.join(args.outDir, "lab.html")}`,
   );
+  if (args.strictFixtureCoverage && !fixtureCoverage.pass) {
+    console.error(
+      `[visual-template-suite] missing required fixture classes: ${fixtureCoverage.missing.join(", ")}`,
+    );
+    process.exitCode = 1;
+  }
 }
 
 function parseArgs(argv: string[]) {
@@ -159,21 +172,25 @@ function parseArgs(argv: string[]) {
           ),
     strict: argv.includes("--strict"),
     strictVisual: argv.includes("--strict-visual"),
+    strictFixtureCoverage: argv.includes("--strict-fixture-coverage"),
   };
 }
 
-function loadManifestCases(manifestPath: string): SuiteCase[] {
-  if (!existsSync(manifestPath)) return defaultCases;
+function loadManifest(manifestPath: string): FixtureManifest {
+  if (!existsSync(manifestPath)) return { version: 1, cases: defaultCases };
   const manifest = JSON.parse(
     readFileSync(manifestPath, "utf8"),
   ) as FixtureManifest;
-  return manifest.cases.map((item) => ({
-    ...item,
-    source: path.resolve(process.cwd(), item.source),
-    reference: item.reference
-      ? path.resolve(process.cwd(), item.reference)
-      : undefined,
-  }));
+  return {
+    ...manifest,
+    cases: manifest.cases.map((item) => ({
+      ...item,
+      source: path.resolve(process.cwd(), item.source),
+      reference: item.reference
+        ? path.resolve(process.cwd(), item.reference)
+        : undefined,
+    })),
+  };
 }
 
 function scoreCase(summary: Record<string, unknown>, item: SuiteCase) {
@@ -227,7 +244,8 @@ function scoreCase(summary: Record<string, unknown>, item: SuiteCase) {
     reusableSectionCount > 0;
 
   return {
-    fixtureClass: item.fixtureClass ?? "ad-hoc",
+    fixtureClass: item.fixtureClass ?? item.fixtureClasses?.[0] ?? "ad-hoc",
+    fixtureClasses: fixtureClassesFor(item),
     pass,
     scores: {
       sectionCoverage,
@@ -251,6 +269,39 @@ function scoreCase(summary: Record<string, unknown>, item: SuiteCase) {
         ? ["No reusable sections generated."]
         : []),
     ],
+  };
+}
+
+function fixtureClassesFor(item: SuiteCase): string[] {
+  const fixtureClasses = [
+    ...(item.fixtureClasses ?? []),
+    ...(item.fixtureClass ? [item.fixtureClass] : []),
+  ];
+  return [...new Set(fixtureClasses.length ? fixtureClasses : ["ad-hoc"])];
+}
+
+function computeFixtureCoverage(
+  requiredFixtureClasses: string[] | undefined,
+  cases: SuiteCase[],
+) {
+  const covered = new Map<string, string[]>();
+  for (const item of cases) {
+    for (const fixtureClass of fixtureClassesFor(item)) {
+      const caseNames = covered.get(fixtureClass) ?? [];
+      caseNames.push(item.name);
+      covered.set(fixtureClass, caseNames);
+    }
+  }
+  const required = requiredFixtureClasses ?? [];
+  const missing = required.filter((fixtureClass) => !covered.has(fixtureClass));
+  return {
+    required,
+    covered: [...covered.entries()].map(([fixtureClass, caseNames]) => ({
+      fixtureClass,
+      caseNames,
+    })),
+    missing,
+    pass: required.length ? missing.length === 0 : true,
   };
 }
 
@@ -313,6 +364,7 @@ function renderLabHtml(
     createdAt: string;
     outDir: string;
     caseCount: number;
+    fixtureCoverage?: Record<string, unknown>;
     cases: Array<Record<string, unknown>>;
   },
   outDir: string,
@@ -387,6 +439,13 @@ function renderLabHtml(
       display: grid;
       gap: 8px;
       margin-top: 18px;
+    }
+    .coverage {
+      display: grid;
+      gap: 7px;
+      margin-top: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
     }
     .case-button {
       width: 100%;
@@ -610,6 +669,7 @@ function renderLabHtml(
         <h1>Visual Template Lab</h1>
         <div class="stamp" id="createdAt"></div>
       </div>
+      <div class="coverage" id="fixtureCoverage"></div>
       <div class="case-list" id="caseList"></div>
     </aside>
     <main>
@@ -675,6 +735,15 @@ function renderLabHtml(
     }
     function renderCases() {
       $("createdAt").textContent = suite.createdAt.slice(5, 16).replace("T", " ");
+      const coverage = suite.fixtureCoverage || { required: [], missing: [], pass: true };
+      const requiredCount = (coverage.required || []).length;
+      const missingCount = (coverage.missing || []).length;
+      $("fixtureCoverage").innerHTML = '<div class="stamp">Fixture coverage</div>' +
+        '<span class="chip ' + (coverage.pass ? "good" : "warn") + '">' +
+        (requiredCount - missingCount) + '/' + requiredCount + ' classes</span>' +
+        (missingCount
+          ? '<div class="path">Missing: ' + coverage.missing.join(", ") + '</div>'
+          : '<div class="path">Required fixture classes covered.</div>');
       $("caseList").innerHTML = suite.cases.map((item, index) => {
         const src = report(item, "source");
         const stress = report(item, "stress");
@@ -817,6 +886,7 @@ function makeBrowserSummary(
     createdAt: string;
     outDir: string;
     caseCount: number;
+    fixtureCoverage?: Record<string, unknown>;
     cases: Array<Record<string, unknown>>;
   },
   outDir: string,

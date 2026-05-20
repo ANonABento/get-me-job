@@ -1,9 +1,27 @@
 {
   "version": 1,
+  "requiredFixtureClasses": [
+    "one-page engineering resume",
+    "two-page resume",
+    "dense project-heavy resume",
+    "academic CV",
+    "business/marketing resume",
+    "two-column resume",
+    "table-heavy DOCX",
+    "LaTeX Jake-style resume",
+    "modern colored resume",
+    "plain ATS resume",
+    "resume with custom sections",
+    "resume with links/icons",
+    "resume with no bullets",
+    "resume with long bullets",
+    "resume with non-US date formats"
+  ],
   "cases": [
     {
       "name": "mid-engineer-one-page-pdf",
       "fixtureClass": "one-page engineering resume",
+      "fixtureClasses": ["one-page engineering resume", "plain ATS resume"],
       "source": "tests/fixtures/personas/mid-engineer/resume.pdf",
       "expectedSections": ["experience", "education", "skills"],
       "expectedStyleTraits": ["single-page", "section-headings", "bullets"]
@@ -11,48 +29,81 @@
     {
       "name": "senior-ic-dense-pdf",
       "fixtureClass": "dense project-heavy resume",
+      "fixtureClasses": [
+        "dense project-heavy resume",
+        "resume with long bullets",
+        "resume with links/icons"
+      ],
       "source": "tests/fixtures/personas/senior-ic/resume.pdf",
       "expectedSections": ["experience", "projects", "education", "skills"],
       "expectedStyleTraits": ["dense-text", "section-headings", "bullets"]
     },
     {
       "name": "heavy-formatting-pdf",
-      "fixtureClass": "two-column or heavy-format resume",
+      "fixtureClass": "two-column resume",
+      "fixtureClasses": ["two-column resume", "modern colored resume"],
       "source": "tests/fixtures/personas/heavy-formatting/resume.pdf",
       "expectedSections": ["experience", "education", "skills"],
       "expectedStyleTraits": ["layout-structure", "section-headings"]
     },
     {
       "name": "career-gap-pdf",
-      "fixtureClass": "business resume",
+      "fixtureClass": "business/marketing resume",
       "source": "tests/fixtures/personas/career-gap/resume.pdf",
       "expectedSections": ["experience", "education", "skills"],
       "expectedStyleTraits": ["chronology", "section-headings"]
     },
     {
+      "name": "career-changer-pdf",
+      "fixtureClass": "resume with custom sections",
+      "fixtureClasses": ["resume with custom sections"],
+      "source": "tests/fixtures/personas/career-changer/resume.pdf",
+      "expectedSections": ["experience", "projects", "education", "skills"],
+      "expectedStyleTraits": ["custom-sections", "section-headings", "bullets"]
+    },
+    {
+      "name": "multi-job-pm-pdf",
+      "fixtureClass": "business/marketing resume",
+      "fixtureClasses": ["business/marketing resume", "resume with long bullets"],
+      "source": "tests/fixtures/personas/multi-job-pm/resume.pdf",
+      "expectedSections": ["experience", "projects", "education", "skills"],
+      "expectedStyleTraits": ["business", "chronology", "section-headings"]
+    },
+    {
       "name": "table-heavy-docx",
       "fixtureClass": "table-heavy DOCX",
+      "fixtureClasses": ["table-heavy DOCX", "two-page resume"],
       "source": "tests/fixtures/dogfood/table-docx-resume.docx",
       "expectedSections": ["experience", "education", "skills"],
       "expectedStyleTraits": ["tables", "cell-borders", "bullets"]
     },
     {
       "name": "latex-overleaf-resume",
-      "fixtureClass": "LaTeX resume",
+      "fixtureClass": "LaTeX Jake-style resume",
+      "fixtureClasses": ["LaTeX Jake-style resume", "resume with links/icons"],
       "source": "tests/fixtures/dogfood/overleaf-resume.tex",
       "expectedSections": ["experience", "projects", "education"],
       "expectedStyleTraits": ["latex-macros", "compact-spacing", "bullets"]
     },
     {
       "name": "non-english-spanish-pdf",
-      "fixtureClass": "non-US language/date resume",
+      "fixtureClass": "resume with non-US date formats",
       "source": "tests/fixtures/personas/non-english-spanish/resume.pdf",
+      "expectedSections": ["experience", "education", "skills"],
+      "expectedStyleTraits": ["non-english", "date-variants"]
+    },
+    {
+      "name": "non-english-mandarin-pdf",
+      "fixtureClass": "resume with non-US date formats",
+      "fixtureClasses": ["resume with non-US date formats"],
+      "source": "tests/fixtures/personas/non-english-mandarin/resume.pdf",
       "expectedSections": ["experience", "education", "skills"],
       "expectedStyleTraits": ["non-english", "date-variants"]
     },
     {
       "name": "entry-cs-grad-pdf",
       "fixtureClass": "entry-level resume",
+      "fixtureClasses": ["dense project-heavy resume"],
       "source": "tests/fixtures/personas/entry-cs-grad/resume.pdf",
       "expectedSections": ["education", "projects", "skills"],
       "expectedStyleTraits": ["project-heavy", "education-first"]

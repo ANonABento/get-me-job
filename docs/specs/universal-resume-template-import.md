@@ -391,12 +391,17 @@ Reference resemblance is a diagnostic score, not the main pass/fail gate.
 
 - Build a fixture manifest with source files, expected semantic sections, and
   expected style traits.
+- Track required fixture classes separately from individual examples so the
+  suite can report which universal resume categories are covered or missing.
 - Render each fixture in three modes: reference/source preview, reusable render,
   and stress render.
 - Capture screenshots and JSON summaries for every fixture.
 - Produce scorecards for semantic coverage, style token coverage, layout
   resilience, and visual-family resemblance.
 - Run the same harness on user-provided examples without special-case code.
+- Keep fixture-class coverage as a separate gate from per-fixture pass/fail:
+  current examples may pass while the matrix still shows missing categories
+  such as academic CVs or resumes with no bullets.
 
 ## App Contract
 
