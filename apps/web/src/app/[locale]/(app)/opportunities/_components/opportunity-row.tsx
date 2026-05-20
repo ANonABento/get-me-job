@@ -174,10 +174,14 @@ export function OpportunityRow({
             <ArrowUpRight className="h-3 w-3" />
           </button>
           {onArchive ? (
+            /* audit/16: archive button now reveals on row hover/focus —
+               same pattern as the detail-page pencil hover from iter 2.
+               Idle state is calm; the action is still keyboard-reachable
+               via focus-within. */
             <button
               type="button"
               onClick={() => onArchive(opportunity)}
-              className="grid h-8 w-8 place-items-center rounded-sm border border-rule bg-page text-ink-3 transition-colors hover:border-rule-strong hover:text-ink"
+              className="grid h-8 w-8 place-items-center rounded-sm border border-rule bg-page text-ink-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 hover:border-rule-strong hover:text-ink focus-visible:opacity-100"
               style={{ borderRadius: "var(--r-sm)" }}
               aria-label={`Archive ${opportunity.title}`}
               title="Archive"
