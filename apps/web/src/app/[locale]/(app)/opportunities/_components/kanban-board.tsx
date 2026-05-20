@@ -157,9 +157,11 @@ export function KanbanBoard({
                   aria-pressed={isVisible}
                 >
                   {KANBAN_LANE_LABELS[lane]}
-                  <Badge variant="secondary" className="ml-1.5">
-                    {groupedOpportunities[lane].length}
-                  </Badge>
+                  {groupedOpportunities[lane].length > 0 && (
+                    <Badge variant="secondary" className="ml-1.5">
+                      {groupedOpportunities[lane].length}
+                    </Badge>
+                  )}
                 </Button>
               );
             })}
@@ -204,9 +206,14 @@ export function KanbanBoard({
                   <h2 className="text-sm font-semibold">
                     {KANBAN_LANE_LABELS[lane]}
                   </h2>
-                  <Badge variant="secondary" className="shrink-0">
-                    {laneOpportunities.length}
-                  </Badge>
+                  {/* audit/10: drop the count badge on empty lanes —
+                      "Drop opportunities here" placeholder already
+                      signals zero items; the badge would just say "0". */}
+                  {laneOpportunities.length > 0 && (
+                    <Badge variant="secondary" className="shrink-0">
+                      {laneOpportunities.length}
+                    </Badge>
+                  )}
                 </div>
 
                 <KanbanLaneCards
