@@ -309,8 +309,11 @@ export function OpportunityReviewQueue({
       <h1 className="sr-only">Review Queue — {remainingCount} pending</h1>
       {/* Bento card. Desktop uses ~95vw with a generous max so the grid
           fills the screen instead of stranding cream on the sides.
+          Card height is capped to ~viewport-minus-toolbar so the
+          whole card stays visible without scrolling the page — the
+          summary cell handles its own overflow internally.
           Mobile keeps the narrow swipe-deck width. */}
-      <div className="relative h-[min(640px,80vh)] w-full max-w-md md:h-auto md:w-[min(100%,1600px)] md:max-w-none">
+      <div className="relative h-[min(640px,80vh)] w-full max-w-md md:h-auto md:max-h-[calc(100vh-180px)] md:w-[min(100%,1600px)] md:max-w-none">
         {queue[1] && (
           <div
             className="absolute inset-x-3 top-5 h-[calc(100%-1.25rem)] rounded-lg border bg-card/50 shadow-sm md:relative md:inset-x-0 md:top-0 md:h-0"
@@ -343,7 +346,7 @@ export function OpportunityReviewQueue({
                     : 0,
               transition: { duration: 0.22 },
             }}
-            className="absolute inset-0 cursor-grab overflow-hidden rounded-lg border bg-card p-3 shadow-xl active:cursor-grabbing md:relative md:inset-auto md:p-5"
+            className="absolute inset-0 cursor-grab overflow-hidden rounded-lg border bg-card p-3 shadow-xl active:cursor-grabbing md:relative md:inset-auto md:flex md:max-h-[calc(100vh-180px)] md:flex-col md:overflow-y-auto md:p-5"
           >
             <BentoGrid
               layout={bentoLayout.desktop}

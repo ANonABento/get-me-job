@@ -86,11 +86,17 @@ const CHUNK_PREFIX = "chunk:";
 const CELL_PREFIX = "cell:";
 const DISABLED_TARGET = "disabled";
 
+type ActiveTab = "desktop" | "mobile";
+
 export function BentoLayoutBuilder({
   value,
   onChange,
 }: BentoLayoutBuilderProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  // Split editing into two tabs so the long Mobile-priority panel
+  // doesn't push the Desktop grid below the fold. User toggles between
+  // them via the tab strip next to the Columns picker.
+  const [activeTab, setActiveTab] = useState<ActiveTab>("desktop");
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, {
@@ -277,40 +283,66 @@ export function BentoLayoutBuilder({
     >
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-              Columns
-            </span>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Tab toggle — Desktop vs Mobile editing modes. */}
             <div className="inline-flex rounded-md border bg-card p-0.5">
-              {COLUMN_OPTIONS.map((option) => (
+              {(["desktop", "mobile"] as ActiveTab[]).map((tab) => (
                 <button
-                  key={option}
+                  key={tab}
                   type="button"
-                  onClick={() => handleColumnsChange(option)}
+                  onClick={() => setActiveTab(tab)}
                   className={cn(
-                    "rounded px-2.5 py-1 text-xs font-medium transition-colors",
-                    desktop.columns === option
+                    "rounded px-2.5 py-1 text-xs font-medium capitalize transition-colors",
+                    activeTab === tab
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:bg-muted",
                   )}
-                  aria-pressed={desktop.columns === option}
+                  aria-pressed={activeTab === tab}
                 >
-                  {option}
+                  {tab}
                 </button>
               ))}
             </div>
+            {/* Columns picker — only meaningful for the desktop grid. */}
+            {activeTab === "desktop" && (
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                  Columns
+                </span>
+                <div className="inline-flex rounded-md border bg-card p-0.5">
+                  {COLUMN_OPTIONS.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => handleColumnsChange(option)}
+                      className={cn(
+                        "rounded px-2.5 py-1 text-xs font-medium transition-colors",
+                        desktop.columns === option
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-muted",
+                      )}
+                      aria-pressed={desktop.columns === option}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={addCell}
-              className="gap-1.5 text-xs"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add cell
-            </Button>
+            {activeTab === "desktop" && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={addCell}
+                className="gap-1.5 text-xs"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add cell
+              </Button>
+            )}
             <Button
               type="button"
               size="sm"
@@ -324,61 +356,65 @@ export function BentoLayoutBuilder({
           </div>
         </div>
 
-        {/* Grid editor */}
-        <div
-          className="grid auto-rows-min gap-3 rounded-md border bg-bg-2/40 p-3"
-          style={{
-            gridTemplateColumns: `repeat(${desktop.columns}, minmax(0, 1fr))`,
-          }}
-        >
-          <SortableContext items={cellIds} strategy={rectSortingStrategy}>
-            {desktop.cells.map((cell) => (
-              <CellEditor
-                key={cell.id}
-                cell={cell}
-                columns={desktop.columns}
-                onUpdate={(updates) => updateCell(cell.id, updates)}
-                onRemove={() => removeCell(cell.id)}
-              />
-            ))}
-          </SortableContext>
-        </div>
-
-        {/* Disabled tray */}
-        <DisabledTray chunks={desktop.disabled} />
-
-        {/* Mobile priority */}
-        <div className="rounded-md border bg-card p-3">
-          <div className="mb-2 flex items-baseline justify-between">
-            <p className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-              Mobile priority
-            </p>
-            <p className="text-xs text-muted-foreground">
-              First {value.mobile.expandedCount} cells expand on phones; rest
-              collapse.
-            </p>
-          </div>
-          <SortableContext
-            items={mobilePriorityIds}
-            strategy={verticalListSortingStrategy}
-          >
-            <ul className="space-y-1">
-              {desktop.mobilePriority.map((cellId, idx) => {
-                const cell = desktop.cells.find((c) => c.id === cellId);
-                if (!cell) return null;
-                return (
-                  <MobilePriorityRow
-                    key={cellId}
-                    cellId={cellId}
-                    label={cell.label || cell.id}
-                    index={idx}
-                    expanded={idx < value.mobile.expandedCount}
+        {activeTab === "desktop" ? (
+          <>
+            {/* Grid editor */}
+            <div
+              className="grid auto-rows-min gap-3 rounded-md border bg-bg-2/40 p-3"
+              style={{
+                gridTemplateColumns: `repeat(${desktop.columns}, minmax(0, 1fr))`,
+              }}
+            >
+              <SortableContext items={cellIds} strategy={rectSortingStrategy}>
+                {desktop.cells.map((cell) => (
+                  <CellEditor
+                    key={cell.id}
+                    cell={cell}
+                    columns={desktop.columns}
+                    onUpdate={(updates) => updateCell(cell.id, updates)}
+                    onRemove={() => removeCell(cell.id)}
                   />
-                );
-              })}
-            </ul>
-          </SortableContext>
-        </div>
+                ))}
+              </SortableContext>
+            </div>
+
+            {/* Disabled tray */}
+            <DisabledTray chunks={desktop.disabled} />
+          </>
+        ) : (
+          /* Mobile priority */
+          <div className="rounded-md border bg-card p-3">
+            <div className="mb-2 flex items-baseline justify-between gap-3">
+              <p className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                Mobile priority
+              </p>
+              <p className="text-xs text-muted-foreground">
+                First {value.mobile.expandedCount} cells expand on phones; rest
+                collapse.
+              </p>
+            </div>
+            <SortableContext
+              items={mobilePriorityIds}
+              strategy={verticalListSortingStrategy}
+            >
+              <ul className="space-y-1">
+                {desktop.mobilePriority.map((cellId, idx) => {
+                  const cell = desktop.cells.find((c) => c.id === cellId);
+                  if (!cell) return null;
+                  return (
+                    <MobilePriorityRow
+                      key={cellId}
+                      cellId={cellId}
+                      label={cell.label || cell.id}
+                      index={idx}
+                      expanded={idx < value.mobile.expandedCount}
+                    />
+                  );
+                })}
+              </ul>
+            </SortableContext>
+          </div>
+        )}
       </div>
       {/* Note about active drag: dnd-kit handles the visual via its
           sortable transform; we don't need a DragOverlay for this UX. */}

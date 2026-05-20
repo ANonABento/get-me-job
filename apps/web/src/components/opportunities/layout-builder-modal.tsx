@@ -142,14 +142,18 @@ export function LayoutBuilderModal({
             shows exactly how the review card will render.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid max-h-[78vh] grid-cols-1 gap-6 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        {/* Two-column layout. The editor scrolls inside its own column
+            (pr-3 so the native scrollbar doesn't crowd the divider);
+            the preview column never scrolls and sits flush at the
+            right edge of the dialog. Previously the outer grid scrolled,
+            so the scrollbar passed in front of the preview. */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           {/* Editor — left column on wide viewports. */}
-          <div className="min-w-0">
+          <div className="min-w-0 max-h-[78vh] overflow-y-auto pr-3">
             <BentoLayoutBuilder value={draft} onChange={handleChange} />
           </div>
-          {/* Live preview — right column. Sticky on wide viewports so the
-              card stays visible while the user scrolls the editor. */}
-          <aside className="min-w-0 lg:sticky lg:top-0 lg:self-start">
+          {/* Live preview — right column. */}
+          <aside className="min-w-0 max-h-[78vh] overflow-y-auto">
             <p className="mb-2 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
               Live preview · Desktop
             </p>
