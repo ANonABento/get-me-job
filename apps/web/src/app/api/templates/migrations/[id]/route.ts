@@ -27,6 +27,7 @@ import {
 import {
   inferImportedTemplateStyleTokens,
   semanticIRToTailoredResume,
+  type ImportedTemplateStyleTokens,
   type ResumeSemanticIR,
 } from "@/lib/resume/universal-template-import";
 import {
@@ -99,6 +100,7 @@ const updateMigrationSchema = z.object({
   template: documentTemplateV2Schema.optional(),
   templateV3: documentTemplateV3Schema.optional(),
   semanticResume: semanticResumeSchema.optional(),
+  styleTokens: z.object({}).passthrough().optional(),
   slotCorrections: z.array(slotCorrectionSchema).optional(),
 });
 
@@ -175,32 +177,46 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   const semanticResume = parsed.data.semanticResume as
     | ResumeSemanticIR
     | undefined;
-  const styleTokens = semanticResume
-    ? (draft.styleTokens ?? inferImportedTemplateStyleTokens(source))
+  const styleTokens = parsed.data.styleTokens as
+    | ImportedTemplateStyleTokens
+    | undefined;
+  const reusableSemanticResume =
+    semanticResume ?? (styleTokens ? draft.semanticResume : undefined);
+  const reusableStyleTokens = reusableSemanticResume
+    ? (styleTokens ??
+      draft.styleTokens ??
+      inferImportedTemplateStyleTokens(source))
     : undefined;
   const reusableTemplate =
-    semanticResume && styleTokens
-      ? buildReusableResumeTemplateIR(semanticResume, styleTokens)
+    reusableSemanticResume && reusableStyleTokens
+      ? buildReusableResumeTemplateIR(
+          reusableSemanticResume,
+          reusableStyleTokens,
+        )
       : undefined;
   const reusableHtml =
-    semanticResume && reusableTemplate
-      ? renderReusableResumeTemplateHTML(semanticResume, reusableTemplate)
+    reusableSemanticResume && reusableTemplate
+      ? renderReusableResumeTemplateHTML(
+          reusableSemanticResume,
+          reusableTemplate,
+        )
       : undefined;
 
   const updates: Parameters<typeof updateTemplateMigrationDraft>[2] = {
     source,
-    resume: semanticResume
-      ? semanticIRToTailoredResume(semanticResume)
-      : resume,
+    resume:
+      reusableSemanticResume && semanticResume
+        ? semanticIRToTailoredResume(reusableSemanticResume)
+        : resume,
     template,
     fidelity: templateV3
       ? assessVisualTemplateFidelity(source, templateV3)
       : assessTemplateMigrationFidelity(source, template),
   };
   if (templateV3) updates.templateV3 = templateV3;
-  if (semanticResume) {
-    updates.semanticResume = semanticResume;
-    updates.styleTokens = styleTokens;
+  if (reusableSemanticResume && reusableStyleTokens) {
+    updates.semanticResume = reusableSemanticResume;
+    updates.styleTokens = reusableStyleTokens;
     updates.reusableTemplate = reusableTemplate;
     updates.reusableHtml = reusableHtml;
   }

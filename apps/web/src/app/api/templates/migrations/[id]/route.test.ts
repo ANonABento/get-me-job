@@ -164,6 +164,97 @@ describe("/api/templates/migrations/:id", () => {
       }),
     );
   });
+
+  it("updates style tokens and regenerates reusable html from existing semantics", async () => {
+    const draft = sampleDraft();
+    mocks.getTemplateMigrationDraft.mockReturnValue({
+      ...draft,
+      semanticResume: {
+        version: 1,
+        sourceType: "pdf",
+        filename: "resume.pdf",
+        contact: {
+          name: "Jane Rivera",
+          email: "jane@example.com",
+          phone: "",
+          location: "",
+          linkedin: "",
+          github: "",
+          confidence: 0.95,
+          evidenceRefs: ["block-name"],
+        },
+        sections: [
+          {
+            id: "section-skills",
+            type: "skills",
+            title: "Skills",
+            confidence: 0.9,
+            evidenceRefs: ["block-skill"],
+            items: [
+              {
+                primary: "TypeScript",
+                meta: [],
+                bullets: [],
+                confidence: 0.9,
+                evidenceRefs: ["block-skill"],
+              },
+            ],
+          },
+        ],
+        warnings: [],
+      },
+    });
+    const styleTokens = {
+      version: 1,
+      sourceType: "pdf",
+      filename: "resume.pdf",
+      page: {
+        size: "letter",
+        widthPt: 612,
+        heightPt: 792,
+        margins: {
+          top: "36pt",
+          right: "36pt",
+          bottom: "36pt",
+          left: "36pt",
+        },
+      },
+      typography: {
+        body: { fontFamily: "Georgia, serif", fontSizePt: 10 },
+      },
+      color: {
+        accent: { value: "#123456", confidence: 1, evidenceRefs: [] },
+      },
+      spacing: {},
+      rules: {},
+      layout: {},
+      warnings: [],
+    };
+
+    const response = await PATCH(
+      jsonRequest("PATCH", {
+        styleTokens,
+      }),
+      { params: { id: "draft-1" } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.updateTemplateMigrationDraft).toHaveBeenCalledWith(
+      "draft-1",
+      "user-1",
+      expect.objectContaining({
+        styleTokens,
+        reusableTemplate: expect.objectContaining({
+          tokens: expect.objectContaining({
+            color: expect.objectContaining({
+              accent: expect.objectContaining({ value: "#123456" }),
+            }),
+          }),
+        }),
+        reusableHtml: expect.stringContaining("#123456"),
+      }),
+    );
+  });
 });
 
 function jsonRequest(method: string, body: unknown) {

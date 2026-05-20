@@ -221,6 +221,8 @@ interface TemplateMigrationDraft {
   confidence: "high" | "medium" | "low";
 }
 
+type EditableStyleTokens = NonNullable<TemplateMigrationDraft["styleTokens"]>;
+
 interface TemplateMigrationResponse {
   draft?: TemplateMigrationDraft;
   error?: string;
@@ -577,6 +579,27 @@ export function CustomTemplateManagerDialog({
       addToast({
         type: "error",
         title: "Could not update semantic mapping",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setMigrationSaving(false);
+    }
+  }
+
+  async function handleUpdateStyleTokens(styleTokens: EditableStyleTokens) {
+    if (!migrationDraft) return;
+    setMigrationSaving(true);
+    try {
+      await patchMigrationDraft({ styleTokens });
+      addToast({
+        type: "success",
+        title: "Style tokens updated",
+      });
+    } catch (error) {
+      addToast({
+        type: "error",
+        title: "Could not update style tokens",
         description:
           error instanceof Error ? error.message : "Please try again.",
       });
@@ -951,6 +974,7 @@ export function CustomTemplateManagerDialog({
                       onUpdateRepeatGroup={handleUpdateRepeatGroup}
                       onCreateRepeatGroup={handleCreateRepeatGroup}
                       onUpdateSemanticSection={handleUpdateSemanticSection}
+                      onUpdateStyleTokens={handleUpdateStyleTokens}
                       migrationSaving={migrationSaving}
                       previewHtml={previewHtml}
                       previewLoading={previewLoading}
@@ -1060,6 +1084,7 @@ function VisualTemplateReviewPanes({
   onUpdateRepeatGroup,
   onCreateRepeatGroup,
   onUpdateSemanticSection,
+  onUpdateStyleTokens,
   migrationSaving,
   previewHtml,
   previewLoading,
@@ -1087,6 +1112,9 @@ function VisualTemplateReviewPanes({
   onUpdateSemanticSection: (
     sectionId: string,
     updates: { type?: SemanticSectionType; title?: string },
+  ) => void | Promise<void>;
+  onUpdateStyleTokens: (
+    styleTokens: EditableStyleTokens,
   ) => void | Promise<void>;
   migrationSaving: boolean;
   previewHtml: string;
@@ -1146,7 +1174,11 @@ function VisualTemplateReviewPanes({
             migrationSaving={migrationSaving}
           />
         ) : activePane === "style" ? (
-          <StyleTokensPane draft={draft} />
+          <StyleTokensPane
+            draft={draft}
+            onUpdateStyleTokens={onUpdateStyleTokens}
+            migrationSaving={migrationSaving}
+          />
         ) : activePane === "mismatch" ? (
           <MismatchReportPane draft={draft} />
         ) : activePane === "original" ? (
@@ -2154,10 +2186,89 @@ function SemanticSectionCard({
   );
 }
 
-function StyleTokensPane({ draft }: { draft: TemplateMigrationDraft }) {
+function StyleTokensPane({
+  draft,
+  onUpdateStyleTokens,
+  migrationSaving,
+}: {
+  draft: TemplateMigrationDraft;
+  onUpdateStyleTokens: (
+    styleTokens: EditableStyleTokens,
+  ) => void | Promise<void>;
+  migrationSaving: boolean;
+}) {
   const tokens = draft.styleTokens;
   const analysis = draft.universalAnalysis;
   const template = draft.reusableTemplate;
+  const [accentColor, setAccentColor] = useState(
+    tokenValue(tokens?.color?.accent, "#111111"),
+  );
+  const [bodyFont, setBodyFont] = useState(
+    tokenString(tokens?.typography?.body, "fontFamily"),
+  );
+  const [dividerWidth, setDividerWidth] = useState(
+    tokenNumber(tokens?.rules?.sectionDivider, "widthPt", 0.75),
+  );
+  const [sectionGap, setSectionGap] = useState(
+    tokenValue(tokens?.spacing?.sectionGapPt, "8"),
+  );
+  const [margins, setMargins] = useState(() => pageMargins(tokens));
+
+  useEffect(() => {
+    setAccentColor(tokenValue(tokens?.color?.accent, "#111111"));
+    setBodyFont(tokenString(tokens?.typography?.body, "fontFamily"));
+    setDividerWidth(
+      tokenNumber(tokens?.rules?.sectionDivider, "widthPt", 0.75),
+    );
+    setSectionGap(tokenValue(tokens?.spacing?.sectionGapPt, "8"));
+    setMargins(pageMargins(tokens));
+  }, [tokens]);
+
+  function saveStyleTokens() {
+    const next = editableStyleTokens(tokens);
+    const nextAccent = accentColor.trim();
+    const nextBodyFont = bodyFont.trim();
+    const nextSectionGap = Number(sectionGap);
+    next.color = {
+      ...(next.color ?? {}),
+      accent: scalarToken(nextAccent || "#111111"),
+      rule: scalarToken(nextAccent || "#111111"),
+    };
+    next.typography = {
+      ...(next.typography ?? {}),
+      body: {
+        ...(isRecord(next.typography?.body) ? next.typography.body : {}),
+        ...(nextBodyFont ? { fontFamily: nextBodyFont } : {}),
+        confidence: 1,
+        evidenceRefs: [],
+      },
+    };
+    next.rules = {
+      ...(next.rules ?? {}),
+      sectionDivider: {
+        ...(isRecord(next.rules?.sectionDivider)
+          ? next.rules.sectionDivider
+          : {}),
+        widthPt: Number.isFinite(dividerWidth) ? dividerWidth : 0.75,
+        color: nextAccent || "#111111",
+        style: "solid",
+        confidence: 1,
+        evidenceRefs: [],
+      },
+    };
+    next.spacing = {
+      ...(next.spacing ?? {}),
+      sectionGapPt: scalarToken(
+        Number.isFinite(nextSectionGap) ? nextSectionGap : 8,
+      ),
+    };
+    next.page = {
+      ...(next.page ?? {}),
+      margins,
+    };
+    void onUpdateStyleTokens(next);
+  }
+
   return (
     <div className="rounded-md border bg-muted/20 p-3">
       <div className="flex items-center justify-between gap-2">
@@ -2167,6 +2278,80 @@ function StyleTokensPane({ draft }: { draft: TemplateMigrationDraft }) {
         <p className="text-[10px] text-muted-foreground">
           {analysis?.readiness ?? "unknown"} readiness
         </p>
+      </div>
+      <div className="mt-2 rounded-sm border bg-background p-3">
+        <p className="text-[10px] font-medium uppercase text-muted-foreground">
+          Editable overrides
+        </p>
+        <div className="mt-2 grid gap-2 lg:grid-cols-3">
+          <label className="space-y-1 text-xs text-muted-foreground">
+            <span>Accent</span>
+            <Input
+              value={accentColor}
+              aria-label="Accent color"
+              onChange={(event) => setAccentColor(event.currentTarget.value)}
+              placeholder="#111111"
+            />
+          </label>
+          <label className="space-y-1 text-xs text-muted-foreground">
+            <span>Body font</span>
+            <Input
+              value={bodyFont}
+              aria-label="Body font"
+              onChange={(event) => setBodyFont(event.currentTarget.value)}
+              placeholder="Arial, sans-serif"
+            />
+          </label>
+          <label className="space-y-1 text-xs text-muted-foreground">
+            <span>Divider width pt</span>
+            <Input
+              value={String(dividerWidth)}
+              aria-label="Section divider width"
+              onChange={(event) =>
+                setDividerWidth(Number(event.currentTarget.value))
+              }
+              inputMode="decimal"
+            />
+          </label>
+          <label className="space-y-1 text-xs text-muted-foreground">
+            <span>Section gap pt</span>
+            <Input
+              value={sectionGap}
+              aria-label="Section gap"
+              onChange={(event) => setSectionGap(event.currentTarget.value)}
+              inputMode="decimal"
+            />
+          </label>
+          {(["top", "right", "bottom", "left"] as const).map((edge) => (
+            <label
+              key={edge}
+              className="space-y-1 text-xs text-muted-foreground"
+            >
+              <span>Margin {edge}</span>
+              <Input
+                value={margins[edge]}
+                aria-label={`Margin ${edge}`}
+                onChange={(event) =>
+                  setMargins((current) => ({
+                    ...current,
+                    [edge]: event.currentTarget.value,
+                  }))
+                }
+                placeholder="42pt"
+              />
+            </label>
+          ))}
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="mt-3"
+          disabled={migrationSaving || !tokens}
+          onClick={saveStyleTokens}
+        >
+          Apply style overrides
+        </Button>
       </div>
       <div className="mt-2 grid gap-3 lg:grid-cols-2">
         <TokenSummaryCard title="Page" value={formatTokenJson(tokens?.page)} />
@@ -2364,6 +2549,82 @@ function formatTokenJson(value: unknown): string {
     return "Not detected";
   }
   return JSON.stringify(value, null, 2);
+}
+
+function editableStyleTokens(
+  tokens: TemplateMigrationDraft["styleTokens"],
+): EditableStyleTokens {
+  return JSON.parse(
+    JSON.stringify(
+      tokens ?? {
+        version: 1,
+        sourceType: "pdf",
+        filename: "imported-template",
+        page: {
+          size: "letter",
+          widthPt: 612,
+          heightPt: 792,
+          margins: {
+            top: "42pt",
+            right: "42pt",
+            bottom: "42pt",
+            left: "42pt",
+          },
+        },
+        typography: {},
+        color: {},
+        spacing: {},
+        rules: {},
+        layout: {},
+        warnings: [],
+      },
+    ),
+  ) as EditableStyleTokens;
+}
+
+function scalarToken<T extends string | number>(value: T) {
+  return {
+    value,
+    confidence: 1,
+    evidenceRefs: [],
+  };
+}
+
+function tokenValue(value: unknown, fallback: string): string {
+  if (isRecord(value) && typeof value.value === "string") return value.value;
+  if (isRecord(value) && typeof value.value === "number") {
+    return String(value.value);
+  }
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return fallback;
+}
+
+function tokenString(value: unknown, key: string, fallback = ""): string {
+  if (isRecord(value) && typeof value[key] === "string") {
+    return value[key];
+  }
+  return fallback;
+}
+
+function tokenNumber(value: unknown, key: string, fallback: number): number {
+  if (isRecord(value) && typeof value[key] === "number") return value[key];
+  return fallback;
+}
+
+function pageMargins(tokens: TemplateMigrationDraft["styleTokens"]): {
+  top: string;
+  right: string;
+  bottom: string;
+  left: string;
+} {
+  const margins = tokens?.page?.margins;
+  return {
+    top: tokenString(margins, "top", "42pt"),
+    right: tokenString(margins, "right", "42pt"),
+    bottom: tokenString(margins, "bottom", "42pt"),
+    left: tokenString(margins, "left", "42pt"),
+  };
 }
 
 function SourceLayoutPreview({

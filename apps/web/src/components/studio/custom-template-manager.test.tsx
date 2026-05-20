@@ -351,6 +351,84 @@ describe("CustomTemplateManagerDialog", () => {
       }),
     );
   });
+
+  it("lets reviewers override style tokens before saving", async () => {
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/templates/migrate") {
+          return Response.json({
+            draft: migrationDraft(),
+            warnings: [],
+            confidence: "high",
+          });
+        }
+        if (url === "/api/templates/v3/preview") {
+          return Response.json({
+            html: "<html><body><article>Rendered migrated resume</article></body></html>",
+            pdfOptions: { format: "Letter" },
+          });
+        }
+        if (url === "/api/templates/migrations/draft-1") {
+          const body = JSON.parse(
+            String((init as RequestInit | undefined)?.body),
+          );
+          const next = migrationDraft();
+          next.styleTokens = body.styleTokens;
+          next.reusableHtml =
+            '<html><body><article style="color:#123456">Reusable render</article></body></html>';
+          return Response.json({ draft: next });
+        }
+        return Response.json({ templates: [] });
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderDialog();
+
+    const inputs =
+      document.querySelectorAll<HTMLInputElement>("input[type='file']");
+    fireEvent.change(inputs[0], {
+      target: {
+        files: [
+          new File(["%PDF-1.7"], "resume.pdf", {
+            type: "application/pdf",
+          }),
+        ],
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("resume.pdf")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Style Tokens" }));
+    fireEvent.change(screen.getByLabelText("Accent color"), {
+      target: { value: "#123456" },
+    });
+    fireEvent.change(screen.getByLabelText("Body font"), {
+      target: { value: "Georgia, serif" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Apply style overrides" }),
+    );
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/templates/migrations/draft-1",
+        expect.objectContaining({
+          method: "PATCH",
+          body: expect.stringContaining('"#123456"'),
+        }),
+      );
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/templates/migrations/draft-1",
+      expect.objectContaining({
+        method: "PATCH",
+        body: expect.stringContaining("Georgia, serif"),
+      }),
+    );
+  });
 });
 
 function migrationDraft() {
