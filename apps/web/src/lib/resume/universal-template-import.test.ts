@@ -162,6 +162,36 @@ describe("universal template import analysis", () => {
     });
   });
 
+  it("uses hyperlink targets as semantic contact evidence when link labels are generic", () => {
+    const source: SourceDocumentIR = {
+      sourceType: "docx",
+      filename: "linked-labels.docx",
+      pages: [{ id: "page-1", number: 1, widthPt: 612, heightPt: 792 }],
+      rawText: "",
+      diagnostics: [],
+      blocks: [
+        styledBlock("b1", "Avery Stone", { fontSizePt: 22, bold: true }),
+        linkBlock("b2", "GitHub", "https://github.com/avery-stone", "#2563EB"),
+        linkBlock(
+          "b3",
+          "LinkedIn",
+          "https://linkedin.com/in/avery-stone",
+          "#2563EB",
+        ),
+        styledBlock("b4", "EXPERIENCE", { fontSizePt: 11, bold: true }),
+        tableRow("b5", ["Engineer", "Signal Works", "2024 - Present"]),
+      ],
+    };
+
+    const semantic = inferResumeSemanticIR(source);
+
+    expect(semantic.contact).toMatchObject({
+      name: "Avery Stone",
+      github: "https://github.com/avery-stone",
+      linkedin: "https://linkedin.com/in/avery-stone",
+    });
+  });
+
   it("extracts reusable style tokens without depending on one resume design", () => {
     const source: SourceDocumentIR = {
       sourceType: "docx",

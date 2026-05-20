@@ -195,6 +195,7 @@ interface SemanticSourceLine {
   text: string;
   sourceType: SourceDocumentIR["blocks"][number]["type"];
   evidenceRefs: string[];
+  hrefs?: string[];
 }
 
 const SECTION_ALIASES: Array<{
@@ -1036,12 +1037,14 @@ function sourceLinesForSemanticMapping(
   return source.blocks.flatMap((block) => {
     if (block.type !== "table-row" || !block.cellMetadata?.length) {
       const text = block.text.trim();
+      const hrefs = hrefsForBlock(block);
       return text
         ? [
             {
               text: block.type === "list-item" ? `- ${text}` : text,
               sourceType: block.type,
               evidenceRefs: [block.id],
+              hrefs,
             },
           ]
         : [];
@@ -1061,6 +1064,7 @@ function sourceLinesForSemanticMapping(
               evidenceRefs: [
                 `${block.id}:cell-${cellIndex + 1}:${cellBlock.id}`,
               ],
+              hrefs: hrefsForBlock(cellBlock),
             })),
     );
     const populatedCells = cellLines.filter((lines) => lines.length);
@@ -1073,6 +1077,7 @@ function sourceLinesForSemanticMapping(
           text: populatedCells.map((lines) => lines[0].text).join(" | "),
           sourceType: "table-row" as const,
           evidenceRefs: [block.id],
+          hrefs: populatedCells.flatMap((lines) => lines[0].hrefs ?? []),
         },
       ];
     }
@@ -1093,10 +1098,25 @@ function sourceLinesForSemanticMapping(
             text: fallback.trim(),
             sourceType: "table-row" as const,
             evidenceRefs: [block.id],
+            hrefs: hrefsForBlock(block),
           },
         ]
       : [];
   });
+}
+
+function hrefsForBlock(
+  block:
+    | SourceDocumentIR["blocks"][number]
+    | NonNullable<
+        NonNullable<
+          SourceDocumentIR["blocks"][number]["cellMetadata"]
+        >[number]["blocks"]
+      >[number],
+): string[] {
+  return [block.href, ...(block.runs ?? []).map((run) => run.href)].filter(
+    (href): href is string => Boolean(href?.trim()),
+  );
 }
 
 function groupSemanticLinesBySection(lines: SemanticSourceLine[]) {
@@ -1132,7 +1152,7 @@ function groupSemanticLinesBySection(lines: SemanticSourceLine[]) {
 }
 
 function inferSemanticContact(lines: SemanticSourceLine[]): SemanticContact {
-  const text = lines.map((line) => line.text).join(" ");
+  const text = lines.map(contactSearchText).join(" ");
   const email = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] ?? "";
   const phone =
     text.match(/(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/)?.[0] ??
@@ -1166,6 +1186,10 @@ function inferSemanticContact(lines: SemanticSourceLine[]): SemanticContact {
     ),
     evidenceRefs: lines.flatMap((line) => line.evidenceRefs),
   };
+}
+
+function contactSearchText(line: SemanticSourceLine): string {
+  return [line.text, ...(line.hrefs ?? [])].join(" ");
 }
 
 function parseSemanticSectionItems(

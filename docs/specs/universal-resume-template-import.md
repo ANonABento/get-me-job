@@ -736,6 +736,9 @@ As of the latest implementation slice, the system has:
   rendering from source visual evidence instead of defaulting every section to
   list styling, preserve source-backed list marker style where available, and
   render reusable contact links with inferred link color.
+- Semantic contact inference uses hyperlink targets as source evidence, so
+  generic visible labels like "GitHub" or "LinkedIn" still populate reusable
+  contact fields from their hrefs.
 - Basic semantic review controls for section type/title correction and moving
   bullets between adjacent, dragged, or explicitly selected items.
 - Semantic sections can be reordered from review with buttons or drag/drop and
@@ -789,6 +792,8 @@ Known remaining gaps:
   numbered DOCX list evidence, in generated reusable renders.
 - V4 reusable templates render contact email/GitHub/LinkedIn fields as semantic
   links and infer link color from source hyperlink evidence.
+- Semantic contact extraction preserves linked contact targets even when the
+  visible source text is only a generic link label.
 - App review mismatch reports now expose the same gate model as the lab:
   extraction, semantic, style, render, and app wiring statuses with review
   actions.
