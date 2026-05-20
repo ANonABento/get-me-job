@@ -133,22 +133,42 @@ describe("visual template dogfood suite scorecards", () => {
   });
 
   it("treats extra semantic sections as custom-section style evidence", () => {
-    const scorecard = scoreCase(
-      genericSummary(),
-      {
-        name: "career-changer-pdf",
-        source: "resume.pdf",
-        fixtureClass: "resume with custom sections",
-        expectedSections: ["experience", "education", "projects", "skills"],
-        expectedStyleTraits: ["custom-sections", "section-headings"],
-      },
-    );
+    const scorecard = scoreCase(genericSummary(), {
+      name: "career-changer-pdf",
+      source: "resume.pdf",
+      fixtureClass: "resume with custom sections",
+      expectedSections: ["experience", "education", "projects", "skills"],
+      expectedStyleTraits: ["custom-sections", "section-headings"],
+    });
 
     expect(scorecard.pass).toBe(true);
     expect(scorecard.matchedStyleTraits).toEqual([
       "custom-sections",
       "section-headings",
     ]);
+  });
+
+  it("requires recovered contact links for links/icons traits", () => {
+    const scorecard = scoreCase(
+      {
+        ...genericSummary(),
+        semanticResume: {
+          ...genericSummary().semanticResume,
+          contact: {},
+        },
+      },
+      {
+        name: "linked-contact-pdf",
+        source: "resume.pdf",
+        fixtureClass: "resume with links/icons",
+        expectedSections: ["experience", "education", "projects", "skills"],
+        expectedStyleTraits: ["links/icons"],
+      },
+    );
+
+    expect(scorecard.pass).toBe(false);
+    expect(scorecard.gateFailures).toContain("style:expected-traits");
+    expect(scorecard.matchedStyleTraits).not.toContain("links/icons");
   });
 });
 

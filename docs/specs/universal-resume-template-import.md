@@ -728,8 +728,9 @@ As of the latest implementation slice, the system has:
 - A strict visual dogfood suite with all required fixture classes covered.
 - Dogfood scorecards now gate source coverage, stress page overflow, reusable
   component completeness, expected section coverage, and expected
-  visual-family trait coverage, with failures bucketed by pipeline stage. The
-  strict fixture suite currently passes with scorecards enforced.
+  visual-family trait coverage, including contact link/icon recovery for
+  link-heavy fixtures, with failures bucketed by pipeline stage. The strict
+  fixture suite currently passes with scorecards enforced.
 - A reusable renderer that consumes section order and entry component settings
   for header fields and bullet-vs-paragraph achievement rendering. During
   migration, V4 reusable artifacts now infer bullet-vs-paragraph achievement
@@ -785,7 +786,8 @@ Known remaining gaps:
   counting as page overflow.
 - Current manifest scorecards pass under `--strict-scorecards`; visual
   no-bullet traits are checked against source evidence rather than semantic
-  achievement modeling.
+  achievement modeling, and link/icon traits require recovered semantic contact
+  links.
 - V4 reusable templates preserve paragraph-forward achievement rendering when
   the imported source has achievement text without visual list markers.
 - V4 reusable templates preserve detected list marker treatment, including

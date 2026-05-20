@@ -36,7 +36,12 @@
       ],
       "source": "tests/fixtures/personas/senior-ic/resume.pdf",
       "expectedSections": ["experience", "projects", "education", "skills"],
-      "expectedStyleTraits": ["dense-text", "section-headings", "bullets"]
+      "expectedStyleTraits": [
+        "dense-text",
+        "section-headings",
+        "bullets",
+        "links/icons"
+      ]
     },
     {
       "name": "heavy-formatting-pdf",
@@ -86,7 +91,10 @@
     {
       "name": "multi-job-pm-pdf",
       "fixtureClass": "business/marketing resume",
-      "fixtureClasses": ["business/marketing resume", "resume with long bullets"],
+      "fixtureClasses": [
+        "business/marketing resume",
+        "resume with long bullets"
+      ],
       "source": "tests/fixtures/personas/multi-job-pm/resume.pdf",
       "expectedSections": ["experience", "projects", "education", "skills"],
       "expectedStyleTraits": ["business", "chronology", "section-headings"]
@@ -105,7 +113,12 @@
       "fixtureClasses": ["LaTeX Jake-style resume", "resume with links/icons"],
       "source": "tests/fixtures/dogfood/overleaf-resume.tex",
       "expectedSections": ["experience", "projects", "education"],
-      "expectedStyleTraits": ["latex-macros", "compact-spacing", "bullets"]
+      "expectedStyleTraits": [
+        "latex-macros",
+        "compact-spacing",
+        "bullets",
+        "links/icons"
+      ]
     },
     {
       "name": "non-english-spanish-pdf",
