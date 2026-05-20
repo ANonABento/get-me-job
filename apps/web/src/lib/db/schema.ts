@@ -257,6 +257,7 @@ export const interviewSessions = sqliteTable(
     id: text("id").primaryKey(),
     userId: text("user_id").notNull().default(DEFAULT_USER_ID),
     jobId: text("job_id"),
+    contextPackId: text("context_pack_id"),
     category: text("category"),
     profileId: text("profile_id").notNull(),
     mode: text("mode").default("text"),
@@ -269,6 +270,34 @@ export const interviewSessions = sqliteTable(
     index("idx_interview_sessions_user_started").on(
       table.userId,
       table.startedAt,
+    ),
+  ],
+);
+
+export const interviewContextPacks = sqliteTable(
+  "interview_context_packs",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().default(DEFAULT_USER_ID),
+    title: text("title").notNull(),
+    mode: text("mode").notNull(),
+    status: text("status").notNull().default("ready"),
+    sourcesJson: text("sources_json").notNull().default("[]"),
+    normalizedContextJson: text("normalized_context_json")
+      .notNull()
+      .default("{}"),
+    rawContextExcerpt: text("raw_context_excerpt"),
+    deepDiveEnabled: integer("deep_dive_enabled", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    promotionState: text("promotion_state").notNull().default("none"),
+    createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("idx_interview_context_packs_user_created").on(
+      table.userId,
+      table.createdAt,
     ),
   ],
 );

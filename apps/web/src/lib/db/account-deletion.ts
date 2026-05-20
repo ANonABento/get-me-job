@@ -123,6 +123,11 @@ const USER_SCOPED_DELETES: DeleteStatement[] = [
     sql: "DELETE FROM interview_sessions WHERE user_id = ?",
   },
   {
+    table: "interview_context_packs",
+    sql: "DELETE FROM interview_context_packs WHERE user_id = ?",
+    optional: true,
+  },
+  {
     table: "generated_resumes",
     sql: "DELETE FROM generated_resumes WHERE user_id = ?",
   },

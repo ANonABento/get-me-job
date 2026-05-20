@@ -9,6 +9,7 @@ import { nowEpoch } from "@/lib/format/time";
 import { NextRequest, NextResponse } from "next/server";
 import { getJob } from "@/lib/db/jobs";
 import { getProfile } from "@/lib/db";
+import { getInterviewContextPack } from "@/lib/db/interviews";
 import {
   gateOptionalAiFeature,
   isAiGateResponse,
@@ -24,10 +25,12 @@ import { requireAuth, isAuthError, getCurrentUserId } from "@/lib/auth";
 import { rateLimiters, getClientIdentifier } from "@/lib/rate-limit";
 import { validationErrorResponse, ApiErrors } from "@/lib/api-utils";
 import {
+  buildContextPackInterviewQuestionsPrompt,
   buildGenericInterviewQuestionsPrompt,
   buildJobInterviewQuestionsPrompt,
   SESSION_CATEGORY_VALUES,
 } from "@/lib/interview/prompt-builders";
+import type { InterviewContextPack } from "@/types/interview";
 import type { LLMConfig } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +40,9 @@ interface InterviewQuestion {
   category: SessionQuestionCategory;
   suggestedAnswer?: string;
   difficulty?: InterviewDifficulty;
+  sourceRefs?: InterviewContextPack["sources"];
+  interviewMode?: InterviewContextPack["mode"];
+  probeType?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -77,13 +83,14 @@ export async function POST(request: NextRequest) {
       return validationErrorResponse(parseResult.error);
     }
 
-    const { jobId, difficulty, category, questionCount } = parseResult.data;
+    const { jobId, contextPackId, difficulty, category, questionCount } =
+      parseResult.data;
 
     const profile = getProfile(authResult.userId);
     const gate = gateOptionalAiFeature(
       authResult.userId,
       "interview_turn",
-      `start:${jobId ?? category}`,
+      `start:${jobId ?? contextPackId ?? category}`,
     );
     if (isAiGateResponse(gate)) return gate;
     aiGate = gate;
@@ -92,6 +99,35 @@ export async function POST(request: NextRequest) {
     let usedLLM = false;
     let fallbackReason: "provider_not_configured" | "llm_error" | null =
       gate.llmConfig ? null : "provider_not_configured";
+
+    if (contextPackId) {
+      const contextPack = getInterviewContextPack(
+        contextPackId,
+        authResult.userId,
+      );
+      if (!contextPack) {
+        return NextResponse.json(
+          { error: "Context pack not found" },
+          { status: 404 },
+        );
+      }
+
+      questions = await getContextPackQuestions({
+        contextPack,
+        difficulty,
+        questionCount,
+        llmConfig: gate.llmConfig,
+      });
+      usedLLM = gate.llmConfig !== null;
+      return NextResponse.json({
+        questions,
+        difficulty,
+        contextPack,
+        usedLLM,
+        fallbackUsed: !usedLLM,
+        fallbackReason: usedLLM ? null : fallbackReason,
+      });
+    }
 
     if (!jobId) {
       questions = await getGenericQuestions({
@@ -164,6 +200,64 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "Failed to generate interview questions" },
       { status: 500 },
+    );
+  }
+}
+
+async function getContextPackQuestions({
+  contextPack,
+  difficulty,
+  questionCount,
+  llmConfig,
+}: {
+  contextPack: InterviewContextPack;
+  difficulty: InterviewDifficulty;
+  questionCount: number;
+  llmConfig: LLMConfig | null;
+}): Promise<InterviewQuestion[]> {
+  if (!llmConfig) {
+    return getContextPackDefaultQuestions(
+      contextPack,
+      difficulty,
+      questionCount,
+    );
+  }
+
+  const client = new LLMClient(llmConfig);
+  try {
+    const response = await client.complete({
+      messages: [
+        {
+          role: "user",
+          content: buildContextPackInterviewQuestionsPrompt({
+            contextPack,
+            difficulty,
+            questionCount,
+          }),
+        },
+      ],
+      temperature: 0.65,
+      maxTokens: 2400,
+    });
+
+    return normalizeQuestions(
+      parseJSONFromLLM<InterviewQuestion[]>(response),
+      questionCount,
+      difficulty,
+      contextPack.mode === "skill-grill" ? "technical" : "behavioral",
+    ).map((question) => ({
+      ...question,
+      sourceRefs: question.sourceRefs?.length
+        ? question.sourceRefs
+        : contextPack.sources.slice(0, 2),
+      interviewMode: contextPack.mode,
+    }));
+  } catch (error) {
+    console.error("Failed to generate context interview questions:", error);
+    return getContextPackDefaultQuestions(
+      contextPack,
+      difficulty,
+      questionCount,
     );
   }
 }
@@ -418,6 +512,78 @@ function getDefaultQuestions(
     baseQuestions[difficulty] || baseQuestions.mid,
     questionCount,
   );
+}
+
+function getContextPackDefaultQuestions(
+  contextPack: InterviewContextPack,
+  difficulty: InterviewDifficulty = "mid",
+  questionCount = 5,
+): InterviewQuestion[] {
+  const stack = contextPack.summary.detectedStack.slice(0, 3).join(", ");
+  const primarySource =
+    contextPack.summary.sourceLabels[0] || contextPack.title || "this context";
+  const claim = contextPack.summary.claims[0] || "the strongest claim here";
+  const weakSpot =
+    contextPack.summary.weakSpots[0] ||
+    "the least obvious implementation detail";
+  const sourceRefs = contextPack.sources.slice(0, 2);
+  const base: InterviewQuestion[] = [
+    {
+      question: `Walk me through ${primarySource}. What did you build, what was your role, and what result mattered most?`,
+      category: "behavioral",
+      suggestedAnswer:
+        "Anchor the answer in scope, ownership, concrete work, and measurable outcome.",
+      difficulty,
+      sourceRefs,
+      interviewMode: contextPack.mode,
+      probeType: "ownership",
+    },
+    {
+      question: `Defend this claim from your context: "${claim}". What evidence would convince a skeptical interviewer?`,
+      category: "situational",
+      suggestedAnswer:
+        "Give before/after context, specific actions, metrics or observable impact, and what you learned.",
+      difficulty,
+      sourceRefs,
+      interviewMode: contextPack.mode,
+      probeType: "evidence",
+    },
+    {
+      question: stack
+        ? `If I asked you to explain the ${stack} parts of this work at a systems level, where would you start?`
+        : "Explain the technical architecture or workflow behind this work. What were the important moving pieces?",
+      category: "technical",
+      suggestedAnswer:
+        "Describe components, data flow, constraints, alternatives considered, and trade-offs.",
+      difficulty,
+      sourceRefs,
+      interviewMode: contextPack.mode,
+      probeType: "architecture",
+    },
+    {
+      question: `The weak spot I see is: ${weakSpot}. How would you answer if an interviewer pushed on that?`,
+      category: "situational",
+      suggestedAnswer:
+        "Acknowledge the gap directly, add missing context, and explain how you would validate or improve it.",
+      difficulty,
+      sourceRefs,
+      interviewMode: contextPack.mode,
+      probeType: "weak-spot",
+    },
+    {
+      question:
+        "What was the hardest trade-off in this context, and what would you do differently now?",
+      category: "behavioral",
+      suggestedAnswer:
+        "Pick a real constraint, explain the decision, the downside, and the retrospective lesson.",
+      difficulty,
+      sourceRefs,
+      interviewMode: contextPack.mode,
+      probeType: "tradeoff",
+    },
+  ];
+
+  return repeatToCount(base, questionCount);
 }
 
 function getGenericDefaultQuestions(

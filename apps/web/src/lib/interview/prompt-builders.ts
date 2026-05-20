@@ -4,6 +4,7 @@ import {
   type SessionQuestionCategory,
 } from "@/lib/constants";
 import type { JobDescription, Profile } from "@/types";
+import type { InterviewContextPack } from "@/types/interview";
 
 export const SESSION_CATEGORY_VALUES: SessionQuestionCategory[] = [
   "behavioral",
@@ -93,6 +94,57 @@ Return ONLY a JSON array (no markdown):
 
 Categories: ${SESSION_CATEGORY_VALUES.join(", ")}
 Every question must have the best primary category and include suggestedAnswer.`;
+}
+
+export function buildContextPackInterviewQuestionsPrompt({
+  contextPack,
+  difficulty,
+  questionCount,
+}: {
+  contextPack: InterviewContextPack;
+  difficulty: InterviewDifficulty;
+  questionCount: number;
+}): string {
+  const difficultyContext =
+    DIFFICULTY_DESCRIPTIONS[difficulty] || DIFFICULTY_DESCRIPTIONS.mid;
+
+  return `You are a rigorous interviewer using a candidate-specific context pack.
+
+Generate ${questionCount} grounded interview questions. Every question must test the candidate's ability to explain, defend, or prove details from the provided material. Prefer concrete follow-ups about decisions, trade-offs, ownership, metrics, failure modes, and implementation details.
+
+Context Pack: ${contextPack.title}
+Mode: ${contextPack.mode}
+Sources: ${contextPack.summary.sourceLabels.join(", ") || "custom context"}
+Detected Stack: ${contextPack.summary.detectedStack.join(", ") || "unknown"}
+Skills: ${contextPack.summary.skills.join(", ") || "unknown"}
+Claims:
+${contextPack.summary.claims.map((claim) => `- ${claim}`).join("\n") || "- none extracted"}
+Weak Spots:
+${contextPack.summary.weakSpots.map((spot) => `- ${spot}`).join("\n") || "- none detected"}
+Question Angles:
+${contextPack.summary.questionAngles.map((angle) => `- ${angle}`).join("\n") || "- ownership"}
+
+Source Excerpt:
+${contextPack.rawContextExcerpt || "No excerpt available."}
+
+DIFFICULTY LEVEL: ${difficulty.toUpperCase()}
+${difficultyContext}
+
+Return ONLY a JSON array (no markdown):
+[
+  {
+    "question": "Walk me through the architecture decision behind...",
+    "category": "technical",
+    "suggestedAnswer": "Answer with the exact context, trade-off, and result...",
+    "difficulty": "${difficulty}",
+    "sourceRefs": ${JSON.stringify(contextPack.sources.slice(0, 2))},
+    "interviewMode": "${contextPack.mode}",
+    "probeType": "architecture"
+  }
+]
+
+Categories: ${SESSION_CATEGORY_VALUES.join(", ")}
+Use sourceRefs only from the provided sources. probeType should be a short label such as "architecture", "ownership", "debugging", "metrics", "fundamentals", "tradeoff", or "role-fit".`;
 }
 
 export function buildInterviewAnswerFeedbackPrompt({

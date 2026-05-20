@@ -27,6 +27,7 @@ import {
 import { PrepGuideCard } from "@/components/interview/prep-guide-card";
 import { PastSessionsList } from "@/components/interview/past-sessions-list";
 import { CategoryPracticeTiles } from "@/components/interview/category-practice-tiles";
+import { InterviewSourceBuilder } from "@/components/interview/interview-source-builder";
 import {
   INTERVIEW_DIFFICULTIES,
   INTERVIEW_QUESTION_COUNTS,
@@ -34,7 +35,11 @@ import {
   type SessionQuestionCategory,
 } from "@/lib/constants";
 import type { Opportunity } from "@/types/opportunity";
-import type { InterviewMode, PastSession } from "@/types/interview";
+import type {
+  InterviewContextMode,
+  InterviewMode,
+  PastSession,
+} from "@/types/interview";
 
 const QUESTION_COUNT_STORAGE_KEY = "taida:interview:question-count";
 const TIMER_STORAGE_KEY = "taida:interview:timer-enabled";
@@ -49,6 +54,14 @@ interface InterviewJobSelectionProps {
     options: { questionCount: number; timerEnabled: boolean },
   ) => void;
   onStartQuickPractice: (category?: SessionQuestionCategory) => void;
+  onStartContextPractice: (options: {
+    contextPackId: string;
+    contextPackTitle: string;
+    contextPackMode: InterviewContextMode;
+    contextPackPromotable: boolean;
+    questionCount: number;
+    timerEnabled: boolean;
+  }) => void;
   difficulty: InterviewDifficulty;
   onDifficultyChange: (value: InterviewDifficulty) => void;
   pastSessions: PastSession[];
@@ -62,6 +75,7 @@ export function InterviewJobSelection({
   generating,
   onStartInterview,
   onStartQuickPractice,
+  onStartContextPractice,
   difficulty,
   onDifficultyChange,
   pastSessions,
@@ -107,6 +121,12 @@ export function InterviewJobSelection({
   if (opportunities.length === 0) {
     return (
       <div className="space-y-6">
+        <InterviewSourceBuilder
+          generating={generating}
+          defaultQuestionCount={questionCount}
+          defaultTimerEnabled={timerEnabled}
+          onStartContextPractice={onStartContextPractice}
+        />
         <OnboardingEmptyState
           icon={MessageSquare}
           illustrationName="interview-empty"
@@ -163,6 +183,13 @@ export function InterviewJobSelection({
         onToggleHistory={() => setShowHistory(!showHistory)}
         onResumeSession={onResumeSession}
         onDeleteSession={onDeleteSession}
+      />
+
+      <InterviewSourceBuilder
+        generating={generating}
+        defaultQuestionCount={questionCount}
+        defaultTimerEnabled={timerEnabled}
+        onStartContextPractice={onStartContextPractice}
       />
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

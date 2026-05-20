@@ -19,6 +19,7 @@ import {
 } from "@/lib/constants";
 import type { Opportunity } from "@/types/opportunity";
 import type {
+  InterviewContextMode,
   FollowUpExchange,
   InterviewMode,
   InterviewQuestion,
@@ -36,11 +37,22 @@ interface InterviewSessionsResponse {
 
 interface InterviewStartResponse {
   questions?: InterviewQuestion[];
+  contextPack?: {
+    id: string;
+    title: string;
+    mode: InterviewContextMode;
+    promotionState?: "none" | "prompted" | "saved_to_bank";
+    sources?: Array<{ type: string }>;
+  };
 }
 
 interface CreateInterviewSessionResponse {
   session?: {
     id?: string;
+    contextPackId?: string | null;
+    contextPackTitle?: string | null;
+    contextPackMode?: InterviewContextMode | null;
+    contextPackPromotable?: boolean;
   };
   unlocked?: unknown[];
 }
@@ -51,6 +63,10 @@ interface InterviewAnswerResponse {
 
 interface StartInterviewOptions {
   category?: SessionQuestionCategory;
+  contextPackId?: string;
+  contextPackTitle?: string;
+  contextPackMode?: InterviewContextMode;
+  contextPackPromotable?: boolean;
   questionCount?: number;
   timerEnabled?: boolean;
 }
@@ -247,6 +263,10 @@ export function useInterviewSession(): UseInterviewSessionReturn {
         id: pastSession.id,
         jobId: pastSession.jobId,
         category: pastSession.category || null,
+        contextPackId: pastSession.contextPackId || null,
+        contextPackTitle: pastSession.contextPackTitle || null,
+        contextPackMode: pastSession.contextPackMode || null,
+        contextPackPromotable: pastSession.contextPackPromotable,
         questions: pastSession.questions,
         currentIndex:
           currentIndex === -1 ? pastSession.questions.length : currentIndex,
@@ -289,6 +309,7 @@ export function useInterviewSession(): UseInterviewSessionReturn {
             headers: JSON_HEADERS,
             body: JSON.stringify({
               jobId,
+              contextPackId: options.contextPackId,
               mode,
               difficulty,
               category: options.category,
@@ -309,6 +330,7 @@ export function useInterviewSession(): UseInterviewSessionReturn {
             headers: JSON_HEADERS,
             body: JSON.stringify({
               jobId,
+              contextPackId: options.contextPackId,
               category: options.category,
               questions: questionsData.questions,
               mode,
@@ -330,6 +352,30 @@ export function useInterviewSession(): UseInterviewSessionReturn {
           id: sessionData.session?.id,
           jobId,
           category: options.category || null,
+          contextPackId:
+            sessionData.session?.contextPackId ||
+            options.contextPackId ||
+            questionsData.contextPack?.id ||
+            null,
+          contextPackTitle:
+            sessionData.session?.contextPackTitle ||
+            options.contextPackTitle ||
+            questionsData.contextPack?.title ||
+            null,
+          contextPackMode:
+            sessionData.session?.contextPackMode ||
+            options.contextPackMode ||
+            questionsData.contextPack?.mode ||
+            null,
+          contextPackPromotable:
+            sessionData.session?.contextPackPromotable ??
+            options.contextPackPromotable ??
+            Boolean(
+              questionsData.contextPack?.sources?.some((source) =>
+                ["custom-url", "custom-text"].includes(source.type),
+              ) &&
+              questionsData.contextPack?.promotionState !== "saved_to_bank",
+            ),
           questionCount:
             options.questionCount || questionsData.questions.length,
           timer: options.timerEnabled

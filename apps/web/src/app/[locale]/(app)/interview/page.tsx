@@ -17,7 +17,11 @@ import type {
   InterviewDifficulty,
   SessionQuestionCategory,
 } from "@/lib/constants";
-import type { InterviewMode, PastSession } from "@/types/interview";
+import type {
+  InterviewContextMode,
+  InterviewMode,
+  PastSession,
+} from "@/types/interview";
 import { useA11yTranslations } from "@/lib/i18n/use-a11y-translations";
 import { CoachRail } from "./_components/coach-rail";
 import { InterviewShell } from "./_components/interview-shell";
@@ -62,6 +66,21 @@ export default function InterviewPage() {
     ) => {
       followUp.resetFollowUp();
       void interview.startInterview(jobId, mode, difficulty, options);
+    },
+    [difficulty, followUp, interview],
+  );
+
+  const handleStartContextPractice = useCallback(
+    (options: {
+      contextPackId: string;
+      contextPackTitle: string;
+      contextPackMode: InterviewContextMode;
+      contextPackPromotable: boolean;
+      questionCount: number;
+      timerEnabled: boolean;
+    }) => {
+      followUp.resetFollowUp();
+      void interview.startInterview(null, "generic-text", difficulty, options);
     },
     [difficulty, followUp, interview],
   );
@@ -135,6 +154,7 @@ export default function InterviewPage() {
         generating={interview.generating}
         onStartInterview={handleStartInterview}
         onStartQuickPractice={openQuickPractice}
+        onStartContextPractice={handleStartContextPractice}
         difficulty={difficulty}
         onDifficultyChange={setDifficulty}
         pastSessions={interview.pastSessions}
@@ -148,6 +168,13 @@ export default function InterviewPage() {
         session={interview.session}
         selectedJob={selectedJobData}
         onReset={resetInterview}
+        onContextPackSaved={(contextPackId) => {
+          interview.setSession((currentSession) =>
+            currentSession?.contextPackId === contextPackId
+              ? { ...currentSession, contextPackPromotable: false }
+              : currentSession,
+          );
+        }}
       />
     </Suspense>
   ) : (

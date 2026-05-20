@@ -8,6 +8,12 @@ vi.mock("@/lib/db", () =>
   globalThis.__contractRouteMocks!.createContractModuleMock("@/lib/db"),
 );
 
+vi.mock("@/lib/db/interviews", () =>
+  globalThis.__contractRouteMocks!.createContractModuleMock(
+    "@/lib/db/interviews",
+  ),
+);
+
 vi.mock("@/lib/llm/client", () =>
   globalThis.__contractRouteMocks!.createContractModuleMock("@/lib/llm/client"),
 );

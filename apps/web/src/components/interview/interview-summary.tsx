@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -34,14 +35,18 @@ interface InterviewSummaryProps {
   session: InterviewSession;
   selectedJob?: Opportunity;
   onReset: () => void;
+  onContextPackSaved?: (contextPackId: string) => void;
 }
 
 export function InterviewSummary({
   session,
   selectedJob,
   onReset,
+  onContextPackSaved,
 }: InterviewSummaryProps) {
   const t = useTranslations("interview.summary");
+  const [savingContext, setSavingContext] = useState(false);
+  const [contextSaved, setContextSaved] = useState(false);
   const answeredCount = session.answers.filter((answer, index) => {
     const trimmedAnswer = answer.trim();
     return (
@@ -69,7 +74,25 @@ export function InterviewSummary({
         : "brief";
   const practiceTitle = selectedJob
     ? `Interview Prep - ${selectedJob.title} at ${selectedJob.company}`
-    : `Practice - ${session.category?.replace("-", " ") || "Interview"}`;
+    : session.contextPackTitle
+      ? `Interview Prep - ${session.contextPackTitle}`
+      : `Practice - ${session.category?.replace("-", " ") || "Interview"}`;
+
+  const saveContextPack = async () => {
+    if (!session.contextPackId) return;
+    setSavingContext(true);
+    try {
+      const response = await fetch(
+        `/api/interview/context-packs/${session.contextPackId}/promote`,
+        { method: "POST" },
+      );
+      if (!response.ok) throw new Error("Failed to save context");
+      setContextSaved(true);
+      onContextPackSaved?.(session.contextPackId);
+    } finally {
+      setSavingContext(false);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-enter">
@@ -105,6 +128,34 @@ export function InterviewSummary({
           )}
         </div>
       </div>
+
+      {session.contextPackPromotable && !contextSaved ? (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 className="font-semibold">Save this context to your bank?</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Custom project links and notes were used once for this
+                interview. Save them to reuse in documents, components, and
+                future interview prep.
+              </p>
+            </div>
+            <Button
+              type="button"
+              onClick={() => void saveContextPack()}
+              disabled={savingContext}
+              variant="outline"
+              className="shrink-0"
+            >
+              {savingContext ? "Saving..." : "Save to bank"}
+            </Button>
+          </div>
+        </div>
+      ) : contextSaved ? (
+        <div className="rounded-xl border border-success/30 bg-success/5 p-4 text-sm text-success">
+          Context saved to your profile bank.
+        </div>
+      ) : null}
 
       <div className="rounded-xl border bg-card p-5">
         <h3 className="mb-4 flex items-center gap-2 font-semibold">

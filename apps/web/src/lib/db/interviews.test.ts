@@ -58,6 +58,7 @@ describe("Interview Database Functions", () => {
         TEST_USER_ID,
         "job-123",
         null,
+        null,
         TEST_USER_ID,
         "text",
         JSON.stringify(questions),
@@ -68,6 +69,7 @@ describe("Interview Database Functions", () => {
       expect(result).toEqual({
         id: "test-session-id",
         jobId: "job-123",
+        contextPackId: null,
         profileId: TEST_USER_ID,
         mode: "text",
         category: null,
@@ -102,6 +104,7 @@ describe("Interview Database Functions", () => {
       expect(mockRun).toHaveBeenLastCalledWith(
         "test-session-id",
         TEST_USER_ID,
+        null,
         "behavioral",
         TEST_USER_ID,
         "generic-text",
@@ -127,6 +130,7 @@ describe("Interview Database Functions", () => {
         "test-session-id",
         "user-123",
         "job-123",
+        null,
         null,
         "user-123",
         "text",
@@ -163,6 +167,43 @@ describe("Interview Database Functions", () => {
       );
 
       expect(result.mode).toBe("voice");
+    });
+
+    it("should attach a context pack to a generic session", () => {
+      const mockRun = vi.fn();
+      (db.prepare as Mock).mockReturnValue({ run: mockRun });
+
+      const questions = [
+        {
+          question: "Defend this project architecture",
+          category: "technical" as const,
+        },
+      ];
+
+      const result = createInterviewSession(
+        null,
+        questions,
+        "generic-text",
+        TEST_USER_ID,
+        null,
+        "context-pack-1",
+      );
+
+      expect(mockRun).toHaveBeenLastCalledWith(
+        "test-session-id",
+        TEST_USER_ID,
+        "context-pack-1",
+        null,
+        TEST_USER_ID,
+        "generic-text",
+        JSON.stringify(questions),
+        expect.any(String),
+      );
+      expect(result).toMatchObject({
+        jobId: null,
+        contextPackId: "context-pack-1",
+        mode: "generic-text",
+      });
     });
   });
 
@@ -211,6 +252,10 @@ describe("Interview Database Functions", () => {
       expect(result).toEqual({
         id: "session-1",
         jobId: "job-123",
+        contextPackId: null,
+        contextPackTitle: null,
+        contextPackMode: null,
+        contextPackPromotable: false,
         profileId: TEST_USER_ID,
         mode: "text",
         category: null,

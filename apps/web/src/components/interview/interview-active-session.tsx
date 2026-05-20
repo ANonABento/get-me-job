@@ -105,6 +105,16 @@ export function InterviewActiveSession({
   });
 
   const currentQuestion = session.questions[session.currentIndex];
+  const sessionTitle = session.contextPackTitle
+    ? session.contextPackTitle
+    : session.mode === "generic-text"
+      ? "Quick Practice"
+      : selectedJobData?.title;
+  const sessionSubtitle = session.contextPackTitle
+    ? "Grounded context interview"
+    : session.mode === "generic-text"
+      ? "No opportunity attached"
+      : selectedJobData?.company;
   const currentQuestionId = "interview-current-question";
   const timerEnabled = Boolean(session.timer?.enabled && !followUpMode);
   const timerExpired = timerEnabled && remainingMs <= 0;
@@ -240,19 +250,18 @@ export function InterviewActiveSession({
                 )}
               </div>
               <div>
-                <p className="font-semibold">
-                  {session.mode === "generic-text"
-                    ? "Quick Practice"
-                    : selectedJobData?.title}
-                </p>
+                <p className="font-semibold">{sessionTitle}</p>
                 <p className="text-sm text-muted-foreground">
-                  {session.mode === "generic-text"
-                    ? "No opportunity attached"
-                    : selectedJobData?.company}
+                  {sessionSubtitle}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {session.contextPackMode ? (
+                <Badge variant="outline" className="capitalize">
+                  {session.contextPackMode.replace(/-/g, " ")}
+                </Badge>
+              ) : null}
               {session.mode === "generic-text" && session.category ? (
                 <CategoryBadge category={session.category} />
               ) : null}
@@ -340,6 +349,11 @@ export function InterviewActiveSession({
                     {currentQuestion && (
                       <CategoryBadge category={currentQuestion.category} />
                     )}
+                    {currentQuestion?.probeType ? (
+                      <Badge variant="outline" className="capitalize">
+                        {currentQuestion.probeType.replace(/-/g, " ")}
+                      </Badge>
+                    ) : null}
                     <h2
                       id={currentQuestionId}
                       className="text-xl font-semibold leading-relaxed"

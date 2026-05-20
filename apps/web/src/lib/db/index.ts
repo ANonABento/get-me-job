@@ -131,6 +131,7 @@ export {
   jobs,
   generatedResumes,
   interviewSessions,
+  interviewContextPacks,
   interviewAnswers,
   interviewFollowUps,
   reminders,

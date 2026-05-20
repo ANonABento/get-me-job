@@ -109,6 +109,11 @@ export function buildLocalDevCleanSlateStatements(
       params: userParam,
     },
     {
+      sql: "DELETE FROM interview_context_packs WHERE user_id = ?",
+      params: userParam,
+      requiredTable: "interview_context_packs",
+    },
+    {
       sql: "DELETE FROM generated_resumes WHERE profile_id = ?",
       params: userParam,
     },

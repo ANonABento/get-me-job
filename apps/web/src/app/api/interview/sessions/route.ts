@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getInterviewSessions,
   createInterviewSession,
+  getInterviewContextPack,
 } from "@/lib/db/interviews";
 import { getJob } from "@/lib/db/jobs";
 import { createInterviewSessionSchema } from "@/lib/constants";
@@ -64,11 +65,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { jobId, questions, mode, category } = parseResult.data;
+    const { jobId, contextPackId, questions, mode, category } =
+      parseResult.data;
 
     const job = jobId ? getJob(jobId, authResult.userId) : null;
     if (jobId && !job) {
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
+    }
+
+    if (contextPackId) {
+      const contextPack = getInterviewContextPack(
+        contextPackId,
+        authResult.userId,
+      );
+      if (!contextPack) {
+        return NextResponse.json(
+          { error: "Context pack not found" },
+          { status: 404 },
+        );
+      }
     }
 
     const session = createInterviewSession(
@@ -77,6 +92,7 @@ export async function POST(request: NextRequest) {
       mode,
       authResult.userId,
       category,
+      contextPackId,
     );
     const { unlocked } = await safeTrackActivity(
       authResult.userId,
