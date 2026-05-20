@@ -5,8 +5,17 @@ const aiGateMocks = vi.hoisted(() => ({
   gateOptionalAiFeature: vi.fn(),
 }));
 
-vi.mock("@/lib/db/jobs", () =>
-  globalThis.__contractRouteMocks!.createContractModuleMock("@/lib/db/jobs"),
+const templateRenderMocks = vi.hoisted(() => ({
+  getReusableResumeTemplate: vi.fn(),
+  getDocumentTemplateV3: vi.fn(),
+  renderTailoredResumeWithReusableTemplate: vi.fn(),
+  generateResumeHTMLV3: vi.fn(),
+}));
+
+vi.mock("@/lib/db/jobs-async", () =>
+  globalThis.__contractRouteMocks!.createContractModuleMock(
+    "@/lib/db/jobs-async",
+  ),
 );
 
 vi.mock("@/lib/db", () =>
@@ -29,6 +38,20 @@ vi.mock("@/lib/resume/templates", () =>
     "@/lib/resume/templates",
   ),
 );
+
+vi.mock("@/lib/db/template-migrations", () => ({
+  getReusableResumeTemplate: templateRenderMocks.getReusableResumeTemplate,
+  getDocumentTemplateV3: templateRenderMocks.getDocumentTemplateV3,
+}));
+
+vi.mock("@/lib/resume/universal-template-renderer", () => ({
+  renderTailoredResumeWithReusableTemplate:
+    templateRenderMocks.renderTailoredResumeWithReusableTemplate,
+}));
+
+vi.mock("@/lib/resume/template-v3-renderer", () => ({
+  generateResumeHTMLV3: templateRenderMocks.generateResumeHTMLV3,
+}));
 
 vi.mock("@/lib/billing/ai-gate", async () => {
   const { NextResponse } = await import("next/server");
@@ -59,7 +82,7 @@ vi.mock("@/lib/auth", () =>
 );
 
 import { GET, POST } from "./route";
-import { getJob } from "@/lib/db/jobs";
+import { getJob } from "@/lib/db/jobs-async";
 import { getProfile } from "@/lib/db";
 import { generateTailoredResume } from "@/lib/resume/generator";
 import {
@@ -83,6 +106,14 @@ describe("opportunity resume generation route", () => {
       transaction: null,
       refund: aiGateMocks.refund,
     });
+    templateRenderMocks.getReusableResumeTemplate.mockReturnValue(null);
+    templateRenderMocks.getDocumentTemplateV3.mockReturnValue(null);
+    templateRenderMocks.renderTailoredResumeWithReusableTemplate.mockReturnValue(
+      "<article>Reusable Resume</article>",
+    );
+    templateRenderMocks.generateResumeHTMLV3.mockReturnValue(
+      "<article>V3 Resume</article>",
+    );
   });
 
   it("serves resume templates from the new opportunities action path", async () => {
@@ -135,7 +166,7 @@ describe("opportunity resume generation route", () => {
       transaction: null,
       refund: aiGateMocks.refund,
     });
-    vi.mocked(getJob).mockReturnValueOnce({
+    vi.mocked(getJob).mockResolvedValueOnce({
       id: "job-1",
       title: "Senior Product Engineer",
       company: "ExampleWorks",
@@ -200,5 +231,66 @@ describe("opportunity resume generation route", () => {
       null,
     );
     expect(aiGateMocks.refund).toHaveBeenCalledOnce();
+  });
+
+  it("renders generated opportunity content through a saved reusable template", async () => {
+    setAuthSuccess();
+    templateRenderMocks.getReusableResumeTemplate.mockReturnValueOnce({
+      id: "v4-template",
+      template: { schemaVersion: 4, id: "v4-template", name: "V4" },
+    });
+    vi.mocked(getJob).mockResolvedValueOnce({
+      id: "job-1",
+      title: "Senior Product Engineer",
+      company: "ExampleWorks",
+      description: "Build React and PostgreSQL workflows.",
+      requirements: [],
+      responsibilities: [],
+      keywords: ["React", "PostgreSQL"],
+      createdAt: "2026-05-16T00:00:00.000Z",
+    });
+    vi.mocked(getProfile).mockReturnValueOnce({
+      id: "profile-1",
+      contact: { name: "Riley Chen", email: "riley@example.com" },
+      summary: "Product engineer",
+      experiences: [],
+      education: [],
+      projects: [],
+      certifications: [],
+      skills: [],
+    });
+    vi.mocked(generateTailoredResume).mockResolvedValueOnce({
+      contact: { name: "Riley Chen", email: "riley@example.com" },
+      summary: "Product engineer",
+      experiences: [],
+      skills: [],
+      education: [],
+    });
+
+    const response = await invokeRouteHandler(
+      POST,
+      jsonRequest(
+        "http://localhost/api/opportunities/job-1/generate",
+        { templateId: "v4-template" },
+        "POST",
+      ),
+      routeContext({ id: "job-1" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(templateRenderMocks.getReusableResumeTemplate).toHaveBeenCalledWith(
+      "v4-template",
+      expect.any(String),
+    );
+    expect(
+      templateRenderMocks.renderTailoredResumeWithReusableTemplate,
+    ).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({ id: "v4-template" }),
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      pdfUrl: "/resumes/resume-exampleworks-id-1.html",
+    });
   });
 });

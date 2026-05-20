@@ -88,7 +88,7 @@ async function renderBuilderResumeHtml(
       await import("@/lib/resume/template-v3-renderer");
     return generateResumeHTMLV3(resume, documentTemplateV3.template);
   }
-  const template = getTemplateWithCustom(templateId, userId);
+  const template = await getTemplateWithCustom(templateId, userId);
   return generateResumeHTML(resume, templateId, template);
 }
 

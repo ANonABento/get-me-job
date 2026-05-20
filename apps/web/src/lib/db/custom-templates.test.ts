@@ -1,17 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Mock } from "vitest";
 
-vi.mock("./legacy", () => ({
-  default: {
-    prepare: vi.fn(),
-  },
+const dbMocks = vi.hoisted(() => ({
+  execute: vi.fn(),
+}));
+
+vi.mock("./client", () => ({
+  getClient: () => dbMocks,
 }));
 
 vi.mock("@/lib/utils", () => ({
   generateId: () => "test-template-id",
 }));
 
-import db from "./legacy";
 import {
   saveCustomTemplate,
   updateCustomTemplateMetadata,
@@ -40,16 +40,33 @@ const analyzedStyles = {
   sectionGap: "8pt",
 } as any;
 
+function result(rows: unknown[] = [], rowsAffected = 0) {
+  return { rows, rowsAffected };
+}
+
 describe("Custom Template Database Functions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    dbMocks.execute.mockImplementation(
+      (statement: string | { sql: string }) => {
+        const sql = typeof statement === "string" ? statement : statement.sql;
+        if (sql.startsWith("PRAGMA table_info")) {
+          return Promise.resolve(
+            result([
+              { name: "source_filename" },
+              { name: "source_type" },
+              { name: "description" },
+              { name: "updated_at" },
+            ]),
+          );
+        }
+        return Promise.resolve(result([], 1));
+      },
+    );
   });
 
-  it("should save templates without a source document", () => {
-    const mockRun = vi.fn().mockReturnValue({ changes: 1 });
-    (db.prepare as Mock).mockReturnValue({ run: mockRun });
-
-    const template = saveCustomTemplate(
+  it("should save templates without a source document", async () => {
+    const template = await saveCustomTemplate(
       "Modern",
       analyzedStyles,
       undefined,
@@ -57,54 +74,68 @@ describe("Custom Template Database Functions", () => {
     );
 
     expect(template.id).toBe("test-template-id");
-    expect(db.prepare).toHaveBeenCalledWith(
-      expect.not.stringContaining("WHERE EXISTS"),
-    );
-    expect(mockRun).toHaveBeenCalledWith(
-      "test-template-id",
-      "user-1",
-      "Modern",
-      null,
-      null,
-      null,
-      null,
-      JSON.stringify(analyzedStyles),
-      expect.any(String),
-      expect.any(String),
-    );
+    expect(dbMocks.execute).toHaveBeenCalledWith({
+      sql: expect.not.stringContaining("WHERE EXISTS"),
+      args: [
+        "test-template-id",
+        "user-1",
+        "Modern",
+        null,
+        null,
+        null,
+        null,
+        JSON.stringify(analyzedStyles),
+        expect.any(String),
+        expect.any(String),
+      ],
+    });
   });
 
-  it("should reject templates linked to source documents outside the user", () => {
-    const mockRun = vi.fn().mockReturnValue({ changes: 0 });
-    (db.prepare as Mock).mockReturnValue({ run: mockRun });
+  it("should reject templates linked to source documents outside the user", async () => {
+    dbMocks.execute.mockImplementation(
+      (statement: string | { sql: string }) => {
+        const sql = typeof statement === "string" ? statement : statement.sql;
+        if (sql.startsWith("PRAGMA table_info")) {
+          return Promise.resolve(
+            result([
+              { name: "source_filename" },
+              { name: "source_type" },
+              { name: "description" },
+              { name: "updated_at" },
+            ]),
+          );
+        }
+        if (sql.includes("INSERT INTO custom_templates")) {
+          return Promise.resolve(result([], 0));
+        }
+        return Promise.resolve(result([], 1));
+      },
+    );
 
-    expect(() =>
+    await expect(
       saveCustomTemplate("Modern", analyzedStyles, "doc-1", "user-1"),
-    ).toThrow("Source document not found");
-    expect(db.prepare).toHaveBeenCalledWith(
-      expect.stringContaining("WHERE EXISTS"),
-    );
-    expect(mockRun).toHaveBeenCalledWith(
-      "test-template-id",
-      "user-1",
-      "Modern",
-      null,
-      "doc-1",
-      null,
-      null,
-      JSON.stringify(analyzedStyles),
-      expect.any(String),
-      expect.any(String),
-      "doc-1",
-      "user-1",
-    );
+    ).rejects.toThrow("Source document not found");
+    expect(dbMocks.execute).toHaveBeenCalledWith({
+      sql: expect.stringContaining("WHERE EXISTS"),
+      args: [
+        "test-template-id",
+        "user-1",
+        "Modern",
+        null,
+        "doc-1",
+        null,
+        null,
+        JSON.stringify(analyzedStyles),
+        expect.any(String),
+        expect.any(String),
+        "doc-1",
+        "user-1",
+      ],
+    });
   });
 
-  it("should update template display metadata", () => {
-    const mockRun = vi.fn().mockReturnValue({ changes: 1 });
-    (db.prepare as Mock).mockReturnValue({ run: mockRun });
-
-    const updated = updateCustomTemplateMetadata(
+  it("should update template display metadata", async () => {
+    const updated = await updateCustomTemplateMetadata(
       "template-1",
       {
         name: "Boardroom",
@@ -114,15 +145,15 @@ describe("Custom Template Database Functions", () => {
     );
 
     expect(updated).toBe(true);
-    expect(db.prepare).toHaveBeenCalledWith(
-      "UPDATE custom_templates SET name = ?, description = ?, updated_at = ? WHERE id = ? AND user_id = ?",
-    );
-    expect(mockRun).toHaveBeenCalledWith(
-      "Boardroom",
-      "Dense executive layout",
-      expect.any(String),
-      "template-1",
-      "user-1",
-    );
+    expect(dbMocks.execute).toHaveBeenCalledWith({
+      sql: "UPDATE custom_templates SET name = ?, description = ?, updated_at = ? WHERE id = ? AND user_id = ?",
+      args: [
+        "Boardroom",
+        "Dense executive layout",
+        expect.any(String),
+        "template-1",
+        "user-1",
+      ],
+    });
   });
 });

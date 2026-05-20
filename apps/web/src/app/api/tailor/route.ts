@@ -16,7 +16,7 @@ import {
 } from "@/lib/billing/ai-gate";
 import { logPromptVariantResult } from "@/lib/db/prompt-variants";
 import { getGroupedBankEntries } from "@/lib/db/profile-bank";
-import { createJob, getJob } from "@/lib/db/jobs";
+import { createJob, getJob } from "@/lib/db/jobs-async";
 import type { TailoredResume } from "@/lib/resume/generator";
 import { linkOpportunityDocument } from "@/lib/opportunities";
 import { nowEpoch } from "@/lib/format/time";
@@ -25,6 +25,10 @@ import { generateFromBank } from "@/lib/tailor/generate";
 import { normalizeTailorSettings } from "@/lib/tailor/settings";
 import { generateResumeHTML, TEMPLATES } from "@/lib/resume/pdf";
 import { getTemplateWithCustom } from "@/lib/resume/templates";
+import {
+  getReusableResumeTemplate,
+  getDocumentTemplateV3,
+} from "@/lib/db/template-migrations";
 import { isTailoredResume } from "@/lib/builder/tailored-resume-api";
 import { trackActivationEvent } from "@/lib/db/product-analytics";
 import { tailorRequestSchema } from "@/lib/schemas";
@@ -81,10 +85,13 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const template = getTemplateWithCustom(templateId, authResult.userId);
       return NextResponse.json({
         success: true,
-        html: generateResumeHTML(body.resume, templateId, template),
+        html: await renderTailoredResumeHtml(
+          body.resume,
+          templateId,
+          authResult.userId,
+        ),
       });
     }
 
@@ -98,7 +105,7 @@ export async function POST(request: NextRequest) {
     } = body;
 
     const existingOpportunity = opportunityId
-      ? getJob(opportunityId, authResult.userId)
+      ? await getJob(opportunityId, authResult.userId)
       : null;
 
     if (opportunityId && !existingOpportunity) {
@@ -140,7 +147,7 @@ export async function POST(request: NextRequest) {
     }
 
     // action === "generate"
-    const quota = checkTailorQuota(authResult.userId);
+    const quota = await checkTailorQuota(authResult.userId);
     if (!quota.allowed) {
       return NextResponse.json(
         {
@@ -211,8 +218,11 @@ export async function POST(request: NextRequest) {
     );
 
     // Generate HTML
-    const template = getTemplateWithCustom(templateId, authResult.userId);
-    const html = generateResumeHTML(tailoredResume, templateId, template);
+    const html = await renderTailoredResumeHtml(
+      tailoredResume,
+      templateId,
+      authResult.userId,
+    );
 
     // Save file
     await mkdir(PATHS.RESUMES_OUTPUT, { recursive: true });
@@ -225,7 +235,7 @@ export async function POST(request: NextRequest) {
     // came from an existing opportunity in the bank.
     const job =
       existingOpportunity ??
-      createJob(
+      (await createJob(
         {
           title: jobTitle,
           company,
@@ -236,7 +246,7 @@ export async function POST(request: NextRequest) {
           status: "saved",
         },
         authResult.userId,
-      );
+      ));
 
     // Save the generated resume
     const savedResume = saveGeneratedResume(
@@ -249,7 +259,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (opportunityId) {
-      linkOpportunityDocument(
+      await linkOpportunityDocument(
         opportunityId,
         { resumeId: savedResume.id },
         authResult.userId,
@@ -271,7 +281,7 @@ export async function POST(request: NextRequest) {
       "tailor_generated",
     );
     try {
-      trackActivationEvent({
+      await trackActivationEvent({
         event: "resume_tailored",
         userId: authResult.userId,
         source: "api/tailor",
@@ -316,4 +326,28 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+async function renderTailoredResumeHtml(
+  resume: TailoredResume,
+  templateId: string,
+  userId: string,
+): Promise<string> {
+  const reusableTemplate = getReusableResumeTemplate(templateId, userId);
+  if (reusableTemplate) {
+    const { renderTailoredResumeWithReusableTemplate } =
+      await import("@/lib/resume/universal-template-renderer");
+    return renderTailoredResumeWithReusableTemplate(
+      resume,
+      reusableTemplate.template,
+    );
+  }
+  const documentTemplateV3 = getDocumentTemplateV3(templateId, userId);
+  if (documentTemplateV3) {
+    const { generateResumeHTMLV3 } =
+      await import("@/lib/resume/template-v3-renderer");
+    return generateResumeHTMLV3(resume, documentTemplateV3.template);
+  }
+  const template = await getTemplateWithCustom(templateId, userId);
+  return generateResumeHTML(resume, templateId, template);
 }

@@ -780,3 +780,6 @@ Known remaining gaps:
   when a saved V4 template id is selected.
 - The custom-template manager now has a direct saved-template "Use" action that
   selects a reusable template without importing the source resume content.
+- Tailor and opportunity generation routes now use the same V4-first render
+  order as builder/export when rendering newly generated resume content with a
+  saved reusable template.

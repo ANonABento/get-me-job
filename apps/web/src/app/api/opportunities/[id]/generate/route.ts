@@ -8,7 +8,7 @@
  * @response ResumeTemplatesResponse | ResumeGenerateResponse from @/types/api
  */
 import { NextRequest, NextResponse } from "next/server";
-import { getJob } from "@/lib/db/jobs";
+import { getJob } from "@/lib/db/jobs-async";
 import { getProfile, saveGeneratedResume } from "@/lib/db";
 import {
   gateOptionalAiFeature,
@@ -27,6 +27,10 @@ import {
 } from "@/lib/resume/generator";
 import { generateResumeHTML, TEMPLATES } from "@/lib/resume/pdf";
 import { getTemplateWithCustom } from "@/lib/resume/templates";
+import {
+  getReusableResumeTemplate,
+  getDocumentTemplateV3,
+} from "@/lib/db/template-migrations";
 import { writeFile, mkdir } from "fs/promises";
 import { generateId } from "@/lib/utils";
 import { PATHS } from "@/lib/constants";
@@ -65,7 +69,7 @@ export async function POST(
       // No body or invalid JSON, use default
     }
 
-    const job = getJob(params.id, authResult.userId);
+    const job = await getJob(params.id, authResult.userId);
     if (!job) {
       return NextResponse.json(
         { error: "Opportunity not found" },
@@ -108,8 +112,11 @@ export async function POST(
     }
 
     // Generate HTML with selected template
-    const template = getTemplateWithCustom(templateId, authResult.userId);
-    const html = generateResumeHTML(tailoredResume, templateId, template);
+    const html = await renderTailoredResumeHtml(
+      tailoredResume,
+      templateId,
+      authResult.userId,
+    );
 
     // Ensure output directory exists
     await mkdir(PATHS.RESUMES_OUTPUT, { recursive: true });
@@ -152,4 +159,28 @@ export async function POST(
       { status: 500 },
     );
   }
+}
+
+async function renderTailoredResumeHtml(
+  resume: TailoredResume,
+  templateId: string,
+  userId: string,
+): Promise<string> {
+  const reusableTemplate = getReusableResumeTemplate(templateId, userId);
+  if (reusableTemplate) {
+    const { renderTailoredResumeWithReusableTemplate } =
+      await import("@/lib/resume/universal-template-renderer");
+    return renderTailoredResumeWithReusableTemplate(
+      resume,
+      reusableTemplate.template,
+    );
+  }
+  const documentTemplateV3 = getDocumentTemplateV3(templateId, userId);
+  if (documentTemplateV3) {
+    const { generateResumeHTMLV3 } =
+      await import("@/lib/resume/template-v3-renderer");
+    return generateResumeHTMLV3(resume, documentTemplateV3.template);
+  }
+  const template = await getTemplateWithCustom(templateId, userId);
+  return generateResumeHTML(resume, templateId, template);
 }
