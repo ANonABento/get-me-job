@@ -96,6 +96,74 @@ describe("/api/templates/migrations/:id", () => {
       }),
     );
   });
+
+  it("updates semantic mappings and regenerates reusable template artifacts", async () => {
+    const semanticResume = {
+      version: 1,
+      sourceType: "pdf",
+      filename: "resume.pdf",
+      contact: {
+        name: "Jane Rivera",
+        email: "jane@example.com",
+        phone: "",
+        location: "",
+        linkedin: "",
+        github: "",
+        confidence: 0.95,
+        evidenceRefs: ["block-name"],
+      },
+      sections: [
+        {
+          id: "section-projects",
+          type: "projects",
+          title: "Projects",
+          confidence: 0.9,
+          evidenceRefs: ["block-skill"],
+          items: [
+            {
+              primary: "Template Importer",
+              secondary: "TypeScript",
+              meta: [],
+              bullets: ["Built reusable template review."],
+              confidence: 0.85,
+              evidenceRefs: ["block-skill"],
+            },
+          ],
+        },
+      ],
+      warnings: [],
+    };
+
+    const response = await PATCH(
+      jsonRequest("PATCH", {
+        semanticResume,
+      }),
+      { params: { id: "draft-1" } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.updateTemplateMigrationDraft).toHaveBeenCalledWith(
+      "draft-1",
+      "user-1",
+      expect.objectContaining({
+        semanticResume,
+        resume: expect.objectContaining({
+          projects: [
+            expect.objectContaining({
+              name: "Template Importer",
+              description: "TypeScript",
+              highlights: ["Built reusable template review."],
+            }),
+          ],
+        }),
+        reusableTemplate: expect.objectContaining({
+          schemaVersion: 4,
+          sectionOrder: ["projects"],
+        }),
+        reusableHtml: expect.stringContaining("Template Importer"),
+      }),
+    );
+  });
 });
 
 function jsonRequest(method: string, body: unknown) {

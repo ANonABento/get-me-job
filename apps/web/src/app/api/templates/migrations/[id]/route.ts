@@ -24,6 +24,15 @@ import {
   assessTemplateMigrationFidelity,
   assessVisualTemplateFidelity,
 } from "@/lib/resume/template-migration-fidelity";
+import {
+  inferImportedTemplateStyleTokens,
+  semanticIRToTailoredResume,
+  type ResumeSemanticIR,
+} from "@/lib/resume/universal-template-import";
+import {
+  buildReusableResumeTemplateIR,
+  renderReusableResumeTemplateHTML,
+} from "@/lib/resume/universal-template-renderer";
 import { tailoredResumeSchema } from "@/lib/schemas/tailor";
 
 export const dynamic = "force-dynamic";
@@ -34,10 +43,62 @@ const slotCorrectionSchema = z.object({
   index: z.number().int().min(0).optional(),
 });
 
+const semanticContactSchema = z.object({
+  name: z.string().default(""),
+  email: z.string().default(""),
+  phone: z.string().default(""),
+  location: z.string().default(""),
+  linkedin: z.string().default(""),
+  github: z.string().default(""),
+  confidence: z.number().min(0).max(1).default(0.7),
+  evidenceRefs: z.array(z.string()).default([]),
+});
+
+const semanticItemSchema = z.object({
+  primary: z.string().default(""),
+  secondary: z.string().optional(),
+  location: z.string().optional(),
+  dateRange: z.string().optional(),
+  meta: z.array(z.string()).default([]),
+  url: z.string().optional(),
+  bullets: z.array(z.string()).default([]),
+  confidence: z.number().min(0).max(1).default(0.7),
+  evidenceRefs: z.array(z.string()).default([]),
+});
+
+const semanticSectionSchema = z.object({
+  id: z.string().min(1),
+  type: z.enum([
+    "summary",
+    "experience",
+    "education",
+    "projects",
+    "skills",
+    "certifications",
+    "awards",
+    "publications",
+    "custom",
+  ]),
+  title: z.string().min(1),
+  items: z.array(semanticItemSchema).default([]),
+  confidence: z.number().min(0).max(1).default(0.7),
+  evidenceRefs: z.array(z.string()).default([]),
+});
+
+const semanticResumeSchema = z.object({
+  version: z.literal(1),
+  sourceType: z.enum(["pdf", "docx", "tex"]),
+  filename: z.string(),
+  contact: semanticContactSchema,
+  sections: z.array(semanticSectionSchema),
+  warnings: z.array(z.string()).default([]),
+});
+
 const updateMigrationSchema = z.object({
   resume: tailoredResumeSchema.optional(),
   template: documentTemplateV2Schema.optional(),
   templateV3: documentTemplateV3Schema.optional(),
+  semanticResume: semanticResumeSchema.optional(),
   slotCorrections: z.array(slotCorrectionSchema).optional(),
 });
 
@@ -111,16 +172,38 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     source = applySourceSlotCorrections(source, parsed.data.slotCorrections);
     templateV3 = rebuildVisualTemplateForSource(templateV3, source);
   }
+  const semanticResume = parsed.data.semanticResume as
+    | ResumeSemanticIR
+    | undefined;
+  const styleTokens = semanticResume
+    ? (draft.styleTokens ?? inferImportedTemplateStyleTokens(source))
+    : undefined;
+  const reusableTemplate =
+    semanticResume && styleTokens
+      ? buildReusableResumeTemplateIR(semanticResume, styleTokens)
+      : undefined;
+  const reusableHtml =
+    semanticResume && reusableTemplate
+      ? renderReusableResumeTemplateHTML(semanticResume, reusableTemplate)
+      : undefined;
 
   const updates: Parameters<typeof updateTemplateMigrationDraft>[2] = {
     source,
-    resume,
+    resume: semanticResume
+      ? semanticIRToTailoredResume(semanticResume)
+      : resume,
     template,
     fidelity: templateV3
       ? assessVisualTemplateFidelity(source, templateV3)
       : assessTemplateMigrationFidelity(source, template),
   };
   if (templateV3) updates.templateV3 = templateV3;
+  if (semanticResume) {
+    updates.semanticResume = semanticResume;
+    updates.styleTokens = styleTokens;
+    updates.reusableTemplate = reusableTemplate;
+    updates.reusableHtml = reusableHtml;
+  }
 
   const updated = updateTemplateMigrationDraft(
     params.id,

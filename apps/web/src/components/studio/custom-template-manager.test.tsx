@@ -88,6 +88,8 @@ describe("CustomTemplateManagerDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Style Tokens" }));
     expect(screen.getByText("Style tokens")).toBeInTheDocument();
     expect(screen.getByText("Reusable components")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Mismatch Report" }));
+    expect(screen.getByText("Mismatch report")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Structure" }));
     expect(screen.getByText("Detected structure")).toBeInTheDocument();
     expect(screen.getByText("Outer table")).toBeInTheDocument();
@@ -267,6 +269,88 @@ describe("CustomTemplateManagerDialog", () => {
       screen.getByRole("button", { name: "Save visual template" }),
     ).toBeDisabled();
   });
+
+  it("lets reviewers correct semantic section mappings and regenerate reusable artifacts", async () => {
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/templates/migrate") {
+          return Response.json({
+            draft: migrationDraft(),
+            warnings: [],
+            confidence: "high",
+          });
+        }
+        if (url === "/api/templates/v3/preview") {
+          return Response.json({
+            html: "<html><body><article>Rendered migrated resume</article></body></html>",
+            pdfOptions: { format: "Letter" },
+          });
+        }
+        if (url === "/api/templates/migrations/draft-1") {
+          const body = JSON.parse(
+            String((init as RequestInit | undefined)?.body),
+          );
+          const next = migrationDraft();
+          next.semanticResume = body.semanticResume;
+          next.reusableTemplate = {
+            ...next.reusableTemplate,
+            sectionOrder: body.semanticResume.sections.map(
+              (section: { type: string }) => section.type,
+            ),
+          };
+          next.reusableHtml =
+            "<html><body><article><h1>Jane Rivera</h1><h2>Projects</h2></article></body></html>";
+          return Response.json({ draft: next });
+        }
+        return Response.json({ templates: [] });
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderDialog();
+
+    const inputs =
+      document.querySelectorAll<HTMLInputElement>("input[type='file']");
+    fireEvent.change(inputs[0], {
+      target: {
+        files: [
+          new File(["%PDF-1.7"], "resume.pdf", {
+            type: "application/pdf",
+          }),
+        ],
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("resume.pdf")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Semantic Tree" }));
+    fireEvent.change(screen.getByLabelText("Title for section-experience"), {
+      target: { value: "Projects" },
+    });
+    fireEvent.change(screen.getByLabelText("Type for section-experience"), {
+      target: { value: "projects" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/templates/migrations/draft-1",
+        expect.objectContaining({
+          method: "PATCH",
+          body: expect.stringContaining('"type":"projects"'),
+        }),
+      );
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/templates/migrations/draft-1",
+      expect.objectContaining({
+        method: "PATCH",
+        body: expect.stringContaining('"title":"Projects"'),
+      }),
+    );
+  });
 });
 
 function migrationDraft() {
@@ -445,10 +529,18 @@ function migrationDraft() {
       warnings: [],
     },
     semanticResume: {
+      version: 1,
+      sourceType: "pdf",
+      filename: "resume.pdf",
       contact: {
         name: "Jane Rivera",
         email: "jane@example.com",
+        phone: "",
+        location: "",
+        linkedin: "",
+        github: "",
         confidence: 0.95,
+        evidenceRefs: ["block-1"],
       },
       sections: [
         {
@@ -456,13 +548,16 @@ function migrationDraft() {
           type: "experience",
           title: "Experience",
           confidence: 0.9,
+          evidenceRefs: ["block-2"],
           items: [
             {
               primary: "Senior Engineer",
               secondary: "Acme",
               dateRange: "2024 - Present",
+              meta: [],
               bullets: ["Built migration tooling."],
               confidence: 0.86,
+              evidenceRefs: ["block-2"],
             },
           ],
         },

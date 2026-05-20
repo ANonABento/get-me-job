@@ -92,9 +92,21 @@ type ReviewPane =
   | "reusable"
   | "semantic"
   | "style"
+  | "mismatch"
   | "structure"
   | "original"
   | "preview";
+
+type SemanticSectionType =
+  | "summary"
+  | "experience"
+  | "education"
+  | "projects"
+  | "skills"
+  | "certifications"
+  | "awards"
+  | "publications"
+  | "custom";
 
 type V3RepeatCollection =
   | "experiences"
@@ -161,9 +173,10 @@ interface TemplateMigrationDraft {
     };
     sections?: Array<{
       id: string;
-      type: string;
+      type: SemanticSectionType;
       title: string;
       confidence?: number;
+      evidenceRefs?: string[];
       items: Array<{
         primary: string;
         secondary?: string;
@@ -172,6 +185,7 @@ interface TemplateMigrationDraft {
         meta?: string[];
         bullets?: string[];
         confidence?: number;
+        evidenceRefs?: string[];
       }>;
     }>;
     warnings?: string[];
@@ -222,6 +236,10 @@ interface TemplateMigrationCommitResponse {
   error?: string;
 }
 
+type SemanticDraftSection = NonNullable<
+  NonNullable<TemplateMigrationDraft["semanticResume"]>["sections"]
+>[number];
+
 const slotAssignmentOptions: Array<[TemplateMigrationSlotPath, string]> = [
   ["contact.name", "Name"],
   ["contact.email", "Email"],
@@ -259,6 +277,18 @@ const repeatEmptyBehaviorOptions: Array<[V3RepeatEmptyBehavior, string]> = [
   ["hide", "Hide empty"],
   ["show-placeholder", "Show placeholder"],
   ["reserve-space", "Reserve space"],
+];
+
+const semanticSectionTypeOptions: Array<[SemanticSectionType, string]> = [
+  ["summary", "Summary"],
+  ["experience", "Experience"],
+  ["education", "Education"],
+  ["projects", "Projects"],
+  ["skills", "Skills"],
+  ["certifications", "Certifications"],
+  ["awards", "Awards"],
+  ["publications", "Publications"],
+  ["custom", "Custom"],
 ];
 
 export function CustomTemplateManagerDialog({
@@ -514,6 +544,39 @@ export function CustomTemplateManagerDialog({
       addToast({
         type: "error",
         title: "Could not update repeat group",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setMigrationSaving(false);
+    }
+  }
+
+  async function handleUpdateSemanticSection(
+    sectionId: string,
+    updates: { type?: SemanticSectionType; title?: string },
+  ) {
+    if (!migrationDraft?.semanticResume) return;
+    setMigrationSaving(true);
+    try {
+      const nextSemantic = {
+        ...migrationDraft.semanticResume,
+        sections: (migrationDraft.semanticResume.sections ?? []).map(
+          (section) =>
+            section.id === sectionId ? { ...section, ...updates } : section,
+        ),
+      };
+      await patchMigrationDraft({
+        semanticResume: nextSemantic,
+      });
+      addToast({
+        type: "success",
+        title: "Semantic mapping updated",
+      });
+    } catch (error) {
+      addToast({
+        type: "error",
+        title: "Could not update semantic mapping",
         description:
           error instanceof Error ? error.message : "Please try again.",
       });
@@ -887,6 +950,7 @@ export function CustomTemplateManagerDialog({
                       onAssignSelectedBlock={handleAssignSelectedBlock}
                       onUpdateRepeatGroup={handleUpdateRepeatGroup}
                       onCreateRepeatGroup={handleCreateRepeatGroup}
+                      onUpdateSemanticSection={handleUpdateSemanticSection}
                       migrationSaving={migrationSaving}
                       previewHtml={previewHtml}
                       previewLoading={previewLoading}
@@ -995,6 +1059,7 @@ function VisualTemplateReviewPanes({
   onAssignSelectedBlock,
   onUpdateRepeatGroup,
   onCreateRepeatGroup,
+  onUpdateSemanticSection,
   migrationSaving,
   previewHtml,
   previewLoading,
@@ -1019,6 +1084,10 @@ function VisualTemplateReviewPanes({
     updates: Partial<Pick<V3RepeatGroup, "collection" | "emptyBehavior">>,
   ) => void | Promise<void>;
   onCreateRepeatGroup: (rowId: string) => void | Promise<void>;
+  onUpdateSemanticSection: (
+    sectionId: string,
+    updates: { type?: SemanticSectionType; title?: string },
+  ) => void | Promise<void>;
   migrationSaving: boolean;
   previewHtml: string;
   previewLoading: boolean;
@@ -1028,7 +1097,7 @@ function VisualTemplateReviewPanes({
     <div className="rounded-md border border-border bg-background">
       <div className="border-b border-border p-2">
         <div
-          className="grid gap-1 rounded-sm bg-muted/40 p-1 text-xs sm:grid-cols-3 lg:grid-cols-6"
+          className="grid gap-1 rounded-sm bg-muted/40 p-1 text-xs sm:grid-cols-3 lg:grid-cols-7"
           aria-label="Visual template review panes"
         >
           {(
@@ -1036,6 +1105,7 @@ function VisualTemplateReviewPanes({
               ["reusable", "Reusable Render"],
               ["semantic", "Semantic Tree"],
               ["style", "Style Tokens"],
+              ["mismatch", "Mismatch Report"],
               ["structure", "Structure"],
               ["original", "Source Evidence"],
               ["preview", "Visual Evidence"],
@@ -1070,9 +1140,15 @@ function VisualTemplateReviewPanes({
             }
           />
         ) : activePane === "semantic" ? (
-          <SemanticTreePane draft={draft} />
+          <SemanticTreePane
+            draft={draft}
+            onUpdateSection={onUpdateSemanticSection}
+            migrationSaving={migrationSaving}
+          />
         ) : activePane === "style" ? (
           <StyleTokensPane draft={draft} />
+        ) : activePane === "mismatch" ? (
+          <MismatchReportPane draft={draft} />
         ) : activePane === "original" ? (
           <div className="space-y-3">
             <SourceLayoutPreview
@@ -1903,7 +1979,18 @@ function migrationNotes(draft: TemplateMigrationDraft): string[] {
   });
 }
 
-function SemanticTreePane({ draft }: { draft: TemplateMigrationDraft }) {
+function SemanticTreePane({
+  draft,
+  onUpdateSection,
+  migrationSaving,
+}: {
+  draft: TemplateMigrationDraft;
+  onUpdateSection: (
+    sectionId: string,
+    updates: { type?: SemanticSectionType; title?: string },
+  ) => void | Promise<void>;
+  migrationSaving: boolean;
+}) {
   const semantic = draft.semanticResume;
   const sections = semantic?.sections ?? [];
   return (
@@ -1935,50 +2022,12 @@ function SemanticTreePane({ draft }: { draft: TemplateMigrationDraft }) {
         </div>
         {sections.length ? (
           sections.map((section) => (
-            <div
+            <SemanticSectionCard
               key={section.id}
-              className="rounded-sm border border-border bg-muted/10 p-2"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-medium text-foreground">
-                  {section.title || section.type}
-                </p>
-                <span className="rounded-sm bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
-                  {section.type}
-                </span>
-              </div>
-              <div className="mt-2 space-y-2">
-                {section.items.slice(0, 8).map((item, index) => (
-                  <div
-                    key={`${section.id}-${index}`}
-                    className="border-l border-border pl-2"
-                  >
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="font-medium text-foreground">
-                        {item.primary || "Untitled item"}
-                      </p>
-                      {item.dateRange ? (
-                        <p className="shrink-0 text-[10px] text-muted-foreground">
-                          {item.dateRange}
-                        </p>
-                      ) : null}
-                    </div>
-                    {item.secondary ? (
-                      <p className="mt-0.5 text-muted-foreground">
-                        {item.secondary}
-                      </p>
-                    ) : null}
-                    {item.bullets?.length ? (
-                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted-foreground">
-                        {item.bullets.slice(0, 5).map((bullet) => (
-                          <li key={bullet}>{bullet}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </div>
+              section={section}
+              onUpdateSection={onUpdateSection}
+              migrationSaving={migrationSaving}
+            />
           ))
         ) : (
           <p className="text-muted-foreground">
@@ -1990,6 +2039,116 @@ function SemanticTreePane({ draft }: { draft: TemplateMigrationDraft }) {
             {semantic.warnings.slice(0, 4).join(" ")}
           </div>
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+function SemanticSectionCard({
+  section,
+  onUpdateSection,
+  migrationSaving,
+}: {
+  section: SemanticDraftSection;
+  onUpdateSection: (
+    sectionId: string,
+    updates: { type?: SemanticSectionType; title?: string },
+  ) => void | Promise<void>;
+  migrationSaving: boolean;
+}) {
+  const [title, setTitle] = useState(section.title);
+  const [type, setType] = useState<SemanticSectionType>(section.type);
+  const dirty = title !== section.title || type !== section.type;
+
+  useEffect(() => {
+    setTitle(section.title);
+    setType(section.type);
+  }, [section.id, section.title, section.type]);
+
+  return (
+    <div className="rounded-sm border border-border bg-muted/10 p-2">
+      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px_auto]">
+        <label className="space-y-1">
+          <span className="block text-[10px] font-medium uppercase text-muted-foreground">
+            Section title
+          </span>
+          <Input
+            value={title}
+            aria-label={`Title for ${section.id}`}
+            className="h-8 text-xs"
+            onChange={(event) => setTitle(event.currentTarget.value)}
+          />
+        </label>
+        <label className="space-y-1">
+          <span className="block text-[10px] font-medium uppercase text-muted-foreground">
+            Type
+          </span>
+          <select
+            className="h-8 w-full rounded-sm border border-border bg-background px-2 text-xs text-foreground"
+            value={type}
+            aria-label={`Type for ${section.id}`}
+            disabled={migrationSaving}
+            onChange={(event) =>
+              setType(event.currentTarget.value as SemanticSectionType)
+            }
+          >
+            {semanticSectionTypeOptions.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="flex items-end">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8"
+            disabled={!dirty || migrationSaving || !title.trim()}
+            onClick={() =>
+              void onUpdateSection(section.id, {
+                title: title.trim(),
+                type,
+              })
+            }
+          >
+            Save
+          </Button>
+        </div>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+        <span className="rounded-sm bg-primary/10 px-1.5 py-0.5 text-primary">
+          {section.type}
+        </span>
+        <span>{formatConfidence(section.confidence)} confidence</span>
+        <span>{section.items.length} items</span>
+      </div>
+      <div className="mt-2 space-y-2">
+        {section.items.slice(0, 8).map((item, index) => (
+          <div key={`${section.id}-${index}`} className="border-l pl-2">
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="font-medium text-foreground">
+                {item.primary || "Untitled item"}
+              </p>
+              {item.dateRange ? (
+                <p className="shrink-0 text-[10px] text-muted-foreground">
+                  {item.dateRange}
+                </p>
+              ) : null}
+            </div>
+            {item.secondary ? (
+              <p className="mt-0.5 text-muted-foreground">{item.secondary}</p>
+            ) : null}
+            {item.bullets?.length ? (
+              <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted-foreground">
+                {item.bullets.slice(0, 5).map((bullet) => (
+                  <li key={bullet}>{bullet}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -2054,6 +2213,135 @@ function StyleTokensPane({ draft }: { draft: TemplateMigrationDraft }) {
   );
 }
 
+function MismatchReportPane({ draft }: { draft: TemplateMigrationDraft }) {
+  const items = mismatchReportItems(draft);
+  return (
+    <div className="rounded-md border bg-muted/20 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium uppercase text-muted-foreground">
+          Mismatch report
+        </p>
+        <p className="text-[10px] text-muted-foreground">
+          {items.length ? `${items.length} review items` : "No blockers"}
+        </p>
+      </div>
+      <div className="mt-2 max-h-[420px] space-y-2 overflow-auto rounded-sm border bg-background p-3 text-xs">
+        {items.length ? (
+          items.map((item) => (
+            <div
+              key={`${item.tone}-${item.label}-${item.detail}`}
+              className={`rounded-sm border p-2 ${
+                item.tone === "danger"
+                  ? "border-red-700/20 bg-red-700/5 text-red-900"
+                  : item.tone === "warning"
+                    ? "border-amber-700/20 bg-amber-700/5 text-amber-900"
+                    : "border-border bg-muted/20 text-foreground"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-medium">{item.label}</p>
+                <span className="shrink-0 rounded-sm bg-background/70 px-1.5 py-0.5 text-[10px] uppercase">
+                  {item.area}
+                </span>
+              </div>
+              <p className="mt-1 leading-5">{item.detail}</p>
+              {item.action ? (
+                <p className="mt-1 text-[11px] opacity-80">{item.action}</p>
+              ) : null}
+            </div>
+          ))
+        ) : (
+          <div className="rounded-sm border border-emerald-700/20 bg-emerald-700/5 p-3 text-emerald-800">
+            No semantic, style, or reusable-template gaps were detected from the
+            current evidence.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function mismatchReportItems(draft: TemplateMigrationDraft): Array<{
+  area: string;
+  label: string;
+  detail: string;
+  action?: string;
+  tone: "info" | "warning" | "danger";
+}> {
+  const items: Array<{
+    area: string;
+    label: string;
+    detail: string;
+    action?: string;
+    tone: "info" | "warning" | "danger";
+  }> = [];
+  const scores = draft.universalAnalysis?.scores ?? {};
+  if ((scores.semanticCoverage ?? 1) < 0.75) {
+    items.push({
+      area: "semantic",
+      label: "Low semantic coverage",
+      detail: `Semantic coverage is ${formatConfidence(scores.semanticCoverage)}.`,
+      action:
+        "Review section types and source block assignments before saving.",
+      tone: "warning",
+    });
+  }
+  if ((scores.styleCoverage ?? 1) < 0.75) {
+    items.push({
+      area: "style",
+      label: "Low style coverage",
+      detail: `Style coverage is ${formatConfidence(scores.styleCoverage)}.`,
+      action: "Check typography, rule, margin, and color tokens.",
+      tone: "warning",
+    });
+  }
+  for (const section of draft.semanticResume?.sections ?? []) {
+    if ((section.confidence ?? 1) < 0.7) {
+      items.push({
+        area: "semantic",
+        label: `Review ${section.title || section.type}`,
+        detail: `Section confidence is ${formatConfidence(section.confidence)}.`,
+        action: "Correct the section type or title in the Semantic Tree pane.",
+        tone: "warning",
+      });
+    }
+    for (const item of section.items ?? []) {
+      if ((item.confidence ?? 1) < 0.65) {
+        items.push({
+          area: "semantic",
+          label: item.primary || `Untitled ${section.type} item`,
+          detail: `Item confidence is ${formatConfidence(item.confidence)} in ${section.title || section.type}.`,
+          action:
+            "Check whether continuation lines or bullets belong to another item.",
+          tone: "info",
+        });
+      }
+    }
+  }
+  if (!draft.reusableHtml || !draft.reusableTemplate?.sectionOrder?.length) {
+    items.push({
+      area: "reusable",
+      label: "Reusable render unavailable",
+      detail: "The migration draft has no reusable semantic render.",
+      action: "Do not save until semantic artifacts regenerate successfully.",
+      tone: "danger",
+    });
+  }
+  for (const warning of [
+    ...(draft.semanticResume?.warnings ?? []),
+    ...(draft.styleTokens?.warnings ?? []),
+    ...(draft.reusableTemplate?.diagnostics ?? []),
+  ].slice(0, 12)) {
+    items.push({
+      area: "diagnostic",
+      label: "Importer diagnostic",
+      detail: warning,
+      tone: "info",
+    });
+  }
+  return items;
+}
+
 function TokenSummaryCard({ title, value }: { title: string; value: string }) {
   return (
     <div className="min-h-24 rounded-sm border border-border bg-background p-2">
@@ -2065,6 +2353,10 @@ function TokenSummaryCard({ title, value }: { title: string; value: string }) {
       </pre>
     </div>
   );
+}
+
+function formatConfidence(value: number | undefined): string {
+  return `${Math.round((value ?? 0) * 100)}%`;
 }
 
 function formatTokenJson(value: unknown): string {
