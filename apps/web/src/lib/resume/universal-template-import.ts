@@ -188,6 +188,7 @@ export interface ImportedRuleToken {
   style: "solid" | "dashed" | "dotted" | "double" | "none";
   confidence: number;
   evidenceRefs: string[];
+  candidates?: ImportedTokenCandidate<number>[];
 }
 
 interface SemanticSourceLine {
@@ -608,29 +609,44 @@ function inferSpacingTokens(
     .filter((lineHeight): lineHeight is string => Boolean(lineHeight));
   const medianGap = median(gaps);
   const largerGaps = gaps.filter((gap) => medianGap && gap > medianGap * 1.6);
+  const gapCandidates = numericTokenCandidates(
+    gaps.map((gap, index) => ({
+      value: roundPt(gap),
+      evidenceRef: boxes[index + 1]?.id,
+    })),
+  );
 
   return {
     sectionGapPt:
       largerGaps.length && median(largerGaps)
-        ? scalarToken(
-            roundPt(median(largerGaps)!),
-            0.58,
-            boxes.map((box) => box.id).slice(0, 6),
-          )
+        ? {
+            ...scalarToken(
+              roundPt(median(largerGaps)!),
+              0.58,
+              boxes.map((box) => box.id).slice(0, 6),
+            ),
+            candidates: gapCandidates,
+          }
         : undefined,
     itemGapPt: medianGap
-      ? scalarToken(
-          roundPt(medianGap),
-          0.55,
-          boxes.map((box) => box.id).slice(0, 6),
-        )
+      ? {
+          ...scalarToken(
+            roundPt(medianGap),
+            0.55,
+            boxes.map((box) => box.id).slice(0, 6),
+          ),
+          candidates: gapCandidates,
+        }
       : undefined,
     bulletGapPt: medianGap
-      ? scalarToken(
-          roundPt(Math.max(1, medianGap * 0.5)),
-          0.45,
-          boxes.map((box) => box.id).slice(0, 6),
-        )
+      ? {
+          ...scalarToken(
+            roundPt(Math.max(1, medianGap * 0.5)),
+            0.45,
+            boxes.map((box) => box.id).slice(0, 6),
+          ),
+          candidates: gapCandidates,
+        }
       : undefined,
     lineHeight: textLineHeights.length
       ? scalarToken(mostCommon(textLineHeights)!, 0.72, [])
@@ -657,6 +673,7 @@ function inferRuleTokens(
       style: border.style,
       confidence: 0.68,
       evidenceRefs: borderedBlocks.slice(0, 4).map((block) => block.id),
+      candidates: ruleWidthCandidates(source),
     },
   };
 }
@@ -779,6 +796,50 @@ function typographyCandidatesForRole(
         evidenceRefs: blocks.slice(0, 8).map((block) => block.id),
       };
     });
+}
+
+function numericTokenCandidates(
+  values: Array<{ value: number; evidenceRef?: string }>,
+): ImportedTokenCandidate<number>[] {
+  const byValue = new Map<number, string[]>();
+  for (const item of values) {
+    if (!Number.isFinite(item.value)) continue;
+    const refs = byValue.get(item.value) ?? [];
+    if (item.evidenceRef) refs.push(item.evidenceRef);
+    byValue.set(item.value, refs);
+  }
+  return Array.from(byValue.entries())
+    .sort((a, b) => b[1].length - a[1].length || a[0] - b[0])
+    .slice(0, 6)
+    .map(([value, refs]) => ({
+      label: `${value}pt (${refs.length} refs)`,
+      value,
+      confidence: roundRatio(Math.min(0.95, 0.45 + refs.length / 10)),
+      evidenceRefs: refs.slice(0, 8),
+    }));
+}
+
+function ruleWidthCandidates(
+  source: SourceDocumentIR,
+): ImportedTokenCandidate<number>[] {
+  const widths: Array<{ value: number; evidenceRef?: string }> = [];
+  for (const block of source.blocks) {
+    const borders = [
+      block.rowMetadata?.borders?.bottom,
+      block.rowMetadata?.borders?.top,
+      block.tableMetadata?.borders?.bottom,
+      block.tableMetadata?.borders?.top,
+      ...(block.cellMetadata ?? []).flatMap((cell) => [
+        cell.borders?.bottom,
+        cell.borders?.top,
+      ]),
+    ].filter(Boolean);
+    for (const border of borders) {
+      if (!border || border.style === "none" || border.widthPt <= 0) continue;
+      widths.push({ value: border.widthPt, evidenceRef: block.id });
+    }
+  }
+  return numericTokenCandidates(widths);
 }
 
 function firstBorder(source: SourceDocumentIR): ImportedRuleToken | null {

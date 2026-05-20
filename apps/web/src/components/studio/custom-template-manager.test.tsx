@@ -613,6 +613,12 @@ describe("CustomTemplateManagerDialog", () => {
     fireEvent.change(screen.getByLabelText("Body font candidate"), {
       target: { value: "Georgia, serif" },
     });
+    fireEvent.change(screen.getByLabelText("Section divider width candidate"), {
+      target: { value: "1.25" },
+    });
+    fireEvent.change(screen.getByLabelText("Section gap candidate"), {
+      target: { value: "12" },
+    });
     fireEvent.click(
       screen.getByRole("button", { name: "Apply style overrides" }),
     );
@@ -623,6 +629,8 @@ describe("CustomTemplateManagerDialog", () => {
       expect(latest.styleTokens.typography.body.fontFamily).toBe(
         "Georgia, serif",
       );
+      expect(latest.styleTokens.rules.sectionDivider.widthPt).toBe(1.25);
+      expect(latest.styleTokens.spacing.sectionGapPt.value).toBe(12);
     });
   });
 
@@ -1253,8 +1261,25 @@ function migrationDraft() {
           ],
         },
       },
-      spacing: { sectionGapPt: { value: 8 } },
-      rules: { sectionDivider: { widthPt: 0.75, color: "#2563eb" } },
+      spacing: {
+        sectionGapPt: {
+          value: 8,
+          candidates: [
+            { label: "8pt (3 refs)", value: 8 },
+            { label: "12pt (2 refs)", value: 12 },
+          ],
+        },
+      },
+      rules: {
+        sectionDivider: {
+          widthPt: 0.75,
+          color: "#2563eb",
+          candidates: [
+            { label: "0.75pt (2 refs)", value: 0.75 },
+            { label: "1.25pt (1 ref)", value: 1.25 },
+          ],
+        },
+      },
       layout: { headerMode: { value: "split" } },
       warnings: [],
     },

@@ -2686,6 +2686,12 @@ function StyleTokensPane({
   const [margins, setMargins] = useState(() => pageMargins(tokens));
   const accentCandidates = scalarTokenCandidates(tokens?.color?.accent);
   const bodyFontCandidates = typographyFontCandidates(tokens?.typography?.body);
+  const dividerWidthCandidates = numericTokenCandidates(
+    tokens?.rules?.sectionDivider,
+  );
+  const sectionGapCandidates = numericTokenCandidates(
+    tokens?.spacing?.sectionGapPt,
+  );
 
   useEffect(() => {
     setAccentColor(tokenValue(tokens?.color?.accent, "#111111"));
@@ -2815,6 +2821,25 @@ function StyleTokensPane({
               }
               inputMode="decimal"
             />
+            {dividerWidthCandidates.length ? (
+              <select
+                className="h-8 w-full rounded-sm border border-border bg-background px-2 text-xs text-foreground"
+                aria-label="Section divider width candidate"
+                value={String(dividerWidth)}
+                onChange={(event) =>
+                  setDividerWidth(Number(event.currentTarget.value))
+                }
+              >
+                <option value={String(dividerWidth)}>
+                  Current: {dividerWidth}pt
+                </option>
+                {dividerWidthCandidates.map((candidate) => (
+                  <option key={candidate.value} value={candidate.value}>
+                    {candidate.label}
+                  </option>
+                ))}
+              </select>
+            ) : null}
           </label>
           <label className="space-y-1 text-xs text-muted-foreground">
             <span>Section gap pt</span>
@@ -2824,6 +2849,21 @@ function StyleTokensPane({
               onChange={(event) => setSectionGap(event.currentTarget.value)}
               inputMode="decimal"
             />
+            {sectionGapCandidates.length ? (
+              <select
+                className="h-8 w-full rounded-sm border border-border bg-background px-2 text-xs text-foreground"
+                aria-label="Section gap candidate"
+                value={sectionGap}
+                onChange={(event) => setSectionGap(event.currentTarget.value)}
+              >
+                <option value={sectionGap}>Current: {sectionGap}pt</option>
+                {sectionGapCandidates.map((candidate) => (
+                  <option key={candidate.value} value={candidate.value}>
+                    {candidate.label}
+                  </option>
+                ))}
+              </select>
+            ) : null}
           </label>
           {(["top", "right", "bottom", "left"] as const).map((edge) => (
             <label
@@ -3188,6 +3228,28 @@ function typographyFontCandidates(
       };
     })
     .filter((candidate): candidate is { label: string; value: string } =>
+      Boolean(candidate),
+    );
+}
+
+function numericTokenCandidates(
+  value: unknown,
+): Array<{ label: string; value: number }> {
+  if (!isRecord(value) || !Array.isArray(value.candidates)) return [];
+  return value.candidates
+    .map((candidate) => {
+      if (!isRecord(candidate) || typeof candidate.value !== "number") {
+        return null;
+      }
+      return {
+        value: candidate.value,
+        label:
+          typeof candidate.label === "string"
+            ? candidate.label
+            : `${candidate.value}`,
+      };
+    })
+    .filter((candidate): candidate is { label: string; value: number } =>
       Boolean(candidate),
     );
 }

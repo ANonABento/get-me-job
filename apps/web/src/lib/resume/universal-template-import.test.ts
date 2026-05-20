@@ -257,6 +257,9 @@ describe("universal template import analysis", () => {
       color: "#0f766e",
       style: "solid",
     });
+    expect(tokens.rules.sectionDivider?.candidates).toEqual(
+      expect.arrayContaining([expect.objectContaining({ value: 0.75 })]),
+    );
     expect(tokens.layout.dateAlignment?.value).toBe("right-column");
   });
 
