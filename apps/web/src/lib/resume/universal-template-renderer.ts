@@ -42,7 +42,8 @@ export interface SectionComponent {
 
 export type SectionChildComponent =
   | { kind: "SectionHeading"; id: string; title: string }
-  | { kind: "EntryList"; id: string; itemComponent: EntryComponent };
+  | { kind: "EntryList"; id: string; itemComponent: EntryComponent }
+  | { kind: "SkillList"; id: string; separator: "comma" | "bullet" };
 
 export interface ReusableTemplateSourceEvidence {
   blocks: Array<{
@@ -274,6 +275,30 @@ function sectionComponent(
   section: SemanticSection,
   sourceEvidence?: ReusableTemplateSourceEvidence,
 ): SectionComponent {
+  const bodyComponent: SectionChildComponent =
+    section.type === "skills"
+      ? {
+          kind: "SkillList",
+          id: `section-${section.type}-skills`,
+          separator: "comma",
+        }
+      : {
+          kind: "EntryList",
+          id: `section-${section.type}-items`,
+          itemComponent: {
+            kind: "Entry",
+            id: `section-${section.type}-entry`,
+            header: {
+              primary: true,
+              secondary: true,
+              meta: true,
+              dateRange: true,
+            },
+            bulletList: inferSectionBulletList(section, sourceEvidence),
+            bulletMarker: inferSectionBulletMarker(section, sourceEvidence),
+          },
+        };
+
   return {
     kind: "Section",
     id: `section-${section.type}`,
@@ -286,22 +311,7 @@ function sectionComponent(
         id: `section-${section.type}-heading`,
         title: section.title,
       },
-      {
-        kind: "EntryList",
-        id: `section-${section.type}-items`,
-        itemComponent: {
-          kind: "Entry",
-          id: `section-${section.type}-entry`,
-          header: {
-            primary: true,
-            secondary: true,
-            meta: true,
-            dateRange: true,
-          },
-          bulletList: inferSectionBulletList(section, sourceEvidence),
-          bulletMarker: inferSectionBulletMarker(section, sourceEvidence),
-        },
-      },
+      bodyComponent,
     ],
   };
 }
@@ -494,6 +504,9 @@ function renderSection(
       if (child.kind === "SectionHeading") {
         return `<h2>${escapeHtml(child.title)}</h2>`;
       }
+      if (child.kind === "SkillList") {
+        return renderSkillList(section, child);
+      }
       return `<div class="rt-items">
       ${section.items
         .map((item) => renderEntry(item, child.itemComponent))
@@ -516,11 +529,17 @@ function defaultSectionChildren(
       id: `${component.id}-heading`,
       title: component.title,
     },
-    {
-      kind: "EntryList",
-      id: `${component.id}-items`,
-      itemComponent: defaultEntryComponent(component.id),
-    },
+    component.sectionType === "skills"
+      ? {
+          kind: "SkillList",
+          id: `${component.id}-skills`,
+          separator: "comma",
+        }
+      : {
+          kind: "EntryList",
+          id: `${component.id}-items`,
+          itemComponent: defaultEntryComponent(component.id),
+        },
   ];
 }
 
@@ -649,6 +668,34 @@ function renderEntry(
   </section>`;
 }
 
+function renderSkillList(
+  section: SemanticSection,
+  component: Extract<SectionChildComponent, { kind: "SkillList" }>,
+): string {
+  const skills = section.items
+    .flatMap((item) => [
+      ...splitSkillValue(item.primary),
+      ...item.meta.flatMap(splitSkillValue),
+      ...item.bullets.flatMap(splitSkillValue),
+    ])
+    .filter(Boolean);
+  const uniqueSkills = [...new Set(skills)];
+  if (!uniqueSkills.length) return "";
+  const separatorClass =
+    component.separator === "bullet" ? "rt-skills-bullet" : "rt-skills-comma";
+  return `<div class="rt-skills ${separatorClass}">${uniqueSkills
+    .map((skill) => `<span>${escapeHtml(skill)}</span>`)
+    .join("")}</div>`;
+}
+
+function splitSkillValue(value: string | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(/[,;|]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
 function renderReusableTemplateCSS(
   tokens: ImportedTemplateStyleTokens,
 ): string {
@@ -706,6 +753,10 @@ body { margin: 0; background: #f4f4f5; color: ${bodyColor}; font-family: ${fontF
 .rt-entry li { margin: 0 0 ${pt(tokens.spacing.bulletGapPt?.value, 1.5)}; }
 .rt-entry-lines { margin-top: 2pt; display: grid; gap: ${pt(tokens.spacing.bulletGapPt?.value, 1.5)}; }
 .rt-entry-lines p { margin: 0; }
+.rt-skills { display: flex; flex-wrap: wrap; gap: ${pt(tokens.spacing.bulletGapPt?.value, 2)} 8pt; }
+.rt-skills span { display: inline; }
+.rt-skills-bullet span:not(:last-child)::after { content: " •"; }
+.rt-skills-comma span:not(:last-child)::after { content: ","; }
 @page { size: ${page.widthPt}pt ${page.heightPt}pt; margin: 0; }
 @media print { body { background: #fff; } .resume-template { margin: 0; } }
 `.trim();

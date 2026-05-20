@@ -736,7 +736,9 @@ As of the latest implementation slice, the system has:
   migration, V4 reusable artifacts now infer bullet-vs-paragraph achievement
   rendering from source visual evidence instead of defaulting every section to
   list styling, preserve source-backed list marker style where available, and
-  render reusable contact links with inferred link color.
+  render reusable contact links with inferred link color. Skills sections now
+  use an explicit reusable `SkillList` child component instead of generic entry
+  rows.
 - Semantic contact inference uses hyperlink targets as source evidence, so
   generic visible labels like "GitHub" or "LinkedIn" still populate reusable
   contact fields from their hrefs.
@@ -796,6 +798,8 @@ Known remaining gaps:
   links and infer link color from source hyperlink evidence.
 - Semantic contact extraction preserves linked contact targets even when the
   visible source text is only a generic link label.
+- V4 reusable templates model skills with a dedicated `SkillList` component so
+  newly generated or edited skill arrays reflow without entry-header markup.
 - App review mismatch reports now expose the same gate model as the lab:
   extraction, semantic, style, render, and app wiring statuses with review
   actions.

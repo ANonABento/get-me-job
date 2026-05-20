@@ -462,6 +462,55 @@ describe("universal template import analysis", () => {
     expect(html).toContain("color: #7c3aed");
   });
 
+  it("models skills as a reusable SkillList component", () => {
+    const source: SourceDocumentIR = {
+      sourceType: "docx",
+      filename: "skills-template.docx",
+      pages: [{ id: "page-1", number: 1, widthPt: 612, heightPt: 792 }],
+      rawText: "",
+      diagnostics: [],
+      blocks: [
+        styledBlock("b1", "Jordan Patel", { fontSizePt: 24, bold: true }),
+        styledBlock("b2", "SKILLS", { fontSizePt: 11, bold: true }),
+        styledBlock("b3", "TypeScript, React, PostgreSQL", {
+          fontSizePt: 10,
+        }),
+      ],
+    };
+    const semantic = inferResumeSemanticIR(source);
+    const template = buildReusableResumeTemplateIR(
+      semantic,
+      inferImportedTemplateStyleTokens(source),
+    );
+    const skillsComponent = template.components.find(
+      (component) => component.kind === "Section",
+    );
+    const html = renderTailoredResumeWithReusableTemplate(
+      {
+        contact: { name: "New Candidate" },
+        summary: "",
+        experiences: [],
+        projects: [],
+        skills: ["Go", "Kubernetes", "AWS"],
+        education: [],
+      },
+      template,
+    );
+
+    expect(skillsComponent).toMatchObject({
+      kind: "Section",
+      sectionType: "skills",
+      components: expect.arrayContaining([
+        expect.objectContaining({ kind: "SkillList" }),
+      ]),
+    });
+    expect(html).toContain('class="rt-skills rt-skills-comma"');
+    expect(html).toContain("<span>Go</span>");
+    expect(html).toContain("<span>Kubernetes</span>");
+    expect(html).toContain("<span>AWS</span>");
+    expect(html).not.toContain('<section class="rt-entry">');
+  });
+
   it("infers reusable LaTeX style defaults when explicit run styles are absent", () => {
     const source: SourceDocumentIR = {
       sourceType: "tex",
