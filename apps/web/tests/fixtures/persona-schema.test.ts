@@ -107,7 +107,7 @@ describe("persona fixture schemas", () => {
       .map((entry) => entry.name)
       .sort();
 
-    expect(personaSlugs).toHaveLength(10);
+    expect(personaSlugs).toHaveLength(12);
 
     let jobCount = 0;
     for (const slug of personaSlugs) {
@@ -136,6 +136,6 @@ describe("persona fixture schemas", () => {
       }
     }
 
-    expect(jobCount).toBe(50);
+    expect(jobCount).toBe(60);
   });
 });

@@ -1,0 +1,55 @@
+{
+  "personaSlug": "no-bullets",
+  "expectedExperiences": [
+    {
+      "title": "Operations Analyst",
+      "company": "Civic Square Services",
+      "startDate": "2022-04",
+      "endDate": "Present",
+      "location": "Chicago, IL",
+      "summary": "Maintains weekly operating reports, coordinates vendor reviews, and improves planning data quality for regional service teams.",
+      "category": "experience"
+    },
+    {
+      "title": "Program Coordinator",
+      "company": "Lakeshore Outreach",
+      "startDate": "2019-06",
+      "endDate": "2022-03",
+      "location": "Chicago, IL",
+      "summary": "Managed partner communication, event logistics, and grant reporting for community education programs.",
+      "category": "experience"
+    }
+  ],
+  "expectedEducation": [
+    {
+      "degree": "B.A. Public Policy",
+      "school": "Great Lakes College",
+      "startDate": "2015-09",
+      "endDate": "2019-05",
+      "gpa": "3.6"
+    }
+  ],
+  "expectedSkills": [
+    "Excel",
+    "SQL",
+    "Tableau",
+    "Vendor Coordination",
+    "Budget Tracking",
+    "Process Improvement",
+    "Reporting"
+  ],
+  "expectedProjects": [
+    {
+      "name": "Service Metrics Digest",
+      "description": "Weekly leadership report consolidating staffing, vendor, and budget trends.",
+      "technologies": [
+        "SQL",
+        "Tableau"
+      ]
+    }
+  ],
+  "expectedTotalEntryCount": 11,
+  "knownLimitations": [
+    "Paragraph-style achievements should remain usable even when no bullet markers are present."
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "personaSlug": "academic-cv",
+  "expectedExperiences": [
+    {
+      "title": "Postdoctoral Researcher",
+      "company": "Northeast Institute of Technology",
+      "startDate": "2024-09",
+      "endDate": "Present",
+      "location": "Cambridge, MA",
+      "summary": "Leads mixed-methods research on accessible collaborative writing tools for distributed classrooms.",
+      "category": "experience"
+    },
+    {
+      "title": "Graduate Research Assistant",
+      "company": "Lakeside University",
+      "startDate": "2019-09",
+      "endDate": "2024-08",
+      "location": "Madison, WI",
+      "summary": "Designed studies, analyzed qualitative data, and published peer-reviewed HCI systems research.",
+      "category": "experience"
+    },
+    {
+      "title": "Teaching Fellow",
+      "company": "Lakeside University",
+      "startDate": "2021-01",
+      "endDate": "2023-12",
+      "location": "Madison, WI",
+      "summary": "Taught human-centered design studios and mentored undergraduate research teams.",
+      "category": "experience"
+    }
+  ],
+  "expectedEducation": [
+    {
+      "degree": "Ph.D. Information Science",
+      "school": "Lakeside University",
+      "startDate": "2019-09",
+      "endDate": "2024-08",
+      "gpa": "4.0"
+    },
+    {
+      "degree": "M.S. Computer Science",
+      "school": "Western Technical University",
+      "startDate": "2017-09",
+      "endDate": "2019-05",
+      "gpa": "3.9"
+    }
+  ],
+  "expectedSkills": [
+    "User Research",
+    "Mixed Methods",
+    "Python",
+    "R",
+    "Accessibility",
+    "LaTeX",
+    "Study Design",
+    "Data Analysis"
+  ],
+  "expectedProjects": [
+    {
+      "name": "Accessible Writing Lab",
+      "description": "Research platform for studying collaborative writing workflows.",
+      "technologies": [
+        "Python",
+        "React",
+        "Qualitative Coding"
+      ]
+    }
+  ],
+  "expectedTotalEntryCount": 14,
+  "knownLimitations": [
+    "Academic publications may map to a custom section if the parser path does not preserve publication-specific semantics."
+  ]
+}

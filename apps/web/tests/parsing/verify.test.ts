@@ -251,7 +251,7 @@ describe("parsing verification harness", () => {
       const report = await runVerification(fixtureRoot, reportPath);
       const reportText = await readFile(reportPath, "utf-8");
 
-      expect(report.personas).toHaveLength(10);
+      expect(report.personas).toHaveLength(12);
       expect(
         report.personas.every(
           (persona) => persona.status === "failed-to-process",

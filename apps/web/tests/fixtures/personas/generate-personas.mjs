@@ -197,6 +197,53 @@ const personas = [
     heavy: true,
   },
   {
+    slug: "academic-cv",
+    name: "Dr. Priya Raman",
+    headline: "Postdoctoral Researcher - Human-Computer Interaction",
+    location: "Cambridge, MA",
+    contact: "priya.raman@example.test | scholar.example/priyaraman | linkedin.com/in/priyaraman",
+    purpose: "Priya is an academic researcher applying to research scientist and applied HCI roles. Their CV-style resume emphasizes education, research appointments, publications, teaching, and grants rather than a conventional software work history. The fixture tests academic section naming, publications, and dense credential-heavy content.",
+    summary: "Human-computer interaction researcher studying accessible collaboration tools and applied machine learning for education.",
+    experiences: [
+      ["Postdoctoral Researcher", "Northeast Institute of Technology", "Cambridge, MA", "2024-09", "Present", "Leads mixed-methods research on accessible collaborative writing tools for distributed classrooms."],
+      ["Graduate Research Assistant", "Lakeside University", "Madison, WI", "2019-09", "2024-08", "Designed studies, analyzed qualitative data, and published peer-reviewed HCI systems research."],
+      ["Teaching Fellow", "Lakeside University", "Madison, WI", "2021-01", "2023-12", "Taught human-centered design studios and mentored undergraduate research teams."],
+    ],
+    education: [["Ph.D. Information Science", "Lakeside University", "2019-09", "2024-08", "4.0"], ["M.S. Computer Science", "Western Technical University", "2017-09", "2019-05", "3.9"]],
+    skills: ["User Research", "Mixed Methods", "Python", "R", "Accessibility", "LaTeX", "Study Design", "Data Analysis"],
+    projects: [["Accessible Writing Lab", "Research platform for studying collaborative writing workflows.", ["Python", "React", "Qualitative Coding"]]],
+    publications: [
+      "Raman, P. and Silva, M. Accessible Peer Review Interfaces for Remote Classrooms. CHI 2025.",
+      "Raman, P. Evaluating Trust Cues in AI Writing Assistants. CSCW 2024.",
+      "Raman, P., Ortiz, J. and Wen, L. Mixed-Ability Collaboration in Studio Courses. DIS 2023.",
+    ],
+    limitations: ["Academic publications may map to a custom section if the parser path does not preserve publication-specific semantics."],
+    jobLevel: "senior",
+    jobTitles: ["Research Scientist - HCI", "Applied Research Scientist", "UX Research Scientist", "Human-Centered AI Researcher", "Accessibility Research Scientist"],
+    tech: ["User Research", "Python", "R", "Accessibility", "Study Design"],
+  },
+  {
+    slug: "no-bullets",
+    name: "Nolan Brooks",
+    headline: "Operations Analyst",
+    location: "Chicago, IL",
+    contact: "nolan.brooks@example.test | linkedin.com/in/nolanbrooks",
+    purpose: "Nolan uses a plain narrative resume with compact paragraphs and no bullet-list styling. They want the app to preserve a clean paragraph-forward template instead of inventing bullets everywhere. The fixture tests resume imports where entries are sentence summaries rather than bullet lists.",
+    summary: "Operations analyst who improves reporting, vendor workflows, and cross-functional planning for service teams.",
+    experiences: [
+      ["Operations Analyst", "Civic Square Services", "Chicago, IL", "2022-04", "Present", "Maintains weekly operating reports, coordinates vendor reviews, and improves planning data quality for regional service teams."],
+      ["Program Coordinator", "Lakeshore Outreach", "Chicago, IL", "2019-06", "2022-03", "Managed partner communication, event logistics, and grant reporting for community education programs."],
+    ],
+    education: [["B.A. Public Policy", "Great Lakes College", "2015-09", "2019-05", "3.6"]],
+    skills: ["Excel", "SQL", "Tableau", "Vendor Coordination", "Budget Tracking", "Process Improvement", "Reporting"],
+    projects: [["Service Metrics Digest", "Weekly leadership report consolidating staffing, vendor, and budget trends.", ["SQL", "Tableau"]]],
+    limitations: ["Paragraph-style achievements should remain usable even when no bullet markers are present."],
+    jobLevel: "mid",
+    jobTitles: ["Operations Analyst", "Business Operations Analyst", "Program Operations Manager", "Revenue Operations Analyst", "Strategy Operations Associate"],
+    tech: ["SQL", "Tableau", "Excel", "Reporting", "Process Improvement"],
+    noBullets: true,
+  },
+  {
     slug: "scanned-pdf",
     name: "Devon Moore",
     headline: "QA Automation Engineer",
@@ -303,6 +350,9 @@ function resumeLines(persona) {
       `${name} - ${technologies.join(", ")}`,
       description,
     ]),
+    ...(persona.publications?.length
+      ? ["", "PUBLICATIONS", ...persona.publications]
+      : []),
   ];
 }
 

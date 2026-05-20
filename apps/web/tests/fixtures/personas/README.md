@@ -13,6 +13,8 @@ These fixtures are fully synthetic and are intended for parser, bank, and opport
 | `non-english-spanish` | Ingeniera de Software | María busca roles remotos de ingeniería frontend y full-stack para equipos de producto. |
 | `non-english-mandarin` | 软件工程师 | 李伟希望申请远程后端和平台工程岗位。这个样例用于验证中文姓名、中文公司描述、CJK 字符和日期字段的处理。目标岗位强调分布式系统、数据平台和云基础设施。 |
 | `heavy-formatting` | Senior Frontend Engineer | Riley has a visually dense resume with columns, skill tables, separators, and icon-like labels. |
+| `academic-cv` | Postdoctoral Researcher - Human-Computer Interaction | Priya is an academic researcher applying to research scientist and applied HCI roles. |
+| `no-bullets` | Operations Analyst | Nolan uses a plain narrative resume with compact paragraphs and no bullet-list styling. |
 | `scanned-pdf` | QA Automation Engineer | Devon has a scanned, flattened resume with no embedded text layer. |
 
 ## Schema

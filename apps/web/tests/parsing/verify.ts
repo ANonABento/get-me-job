@@ -8,12 +8,14 @@ import { extractBankEntries } from "@/lib/resume/info-bank";
 import type { BankEntry, Experience } from "@/types";
 
 export const DEFAULT_PERSONA_SLUGS = [
+  "academic-cv",
   "career-changer",
   "career-gap",
   "entry-cs-grad",
   "heavy-formatting",
   "mid-engineer",
   "multi-job-pm",
+  "no-bullets",
   "non-english-mandarin",
   "non-english-spanish",
   "scanned-pdf",

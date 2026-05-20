@@ -62,6 +62,28 @@
       "expectedStyleTraits": ["custom-sections", "section-headings", "bullets"]
     },
     {
+      "name": "academic-cv-pdf",
+      "fixtureClass": "academic CV",
+      "fixtureClasses": ["academic CV", "resume with long bullets"],
+      "source": "tests/fixtures/personas/academic-cv/resume.pdf",
+      "expectedSections": [
+        "experience",
+        "education",
+        "projects",
+        "skills",
+        "publications"
+      ],
+      "expectedStyleTraits": ["academic", "publications", "dense-text"]
+    },
+    {
+      "name": "no-bullets-pdf",
+      "fixtureClass": "resume with no bullets",
+      "fixtureClasses": ["resume with no bullets", "plain ATS resume"],
+      "source": "tests/fixtures/personas/no-bullets/resume.pdf",
+      "expectedSections": ["experience", "education", "projects", "skills"],
+      "expectedStyleTraits": ["paragraph-style", "no-bullets", "plain-text"]
+    },
+    {
       "name": "multi-job-pm-pdf",
       "fixtureClass": "business/marketing resume",
       "fixtureClasses": ["business/marketing resume", "resume with long bullets"],
