@@ -271,6 +271,15 @@ describe("universal template import analysis", () => {
       expect.arrayContaining([expect.objectContaining({ value: 0.75 })]),
     );
     expect(tokens.layout.dateAlignment?.value).toBe("right-column");
+    expect(tokens.layout.headerMode?.candidates).toEqual(
+      expect.arrayContaining([expect.objectContaining({ value: "split" })]),
+    );
+    expect(tokens.layout.dateAlignment?.candidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ value: "right-column" }),
+        expect.objectContaining({ value: "below" }),
+      ]),
+    );
   });
 
   it("renders semantic resume data through a reusable component template", () => {
@@ -473,6 +482,64 @@ describe("universal template import analysis", () => {
     expect(html).toContain("Universal Importer");
     expect(html).not.toContain("Template Owner");
     expect(html).not.toContain("Source-only bullet");
+  });
+
+  it("renders saved layout tokens as reusable template classes", () => {
+    const source: SourceDocumentIR = {
+      sourceType: "docx",
+      filename: "layout-template.docx",
+      pages: [{ id: "page-1", number: 1, widthPt: 612, heightPt: 792 }],
+      rawText: "",
+      diagnostics: [],
+      blocks: [
+        styledBlock("b1", "Template Owner", { fontSizePt: 24, bold: true }),
+        styledBlock("b2", "EXPERIENCE", { fontSizePt: 11, bold: true }),
+        tableRow("b3", ["Role", "Company", "2024"]),
+      ],
+    };
+    const semantic = inferResumeSemanticIR(source);
+    const template = buildReusableResumeTemplateIR(
+      semantic,
+      inferImportedTemplateStyleTokens(source),
+    );
+    template.tokens.layout.headerMode = {
+      value: "stacked",
+      confidence: 1,
+      evidenceRefs: [],
+    };
+    template.tokens.layout.dateAlignment = {
+      value: "below",
+      confidence: 1,
+      evidenceRefs: [],
+    };
+    template.tokens.layout.sectionTitlePlacement = {
+      value: "left-rail",
+      confidence: 1,
+      evidenceRefs: [],
+    };
+
+    const html = renderTailoredResumeWithReusableTemplate(
+      {
+        contact: { name: "New Candidate", email: "new@example.com" },
+        summary: "",
+        experiences: [
+          {
+            title: "Platform Engineer",
+            company: "Delta Systems",
+            dates: "2026 - Present",
+            highlights: [],
+          },
+        ],
+        projects: [],
+        skills: [],
+        education: [],
+      },
+      template,
+    );
+
+    expect(html).toContain("rt-header-stacked");
+    expect(html).toContain("rt-date-below");
+    expect(html).toContain("rt-section-title-left-rail");
   });
 
   it("honors reusable section order while appending newly added sections", () => {

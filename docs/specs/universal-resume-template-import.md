@@ -660,6 +660,9 @@ As of the latest implementation slice, the system has:
 - Style token candidate lists are inferred for colors, typography roles, section
   spacing, and divider widths; body and section-heading typography candidates
   can be selected from review where present.
+- Layout tokens for header mode, date placement, section-title placement, and
+  column count can be reviewed, overridden, and rendered by reusable V4
+  templates.
 
 Known remaining gaps:
 
@@ -670,9 +673,9 @@ Known remaining gaps:
 - Decorative source marking is block-level only; finer-grained row/cell/run
   marking is still not complete.
 - Style token candidate selection currently covers colors, body typography,
-  section-heading typography, section spacing, and divider widths; richer review
-  controls for layout, name, metadata, and entry-title typography are still not
-  complete.
+  section-heading typography, section spacing, divider widths, and layout
+  controls; richer review controls for name, metadata, and entry-title
+  typography are still not complete.
 - DOCX table-heavy imports still need extraction and layout resilience work; the
   dogfood suite keeps this visible as a broad fixture class rather than a
   person-specific case.

@@ -44,6 +44,10 @@ export type SectionChildComponent =
   | { kind: "SectionHeading"; id: string; title: string }
   | { kind: "EntryList"; id: string; itemComponent: EntryComponent };
 
+function layoutClassValue(value: string | undefined, fallback: string): string {
+  return (value || fallback).replace(/[^a-z0-9-]+/gi, "-").toLowerCase();
+}
+
 export interface EntryComponent {
   kind: "Entry";
   id: string;
@@ -88,6 +92,18 @@ export function renderReusableResumeTemplateHTML(
   semantic: ResumeSemanticIR,
   template: ReusableResumeTemplateIR,
 ): string {
+  const headerMode = layoutClassValue(
+    template.tokens.layout.headerMode?.value,
+    "split",
+  );
+  const dateAlignment = layoutClassValue(
+    template.tokens.layout.dateAlignment?.value,
+    "right-column",
+  );
+  const sectionTitlePlacement = layoutClassValue(
+    template.tokens.layout.sectionTitlePlacement?.value,
+    "above",
+  );
   return `<!doctype html>
 <html>
 <head>
@@ -96,7 +112,7 @@ export function renderReusableResumeTemplateHTML(
   <style>${renderReusableTemplateCSS(template.tokens)}</style>
 </head>
 <body>
-  <article class="resume-template">
+  <article class="resume-template rt-header-${headerMode} rt-date-${dateAlignment} rt-section-title-${sectionTitlePlacement}">
     ${renderTemplateBody(template, semantic)}
   </article>
 </body>
@@ -499,9 +515,18 @@ function renderReusableTemplateCSS(
 body { margin: 0; background: #f4f4f5; color: ${bodyColor}; font-family: ${fontFamily(body)}; font-size: ${pt(body?.fontSizePt, 10)}; line-height: ${body?.lineHeight ?? "1.25"}; }
 .resume-template { width: ${page.widthPt}pt; min-height: ${page.heightPt}pt; margin: 0 auto; padding: ${margins.top} ${margins.right} ${margins.bottom} ${margins.left}; background: ${page.background ?? "#fff"}; }
 .rt-header { display: flex; justify-content: space-between; gap: 18pt; align-items: flex-start; margin-bottom: ${pt(tokens.spacing.sectionGapPt?.value, 10)}; min-width: 0; }
+.rt-header-stacked .rt-header { flex-direction: column; gap: 4pt; }
+.rt-header-stacked .rt-contact { max-width: 100%; text-align: left; }
+.rt-header-single-line .rt-header { align-items: baseline; }
+.rt-header-single-line .rt-header h1 { font-size: ${pt(name?.fontSizePt, 20)}; }
+.rt-header-sidebar .rt-header { display: grid; grid-template-columns: 30% 1fr; gap: 18pt; }
+.rt-header-sidebar .rt-contact { max-width: none; text-align: left; }
 .rt-header h1 { margin: 0; font-family: ${fontFamily(name)}; font-size: ${pt(name?.fontSizePt, 24)}; line-height: 1; color: ${name?.color ?? accent}; font-weight: ${name?.fontWeight ?? "700"}; }
 .rt-contact { max-width: 55%; min-width: 0; text-align: right; font-family: ${fontFamily(metadata)}; font-size: ${pt(metadata?.fontSizePt, 9)}; color: ${metadata?.color ?? bodyColor}; line-height: ${metadata?.lineHeight ?? "1.25"}; overflow-wrap: anywhere; }
 .rt-section { margin-top: ${pt(tokens.spacing.sectionGapPt?.value, 8)}; }
+.rt-section-title-left-rail .rt-section { display: grid; grid-template-columns: 24% 1fr; column-gap: 14pt; align-items: start; }
+.rt-section-title-left-rail .rt-section h2 { border-bottom: 0; padding-bottom: 0; }
+.rt-section-title-inline .rt-section h2 { display: inline-block; margin-right: 8pt; }
 .rt-section h2 { margin: 0 0 4pt; padding-bottom: 2pt; border-bottom: ${tokens.rules.sectionDivider?.widthPt ?? 0.75}pt ${tokens.rules.sectionDivider?.style ?? "solid"} ${ruleColor}; font-family: ${fontFamily(heading)}; font-size: ${pt(heading?.fontSizePt, 11)}; color: ${heading?.color ?? accent}; font-weight: ${heading?.fontWeight ?? "700"}; text-transform: ${heading?.textTransform ?? "uppercase"}; }
 .rt-items { display: grid; gap: ${pt(tokens.spacing.itemGapPt?.value, 4)}; }
 .rt-entry-head { display: flex; justify-content: space-between; gap: 12pt; align-items: baseline; min-width: 0; }
@@ -509,6 +534,10 @@ body { margin: 0; background: #f4f4f5; color: ${bodyColor}; font-family: ${fontF
 .rt-entry-head strong { font-weight: 700; }
 .rt-entry-head span { margin-left: 3pt; }
 .rt-entry-head time { white-space: nowrap; text-align: right; font-size: ${pt(metadata?.fontSizePt, 9)}; color: ${metadata?.color ?? bodyColor}; }
+.rt-date-inline .rt-entry-head { justify-content: flex-start; flex-wrap: wrap; }
+.rt-date-inline .rt-entry-head time { margin-left: 4pt; }
+.rt-date-below .rt-entry-head { display: block; }
+.rt-date-below .rt-entry-head time { display: block; margin-top: 1pt; text-align: left; }
 .rt-entry ul { margin: 2pt 0 0 13pt; padding: 0; }
 .rt-entry li { margin: 0 0 ${pt(tokens.spacing.bulletGapPt?.value, 1.5)}; }
 .rt-entry-lines { margin-top: 2pt; display: grid; gap: ${pt(tokens.spacing.bulletGapPt?.value, 1.5)}; }

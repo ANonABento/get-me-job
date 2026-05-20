@@ -628,6 +628,18 @@ describe("CustomTemplateManagerDialog", () => {
     fireEvent.change(screen.getByLabelText("Section gap candidate"), {
       target: { value: "12" },
     });
+    fireEvent.change(screen.getByLabelText("Header layout"), {
+      target: { value: "stacked" },
+    });
+    fireEvent.change(screen.getByLabelText("Date layout"), {
+      target: { value: "below" },
+    });
+    fireEvent.change(screen.getByLabelText("Section title layout"), {
+      target: { value: "left-rail" },
+    });
+    fireEvent.change(screen.getByLabelText("Layout columns candidate"), {
+      target: { value: "2" },
+    });
     fireEvent.click(
       screen.getByRole("button", { name: "Apply style overrides" }),
     );
@@ -645,6 +657,12 @@ describe("CustomTemplateManagerDialog", () => {
       expect(latest.styleTokens.typography.sectionHeading.fontSizePt).toBe(13);
       expect(latest.styleTokens.rules.sectionDivider.widthPt).toBe(1.25);
       expect(latest.styleTokens.spacing.sectionGapPt.value).toBe(12);
+      expect(latest.styleTokens.layout.headerMode.value).toBe("stacked");
+      expect(latest.styleTokens.layout.dateAlignment.value).toBe("below");
+      expect(latest.styleTokens.layout.sectionTitlePlacement.value).toBe(
+        "left-rail",
+      );
+      expect(latest.styleTokens.layout.columns.value).toBe(2);
     });
   });
 
@@ -1464,7 +1482,36 @@ function migrationDraft() {
           ],
         },
       },
-      layout: { headerMode: { value: "split" } },
+      layout: {
+        headerMode: {
+          value: "split",
+          candidates: [
+            { label: "split (68%)", value: "split" },
+            { label: "stacked (44%)", value: "stacked" },
+          ],
+        },
+        dateAlignment: {
+          value: "right-column",
+          candidates: [
+            { label: "right-column (72%)", value: "right-column" },
+            { label: "below (42%)", value: "below" },
+          ],
+        },
+        sectionTitlePlacement: {
+          value: "above",
+          candidates: [
+            { label: "above (55%)", value: "above" },
+            { label: "left-rail (32%)", value: "left-rail" },
+          ],
+        },
+        columns: {
+          value: 1,
+          candidates: [
+            { label: "1pt (1 refs)", value: 1 },
+            { label: "2pt (1 refs)", value: 2 },
+          ],
+        },
+      },
       warnings: [],
     },
     reusableTemplate: {

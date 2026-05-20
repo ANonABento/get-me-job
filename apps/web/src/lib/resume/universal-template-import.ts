@@ -474,6 +474,7 @@ export function inferImportedTemplateStyleTokens(
 
 function inferPageStyleToken(source: SourceDocumentIR): ImportedPageStyleToken {
   const page = source.pages[0];
+  const pageWidth = page?.widthPt;
   const widthPt = page?.widthPt ?? 612;
   const heightPt = page?.heightPt ?? 792;
   return {
@@ -679,6 +680,7 @@ function inferLayoutTokens(
   source: SourceDocumentIR,
 ): ImportedTemplateStyleTokens["layout"] {
   const page = source.pages[0];
+  const pageWidth = page?.widthPt;
   const boxes = source.blocks
     .map((block) => block.bbox)
     .filter(
@@ -686,6 +688,16 @@ function inferLayoutTokens(
         Boolean(box),
     );
   const headerBlocks = source.blocks.slice(0, 5);
+  const hasSingleLineHeader = headerBlocks.some((block) =>
+    block.text.includes("|"),
+  );
+  const hasSplitHeader =
+    pageWidth &&
+    headerBlocks.some(
+      (block) =>
+        block.style?.alignment === "right" ||
+        (block.bbox && block.bbox.xPt + block.bbox.widthPt > pageWidth * 0.66),
+    );
   const rightAlignedDates = source.blocks.filter(
     (block) =>
       isDateLike(block.text) &&
@@ -693,28 +705,88 @@ function inferLayoutTokens(
         block.cellMetadata?.some(
           (cell) => cell.alignment === "right" && isDateLike(cell.text),
         ) ||
-        (page?.widthPt &&
+        (pageWidth &&
           block.bbox &&
-          block.bbox.xPt + block.bbox.widthPt > page.widthPt * 0.66)),
+          block.bbox.xPt + block.bbox.widthPt > pageWidth * 0.66)),
   );
-  const columns = inferColumnCount(page?.widthPt, boxes);
+  const columns = inferColumnCount(pageWidth, boxes);
+  const headerMode = hasSingleLineHeader
+    ? "single-line"
+    : hasSplitHeader
+      ? "split"
+      : "stacked";
+  const dateAlignment = rightAlignedDates.length ? "right-column" : "unknown";
 
   return {
-    headerMode: scalarToken(
-      headerBlocks.some((block) => block.text.includes("|"))
-        ? "single-line"
-        : "stacked",
-      0.55,
-      headerBlocks.map((block) => block.id),
-    ),
-    dateAlignment: scalarToken(
-      rightAlignedDates.length ? "right-column" : "unknown",
-      rightAlignedDates.length ? 0.72 : 0.35,
-      rightAlignedDates.slice(0, 6).map((block) => block.id),
-    ),
-    sectionTitlePlacement: scalarToken("above", 0.55, []),
-    columns: scalarToken(columns, columns > 1 ? 0.7 : 0.55, []),
+    headerMode: {
+      ...scalarToken(headerMode, hasSplitHeader ? 0.68 : 0.55, [
+        ...headerBlocks.map((block) => block.id),
+      ]),
+      candidates: layoutEnumCandidates(
+        [
+          [headerMode, hasSplitHeader || hasSingleLineHeader ? 0.68 : 0.55],
+          ["split", 0.48],
+          ["stacked", 0.44],
+          ["single-line", 0.4],
+        ],
+        headerBlocks.map((block) => block.id),
+      ),
+    },
+    dateAlignment: {
+      ...scalarToken(
+        dateAlignment,
+        rightAlignedDates.length ? 0.72 : 0.35,
+        rightAlignedDates.slice(0, 6).map((block) => block.id),
+      ),
+      candidates: layoutEnumCandidates(
+        [
+          [dateAlignment, rightAlignedDates.length ? 0.72 : 0.35],
+          ["inline", 0.46],
+          ["below", 0.42],
+          ["right-column", rightAlignedDates.length ? 0.72 : 0.48],
+        ],
+        rightAlignedDates.slice(0, 6).map((block) => block.id),
+      ),
+    },
+    sectionTitlePlacement: {
+      ...scalarToken("above", 0.55, []),
+      candidates: layoutEnumCandidates(
+        [
+          ["above", 0.55],
+          ["left-rail", columns > 1 ? 0.5 : 0.32],
+          ["inline", 0.38],
+        ],
+        [],
+      ),
+    },
+    columns: {
+      ...scalarToken(columns, columns > 1 ? 0.7 : 0.55, []),
+      candidates: numericTokenCandidates([
+        { value: columns },
+        { value: 1 },
+        { value: 2 },
+      ]),
+    },
   };
+}
+
+function layoutEnumCandidates<T extends string>(
+  values: Array<[T, number]>,
+  evidenceRefs: string[],
+): ImportedTokenCandidate<T>[] {
+  const seen = new Set<T>();
+  return values
+    .filter(([value]) => {
+      if (seen.has(value)) return false;
+      seen.add(value);
+      return true;
+    })
+    .map(([value, confidence]) => ({
+      label: `${value} (${Math.round(confidence * 100)}%)`,
+      value,
+      confidence: roundRatio(confidence),
+      evidenceRefs,
+    }));
 }
 
 function scalarToken<T>(

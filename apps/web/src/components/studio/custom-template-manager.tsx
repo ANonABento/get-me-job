@@ -2753,6 +2753,18 @@ function StyleTokensPane({
   const [sectionGap, setSectionGap] = useState(
     tokenValue(tokens?.spacing?.sectionGapPt, "8"),
   );
+  const [headerMode, setHeaderMode] = useState(
+    tokenValue(tokens?.layout?.headerMode, "split"),
+  );
+  const [dateAlignment, setDateAlignment] = useState(
+    tokenValue(tokens?.layout?.dateAlignment, "right-column"),
+  );
+  const [sectionTitlePlacement, setSectionTitlePlacement] = useState(
+    tokenValue(tokens?.layout?.sectionTitlePlacement, "above"),
+  );
+  const [columns, setColumns] = useState(
+    tokenValue(tokens?.layout?.columns, "1"),
+  );
   const [margins, setMargins] = useState(() => pageMargins(tokens));
   const accentCandidates = scalarTokenCandidates(tokens?.color?.accent);
   const bodyTypographyCandidates = typographyTokenCandidates(
@@ -2767,6 +2779,16 @@ function StyleTokensPane({
   const sectionGapCandidates = numericTokenCandidates(
     tokens?.spacing?.sectionGapPt,
   );
+  const headerModeCandidates = scalarTokenCandidates(
+    tokens?.layout?.headerMode,
+  );
+  const dateAlignmentCandidates = scalarTokenCandidates(
+    tokens?.layout?.dateAlignment,
+  );
+  const sectionTitlePlacementCandidates = scalarTokenCandidates(
+    tokens?.layout?.sectionTitlePlacement,
+  );
+  const columnCandidates = numericTokenCandidates(tokens?.layout?.columns);
 
   useEffect(() => {
     setAccentColor(tokenValue(tokens?.color?.accent, "#111111"));
@@ -2784,6 +2806,12 @@ function StyleTokensPane({
       tokenNumber(tokens?.rules?.sectionDivider, "widthPt", 0.75),
     );
     setSectionGap(tokenValue(tokens?.spacing?.sectionGapPt, "8"));
+    setHeaderMode(tokenValue(tokens?.layout?.headerMode, "split"));
+    setDateAlignment(tokenValue(tokens?.layout?.dateAlignment, "right-column"));
+    setSectionTitlePlacement(
+      tokenValue(tokens?.layout?.sectionTitlePlacement, "above"),
+    );
+    setColumns(tokenValue(tokens?.layout?.columns, "1"));
     setMargins(pageMargins(tokens));
   }, [tokens]);
 
@@ -2795,6 +2823,7 @@ function StyleTokensPane({
     const nextHeadingFont = headingFont.trim();
     const nextHeadingSize = Number(headingSize);
     const nextSectionGap = Number(sectionGap);
+    const nextColumns = Number(columns);
     next.color = {
       ...(next.color ?? {}),
       accent: scalarToken(nextAccent || "#111111"),
@@ -2843,6 +2872,13 @@ function StyleTokensPane({
     next.page = {
       ...(next.page ?? {}),
       margins,
+    };
+    next.layout = {
+      ...(next.layout ?? {}),
+      headerMode: scalarToken(headerMode || "split"),
+      dateAlignment: scalarToken(dateAlignment || "right-column"),
+      sectionTitlePlacement: scalarToken(sectionTitlePlacement || "above"),
+      columns: scalarToken(Number.isFinite(nextColumns) ? nextColumns : 1),
     };
     void onUpdateStyleTokens(next);
   }
@@ -3021,6 +3057,91 @@ function StyleTokensPane({
               >
                 <option value={sectionGap}>Current: {sectionGap}pt</option>
                 {sectionGapCandidates.map((candidate) => (
+                  <option key={candidate.value} value={candidate.value}>
+                    {candidate.label}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+          </label>
+          <label className="space-y-1 text-xs text-muted-foreground">
+            <span>Header layout</span>
+            <select
+              className="h-8 w-full rounded-sm border border-border bg-background px-2 text-xs text-foreground"
+              aria-label="Header layout"
+              value={headerMode}
+              onChange={(event) => setHeaderMode(event.currentTarget.value)}
+            >
+              {layoutOptions(headerModeCandidates, [
+                "split",
+                "stacked",
+                "single-line",
+                "sidebar",
+              ]).map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-1 text-xs text-muted-foreground">
+            <span>Date layout</span>
+            <select
+              className="h-8 w-full rounded-sm border border-border bg-background px-2 text-xs text-foreground"
+              aria-label="Date layout"
+              value={dateAlignment}
+              onChange={(event) => setDateAlignment(event.currentTarget.value)}
+            >
+              {layoutOptions(dateAlignmentCandidates, [
+                "right-column",
+                "inline",
+                "below",
+                "unknown",
+              ]).map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-1 text-xs text-muted-foreground">
+            <span>Section title layout</span>
+            <select
+              className="h-8 w-full rounded-sm border border-border bg-background px-2 text-xs text-foreground"
+              aria-label="Section title layout"
+              value={sectionTitlePlacement}
+              onChange={(event) =>
+                setSectionTitlePlacement(event.currentTarget.value)
+              }
+            >
+              {layoutOptions(sectionTitlePlacementCandidates, [
+                "above",
+                "left-rail",
+                "inline",
+              ]).map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-1 text-xs text-muted-foreground">
+            <span>Columns</span>
+            <Input
+              value={columns}
+              aria-label="Layout columns"
+              onChange={(event) => setColumns(event.currentTarget.value)}
+              inputMode="numeric"
+            />
+            {columnCandidates.length ? (
+              <select
+                className="h-8 w-full rounded-sm border border-border bg-background px-2 text-xs text-foreground"
+                aria-label="Layout columns candidate"
+                value={columns}
+                onChange={(event) => setColumns(event.currentTarget.value)}
+              >
+                <option value={columns}>Current: {columns}</option>
+                {columnCandidates.map((candidate) => (
                   <option key={candidate.value} value={candidate.value}>
                     {candidate.label}
                   </option>
@@ -3431,6 +3552,23 @@ function numericTokenCandidates(
     .filter((candidate): candidate is { label: string; value: number } =>
       Boolean(candidate),
     );
+}
+
+function layoutOptions(
+  candidates: Array<{ label: string; value: string }>,
+  fallbackValues: string[],
+): Array<{ label: string; value: string }> {
+  const byValue = new Map<string, string>();
+  for (const candidate of candidates) {
+    byValue.set(candidate.value, candidate.label);
+  }
+  for (const value of fallbackValues) {
+    if (!byValue.has(value)) byValue.set(value, value);
+  }
+  return Array.from(byValue.entries()).map(([value, label]) => ({
+    value,
+    label,
+  }));
 }
 
 function pageMargins(tokens: TemplateMigrationDraft["styleTokens"]): {
