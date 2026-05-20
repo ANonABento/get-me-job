@@ -9,7 +9,6 @@ import { SortDropdown } from "@/components/opportunities/sort-dropdown";
 import { SavePresetDialog } from "@/components/opportunities/save-preset-dialog";
 import { LayoutBuilderModal } from "@/components/opportunities/layout-builder-modal";
 import type { LayoutPreference } from "@/lib/opportunities/layout-chunks";
-import { migrateLayoutFromVisibleBadges } from "@/lib/opportunities/visible-badges-migration";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { OpportunitiesReviewSkeleton } from "@/components/skeletons/opportunities-review-skeleton";
 import { Button } from "@/components/ui/button";
@@ -128,20 +127,14 @@ export default function OpportunityReviewPage() {
           preferencesData.preferences.payNormalizationCurrency,
         );
       }
-      // F.1 migration — if no explicit layoutPreference exists but the
-      // user has an old `visibleBadges` array with hidden entries, map
-      // those into the layout's disabled list at read time. Runs once
-      // per page load; the first edit through the builder persists an
-      // explicit layoutPreference and this path becomes a no-op.
+      // Bento — when stored layout is null, pass null through so the
+      // queue's `getEffectiveBentoLayout(null)` returns DEFAULT_BENTO_LAYOUT.
+      // The pre-bento `visibleBadges → F.1 layout` migration was removed:
+      // forcing every user through the bento default is simpler than
+      // chained migrations, and the new builder is the canonical edit
+      // surface anyway.
       if (preferencesData.preferences?.layoutPreference) {
         setLayoutPreference(preferencesData.preferences.layoutPreference);
-      } else if (preferencesData.preferences?.visibleBadges) {
-        setLayoutPreference(
-          migrateLayoutFromVisibleBadges(
-            null,
-            preferencesData.preferences.visibleBadges,
-          ),
-        );
       }
       if (ratesData.rates) {
         setCurrencyRates(ratesData.rates);

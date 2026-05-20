@@ -18,34 +18,39 @@ import {
   formatOpportunityPay,
   type CurrencyRateMap,
 } from "@/lib/opportunities/pay";
-import {
-  DEFAULT_LAYOUT,
-  getEffectiveLayout,
-  getEnabledBySection,
-} from "@/lib/opportunities/default-layout";
-import type {
-  ChunkKey,
-  LayoutPreference,
-} from "@/lib/opportunities/layout-chunks";
-import { RenderChunk } from "@/lib/opportunities/render-chunk";
+import { getEffectiveBentoLayout } from "@/lib/opportunities/default-bento";
+import { BentoGrid } from "@/components/opportunities/bento-grid";
 import { useA11yTranslations } from "@/lib/i18n/use-a11y-translations";
 type QueueAction = "save" | "dismiss" | "apply";
 
 const DESCRIPTION_PREVIEW_LENGTH = 260;
 const SWIPE_DISTANCE_THRESHOLD = 110;
 const SWIPE_VELOCITY_THRESHOLD = 650;
-// Tailwind's `md` breakpoint is 768px; we use the same crossover for the
-// layout-spec picker so a 700px-wide window doesn't get the desktop spec
-// while the CSS still renders mobile-style.
+// Bento — desktop card capped at max-w-5xl (1024px) since the grid
+// breathes meaningfully wider than the F.1 single-column shape.
+// Mobile keeps the narrow swipe deck.
 const DESKTOP_MIN_WIDTH = 768;
 
-// Chunks that render as primary action buttons (3-column footer).
-const PRIMARY_ACTIONS: readonly ChunkKey[] = [
-  "dismiss",
-  "apply",
-  "save",
-] as const;
-const PRIMARY_ACTION_SET = new Set<ChunkKey>(PRIMARY_ACTIONS);
+/**
+ * Picks "desktop" or "mobile" via matchMedia. SSR defaults to desktop
+ * (typical laptop-first user); post-mount effect swaps to mobile if the
+ * viewport is narrow. Also avoids the JSDOM "two trees in DOM" issue
+ * the F.1 implementation had — only one device renders at a time.
+ */
+function useDevice(): "desktop" | "mobile" {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia(`(max-width: ${DESKTOP_MIN_WIDTH - 1}px)`);
+    const handle = (event: MediaQueryListEvent | MediaQueryList) => {
+      setIsMobile(event.matches);
+    };
+    handle(mq);
+    mq.addEventListener("change", handle);
+    return () => mq.removeEventListener("change", handle);
+  }, []);
+  return isMobile ? "mobile" : "desktop";
+}
 
 function getDeadlineTime(deadline?: string): number {
   if (!deadline) {
@@ -101,27 +106,6 @@ export function getDescriptionPreview(description: string): string {
   return `${description.slice(0, DESCRIPTION_PREVIEW_LENGTH).trim()}...`;
 }
 
-/**
- * Pick `layout.desktop` or `layout.mobile` based on the viewport. SSR
- * defaults to desktop so the first paint matches the typical
- * use-from-laptop case; the post-mount effect swaps to mobile if the
- * window is narrow.
- */
-function useDeviceLayout(layout: LayoutPreference) {
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mq = window.matchMedia(`(max-width: ${DESKTOP_MIN_WIDTH - 1}px)`);
-    const handle = (event: MediaQueryListEvent | MediaQueryList) => {
-      setIsMobile(event.matches);
-    };
-    handle(mq);
-    mq.addEventListener("change", handle);
-    return () => mq.removeEventListener("change", handle);
-  }, []);
-  return isMobile ? layout.mobile : layout.desktop;
-}
-
 interface OpportunityReviewQueueProps {
   jobs: Opportunity[];
   updating: boolean;
@@ -140,10 +124,13 @@ interface OpportunityReviewQueueProps {
   // /api/cron/currency-rates run.
   payDisplayCurrency?: string;
   currencyRates?: CurrencyRateMap;
-  // F.1 — user-customisable chunk layout. When omitted, falls back to
-  // `DEFAULT_LAYOUT`. The page wrapper fetches this from
-  // /api/preferences/opportunities and passes it through.
-  layout?: LayoutPreference | null;
+  /**
+   * Bento layout — user-customisable cell grid. Accepts either the new
+   * bento shape, the legacy F.1 section shape (auto-migrated at read
+   * time), or null (use defaults). The page wrapper fetches this from
+   * /api/preferences/opportunities and passes it through.
+   */
+  layout?: unknown;
 }
 
 export function OpportunityReviewQueue({
@@ -163,15 +150,8 @@ export function OpportunityReviewQueue({
   const queue = useMemo(() => getPendingOpportunities(jobs), [jobs]);
   const activeJob = queue[0];
   const remainingCount = queue.length;
-  const effectiveLayout = useMemo(
-    () => getEffectiveLayout(layout ?? DEFAULT_LAYOUT),
-    [layout],
-  );
-  const deviceLayout = useDeviceLayout(effectiveLayout);
-  const enabled = useMemo(
-    () => getEnabledBySection(deviceLayout),
-    [deviceLayout],
-  );
+  const bentoLayout = useMemo(() => getEffectiveBentoLayout(layout), [layout]);
+  const device = useDevice();
 
   const runAction = async (action: QueueAction) => {
     if (!activeJob || updating || activeAction) {
@@ -321,30 +301,15 @@ export function OpportunityReviewQueue({
     canApply,
   };
 
-  // Split the actions section into primary-button vs quick-link groups
-  // so we can render each in its own footer strip. Their relative order
-  // within `enabled.actions` is preserved — user reordering still wins.
-  const primaryActionChunks = enabled.actions.filter((chunk) =>
-    PRIMARY_ACTION_SET.has(chunk),
-  );
-  const quickActionChunks = enabled.actions.filter(
-    (chunk) => !PRIMARY_ACTION_SET.has(chunk),
-  );
-
   return (
     <main className="flex flex-1 flex-col items-center px-4 pb-12 pt-6 md:pt-10">
       <h1 className="sr-only">Review Queue — {remainingCount} pending</h1>
-      {/* F.1 — single-column card. Width caps mirror the old design
-          (mobile narrow, desktop comfortably wide) but the inner layout
-          is now chunk-driven so we don't need a hard-coded aside. The
-          page-level toolbar owns the count chip + sort/preset/layout
-          controls, so the card stage starts clean.
-          Top-aligned (not vertically centered) so the card sits near
-          the toolbar instead of stranded in cream. */}
-      <div className="relative h-[min(640px,80vh)] w-full max-w-md md:h-auto md:min-h-[520px] md:max-w-2xl">
+      {/* Bento card. Desktop bumped to max-w-5xl (1024px) so the grid
+          breathes properly. Mobile keeps the narrow swipe-deck width. */}
+      <div className="relative h-[min(640px,80vh)] w-full max-w-md md:h-auto md:max-w-5xl">
         {queue[1] && (
           <div
-            className="absolute inset-x-3 top-5 h-[calc(100%-1.25rem)] rounded-lg border bg-card/50 shadow-sm"
+            className="absolute inset-x-3 top-5 h-[calc(100%-1.25rem)] rounded-lg border bg-card/50 shadow-sm md:relative md:inset-x-0 md:top-0 md:h-0"
             aria-hidden="true"
           />
         )}
@@ -374,157 +339,24 @@ export function OpportunityReviewQueue({
                     : 0,
               transition: { duration: 0.22 },
             }}
-            className="absolute inset-0 flex cursor-grab flex-col overflow-hidden rounded-lg border bg-card shadow-xl active:cursor-grabbing"
+            className="absolute inset-0 cursor-grab overflow-hidden rounded-lg border bg-card p-3 shadow-xl active:cursor-grabbing md:relative md:inset-auto md:p-5"
           >
-            <div className="flex-1 overflow-y-auto p-6 md:p-8">
-              {/* Header section — company + title block + status/badge chips */}
-              {enabled.header.length > 0 && (
-                <HeaderSection
-                  chunks={enabled.header}
-                  activeJob={activeJob}
-                  chunkContext={chunkContext}
-                />
-              )}
-
-              {/* Meta section — small chips strip */}
-              {enabled.meta.length > 0 && (
-                <div className="mt-5 flex flex-wrap items-center gap-2">
-                  {enabled.meta.map((chunk) => (
-                    <RenderChunk
-                      key={chunk}
-                      chunk={chunk}
-                      opportunity={activeJob}
-                      context={chunkContext}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {/* Body section — vertical flow of location/salary/deadline/tags/summary */}
-              {(enabled.body.length > 0 || salaryFallback) && (
-                <div className="mt-6 space-y-4">
-                  {enabled.body.map((chunk) => {
-                    // Legacy fallback: when inferred pay is missing we
-                    // still want to render the salary string at the
-                    // chunk's chosen position. Substitute a simple
-                    // span in place of the chunk.
-                    if (chunk === "salary" && salaryFallback) {
-                      return (
-                        <span
-                          key="salary-fallback"
-                          className="text-sm text-muted-foreground"
-                        >
-                          {salaryFallback}
-                        </span>
-                      );
-                    }
-                    return (
-                      <RenderChunk
-                        key={chunk}
-                        chunk={chunk}
-                        opportunity={activeJob}
-                        context={chunkContext}
-                      />
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {primaryActionChunks.length > 0 && (
-              <div
-                className={cn(
-                  "grid gap-2 border-t bg-background/80 p-4 backdrop-blur",
-                  primaryActionChunks.length === 1 && "grid-cols-1",
-                  primaryActionChunks.length === 2 && "grid-cols-2",
-                  primaryActionChunks.length === 3 && "grid-cols-3",
-                )}
-              >
-                {primaryActionChunks.map((chunk) => (
-                  <RenderChunk
-                    key={chunk}
-                    chunk={chunk}
-                    opportunity={activeJob}
-                    context={chunkContext}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* P0 quick actions — passive lookups that don't mutate
-                  status. "Search company" googles the employer; "Open
-                  original" round-trips to the source posting (for WW the
-                  hash hook in the content script reopens the modal). */}
-            {quickActionChunks.length > 0 && (
-              <div className="grid grid-cols-2 gap-2 border-t bg-background/60 p-2 backdrop-blur">
-                {quickActionChunks.map((chunk) => (
-                  <RenderChunk
-                    key={chunk}
-                    chunk={chunk}
-                    opportunity={activeJob}
-                    context={chunkContext}
-                  />
-                ))}
-              </div>
+            <BentoGrid
+              layout={bentoLayout.desktop}
+              mobileExpandedCount={bentoLayout.mobile.expandedCount}
+              device={device}
+              opportunity={activeJob}
+              context={chunkContext}
+            />
+            {salaryFallback && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                Listed: {salaryFallback}
+              </p>
             )}
           </motion.article>
         </AnimatePresence>
       </div>
     </main>
-  );
-}
-
-/**
- * Header chunks render in two visual rows: company + title flow as
- * stacked text, then the badge cluster (status pill, remote, source)
- * sits in a horizontal flex below them. This grouping is fixed —
- * reordering "title" above "company" still works because the layout
- * preserves array order; but interleaving badges with text would look
- * broken, so we partition here rather than letting them flow inline.
- */
-function HeaderSection({
-  chunks,
-  activeJob,
-  chunkContext,
-}: {
-  chunks: ChunkKey[];
-  activeJob: Opportunity;
-  chunkContext: Parameters<typeof RenderChunk>[0]["context"];
-}) {
-  const textChunks = chunks.filter(
-    (chunk) => chunk === "company" || chunk === "title",
-  );
-  const badgeChunks = chunks.filter(
-    (chunk) => chunk !== "company" && chunk !== "title",
-  );
-
-  return (
-    <div>
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          {textChunks.map((chunk) => (
-            <RenderChunk
-              key={chunk}
-              chunk={chunk}
-              opportunity={activeJob}
-              context={chunkContext}
-            />
-          ))}
-        </div>
-      </div>
-      {badgeChunks.length > 0 && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {badgeChunks.map((chunk) => (
-            <RenderChunk
-              key={chunk}
-              chunk={chunk}
-              opportunity={activeJob}
-              context={chunkContext}
-            />
-          ))}
-        </div>
-      )}
-    </div>
   );
 }
 
