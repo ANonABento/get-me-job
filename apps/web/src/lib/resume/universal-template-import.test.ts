@@ -9,6 +9,7 @@ import {
   buildReusableResumeTemplateIR,
   renderTailoredResumeWithReusableTemplate,
   renderReusableResumeTemplateHTML,
+  type ReusableResumeTemplateIR,
 } from "@/lib/resume/universal-template-renderer";
 import type { SourceDocumentIR } from "@/lib/resume/template-migration";
 
@@ -443,6 +444,80 @@ describe("universal template import analysis", () => {
     expect(html).toContain("New Candidate");
     expect(html).toContain("Platform Engineer");
     expect(html).toContain("Replaced template content safely");
+    expect(html).toContain("Universal Importer");
+    expect(html).not.toContain("Template Owner");
+    expect(html).not.toContain("Source-only bullet");
+  });
+
+  it("honors reusable section order while appending newly added sections", () => {
+    const source: SourceDocumentIR = {
+      sourceType: "docx",
+      filename: "reordered-template.docx",
+      pages: [{ id: "page-1", number: 1, widthPt: 612, heightPt: 792 }],
+      rawText: "",
+      diagnostics: [],
+      blocks: [
+        styledBlock("b1", "Template Owner", { fontSizePt: 24, bold: true }),
+        styledBlock("b2", "EXPERIENCE", { fontSizePt: 11, bold: true }),
+        tableRow("b3", ["Engineer", "Source Co", "2024"]),
+        bulletRow("b4", "Source-only bullet"),
+        styledBlock("b5", "EDUCATION", { fontSizePt: 11, bold: true }),
+        tableRow("b6", ["Template University", "BS CS", "2020"]),
+      ],
+    };
+    const semantic = inferResumeSemanticIR(source);
+    const template = {
+      ...buildReusableResumeTemplateIR(
+        semantic,
+        inferImportedTemplateStyleTokens(source),
+      ),
+      sectionOrder: [
+        "education",
+        "experience",
+      ] as ReusableResumeTemplateIR["sectionOrder"],
+    };
+
+    const html = renderTailoredResumeWithReusableTemplate(
+      {
+        contact: { name: "New Candidate", email: "new@example.com" },
+        summary: "",
+        experiences: [
+          {
+            title: "Platform Engineer",
+            company: "Delta Systems",
+            dates: "2026 - Present",
+            highlights: ["Replaced template content safely"],
+          },
+        ],
+        projects: [
+          {
+            name: "Universal Importer",
+            description: "TypeScript",
+            highlights: ["Appended new section safely"],
+          },
+        ],
+        skills: [],
+        education: [
+          {
+            institution: "Runtime University",
+            degree: "BS",
+            field: "Computer Science",
+            date: "2022",
+          },
+        ],
+      },
+      template,
+    );
+
+    const educationIndex = html.indexOf("EDUCATION");
+    const experienceIndex = html.indexOf("EXPERIENCE");
+    const projectsIndex = html.indexOf("Projects");
+
+    expect(educationIndex).toBeGreaterThan(-1);
+    expect(experienceIndex).toBeGreaterThan(educationIndex);
+    expect(projectsIndex).toBeGreaterThan(experienceIndex);
+    expect(html).toContain("Runtime University");
+    expect(html).toContain("Platform Engineer");
     expect(html).toContain("Universal Importer");
     expect(html).not.toContain("Template Owner");
     expect(html).not.toContain("Source-only bullet");

@@ -97,10 +97,7 @@ export function renderReusableResumeTemplateHTML(
 </head>
 <body>
   <article class="resume-template">
-    ${template.components
-      .map((component) => renderComponent(component, semantic))
-      .join("\n")}
-    ${renderAdditionalSections(template, semantic)}
+    ${renderTemplateBody(template, semantic)}
   </article>
 </body>
 </html>`;
@@ -320,6 +317,49 @@ function renderComponent(
   return renderSection(component, semantic);
 }
 
+function renderTemplateBody(
+  template: ReusableResumeTemplateIR,
+  semantic: ResumeSemanticIR,
+): string {
+  const header = template.components.find(
+    (component): component is HeaderBlockComponent =>
+      component.kind === "HeaderBlock",
+  );
+  const sectionComponents = template.components.filter(
+    (component): component is SectionComponent => component.kind === "Section",
+  );
+  const componentByType = new Map(
+    sectionComponents.map((component) => [component.sectionType, component]),
+  );
+  const semanticTypes = new Set(
+    semantic.sections.map((section) => section.type),
+  );
+  const orderedTypes = [
+    ...template.sectionOrder.filter((type) => semanticTypes.has(type)),
+    ...semantic.sections
+      .map((section) => section.type)
+      .filter((type) => !template.sectionOrder.includes(type)),
+  ];
+  const uniqueOrderedTypes = [...new Set(orderedTypes)];
+  const renderedSections = uniqueOrderedTypes
+    .map((type) => {
+      const section = semantic.sections.find(
+        (candidate) => candidate.type === type,
+      );
+      if (!section) return "";
+      return renderSection(
+        componentByType.get(type) ?? sectionComponent(section),
+        semantic,
+      );
+    })
+    .filter(Boolean);
+
+  return [
+    header ? renderHeader(header, semantic) : "",
+    ...renderedSections,
+  ].join("\n");
+}
+
 function renderHeader(
   component: HeaderBlockComponent,
   semantic: ResumeSemanticIR,
@@ -351,24 +391,6 @@ function renderSection(
       ${section.items.map((item) => renderEntry(item)).join("\n")}
     </div>
   </section>`;
-}
-
-function renderAdditionalSections(
-  template: ReusableResumeTemplateIR,
-  semantic: ResumeSemanticIR,
-): string {
-  const renderedTypes = new Set(
-    template.components
-      .filter(
-        (component): component is SectionComponent =>
-          component.kind === "Section",
-      )
-      .map((component) => component.sectionType),
-  );
-  return semantic.sections
-    .filter((section) => !renderedTypes.has(section.type))
-    .map((section) => renderSection(sectionComponent(section), semantic))
-    .join("\n");
 }
 
 function renderEntry(item: SemanticSection["items"][number]): string {
