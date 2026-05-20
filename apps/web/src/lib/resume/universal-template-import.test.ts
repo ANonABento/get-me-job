@@ -5,6 +5,10 @@ import {
   inferResumeSemanticIR,
   semanticIRToTailoredResume,
 } from "@/lib/resume/universal-template-import";
+import {
+  buildReusableResumeTemplateIR,
+  renderReusableResumeTemplateHTML,
+} from "@/lib/resume/universal-template-renderer";
 import type { SourceDocumentIR } from "@/lib/resume/template-migration";
 
 describe("universal template import analysis", () => {
@@ -239,6 +243,48 @@ describe("universal template import analysis", () => {
       style: "solid",
     });
     expect(tokens.layout.dateAlignment?.value).toBe("right-column");
+  });
+
+  it("renders semantic resume data through a reusable component template", () => {
+    const source: SourceDocumentIR = {
+      sourceType: "docx",
+      filename: "component-resume.docx",
+      pages: [{ id: "page-1", number: 1, widthPt: 612, heightPt: 792 }],
+      rawText: "",
+      diagnostics: [],
+      blocks: [
+        styledBlock("b1", "Taylor Kim", {
+          fontSizePt: 24,
+          bold: true,
+          color: "#111111",
+        }),
+        styledBlock("b2", "taylor@example.com", { fontSizePt: 9 }),
+        styledBlock("b3", "EXPERIENCE", {
+          fontSizePt: 11,
+          bold: true,
+          color: "#7c3aed",
+        }),
+        tableRow("b4", ["Staff Engineer", "Orbit Labs", "2022 - Present"]),
+        bulletRow("b5", "Created a configurable resume renderer"),
+        bulletRow("b6", "Added semantic template review artifacts"),
+      ],
+    };
+    const semantic = inferResumeSemanticIR(source);
+    const tokens = inferImportedTemplateStyleTokens(source);
+    const template = buildReusableResumeTemplateIR(semantic, tokens);
+    const html = renderReusableResumeTemplateHTML(semantic, template);
+
+    expect(template.schemaVersion).toBe(4);
+    expect(template.components.map((component) => component.kind)).toEqual([
+      "HeaderBlock",
+      "Section",
+    ]);
+    expect(template.sectionOrder).toEqual(["experience"]);
+    expect(html).toContain("Taylor Kim");
+    expect(html).toContain("Staff Engineer");
+    expect(html).toContain("Orbit Labs");
+    expect(html).toContain("Created a configurable resume renderer");
+    expect(html).toContain("color: #7c3aed");
   });
 });
 

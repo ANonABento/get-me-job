@@ -15,6 +15,10 @@ import {
   inferImportedTemplateStyleTokens,
   inferResumeSemanticIR,
 } from "@/lib/resume/universal-template-import";
+import {
+  buildReusableResumeTemplateIR,
+  renderReusableResumeTemplateHTML,
+} from "@/lib/resume/universal-template-renderer";
 
 interface Args {
   source: string;
@@ -47,12 +51,25 @@ async function main() {
   const universalAnalysis = analyzeUniversalTemplateImport(draft.source);
   const semanticResume = inferResumeSemanticIR(draft.source);
   const styleTokens = inferImportedTemplateStyleTokens(draft.source);
+  const reusableTemplate = buildReusableResumeTemplateIR(
+    semanticResume,
+    styleTokens,
+  );
+  const reusableHtml = renderReusableResumeTemplateHTML(
+    semanticResume,
+    reusableTemplate,
+  );
   writeJson(
     path.join(args.outDir, "universal-template-analysis.json"),
     universalAnalysis,
   );
   writeJson(path.join(args.outDir, "semantic-resume-ir.json"), semanticResume);
   writeJson(path.join(args.outDir, "style-tokens.json"), styleTokens);
+  writeJson(
+    path.join(args.outDir, "reusable-template-ir.json"),
+    reusableTemplate,
+  );
+  writeFileSync(path.join(args.outDir, "reusable.html"), reusableHtml);
 
   const referencePath = resolveReferencePath(sourcePath, args.reference);
   const referenceImagePath = referencePath
@@ -105,6 +122,8 @@ async function main() {
     universalAnalysis,
     semanticResume,
     styleTokens,
+    reusableTemplate,
+    reusableHtmlPath: path.join(args.outDir, "reusable.html"),
     reports: reports.map(
       ({ mode, report, htmlPath, screenshotPath, imageComparison }) => ({
         mode,
