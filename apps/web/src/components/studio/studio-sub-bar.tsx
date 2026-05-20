@@ -310,6 +310,7 @@ export function StudioSubBar({
         open={templateManagerOpen}
         onOpenChange={setTemplateManagerOpen}
         onTemplatesChanged={onTemplatesChanged}
+        onTemplateSelected={onTemplateSelect}
         onTemplateImported={
           onTemplateImported ?? ((id) => onTemplateSelect(id))
         }

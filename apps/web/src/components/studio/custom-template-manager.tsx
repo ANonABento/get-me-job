@@ -50,6 +50,7 @@ interface CustomTemplateManagerProps {
     templateId: string,
     resume: TailoredResume,
   ) => void | Promise<void>;
+  onTemplateSelected?: (templateId: string) => void | Promise<void>;
 }
 
 type TemplateMigrationSlotPath =
@@ -310,6 +311,7 @@ export function CustomTemplateManagerDialog({
   open,
   onOpenChange,
   onTemplatesChanged,
+  onTemplateSelected,
 }: CustomTemplateManagerProps) {
   const { addToast } = useToast();
   const migrationInputRef = useRef<HTMLInputElement>(null);
@@ -853,6 +855,16 @@ export function CustomTemplateManagerDialog({
     }
   }
 
+  async function handleUseTemplate(templateId: string) {
+    await onTemplateSelected?.(templateId);
+    addToast({
+      type: "success",
+      title: "Template selected",
+      description: "New resume content will use this saved template.",
+    });
+    onOpenChange(false);
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92dvh] max-w-[1120px] overflow-hidden p-0">
@@ -1167,6 +1179,7 @@ export function CustomTemplateManagerDialog({
               onDraftNameChange={setDraftName}
               onDraftDescriptionChange={setDraftDescription}
               onSaveMetadata={handleSaveMetadata}
+              onUseTemplate={handleUseTemplate}
               onDelete={handleDelete}
             />
           ) : null}
@@ -1652,6 +1665,7 @@ function SavedTemplateList({
   onDraftNameChange,
   onDraftDescriptionChange,
   onSaveMetadata,
+  onUseTemplate,
   onDelete,
 }: {
   loading: boolean;
@@ -1665,6 +1679,7 @@ function SavedTemplateList({
   onDraftNameChange: (value: string) => void;
   onDraftDescriptionChange: (value: string) => void;
   onSaveMetadata: (templateId: string) => void | Promise<void>;
+  onUseTemplate: (templateId: string) => void | Promise<void>;
   onDelete: (templateId: string) => void | Promise<void>;
 }) {
   return (
@@ -1752,15 +1767,25 @@ function SavedTemplateList({
                     </Button>
                   </>
                 ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onEdit(template)}
-                  >
-                    <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                    Edit
-                  </Button>
+                  <>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => void onUseTemplate(template.id)}
+                    >
+                      <FileText className="mr-1.5 h-3.5 w-3.5" />
+                      Use
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onEdit(template)}
+                    >
+                      <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                      Edit
+                    </Button>
+                  </>
                 )}
                 <Button
                   type="button"

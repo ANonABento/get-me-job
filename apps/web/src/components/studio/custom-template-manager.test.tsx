@@ -222,6 +222,46 @@ describe("CustomTemplateManagerDialog", () => {
     expect(onTemplateImported).not.toHaveBeenCalled();
   });
 
+  it("selects a saved reusable template without importing source resume content", async () => {
+    const onOpenChange = vi.fn();
+    const onTemplateSelected = vi.fn();
+    const onTemplateImported = vi.fn();
+    const fetchMock = vi.fn(async () =>
+      Response.json({
+        templates: [
+          {
+            id: "saved-v4-template",
+            name: "Saved V4",
+            description: "Reusable imported template",
+            type: "custom",
+            schemaVersion: 4,
+            sourceFilename: "resume.docx",
+            sourceType: "docx",
+          },
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderDialog({
+      onOpenChange,
+      onTemplateImported,
+      onTemplateSelected,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Saved V4")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Use" }));
+
+    expect(onTemplateSelected).toHaveBeenCalledWith("saved-v4-template");
+    expect(onTemplateImported).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
+  });
+
   it("blocks saving a low-fidelity visual template", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);

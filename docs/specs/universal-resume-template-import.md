@@ -778,3 +778,5 @@ Known remaining gaps:
 - Reopened Studio previews now pass the resolved saved custom template into the
   editable resume preview, so the editor does not fall back to built-in styling
   when a saved V4 template id is selected.
+- The custom-template manager now has a direct saved-template "Use" action that
+  selects a reusable template without importing the source resume content.
