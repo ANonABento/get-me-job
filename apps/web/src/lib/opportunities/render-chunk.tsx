@@ -31,6 +31,7 @@ import {
   formatOpportunityPay,
   type CurrencyRateMap,
 } from "@/lib/opportunities/pay";
+import { pluralize } from "@/lib/text/pluralize";
 import type { Opportunity } from "@/types/opportunity";
 import type { ChunkKey } from "./layout-chunks";
 
@@ -103,22 +104,18 @@ export function RenderChunk({
       ) : null;
 
     case "applicants":
+      // audit/18: use the canonical pluralize helper (CLAUDE.md rule)
+      // instead of inline ternary. Same output, central rule.
       return typeof opportunity.applicants === "number" ? (
         <MetaChip
           tone={applicantTone(opportunity.applicants)}
-          label={`${opportunity.applicants} applicant${
-            opportunity.applicants === 1 ? "" : "s"
-          }`}
+          label={pluralize(opportunity.applicants, "applicant")}
         />
       ) : null;
 
     case "openings":
       return typeof opportunity.openings === "number" ? (
-        <MetaChip
-          label={`${opportunity.openings} opening${
-            opportunity.openings === 1 ? "" : "s"
-          }`}
-        />
+        <MetaChip label={pluralize(opportunity.openings, "opening")} />
       ) : null;
 
     case "work-term":
