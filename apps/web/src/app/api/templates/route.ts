@@ -47,13 +47,17 @@ const patchTemplateSchema = z
     },
   );
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const authResult = await requireAuth();
   if (isAuthError(authResult)) return authResult;
 
   try {
+    const includeLegacy =
+      request.nextUrl.searchParams.get("includeLegacy") === "true";
     const reusableRows = listReusableResumeTemplates(authResult.userId);
-    const documentTemplateV3Rows = listDocumentTemplatesV3(authResult.userId);
+    const documentTemplateV3Rows = includeLegacy
+      ? listDocumentTemplatesV3(authResult.userId)
+      : [];
     const reusableTemplates = Array.isArray(reusableRows) ? reusableRows : [];
     const documentTemplatesV3 = Array.isArray(documentTemplateV3Rows)
       ? documentTemplateV3Rows
@@ -98,6 +102,7 @@ export async function GET() {
       sourceType: t.sourceType,
       schemaVersion: t.template.schemaVersion,
       documentTemplateV3: t.template,
+      legacy: true,
       createdAt: t.createdAt,
       updatedAt: t.updatedAt,
     }));

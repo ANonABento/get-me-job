@@ -325,7 +325,7 @@ export function CustomTemplateManagerDialog({
   async function refresh() {
     setLoading(true);
     try {
-      const response = await fetch("/api/templates");
+      const response = await fetch("/api/templates?includeLegacy=true");
       if (!response.ok) throw new Error("Failed to load templates");
       const data = (await response.json()) as TemplatesApiResponse;
       setTemplates((data.templates ?? []).filter((t) => t.type === "custom"));

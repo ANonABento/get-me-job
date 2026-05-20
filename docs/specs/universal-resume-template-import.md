@@ -375,8 +375,15 @@ Reference resemblance is a diagnostic score, not the main pass/fail gate.
 
 - Remove or hide legacy generic template paths that conflict with semantic
   templates.
-- Ensure the template dropdown only surfaces saved reusable templates.
+- Ensure the template dropdown only surfaces built-in templates and saved
+  `schemaVersion: 4` reusable custom templates.
+- Keep legacy `schemaVersion: 3` visual templates out of normal selection
+  lists by default.
+- Allow explicit legacy listing only for management/debug views that need to
+  delete, rename, or inspect existing V3 templates.
 - Keep migration compatibility for existing saved templates.
+- Keep direct render/export compatibility for already-selected V3 template ids
+  so old documents do not break.
 - Commit `schemaVersion: 4` reusable templates as the preferred saved template
   type once the review UI can edit sections and style tokens.
 
