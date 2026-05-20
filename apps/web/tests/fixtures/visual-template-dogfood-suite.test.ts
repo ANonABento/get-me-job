@@ -170,6 +170,32 @@ describe("visual template dogfood suite scorecards", () => {
     expect(scorecard.gateFailures).toContain("style:expected-traits");
     expect(scorecard.matchedStyleTraits).not.toContain("links/icons");
   });
+
+  it("fails when reusable sections have no renderable child components", () => {
+    const scorecard = scoreCase(
+      {
+        ...genericSummary(),
+        reusableTemplate: {
+          sectionOrder: ["experience"],
+          components: [{ kind: "HeaderBlock" }, { kind: "Section" }],
+        },
+      },
+      {
+        name: "empty-section-shell",
+        source: "resume.pdf",
+        fixtureClass: "one-page engineering resume",
+        expectedSections: ["experience"],
+        expectedStyleTraits: ["section-headings"],
+      },
+    );
+
+    expect(scorecard.pass).toBe(false);
+    expect(scorecard.gateFailures).toContain("render:missing-components");
+    expect(scorecard.reusableComponentKinds).toEqual([
+      "HeaderBlock",
+      "Section",
+    ]);
+  });
 });
 
 function genericSummary() {
@@ -207,7 +233,20 @@ function genericSummary() {
     },
     reusableTemplate: {
       sectionOrder: ["experience", "education", "skills"],
-      components: [{ kind: "HeaderBlock" }, { kind: "Section" }],
+      components: [
+        { kind: "HeaderBlock" },
+        {
+          kind: "Section",
+          components: [
+            { kind: "SectionHeading" },
+            { kind: "EntryList", itemComponent: { kind: "Entry" } },
+          ],
+        },
+        {
+          kind: "Section",
+          components: [{ kind: "SectionHeading" }, { kind: "SkillList" }],
+        },
+      ],
     },
     reports: [
       {

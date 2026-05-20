@@ -729,8 +729,10 @@ As of the latest implementation slice, the system has:
 - Dogfood scorecards now gate source coverage, stress page overflow, reusable
   component completeness, expected section coverage, and expected
   visual-family trait coverage, including contact link/icon recovery for
-  link-heavy fixtures, with failures bucketed by pipeline stage. The strict
-  fixture suite currently passes with scorecards enforced.
+  link-heavy fixtures, with failures bucketed by pipeline stage. Reusable
+  component completeness now inspects nested component kinds, not just top-level
+  section shells. The strict fixture suite currently passes with scorecards
+  enforced.
 - A reusable renderer that consumes section order and entry component settings
   for header fields and bullet-vs-paragraph achievement rendering. During
   migration, V4 reusable artifacts now infer bullet-vs-paragraph achievement
@@ -800,6 +802,8 @@ Known remaining gaps:
   visible source text is only a generic link label.
 - V4 reusable templates model skills with a dedicated `SkillList` component so
   newly generated or edited skill arrays reflow without entry-header markup.
+- Dogfood scorecards require reusable templates to include renderable nested
+  component kinds such as `SectionHeading` plus `EntryList` or `SkillList`.
 - App review mismatch reports now expose the same gate model as the lab:
   extraction, semantic, style, render, and app wiring statuses with review
   actions.

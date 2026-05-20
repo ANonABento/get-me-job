@@ -235,9 +235,16 @@ export function scoreCase(summary: Record<string, unknown>, item: SuiteCase) {
   const reusableSectionCount = Array.isArray(reusableTemplate.sectionOrder)
     ? reusableTemplate.sectionOrder.length
     : 0;
-  const reusableComponentCount = Array.isArray(reusableTemplate.components)
-    ? reusableTemplate.components.length
-    : 0;
+  const reusableComponentKinds = reusableComponentKindList(reusableTemplate);
+  const reusableComponentCount = reusableComponentKinds.length;
+  const hasReusableSectionBody =
+    reusableComponentKinds.includes("EntryList") ||
+    reusableComponentKinds.includes("SkillList");
+  const hasRequiredReusableComponents =
+    reusableComponentKinds.includes("HeaderBlock") &&
+    reusableComponentKinds.includes("Section") &&
+    reusableComponentKinds.includes("SectionHeading") &&
+    hasReusableSectionBody;
   const reports = Array.isArray(summary.reports) ? summary.reports : [];
   const stressReport = reports.find(
     (report) => isRecord(report) && report.mode === "stress",
@@ -293,7 +300,7 @@ export function scoreCase(summary: Record<string, unknown>, item: SuiteCase) {
     ...(sourceCoverage < 0.45 ? ["extraction:source-coverage"] : []),
     ...(stressPageOverflow > 0 ? ["render:page-overflow"] : []),
     ...(reusableSectionCount === 0 ? ["render:missing-sections"] : []),
-    ...(reusableComponentCount < 2 ? ["render:missing-components"] : []),
+    ...(!hasRequiredReusableComponents ? ["render:missing-components"] : []),
   ];
   const pass =
     sectionCoverage >= 0.75 &&
@@ -303,7 +310,7 @@ export function scoreCase(summary: Record<string, unknown>, item: SuiteCase) {
     layoutResilience >= 0.7 &&
     sourceCoverage >= 0.45 &&
     reusableSectionCount > 0 &&
-    reusableComponentCount >= 2;
+    hasRequiredReusableComponents;
 
   return {
     fixtureClass: item.fixtureClass ?? item.fixtureClasses?.[0] ?? "ad-hoc",
@@ -325,6 +332,7 @@ export function scoreCase(summary: Record<string, unknown>, item: SuiteCase) {
     matchedStyleTraits: styleTraitMatches,
     reusableSectionCount,
     reusableComponentCount,
+    reusableComponentKinds,
     gateFailures,
     failureAreas: [
       ...new Set(gateFailures.map((failure) => failure.split(":")[0])),
@@ -348,11 +356,35 @@ export function scoreCase(summary: Record<string, unknown>, item: SuiteCase) {
       ...(reusableSectionCount === 0
         ? ["No reusable sections generated."]
         : []),
-      ...(reusableComponentCount < 2
+      ...(!hasRequiredReusableComponents
         ? ["Reusable component model is incomplete."]
         : []),
     ],
   };
+}
+
+function reusableComponentKindList(
+  reusableTemplate: Record<string, unknown>,
+): string[] {
+  const kinds: string[] = [];
+  const visit = (component: unknown) => {
+    if (!isRecord(component)) return;
+    const kind = String(component.kind ?? "");
+    if (kind) kinds.push(kind);
+    for (const child of [
+      ...(Array.isArray(component.components) ? component.components : []),
+      ...(Array.isArray(component.children) ? component.children : []),
+    ]) {
+      visit(child);
+    }
+    visit(component.itemComponent);
+  };
+  for (const component of Array.isArray(reusableTemplate.components)
+    ? reusableTemplate.components
+    : []) {
+    visit(component);
+  }
+  return kinds;
 }
 
 function hasExpectedStyleTrait(
@@ -441,9 +473,13 @@ function hasExpectedStyleTrait(
   }
   if (normalized === "custom-sections") {
     return detectedSectionTypes(semanticResume).some((sectionType) =>
-      ["custom", "projects", "publications", "certifications", "awards"].includes(
-        sectionType,
-      ),
+      [
+        "custom",
+        "projects",
+        "publications",
+        "certifications",
+        "awards",
+      ].includes(sectionType),
     );
   }
   if (normalized === "chronology" || normalized === "date-variants") {
@@ -1075,7 +1111,7 @@ function renderLabHtml(
         metric("Gate coverage", item.scorecard ? pct(item.scorecard.scores.sourceCoverage) : "-", item.scorecard && item.scorecard.scores.sourceCoverage < .45 ? "warn" : "good"),
         metric("Suite gate", item.scorecard ? (item.scorecard.pass ? "PASS" : "REVIEW") : "-", item.scorecard && item.scorecard.pass ? "good" : "warn"),
         metric("Reusable sections", item.reusableTemplate ? item.reusableTemplate.sectionOrder.length : "-", item.reusableTemplate && !item.reusableTemplate.sectionOrder.length ? "warn" : "good"),
-        metric("Reusable components", item.reusableTemplate ? item.reusableTemplate.components.length : "-", item.reusableTemplate && item.reusableTemplate.components.length < 2 ? "warn" : "good"),
+        metric("Reusable components", item.scorecard ? item.scorecard.reusableComponentCount : (item.reusableTemplate ? item.reusableTemplate.components.length : "-"), item.scorecard && item.scorecard.gateFailures && item.scorecard.gateFailures.includes("render:missing-components") ? "warn" : "good"),
         metric("Image diff", comparison ? num(comparison.meanAbsoluteDiff) : "-", comparison && comparison.meanAbsoluteDiff > 32 ? "bad" : "good"),
         metric("Changed pixels", comparison ? pct(comparison.changedPixelRatio) : "-", comparison && comparison.changedPixelRatio > .42 ? "bad" : "good"),
       ].join("");
