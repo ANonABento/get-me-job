@@ -728,7 +728,8 @@ As of the latest implementation slice, the system has:
 - A strict visual dogfood suite with all required fixture classes covered.
 - Dogfood scorecards now gate source coverage, stress page overflow, reusable
   component completeness, expected section coverage, and expected
-  visual-family trait coverage, with failures bucketed by pipeline stage.
+  visual-family trait coverage, with failures bucketed by pipeline stage. The
+  strict fixture suite currently passes with scorecards enforced.
 - A reusable renderer that consumes section order and entry component settings
   for header fields and bullet-vs-paragraph achievement rendering.
 - Basic semantic review controls for section type/title correction and moving
@@ -775,6 +776,9 @@ Known remaining gaps:
   reusable table-row matching was made token-aware, body typography inference
   stopped reusing name-sized text, and sub-pixel page-height rounding stopped
   counting as page overflow.
+- Current manifest scorecards pass under `--strict-scorecards`; visual
+  no-bullet traits are checked against source evidence rather than semantic
+  achievement modeling.
 - App review mismatch reports now expose the same gate model as the lab:
   extraction, semantic, style, render, and app wiring statuses with review
   actions.

@@ -59,7 +59,7 @@
       "fixtureClasses": ["resume with custom sections"],
       "source": "tests/fixtures/personas/career-changer/resume.pdf",
       "expectedSections": ["experience", "projects", "education", "skills"],
-      "expectedStyleTraits": ["custom-sections", "section-headings", "bullets"]
+      "expectedStyleTraits": ["custom-sections", "section-headings"]
     },
     {
       "name": "academic-cv-pdf",

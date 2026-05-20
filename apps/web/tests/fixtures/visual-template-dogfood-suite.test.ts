@@ -86,6 +86,70 @@ describe("visual template dogfood suite scorecards", () => {
       ]),
     );
   });
+
+  it("scores no-bullet traits from source visual evidence instead of semantic bullets", () => {
+    const scorecard = scoreCase(
+      {
+        ...genericSummary(),
+        sourceIr: {
+          blocks: [
+            { type: "paragraph", text: "Improved reporting workflows." },
+            { type: "paragraph", text: "Coordinated vendor planning." },
+          ],
+        },
+        semanticResume: {
+          contact: {},
+          sections: [
+            {
+              type: "experience",
+              items: [
+                {
+                  dateRange: "2024 - Present",
+                  bullets: ["Improved reporting workflows."],
+                },
+              ],
+            },
+            { type: "education", items: [{ dateRange: "2020 - 2024" }] },
+            { type: "projects", items: [{ primary: "Planning system" }] },
+            { type: "skills", items: [{ primary: "Operations" }] },
+          ],
+        },
+      },
+      {
+        name: "no-bullets-pdf",
+        source: "resume.pdf",
+        fixtureClass: "resume with no bullets",
+        expectedSections: ["experience", "education", "projects", "skills"],
+        expectedStyleTraits: ["paragraph-style", "no-bullets", "plain-text"],
+      },
+    );
+
+    expect(scorecard.pass).toBe(true);
+    expect(scorecard.matchedStyleTraits).toEqual([
+      "paragraph-style",
+      "no-bullets",
+      "plain-text",
+    ]);
+  });
+
+  it("treats extra semantic sections as custom-section style evidence", () => {
+    const scorecard = scoreCase(
+      genericSummary(),
+      {
+        name: "career-changer-pdf",
+        source: "resume.pdf",
+        fixtureClass: "resume with custom sections",
+        expectedSections: ["experience", "education", "projects", "skills"],
+        expectedStyleTraits: ["custom-sections", "section-headings"],
+      },
+    );
+
+    expect(scorecard.pass).toBe(true);
+    expect(scorecard.matchedStyleTraits).toEqual([
+      "custom-sections",
+      "section-headings",
+    ]);
+  });
 });
 
 function genericSummary() {
@@ -112,6 +176,7 @@ function genericSummary() {
           items: [{ dateRange: "2024 - Present", bullets: ["Built tools."] }],
         },
         { type: "education", items: [{ dateRange: "2020 - 2024" }] },
+        { type: "projects", items: [{ primary: "Migration Viewer" }] },
         { type: "skills", items: [{ primary: "TypeScript" }] },
       ],
     },

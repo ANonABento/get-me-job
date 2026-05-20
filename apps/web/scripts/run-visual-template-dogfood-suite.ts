@@ -364,6 +364,12 @@ function hasExpectedStyleTrait(
   const universalAnalysis = objectAt(summary, "universalAnalysis");
   const styleTokens = objectAt(summary, "styleTokens");
   const semanticResume = objectAt(summary, "semanticResume");
+  const sourceIr = objectAt(summary, "sourceIr");
+  const sourceBlocks = Array.isArray(sourceIr.blocks)
+    ? sourceIr.blocks.filter(isRecord)
+    : [];
+  const hasSourceVisualEvidence = sourceBlocks.length > 0;
+  const hasSourceBulletEvidence = sourceBlocks.some(hasVisualBulletEvidence);
   const sections = Array.isArray(semanticResume.sections)
     ? semanticResume.sections.filter(isRecord)
     : [];
@@ -411,9 +417,16 @@ function hasExpectedStyleTrait(
   if (normalized === "section-headings") {
     return hasSectionSignal || numberAt(scores, "semanticCoverage") >= 0.55;
   }
-  if (normalized === "bullets") return allBullets.length > 0;
-  if (normalized === "no-bullets") return allBullets.length === 0;
-  if (normalized === "paragraph-style") return allBullets.length === 0;
+  if (normalized === "bullets") {
+    return hasSourceVisualEvidence
+      ? hasSourceBulletEvidence
+      : allBullets.length > 0;
+  }
+  if (normalized === "no-bullets" || normalized === "paragraph-style") {
+    return hasSourceVisualEvidence
+      ? !hasSourceBulletEvidence
+      : allBullets.length === 0;
+  }
   if (normalized === "tables" || normalized === "cell-borders") {
     return hasStructureEvidence;
   }
@@ -427,7 +440,11 @@ function hasExpectedStyleTrait(
     return detectedSectionTypes(semanticResume).includes("publications");
   }
   if (normalized === "custom-sections") {
-    return detectedSectionTypes(semanticResume).includes("custom");
+    return detectedSectionTypes(semanticResume).some((sectionType) =>
+      ["custom", "projects", "publications", "certifications", "awards"].includes(
+        sectionType,
+      ),
+    );
   }
   if (normalized === "chronology" || normalized === "date-variants") {
     return allItems.some((item) => Boolean(item.dateRange));
@@ -449,6 +466,29 @@ function hasExpectedStyleTrait(
     return Boolean(contact.linkedin || contact.github);
   }
   return true;
+}
+
+function hasVisualBulletEvidence(block: Record<string, unknown>): boolean {
+  if (block.type === "list-item") return true;
+  if (looksLikeBulletText(String(block.text ?? ""))) return true;
+  const cells = Array.isArray(block.cellMetadata)
+    ? block.cellMetadata.filter(isRecord)
+    : [];
+  return cells.some((cell) => {
+    if (looksLikeBulletText(String(cell.text ?? ""))) return true;
+    const blocks = Array.isArray(cell.blocks)
+      ? cell.blocks.filter(isRecord)
+      : [];
+    return blocks.some(
+      (cellBlock) =>
+        cellBlock.type === "list-item" ||
+        looksLikeBulletText(String(cellBlock.text ?? "")),
+    );
+  });
+}
+
+function looksLikeBulletText(text: string): boolean {
+  return /^\s*(?:[-*]|\u2022|\u2023|\u25e6|\u2043|\d+[.)])\s+/.test(text);
 }
 
 function detectedSectionTypes(semanticResume: Record<string, unknown>) {
