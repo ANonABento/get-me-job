@@ -533,8 +533,7 @@ function inferColorTokens(
         .map((item) => item.color)
         .filter((color) => color !== bodyColor),
     );
-  const fallbackBody =
-    bodyColor ?? mostCommon(styleColors.map((item) => item.color));
+  const fallbackBody = bodyColor ?? "#111111";
 
   return {
     accent: accentColor
@@ -1571,6 +1570,9 @@ function detectStyleSignals(
   const sectionRefs = new Set(
     sections.flatMap((section) => section.evidenceRefs),
   );
+  const firstSectionIndex = blocks.findIndex((block) =>
+    sectionRefs.has(block.id),
+  );
   const sectionBlock = blocks.find((block) => sectionRefs.has(block.id));
   if (sectionBlock && effectiveBlockStyle(sectionBlock)) {
     signals.push(styleSignal("sectionHeading", sectionBlock, 0.85));
@@ -1580,9 +1582,16 @@ function detectStyleSignals(
   if (entryTitle) signals.push(styleSignal("entryTitle", entryTitle, 0.66));
 
   const body = representativeStyledBlock(
-    blocks.filter((block) => !sectionRefs.has(block.id)),
+    blocks.filter(
+      (block, index) =>
+        !sectionRefs.has(block.id) &&
+        (firstSectionIndex < 0 || index > firstSectionIndex) &&
+        !isContactLike(block.text),
+    ),
   );
-  if (body) signals.push(styleSignal("body", body, 0.8));
+  if (body && (source.sourceType !== "tex" || effectiveBlockStyle(body))) {
+    signals.push(styleSignal("body", body, 0.8));
+  }
 
   const metadata = blocks.find(
     (block) =>
@@ -1761,7 +1770,12 @@ function representativeStyledBlock(
   const styled = blocks.filter(
     (block) => effectiveBlockStyle(block)?.fontSizePt,
   );
-  if (!styled.length) return blocks.find((block) => effectiveBlockStyle(block));
+  if (!styled.length) {
+    return (
+      blocks.find((block) => effectiveBlockStyle(block)) ??
+      blocks.find((block) => block.text.trim())
+    );
+  }
   return styled.sort(
     (a, b) =>
       (effectiveBlockStyle(a)?.fontSizePt ?? 0) -

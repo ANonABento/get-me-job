@@ -469,11 +469,13 @@ async function measureRenderedTemplate(
             }
           >;
           sourceLines: string[];
+          pageHeightPx: number;
         },
       ) => {
         const ptToPx = 4 / 3;
         const overflowTolerancePx = 2.5;
-        const { candidateSelector, sourceBoxes, sourceLines } = input;
+        const { candidateSelector, sourceBoxes, sourceLines, pageHeightPx } =
+          input;
         const normalizeBrowserLines = (text: string) =>
           text
             .split(/\r?\n/)
@@ -593,7 +595,10 @@ async function measureRenderedTemplate(
           },
           estimatedPages: Math.max(
             1,
-            Math.ceil(rootElement.scrollHeight / Math.max(1, rootRect.height)),
+            Math.ceil(
+              (rootElement.scrollHeight - overflowTolerancePx) /
+                Math.max(1, pageHeightPx || rootRect.height),
+            ),
           ),
           visibleTextBlockCount: visibleTextBlocks.length,
           renderedLineCount: renderedLines.length,
@@ -620,7 +625,12 @@ async function measureRenderedTemplate(
           },
         };
       },
-      { candidateSelector, sourceBoxes, sourceLines },
+      {
+        candidateSelector,
+        sourceBoxes,
+        sourceLines,
+        pageHeightPx: (pageInfo?.heightPt ?? 792) * (4 / 3),
+      },
     )) as VisualTemplateRenderMetrics;
     if (screenshotPath) {
       await page.locator(rootSelector).screenshot({ path: screenshotPath });

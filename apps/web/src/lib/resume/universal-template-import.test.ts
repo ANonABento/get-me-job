@@ -302,6 +302,89 @@ describe("universal template import analysis", () => {
     );
   });
 
+  it("does not reuse name typography as body text for DOCX table resumes", () => {
+    const source: SourceDocumentIR = {
+      sourceType: "docx",
+      filename: "table-style-clusters.docx",
+      pages: [
+        {
+          id: "page-1",
+          number: 1,
+          widthPt: 595.3,
+          heightPt: 841.9,
+          margins: {
+            top: "72pt",
+            right: "72pt",
+            bottom: "72pt",
+            left: "72pt",
+          },
+        },
+      ],
+      rawText: "",
+      diagnostics: [],
+      blocks: [
+        styledBlock("b1", "Alex Rivera", {
+          fontSizePt: 28,
+          styleId: "Title",
+        }),
+        styledBlock("b2", "alex@example.com | Toronto, ON", {}),
+        styledBlock("b3", "EXPERIENCE", {
+          fontSizePt: 16,
+          color: "#2E74B5",
+          styleId: "Heading1",
+        }),
+        {
+          ...tableRow("b4", [
+            "Senior Platform Engineer",
+            "Northstar Labs",
+            "Jan 2022 - Present",
+            "Toronto, ON",
+          ]),
+          cellMetadata: [
+            "Senior Platform Engineer",
+            "Northstar Labs",
+            "Jan 2022 - Present",
+            "Toronto, ON",
+          ].map((text, index) => ({
+            text,
+            alignment: index >= 2 ? "right" : "left",
+            blocks: [
+              {
+                id: `b4-cell-${index + 1}`,
+                type: "paragraph",
+                text,
+                style: { bold: false },
+                runs: [{ text, style: { bold: false } }],
+              },
+            ],
+          })),
+        },
+        styledBlock(
+          "b5",
+          "Built release tooling with typed React workflows",
+          {},
+        ),
+      ],
+    };
+
+    const semantic = inferResumeSemanticIR(source);
+    const tokens = inferImportedTemplateStyleTokens(source);
+    const template = buildReusableResumeTemplateIR(semantic, tokens);
+    const html = renderReusableResumeTemplateHTML(semantic, template);
+
+    expect(tokens.typography.name?.fontSizePt).toBe(28);
+    expect(tokens.typography.body?.evidenceRefs).not.toContain("b1");
+    expect(tokens.typography.body?.fontSizePt).not.toBe(28);
+    expect(tokens.typography.entryTitle?.fontSizePt).not.toBe(28);
+    expect(tokens.color.body?.value).toBe("#111111");
+    expect(tokens.color.accent?.value).toBe("#2E74B5");
+    expect(html).toContain("body { margin: 0");
+    expect(html).toContain("font-size: 10pt");
+    expect(html).not.toContain(
+      ".rt-entry-head strong { font-family: Arial, sans-serif; font-size: 28pt",
+    );
+  });
+
   it("renders semantic resume data through a reusable component template", () => {
     const source: SourceDocumentIR = {
       sourceType: "docx",

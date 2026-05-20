@@ -77,4 +77,36 @@ describe("template visual verification", () => {
       ]),
     );
   });
+
+  it("does not count sub-pixel page-height rounding as page overflow", async () => {
+    const source: SourceDocumentIR = {
+      sourceType: "docx",
+      filename: "a4-resume.docx",
+      pages: [{ id: "page-1", number: 1, widthPt: 595.3, heightPt: 841.9 }],
+      rawText: "Alex Rivera",
+      blocks: [
+        {
+          id: "block-1",
+          pageId: "page-1",
+          type: "paragraph",
+          text: "Alex Rivera",
+        },
+      ],
+      diagnostics: [],
+    };
+    const html = `
+      <article class="resume-template" style="width:595.3pt;min-height:841.9pt;padding:0">
+        <h1>Alex Rivera</h1>
+      </article>
+    `;
+
+    const report = await verifyReusableTemplateRender({ html, source });
+
+    expect(report.render.estimatedPages).toBe(1);
+    expect(report.findings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "page-overflow" }),
+      ]),
+    );
+  });
 });
