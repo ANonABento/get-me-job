@@ -385,29 +385,93 @@ function renderSection(
     (candidate) => candidate.type === component.sectionType,
   );
   if (!section?.items.length) return "";
+  const children = component.components.length
+    ? component.components
+    : defaultSectionChildren(component);
+  const body = children
+    .map((child) => {
+      if (child.kind === "SectionHeading") {
+        return `<h2>${escapeHtml(child.title)}</h2>`;
+      }
+      return `<div class="rt-items">
+      ${section.items
+        .map((item) => renderEntry(item, child.itemComponent))
+        .join("\n")}
+    </div>`;
+    })
+    .filter(Boolean)
+    .join("\n");
   return `<section class="rt-section rt-section-${component.sectionType}">
-    <h2>${escapeHtml(component.title)}</h2>
-    <div class="rt-items">
-      ${section.items.map((item) => renderEntry(item)).join("\n")}
-    </div>
+    ${body}
   </section>`;
 }
 
-function renderEntry(item: SemanticSection["items"][number]): string {
-  const meta = [...item.meta, item.location].filter(Boolean).join(" | ");
-  const secondary = [item.secondary, meta].filter(Boolean).join(" — ");
+function defaultSectionChildren(
+  component: SectionComponent,
+): SectionChildComponent[] {
+  return [
+    {
+      kind: "SectionHeading",
+      id: `${component.id}-heading`,
+      title: component.title,
+    },
+    {
+      kind: "EntryList",
+      id: `${component.id}-items`,
+      itemComponent: defaultEntryComponent(component.id),
+    },
+  ];
+}
+
+function defaultEntryComponent(id: string): EntryComponent {
+  return {
+    kind: "Entry",
+    id: `${id}-entry`,
+    header: {
+      primary: true,
+      secondary: true,
+      meta: true,
+      dateRange: true,
+    },
+    bulletList: true,
+  };
+}
+
+function renderEntry(
+  item: SemanticSection["items"][number],
+  component: EntryComponent,
+): string {
+  const meta = component.header.meta
+    ? [...item.meta, item.location].filter(Boolean).join(" | ")
+    : "";
+  const secondary = [component.header.secondary ? item.secondary : "", meta]
+    .filter(Boolean)
+    .join(" — ");
+  const bullets = item.bullets.filter((bullet) => bullet.trim());
   return `<section class="rt-entry">
     <div class="rt-entry-head">
       <div>
-        <strong>${escapeHtml(item.primary)}</strong>
+        ${
+          component.header.primary
+            ? `<strong>${escapeHtml(item.primary)}</strong>`
+            : ""
+        }
         ${secondary ? `<span>${escapeHtml(secondary)}</span>` : ""}
       </div>
-      ${item.dateRange ? `<time>${escapeHtml(item.dateRange)}</time>` : ""}
+      ${
+        component.header.dateRange && item.dateRange
+          ? `<time>${escapeHtml(item.dateRange)}</time>`
+          : ""
+      }
     </div>
     ${
-      item.bullets.length
-        ? `<ul>${item.bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join("")}</ul>`
-        : ""
+      bullets.length && component.bulletList
+        ? `<ul>${bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join("")}</ul>`
+        : bullets.length
+          ? `<div class="rt-entry-lines">${bullets
+              .map((bullet) => `<p>${escapeHtml(bullet)}</p>`)
+              .join("")}</div>`
+          : ""
     }
   </section>`;
 }
@@ -447,6 +511,8 @@ body { margin: 0; background: #f4f4f5; color: ${bodyColor}; font-family: ${fontF
 .rt-entry-head time { white-space: nowrap; text-align: right; font-size: ${pt(metadata?.fontSizePt, 9)}; color: ${metadata?.color ?? bodyColor}; }
 .rt-entry ul { margin: 2pt 0 0 13pt; padding: 0; }
 .rt-entry li { margin: 0 0 ${pt(tokens.spacing.bulletGapPt?.value, 1.5)}; }
+.rt-entry-lines { margin-top: 2pt; display: grid; gap: ${pt(tokens.spacing.bulletGapPt?.value, 1.5)}; }
+.rt-entry-lines p { margin: 0; }
 @page { size: ${page.widthPt}pt ${page.heightPt}pt; margin: 0; }
 @media print { body { background: #fff; } .resume-template { margin: 0; } }
 `.trim();

@@ -522,6 +522,80 @@ describe("universal template import analysis", () => {
     expect(html).not.toContain("Template Owner");
     expect(html).not.toContain("Source-only bullet");
   });
+
+  it("renders entries according to reusable entry component settings", () => {
+    const source: SourceDocumentIR = {
+      sourceType: "docx",
+      filename: "paragraph-template.docx",
+      pages: [{ id: "page-1", number: 1, widthPt: 612, heightPt: 792 }],
+      rawText: "",
+      diagnostics: [],
+      blocks: [
+        styledBlock("b1", "Template Owner", { fontSizePt: 24, bold: true }),
+        styledBlock("b2", "EXPERIENCE", { fontSizePt: 11, bold: true }),
+        tableRow("b3", ["Analyst", "Source Co", "2024"]),
+        bulletRow("b4", "Source-only bullet"),
+      ],
+    };
+    const semantic = inferResumeSemanticIR(source);
+    const baseTemplate = buildReusableResumeTemplateIR(
+      semantic,
+      inferImportedTemplateStyleTokens(source),
+    );
+    const template: ReusableResumeTemplateIR = {
+      ...baseTemplate,
+      components: baseTemplate.components.map((component) => {
+        if (component.kind !== "Section") return component;
+        return {
+          ...component,
+          components: component.components.map((child) =>
+            child.kind === "EntryList"
+              ? {
+                  ...child,
+                  itemComponent: {
+                    ...child.itemComponent,
+                    header: {
+                      primary: true,
+                      secondary: false,
+                      meta: false,
+                      dateRange: false,
+                    },
+                    bulletList: false,
+                  },
+                }
+              : child,
+          ),
+        };
+      }),
+    };
+
+    const html = renderTailoredResumeWithReusableTemplate(
+      {
+        contact: { name: "New Candidate", email: "new@example.com" },
+        summary: "",
+        experiences: [
+          {
+            title: "Operations Analyst",
+            company: "Delta Systems",
+            dates: "2026 - Present",
+            highlights: ["Maintained paragraph-style achievements."],
+          },
+        ],
+        projects: [],
+        skills: [],
+        education: [],
+      },
+      template,
+    );
+
+    expect(html).toContain("Operations Analyst");
+    expect(html).toContain("Maintained paragraph-style achievements.");
+    expect(html).toContain("rt-entry-lines");
+    expect(html).not.toContain("<ul>");
+    expect(html).not.toContain("Delta Systems");
+    expect(html).not.toContain("2026 - Present");
+    expect(html).not.toContain("Source-only bullet");
+  });
 });
 
 function styledBlock(
