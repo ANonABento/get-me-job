@@ -482,6 +482,77 @@ describe("CustomTemplateManagerDialog", () => {
     );
   });
 
+  it("lets reviewers reset style tokens to inferred values", async () => {
+    const patchBodies: unknown[] = [];
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/templates/migrate") {
+          return Response.json({
+            draft: migrationDraft(),
+            warnings: [],
+            confidence: "high",
+          });
+        }
+        if (url === "/api/templates/v3/preview") {
+          return Response.json({
+            html: "<html><body><article>Rendered migrated resume</article></body></html>",
+            pdfOptions: { format: "Letter" },
+          });
+        }
+        if (url === "/api/templates/migrations/draft-1") {
+          const body = JSON.parse(
+            String((init as RequestInit | undefined)?.body),
+          );
+          patchBodies.push(body);
+          const next = migrationDraft();
+          next.styleTokens = {
+            ...next.styleTokens,
+            color: {
+              ...next.styleTokens.color,
+              accent: { value: "#2563eb" },
+            },
+          };
+          next.reusableHtml =
+            '<html><body><article style="color:#2563eb">Reusable render</article></body></html>';
+          return Response.json({ draft: next });
+        }
+        return Response.json({ templates: [] });
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderDialog();
+
+    const inputs =
+      document.querySelectorAll<HTMLInputElement>("input[type='file']");
+    fireEvent.change(inputs[0], {
+      target: {
+        files: [
+          new File(["%PDF-1.7"], "resume.pdf", {
+            type: "application/pdf",
+          }),
+        ],
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("resume.pdf")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Style Tokens" }));
+    fireEvent.change(screen.getByLabelText("Accent color"), {
+      target: { value: "#123456" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Reset to inferred style" }),
+    );
+
+    await waitFor(() => {
+      expect(patchBodies.at(-1)).toEqual({ resetStyleTokens: true });
+    });
+    expect(screen.getByLabelText("Accent color")).toHaveValue("#2563eb");
+  });
+
   it("lets reviewers move bullets between semantic items", async () => {
     const patchBodies: unknown[] = [];
     const fetchMock = vi.fn(

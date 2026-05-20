@@ -654,6 +654,8 @@ As of the latest implementation slice, the system has:
   semantic artifacts regenerate from the remaining evidence.
 - Semantic item primary, secondary, and date fields can be corrected directly
   from review after import or split.
+- Style token overrides can be reset back to inferred values from current source
+  evidence.
 
 Known remaining gaps:
 
@@ -664,8 +666,8 @@ Known remaining gaps:
   arbitrary target selection is still not complete.
 - Decorative source marking is block-level only; finer-grained row/cell/run
   marking is still not complete.
-- Style token candidate selection is not complete; direct token overrides exist
-  for only part of the desired surface.
+- Style token candidate selection is not complete; direct token overrides and
+  reset-to-inferred exist for only part of the desired surface.
 - DOCX table-heavy imports still need extraction and layout resilience work; the
   dogfood suite keeps this visible as a broad fixture class rather than a
   person-specific case.

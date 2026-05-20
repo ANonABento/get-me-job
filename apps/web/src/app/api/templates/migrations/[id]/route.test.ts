@@ -293,6 +293,39 @@ describe("/api/templates/migrations/:id", () => {
       }),
     );
   });
+
+  it("resets style tokens from source evidence and regenerates reusable artifacts", async () => {
+    const response = await PATCH(
+      jsonRequest("PATCH", {
+        resetStyleTokens: true,
+      }),
+      { params: { id: "draft-1" } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.updateTemplateMigrationDraft).toHaveBeenCalledWith(
+      "draft-1",
+      "user-1",
+      expect.objectContaining({
+        styleTokens: expect.objectContaining({
+          page: expect.objectContaining({
+            widthPt: 612,
+            heightPt: 792,
+          }),
+        }),
+        reusableTemplate: expect.objectContaining({
+          schemaVersion: 4,
+          tokens: expect.objectContaining({
+            page: expect.objectContaining({
+              widthPt: 612,
+              heightPt: 792,
+            }),
+          }),
+        }),
+        reusableHtml: expect.any(String),
+      }),
+    );
+  });
 });
 
 function jsonRequest(method: string, body: unknown) {

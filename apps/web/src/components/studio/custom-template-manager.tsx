@@ -652,6 +652,27 @@ export function CustomTemplateManagerDialog({
     }
   }
 
+  async function handleResetStyleTokens() {
+    if (!migrationDraft) return;
+    setMigrationSaving(true);
+    try {
+      await patchMigrationDraft({ resetStyleTokens: true });
+      addToast({
+        type: "success",
+        title: "Style tokens reset",
+      });
+    } catch (error) {
+      addToast({
+        type: "error",
+        title: "Could not reset style tokens",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setMigrationSaving(false);
+    }
+  }
+
   async function handleCreateRepeatGroup(rowId: string) {
     if (!migrationDraft?.templateV3) return;
     const groupId = uniqueRepeatGroupId(migrationDraft.templateV3, "custom");
@@ -1023,6 +1044,7 @@ export function CustomTemplateManagerDialog({
                       onUpdateSemanticSection={handleUpdateSemanticSection}
                       onUpdateSemanticResume={handleUpdateSemanticResume}
                       onUpdateStyleTokens={handleUpdateStyleTokens}
+                      onResetStyleTokens={handleResetStyleTokens}
                       migrationSaving={migrationSaving}
                       previewHtml={previewHtml}
                       previewLoading={previewLoading}
@@ -1135,6 +1157,7 @@ function VisualTemplateReviewPanes({
   onUpdateSemanticSection,
   onUpdateSemanticResume,
   onUpdateStyleTokens,
+  onResetStyleTokens,
   migrationSaving,
   previewHtml,
   previewLoading,
@@ -1171,6 +1194,7 @@ function VisualTemplateReviewPanes({
   onUpdateStyleTokens: (
     styleTokens: EditableStyleTokens,
   ) => void | Promise<void>;
+  onResetStyleTokens: () => void | Promise<void>;
   migrationSaving: boolean;
   previewHtml: string;
   previewLoading: boolean;
@@ -1233,6 +1257,7 @@ function VisualTemplateReviewPanes({
           <StyleTokensPane
             draft={draft}
             onUpdateStyleTokens={onUpdateStyleTokens}
+            onResetStyleTokens={onResetStyleTokens}
             migrationSaving={migrationSaving}
           />
         ) : activePane === "mismatch" ? (
@@ -2576,12 +2601,14 @@ function SemanticItemCard({
 function StyleTokensPane({
   draft,
   onUpdateStyleTokens,
+  onResetStyleTokens,
   migrationSaving,
 }: {
   draft: TemplateMigrationDraft;
   onUpdateStyleTokens: (
     styleTokens: EditableStyleTokens,
   ) => void | Promise<void>;
+  onResetStyleTokens: () => void | Promise<void>;
   migrationSaving: boolean;
 }) {
   const tokens = draft.styleTokens;
@@ -2729,16 +2756,26 @@ function StyleTokensPane({
             </label>
           ))}
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="mt-3"
-          disabled={migrationSaving || !tokens}
-          onClick={saveStyleTokens}
-        >
-          Apply style overrides
-        </Button>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={migrationSaving || !tokens}
+            onClick={saveStyleTokens}
+          >
+            Apply style overrides
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={migrationSaving || !tokens}
+            onClick={() => void onResetStyleTokens()}
+          >
+            Reset to inferred style
+          </Button>
+        </div>
       </div>
       <div className="mt-2 grid gap-3 lg:grid-cols-2">
         <TokenSummaryCard title="Page" value={formatTokenJson(tokens?.page)} />

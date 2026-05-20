@@ -109,6 +109,7 @@ const updateMigrationSchema = z.object({
   styleTokens: z.object({}).passthrough().optional(),
   slotCorrections: z.array(slotCorrectionSchema).optional(),
   sourceBlockDecisions: z.array(sourceBlockDecisionSchema).optional(),
+  resetStyleTokens: z.boolean().optional(),
 });
 
 interface RouteContext {
@@ -200,17 +201,20 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   const styleTokens = parsed.data.styleTokens as
     | ImportedTemplateStyleTokens
     | undefined;
+  const shouldResetStyleTokens = parsed.data.resetStyleTokens === true;
   const reusableSemanticResume =
     semanticResume ??
-    (parsed.data.sourceBlockDecisions?.length
+    (parsed.data.sourceBlockDecisions?.length || shouldResetStyleTokens
       ? inferResumeSemanticIR(effectiveSource)
       : styleTokens
         ? draft.semanticResume
         : undefined);
   const reusableStyleTokens = reusableSemanticResume
-    ? (styleTokens ??
-      draft.styleTokens ??
-      inferImportedTemplateStyleTokens(effectiveSource))
+    ? shouldResetStyleTokens
+      ? inferImportedTemplateStyleTokens(effectiveSource)
+      : (styleTokens ??
+        draft.styleTokens ??
+        inferImportedTemplateStyleTokens(effectiveSource))
     : undefined;
   const reusableTemplate =
     reusableSemanticResume && reusableStyleTokens
