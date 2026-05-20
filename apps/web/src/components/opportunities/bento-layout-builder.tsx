@@ -122,7 +122,42 @@ export function BentoLayoutBuilder({
     setDesktop({ ...desktop, columns: cols, cells: clamped });
   };
 
-  const reset = () => onChange(DEFAULT_BENTO_LAYOUT);
+  // Per §6 of opportunity-card-bento-spec.md: Reset is scoped to the
+  // active tab. Desktop reset restores cells / columns / disabled but
+  // leaves mobilePriority + expandedCount alone; Mobile reset restores
+  // mobilePriority (filtered against current cells) + expandedCount
+  // without touching desktop cells.
+  const reset = () => {
+    if (activeTab === "desktop") {
+      onChange({
+        ...value,
+        desktop: {
+          ...DEFAULT_BENTO_LAYOUT.desktop,
+          // Preserve mobile order — the user's mobile work shouldn't
+          // disappear when they reset desktop. Filter against the
+          // freshly-restored cells so stale IDs don't leak through.
+          mobilePriority: value.desktop.mobilePriority.filter((id) =>
+            DEFAULT_BENTO_LAYOUT.desktop.cells.some((c) => c.id === id),
+          ),
+        },
+      });
+      return;
+    }
+    // Mobile tab: restore the default mobile flow + expandedCount,
+    // filtered against whatever cells the user currently has on
+    // desktop.
+    const cellIdsNow = new Set(value.desktop.cells.map((c) => c.id));
+    onChange({
+      ...value,
+      desktop: {
+        ...value.desktop,
+        mobilePriority: DEFAULT_BENTO_LAYOUT.desktop.mobilePriority.filter(
+          (id) => cellIdsNow.has(id),
+        ),
+      },
+      mobile: DEFAULT_BENTO_LAYOUT.mobile,
+    });
+  };
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(String(event.active.id));
