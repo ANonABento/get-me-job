@@ -3,8 +3,9 @@
 import { execFileSync } from "child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 
-interface SuiteCase {
+export interface SuiteCase {
   name: string;
   source: string;
   reference?: string;
@@ -14,7 +15,7 @@ interface SuiteCase {
   expectedStyleTraits?: string[];
 }
 
-interface FixtureManifest {
+export interface FixtureManifest {
   version: 1;
   requiredFixtureClasses?: string[];
   cases: SuiteCase[];
@@ -103,6 +104,16 @@ function main() {
     caseCount: summaries.length,
     aggregate: aggregateScorecards(summaries),
     fixtureCoverage,
+    scorecardFailures: summaries
+      .filter(
+        (summary) => isRecord(summary.scorecard) && !summary.scorecard.pass,
+      )
+      .map((summary) => ({
+        name: String(summary.templateName ?? summary.source),
+        gateFailures: isRecord(summary.scorecard)
+          ? summary.scorecard.gateFailures
+          : [],
+      })),
     cases: summaries,
   };
   writeFileSync(
@@ -122,6 +133,17 @@ function main() {
   if (args.strictFixtureCoverage && !fixtureCoverage.pass) {
     console.error(
       `[visual-template-suite] missing required fixture classes: ${fixtureCoverage.missing.join(", ")}`,
+    );
+    process.exitCode = 1;
+  }
+  const failedScorecards = summaries.filter(
+    (summary) => isRecord(summary.scorecard) && !summary.scorecard.pass,
+  );
+  if (args.strictScorecards && failedScorecards.length) {
+    console.error(
+      `[visual-template-suite] ${failedScorecards.length} scorecard gate(s) failed: ${failedScorecards
+        .map((summary) => String(summary.templateName ?? summary.source))
+        .join(", ")}`,
     );
     process.exitCode = 1;
   }
@@ -173,6 +195,8 @@ function parseArgs(argv: string[]) {
     strict: argv.includes("--strict"),
     strictVisual: argv.includes("--strict-visual"),
     strictFixtureCoverage: argv.includes("--strict-fixture-coverage"),
+    strictScorecards:
+      argv.includes("--strict-scorecards") || argv.includes("--strict"),
   };
 }
 
@@ -193,7 +217,7 @@ function loadManifest(manifestPath: string): FixtureManifest {
   };
 }
 
-function scoreCase(summary: Record<string, unknown>, item: SuiteCase) {
+export function scoreCase(summary: Record<string, unknown>, item: SuiteCase) {
   const universalAnalysis = objectAt(summary, "universalAnalysis");
   const scores = objectAt(universalAnalysis, "scores");
   const semanticResume = objectAt(summary, "semanticResume");
@@ -211,6 +235,9 @@ function scoreCase(summary: Record<string, unknown>, item: SuiteCase) {
   const reusableSectionCount = Array.isArray(reusableTemplate.sectionOrder)
     ? reusableTemplate.sectionOrder.length
     : 0;
+  const reusableComponentCount = Array.isArray(reusableTemplate.components)
+    ? reusableTemplate.components.length
+    : 0;
   const reports = Array.isArray(summary.reports) ? summary.reports : [];
   const stressReport = reports.find(
     (report) => isRecord(report) && report.mode === "stress",
@@ -220,28 +247,63 @@ function scoreCase(summary: Record<string, unknown>, item: SuiteCase) {
   );
   const semanticCoverage = numberAt(scores, "semanticCoverage");
   const styleCoverage = numberAt(scores, "styleCoverage");
+  const sourcePageCount =
+    numberAt(stressReport, "sourcePageCount") ||
+    numberAt(sourceReport, "sourcePageCount") ||
+    numberAt(stressReport, "estimatedPages") ||
+    1;
+  const stressPageOverflow = Math.max(
+    0,
+    numberAt(stressReport, "estimatedPages") - sourcePageCount,
+  );
   const layoutResilience =
     1 -
     Math.min(
       1,
       numberAt(stressReport, "overflowElements") * 0.3 +
-        numberAt(stressReport, "repeatedLineCount") * 0.15,
+        numberAt(stressReport, "repeatedLineCount") * 0.15 +
+        stressPageOverflow * 0.4,
     );
+  const sourceCoverage = Math.min(
+    sourceReport ? numberAt(sourceReport, "sourceLineCoverage") : 1,
+    stressReport ? numberAt(stressReport, "sourceLineCoverage") : 1,
+  );
   const referenceResemblance =
     1 -
     Math.min(
       1,
       numberAt(objectAt(sourceReport, "imageComparison"), "changedPixelRatio"),
     );
+  const expectedStyleTraits = item.expectedStyleTraits ?? [];
+  const styleTraitMatches = expectedStyleTraits.filter((trait) =>
+    hasExpectedStyleTrait(summary, trait),
+  );
+  const styleTraitCoverage = expectedStyleTraits.length
+    ? styleTraitMatches.length / expectedStyleTraits.length
+    : 1;
   const sectionCoverage = expectedSections.length
     ? matchedSections.length / expectedSections.length
     : 1;
+  const gateFailures = [
+    ...(sectionCoverage < 0.75 ? ["semantic:expected-sections"] : []),
+    ...(semanticCoverage < 0.55 ? ["semantic:coverage"] : []),
+    ...(styleCoverage < 0.45 ? ["style:coverage"] : []),
+    ...(styleTraitCoverage < 0.5 ? ["style:expected-traits"] : []),
+    ...(layoutResilience < 0.7 ? ["render:stress-resilience"] : []),
+    ...(sourceCoverage < 0.45 ? ["extraction:source-coverage"] : []),
+    ...(stressPageOverflow > 0 ? ["render:page-overflow"] : []),
+    ...(reusableSectionCount === 0 ? ["render:missing-sections"] : []),
+    ...(reusableComponentCount < 2 ? ["render:missing-components"] : []),
+  ];
   const pass =
     sectionCoverage >= 0.75 &&
     semanticCoverage >= 0.55 &&
     styleCoverage >= 0.45 &&
+    styleTraitCoverage >= 0.5 &&
     layoutResilience >= 0.7 &&
-    reusableSectionCount > 0;
+    sourceCoverage >= 0.45 &&
+    reusableSectionCount > 0 &&
+    reusableComponentCount >= 2;
 
   return {
     fixtureClass: item.fixtureClass ?? item.fixtureClasses?.[0] ?? "ad-hoc",
@@ -251,25 +313,160 @@ function scoreCase(summary: Record<string, unknown>, item: SuiteCase) {
       sectionCoverage,
       semanticCoverage,
       styleCoverage,
+      styleTraitCoverage,
       layoutResilience,
+      sourceCoverage,
       referenceResemblance,
     },
     expectedSections,
     detectedSections,
     matchedSections,
+    expectedStyleTraits,
+    matchedStyleTraits: styleTraitMatches,
     reusableSectionCount,
+    reusableComponentCount,
+    gateFailures,
+    failureAreas: [
+      ...new Set(gateFailures.map((failure) => failure.split(":")[0])),
+    ],
     notes: [
       ...(sectionCoverage < 0.75 ? ["Expected sections were missed."] : []),
       ...(semanticCoverage < 0.55 ? ["Semantic coverage below gate."] : []),
       ...(styleCoverage < 0.45 ? ["Style coverage below gate."] : []),
+      ...(styleTraitCoverage < 0.5
+        ? ["Expected visual-family traits were not detected."]
+        : []),
       ...(layoutResilience < 0.7
         ? ["Stress render resilience below gate."]
+        : []),
+      ...(stressPageOverflow > 0
+        ? ["Stress render expands beyond the source page count."]
+        : []),
+      ...(sourceCoverage < 0.45
+        ? ["Rendered text covers too little of the normalized source evidence."]
         : []),
       ...(reusableSectionCount === 0
         ? ["No reusable sections generated."]
         : []),
+      ...(reusableComponentCount < 2
+        ? ["Reusable component model is incomplete."]
+        : []),
     ],
   };
+}
+
+function hasExpectedStyleTrait(
+  summary: Record<string, unknown>,
+  trait: string,
+): boolean {
+  const normalized = trait.toLowerCase();
+  const sourceType = String(summary.sourceType ?? "").toLowerCase();
+  const universalAnalysis = objectAt(summary, "universalAnalysis");
+  const styleTokens = objectAt(summary, "styleTokens");
+  const semanticResume = objectAt(summary, "semanticResume");
+  const sections = Array.isArray(semanticResume.sections)
+    ? semanticResume.sections.filter(isRecord)
+    : [];
+  const allItems = sections.flatMap((section) =>
+    Array.isArray(section.items) ? section.items.filter(isRecord) : [],
+  );
+  const allBullets = allItems.flatMap((item) =>
+    Array.isArray(item.bullets) ? item.bullets : [],
+  );
+  const reports = Array.isArray(summary.reports)
+    ? summary.reports.filter(isRecord)
+    : [];
+  const sourceReport = reports.find((report) => report.mode === "source");
+  const estimatedPages = numberAt(sourceReport, "estimatedPages");
+  const scores = objectAt(universalAnalysis, "scores");
+  const sourceSignals = Array.isArray(universalAnalysis.sourceSignals)
+    ? universalAnalysis.sourceSignals.filter(isRecord)
+    : [];
+  const styleSignals = Array.isArray(universalAnalysis.styleSignals)
+    ? universalAnalysis.styleSignals.filter(isRecord)
+    : [];
+  const colorTokens = objectAt(styleTokens, "color");
+  const spacingTokens = objectAt(styleTokens, "spacing");
+  const layoutTokens = objectAt(styleTokens, "layout");
+  const hasStructureEvidence = sourceSignals.some((signal) =>
+    /table|row|cell|column|structure/i.test(String(signal.detail ?? "")),
+  );
+  const hasSectionSignal = styleSignals.some(
+    (signal) => signal.role === "sectionHeading",
+  );
+  const hasAccentColor =
+    Boolean(tokenValue(colorTokens.accent)) ||
+    Boolean(tokenValue(colorTokens.rule)) ||
+    Boolean(tokenValue(colorTokens.link));
+  const hasCompactSpacing =
+    numericToken(spacingTokens.sectionGapPt) > 0 &&
+    numericToken(spacingTokens.sectionGapPt) <= 8;
+  const hasTwoColumnLayout =
+    numericToken(layoutTokens.columns) >= 2 ||
+    String(tokenValue(layoutTokens.sectionTitlePlacement) ?? "") ===
+      "left-rail";
+
+  if (normalized === "single-page")
+    return !estimatedPages || estimatedPages <= 1;
+  if (normalized === "section-headings") {
+    return hasSectionSignal || numberAt(scores, "semanticCoverage") >= 0.55;
+  }
+  if (normalized === "bullets") return allBullets.length > 0;
+  if (normalized === "no-bullets") return allBullets.length === 0;
+  if (normalized === "paragraph-style") return allBullets.length === 0;
+  if (normalized === "tables" || normalized === "cell-borders") {
+    return hasStructureEvidence;
+  }
+  if (normalized === "layout-structure") {
+    return hasStructureEvidence || hasTwoColumnLayout;
+  }
+  if (normalized === "dense-text" || normalized === "academic") {
+    return allItems.length >= 4 || sections.length >= 4;
+  }
+  if (normalized === "publications") {
+    return detectedSectionTypes(semanticResume).includes("publications");
+  }
+  if (normalized === "custom-sections") {
+    return detectedSectionTypes(semanticResume).includes("custom");
+  }
+  if (normalized === "chronology" || normalized === "date-variants") {
+    return allItems.some((item) => Boolean(item.dateRange));
+  }
+  if (normalized === "business" || normalized === "project-heavy") {
+    return sections.some((section) => String(section.type) === "projects");
+  }
+  if (normalized === "education-first") {
+    return String(sections[0]?.type ?? "") === "education";
+  }
+  if (normalized === "latex-macros") return sourceType === "tex";
+  if (normalized === "compact-spacing") return hasCompactSpacing;
+  if (normalized === "modern colored") return hasAccentColor;
+  if (normalized === "plain-text")
+    return numberAt(scores, "styleCoverage") >= 0.45;
+  if (normalized === "non-english") return sourceType === "pdf";
+  if (normalized === "links/icons") {
+    const contact = objectAt(semanticResume, "contact");
+    return Boolean(contact.linkedin || contact.github);
+  }
+  return true;
+}
+
+function detectedSectionTypes(semanticResume: Record<string, unknown>) {
+  return Array.isArray(semanticResume.sections)
+    ? semanticResume.sections
+        .filter(isRecord)
+        .map((section) => String(section.type ?? ""))
+    : [];
+}
+
+function tokenValue(value: unknown): unknown {
+  if (isRecord(value) && "value" in value) return value.value;
+  return value;
+}
+
+function numericToken(value: unknown): number {
+  const token = tokenValue(value);
+  return typeof token === "number" && Number.isFinite(token) ? token : 0;
 }
 
 function fixtureClassesFor(item: SuiteCase): string[] {
@@ -319,7 +516,9 @@ function aggregateScorecards(summaries: Array<Record<string, unknown>>) {
       sectionCoverage: averageScore(scorecards, "sectionCoverage"),
       semanticCoverage: averageScore(scorecards, "semanticCoverage"),
       styleCoverage: averageScore(scorecards, "styleCoverage"),
+      styleTraitCoverage: averageScore(scorecards, "styleTraitCoverage"),
       layoutResilience: averageScore(scorecards, "layoutResilience"),
+      sourceCoverage: averageScore(scorecards, "sourceCoverage"),
       referenceResemblance: averageScore(scorecards, "referenceResemblance"),
     },
   };
@@ -830,6 +1029,8 @@ function renderLabHtml(
         metric("Semantic", item.universalAnalysis ? pct(item.universalAnalysis.scores.semanticCoverage) : "-", item.universalAnalysis && item.universalAnalysis.scores.semanticCoverage < .55 ? "warn" : "good"),
         metric("Style", item.universalAnalysis ? pct(item.universalAnalysis.scores.styleCoverage) : "-", item.universalAnalysis && item.universalAnalysis.scores.styleCoverage < .55 ? "warn" : "good"),
         metric("Section score", item.scorecard ? pct(item.scorecard.scores.sectionCoverage) : "-", item.scorecard && item.scorecard.scores.sectionCoverage < .75 ? "warn" : "good"),
+        metric("Trait score", item.scorecard ? pct(item.scorecard.scores.styleTraitCoverage) : "-", item.scorecard && item.scorecard.scores.styleTraitCoverage < .5 ? "warn" : "good"),
+        metric("Gate coverage", item.scorecard ? pct(item.scorecard.scores.sourceCoverage) : "-", item.scorecard && item.scorecard.scores.sourceCoverage < .45 ? "warn" : "good"),
         metric("Suite gate", item.scorecard ? (item.scorecard.pass ? "PASS" : "REVIEW") : "-", item.scorecard && item.scorecard.pass ? "good" : "warn"),
         metric("Reusable sections", item.reusableTemplate ? item.reusableTemplate.sectionOrder.length : "-", item.reusableTemplate && !item.reusableTemplate.sectionOrder.length ? "warn" : "good"),
         metric("Reusable components", item.reusableTemplate ? item.reusableTemplate.components.length : "-", item.reusableTemplate && item.reusableTemplate.components.length < 2 ? "warn" : "good"),
@@ -837,7 +1038,15 @@ function renderLabHtml(
         metric("Changed pixels", comparison ? pct(comparison.changedPixelRatio) : "-", comparison && comparison.changedPixelRatio > .42 ? "bad" : "good"),
       ].join("");
       const findings = item.reports.flatMap((entry) => (entry.findings || []).map((finding) => ({...finding, mode: entry.mode})));
-      $("findings").innerHTML = findings.map((finding) =>
+      const gateFindings = item.scorecard && item.scorecard.gateFailures
+        ? item.scorecard.gateFailures.map((failure) => ({
+            severity: "warning",
+            code: failure,
+            mode: "scorecard",
+            message: (item.scorecard.notes || []).join(" ") || "Scorecard gate failed."
+          }))
+        : [];
+      $("findings").innerHTML = findings.concat(gateFindings).map((finding) =>
         '<div class="finding ' + finding.severity + '"><div class="stamp">' + finding.mode + ' / ' + finding.severity + ' / ' + finding.code + '</div><div>' + finding.message + '</div></div>'
       ).join("");
       const base = item.caseDir;
@@ -940,4 +1149,6 @@ function relativeForHtml(fromDir: string, filename: string): string {
   return path.relative(fromDir, filename).split(path.sep).join("/");
 }
 
-main();
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main();
+}

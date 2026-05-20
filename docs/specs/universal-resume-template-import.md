@@ -726,6 +726,9 @@ As of the latest implementation slice, the system has:
 - Legacy V3 hidden from normal pickers by default and retained for
   compatibility/debug management.
 - A strict visual dogfood suite with all required fixture classes covered.
+- Dogfood scorecards now gate source coverage, stress page overflow, reusable
+  component completeness, expected section coverage, and expected
+  visual-family trait coverage, with failures bucketed by pipeline stage.
 - A reusable renderer that consumes section order and entry component settings
   for header fields and bullet-vs-paragraph achievement rendering.
 - Basic semantic review controls for section type/title correction and moving
@@ -764,5 +767,8 @@ Known remaining gaps:
   dogfood suite keeps this visible as a broad fixture class rather than a
   person-specific case. Vertical-merge semantic duplication has a regression
   guard, but broader source-text coverage and overflow resilience remain open.
+- Current table-heavy DOCX smoke runs fail the universal scorecard on source
+  coverage and stress page overflow. This is intentionally tracked as
+  extraction/render hardening, not a Kevin-specific template issue.
 - The lab is useful for verification, but app review needs to expose the same
   model in a clearer workflow.

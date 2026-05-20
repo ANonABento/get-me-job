@@ -152,6 +152,7 @@ async function main() {
         mode,
         htmlPath,
         screenshotPath,
+        sourcePageCount: report.source.pageCount,
         estimatedPages: report.render.estimatedPages,
         overflowElements: report.render.overflow.elementCount,
         rightOverflowPx: report.render.overflow.rightPx,
