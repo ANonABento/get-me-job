@@ -59,7 +59,8 @@ export function FilterTabs<T extends string>({
             )}
           >
             {option.label}
-            {typeof option.count === "number" ? (
+            {typeof option.count === "number" &&
+            (isActive || option.count > 0) ? (
               <span
                 className={cn(
                   "ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-md px-1 font-mono text-[10px] tabular-nums",

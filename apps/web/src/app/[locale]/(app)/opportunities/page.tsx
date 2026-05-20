@@ -647,12 +647,17 @@ export default function OpportunitiesPage({
               </div>
             ) : null}
 
-            <div className="text-sm text-ink-3">
-              {t("summary", {
-                shown: filteredOpportunities.length,
-                total: opportunities.length,
-              })}
-            </div>
+            {/* Audit/01: hide the summary when the filtered count equals
+                the total — the chip strip already shows "All statuses N".
+                Restating "Showing N of N opportunities" is redundant. */}
+            {filteredOpportunities.length !== opportunities.length && (
+              <div className="text-sm text-ink-3">
+                {t("summary", {
+                  shown: filteredOpportunities.length,
+                  total: opportunities.length,
+                })}
+              </div>
+            )}
 
             <Suspense fallback={<OpportunitiesListBodySkeleton />}>
               {!hasFetched && !hasCachedData ? (
