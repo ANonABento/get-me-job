@@ -917,7 +917,94 @@ describe("CustomTemplateManagerDialog", () => {
         ],
       });
     });
-    expect(await screen.findByText("non-template")).toBeInTheDocument();
+    expect((await screen.findAllByText("non-template")).length).toBeGreaterThan(
+      0,
+    );
+  });
+
+  it("lets reviewers mark table cells as non-template evidence", async () => {
+    const patchBodies: unknown[] = [];
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/templates/migrate") {
+          return Response.json({
+            draft: migrationDraft(),
+            warnings: [],
+            confidence: "high",
+          });
+        }
+        if (url === "/api/templates/v3/preview") {
+          return Response.json({
+            html: "<html><body><article>Rendered migrated resume</article></body></html>",
+            pdfOptions: { format: "Letter" },
+          });
+        }
+        if (url === "/api/templates/migrations/draft-1") {
+          const body = JSON.parse(
+            String((init as RequestInit | undefined)?.body),
+          );
+          patchBodies.push(body);
+          const next = migrationDraft();
+          const decision = body.sourceCellDecisions?.[0];
+          const block = next.source.blocks.find(
+            (candidate) => candidate.id === decision?.sourceBlockId,
+          );
+          if (block?.cellMetadata && decision) {
+            Object.assign(block.cellMetadata[decision.cellIndex]!, {
+              decorative: decision.decorative,
+            });
+          }
+          return Response.json({ draft: next });
+        }
+        return Response.json({ templates: [] });
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderDialog();
+
+    const inputs =
+      document.querySelectorAll<HTMLInputElement>("input[type='file']");
+    fireEvent.change(inputs[0], {
+      target: {
+        files: [
+          new File(["%PDF-1.7"], "resume.pdf", {
+            type: "application/pdf",
+          }),
+        ],
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("resume.pdf")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Source Evidence" }));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Select source block Skills | PDF | DOCX",
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Mark cell 1 from block-2 non-template",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(patchBodies.at(-1)).toEqual({
+        sourceCellDecisions: [
+          {
+            sourceBlockId: "block-2",
+            cellIndex: 0,
+            decorative: true,
+          },
+        ],
+      });
+    });
+    expect((await screen.findAllByText("non-template")).length).toBeGreaterThan(
+      0,
+    );
   });
 
   it("lets reviewers edit semantic item fields", async () => {
@@ -1252,6 +1339,7 @@ function migrationDraft() {
           type: "table-row",
           text: "Skills | PDF | DOCX",
           cells: ["Skills", "PDF", "DOCX"],
+          cellMetadata: [{ text: "Skills" }, { text: "PDF" }, { text: "DOCX" }],
           bbox: { xPt: 72, yPt: 100, widthPt: 100, heightPt: 12 },
         },
       ],

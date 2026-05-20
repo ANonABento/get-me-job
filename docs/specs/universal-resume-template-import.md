@@ -651,8 +651,9 @@ As of the latest implementation slice, the system has:
 - Basic split/merge controls for semantic items, including explicit merge target
   selection, preserving merged item headers as achievement text so user content
   is not silently dropped.
-- Source evidence can be marked non-template/decorative from review; reusable
-  semantic artifacts regenerate from the remaining evidence.
+- Source evidence blocks and individual table cells can be marked
+  non-template/decorative from review; reusable semantic artifacts regenerate
+  from the remaining evidence.
 - Semantic item primary, secondary, date, location, URL, and metadata fields can
   be corrected directly from review after import or split.
 - Style token overrides can be reset back to inferred values from current source
@@ -670,8 +671,8 @@ Known remaining gaps:
   explicit item targets within the section. Drag/drop is still not complete.
 - Move-bullet controls support adjacent buttons and arbitrary item target
   selection within the section; drag/drop is still not complete.
-- Decorative source marking is block-level only; finer-grained row/cell/run
-  marking is still not complete.
+- Decorative source marking supports whole blocks and table cells; finer-grained
+  inline run marking is still not complete.
 - Style token candidate selection currently covers colors, name typography, body
   typography, section-heading typography, entry-title typography, metadata
   typography, section spacing, divider widths, and layout controls.

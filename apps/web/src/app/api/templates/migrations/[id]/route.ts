@@ -50,6 +50,12 @@ const sourceBlockDecisionSchema = z.object({
   decorative: z.boolean(),
 });
 
+const sourceCellDecisionSchema = z.object({
+  sourceBlockId: z.string().min(1),
+  cellIndex: z.number().int().min(0),
+  decorative: z.boolean(),
+});
+
 const semanticContactSchema = z.object({
   name: z.string().default(""),
   email: z.string().default(""),
@@ -109,6 +115,7 @@ const updateMigrationSchema = z.object({
   styleTokens: z.object({}).passthrough().optional(),
   slotCorrections: z.array(slotCorrectionSchema).optional(),
   sourceBlockDecisions: z.array(sourceBlockDecisionSchema).optional(),
+  sourceCellDecisions: z.array(sourceCellDecisionSchema).optional(),
   resetStyleTokens: z.boolean().optional(),
 });
 
@@ -175,6 +182,9 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       parsed.data.sourceBlockDecisions,
     );
   }
+  if (parsed.data.sourceCellDecisions?.length) {
+    source = applySourceCellDecisions(source, parsed.data.sourceCellDecisions);
+  }
   if (parsed.data.slotCorrections?.length) {
     resume = applySlotCorrections(
       resume,
@@ -189,7 +199,8 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     templateV3 = rebuildVisualTemplateForSource(templateV3, source);
   }
   if (
-    parsed.data.sourceBlockDecisions?.length &&
+    (parsed.data.sourceBlockDecisions?.length ||
+      parsed.data.sourceCellDecisions?.length) &&
     !parsed.data.slotCorrections?.length
   ) {
     templateV3 = rebuildVisualTemplateForSource(templateV3, source);
@@ -204,7 +215,9 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   const shouldResetStyleTokens = parsed.data.resetStyleTokens === true;
   const reusableSemanticResume =
     semanticResume ??
-    (parsed.data.sourceBlockDecisions?.length || shouldResetStyleTokens
+    (parsed.data.sourceBlockDecisions?.length ||
+    parsed.data.sourceCellDecisions?.length ||
+    shouldResetStyleTokens
       ? inferResumeSemanticIR(effectiveSource)
       : styleTokens
         ? draft.semanticResume
@@ -317,12 +330,57 @@ function applySourceBlockDecisions(
   };
 }
 
+function applySourceCellDecisions(
+  source: SourceDocumentIR,
+  decisions: Array<z.infer<typeof sourceCellDecisionSchema>>,
+): SourceDocumentIR {
+  const byId = new Map(
+    decisions.map((decision) => [
+      `${decision.sourceBlockId}:${decision.cellIndex}`,
+      decision.decorative,
+    ]),
+  );
+  return {
+    ...source,
+    blocks: source.blocks.map((block) => {
+      if (!block.cellMetadata?.length) return block;
+      return {
+        ...block,
+        cellMetadata: block.cellMetadata.map((cell, cellIndex) => {
+          const key = `${block.id}:${cellIndex}`;
+          if (!byId.has(key)) return cell;
+          return { ...cell, decorative: byId.get(key) ?? false };
+        }),
+      };
+    }),
+  };
+}
+
 function sourceWithoutDecorativeBlocks(
   source: SourceDocumentIR,
 ): SourceDocumentIR {
   return {
     ...source,
-    blocks: source.blocks.filter((block) => !block.decorative),
+    blocks: source.blocks
+      .filter((block) => !block.decorative)
+      .map((block) => {
+        if (!block.cellMetadata?.length) return block;
+        const cellMetadata = block.cellMetadata.filter(
+          (cell) => !cell.decorative,
+        );
+        return {
+          ...block,
+          text: cellMetadata.map((cell) => cell.text).join(" | "),
+          cells: cellMetadata.map((cell) => cell.text),
+          cellMetadata,
+        };
+      })
+      .filter(
+        (block) =>
+          block.type !== "table-row" ||
+          !block.cellMetadata ||
+          block.cellMetadata.length > 0,
+      ),
   };
 }
 

@@ -127,6 +127,7 @@ export interface SourceBlock {
     padding?: BoxEdges;
     borders?: BorderSet;
     fill?: { color: string };
+    decorative?: boolean;
     verticalAlign?: "top" | "middle" | "bottom";
     blocks?: SourceCellBlock[];
     nestedTables?: SourceBlock[][];

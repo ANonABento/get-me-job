@@ -294,6 +294,69 @@ describe("/api/templates/migrations/:id", () => {
     );
   });
 
+  it("marks source table cells as decorative and regenerates reusable artifacts from remaining evidence", async () => {
+    mocks.getTemplateMigrationDraft.mockReturnValueOnce({
+      ...sampleDraft(),
+      source: {
+        ...sampleDraft().source,
+        blocks: [
+          {
+            id: "block-row",
+            pageId: "page-1",
+            type: "table-row",
+            text: "Label | TypeScript | 2024",
+            cells: ["Label", "TypeScript", "2024"],
+            cellMetadata: [
+              { text: "Label" },
+              { text: "TypeScript" },
+              { text: "2024" },
+            ],
+          },
+        ],
+      },
+    });
+
+    const response = await PATCH(
+      jsonRequest("PATCH", {
+        sourceCellDecisions: [
+          {
+            sourceBlockId: "block-row",
+            cellIndex: 0,
+            decorative: true,
+          },
+        ],
+      }),
+      { params: { id: "draft-1" } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.updateTemplateMigrationDraft).toHaveBeenCalledWith(
+      "draft-1",
+      "user-1",
+      expect.objectContaining({
+        source: expect.objectContaining({
+          blocks: expect.arrayContaining([
+            expect.objectContaining({
+              id: "block-row",
+              cellMetadata: expect.arrayContaining([
+                expect.objectContaining({
+                  text: "Label",
+                  decorative: true,
+                }),
+              ]),
+            }),
+          ]),
+        }),
+        semanticResume: expect.objectContaining({
+          sections: expect.any(Array),
+        }),
+        reusableTemplate: expect.objectContaining({
+          schemaVersion: 4,
+        }),
+      }),
+    );
+  });
+
   it("resets style tokens from source evidence and regenerates reusable artifacts", async () => {
     const response = await PATCH(
       jsonRequest("PATCH", {

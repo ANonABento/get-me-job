@@ -991,16 +991,20 @@ function sourceLinesForSemanticMapping(
     }
 
     const cellLines = block.cellMetadata.map((cell, cellIndex) =>
-      (cell.blocks ?? [])
-        .filter((cellBlock) => cellBlock.text.trim())
-        .map((cellBlock) => ({
-          text:
-            cellBlock.type === "list-item"
-              ? `- ${cellBlock.text.trim()}`
-              : cellBlock.text.trim(),
-          sourceType: cellBlock.type,
-          evidenceRefs: [`${block.id}:cell-${cellIndex + 1}:${cellBlock.id}`],
-        })),
+      cell.decorative
+        ? []
+        : (cell.blocks ?? [])
+            .filter((cellBlock) => cellBlock.text.trim())
+            .map((cellBlock) => ({
+              text:
+                cellBlock.type === "list-item"
+                  ? `- ${cellBlock.text.trim()}`
+                  : cellBlock.text.trim(),
+              sourceType: cellBlock.type,
+              evidenceRefs: [
+                `${block.id}:cell-${cellIndex + 1}:${cellBlock.id}`,
+              ],
+            })),
     );
     const populatedCells = cellLines.filter((lines) => lines.length);
     if (
@@ -1018,7 +1022,14 @@ function sourceLinesForSemanticMapping(
 
     const expanded = cellLines.flat();
     if (expanded.length) return expanded;
-    const fallback = block.cells?.length ? block.cells.join(" | ") : block.text;
+    const fallback = block.cellMetadata?.length
+      ? block.cellMetadata
+          .filter((cell) => !cell.decorative)
+          .map((cell) => cell.text)
+          .join(" | ")
+      : block.cells?.length
+        ? block.cells.join(" | ")
+        : block.text;
     return fallback.trim()
       ? [
           {

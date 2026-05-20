@@ -146,6 +146,10 @@ interface TemplateMigrationDraft {
       slotHint?: TemplateMigrationSlotPath;
       decorative?: boolean;
       cells?: string[];
+      cellMetadata?: Array<{
+        text: string;
+        decorative?: boolean;
+      }>;
       bbox?: {
         xPt: number;
         yPt: number;
@@ -549,6 +553,41 @@ export function CustomTemplateManagerDialog({
         title: decorative
           ? "Source block marked non-template"
           : "Source block restored",
+      });
+    } catch (error) {
+      addToast({
+        type: "error",
+        title: "Could not update source evidence",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setMigrationSaving(false);
+    }
+  }
+
+  async function handleMarkSelectedCellDecorative(
+    sourceBlockId: string,
+    cellIndex: number,
+    decorative: boolean,
+  ) {
+    if (!migrationDraft) return;
+    setMigrationSaving(true);
+    try {
+      await patchMigrationDraft({
+        sourceCellDecisions: [
+          {
+            sourceBlockId,
+            cellIndex,
+            decorative,
+          },
+        ],
+      });
+      addToast({
+        type: "success",
+        title: decorative
+          ? "Source cell marked non-template"
+          : "Source cell restored",
       });
     } catch (error) {
       addToast({
@@ -1033,6 +1072,9 @@ export function CustomTemplateManagerDialog({
                       onMarkSelectedBlockDecorative={
                         handleMarkSelectedBlockDecorative
                       }
+                      onMarkSelectedCellDecorative={
+                        handleMarkSelectedCellDecorative
+                      }
                       selectedExperienceIndex={selectedExperienceIndex}
                       selectedEducationIndex={selectedEducationIndex}
                       selectedProjectIndex={selectedProjectIndex}
@@ -1146,6 +1188,7 @@ function VisualTemplateReviewPanes({
   selectedBlockId,
   onSelectBlock,
   onMarkSelectedBlockDecorative,
+  onMarkSelectedCellDecorative,
   selectedExperienceIndex,
   selectedEducationIndex,
   selectedProjectIndex,
@@ -1170,6 +1213,11 @@ function VisualTemplateReviewPanes({
   selectedBlockId: string | null;
   onSelectBlock: (blockId: string) => void;
   onMarkSelectedBlockDecorative: (decorative: boolean) => void | Promise<void>;
+  onMarkSelectedCellDecorative: (
+    sourceBlockId: string,
+    cellIndex: number,
+    decorative: boolean,
+  ) => void | Promise<void>;
   selectedExperienceIndex: number;
   selectedEducationIndex: number;
   selectedProjectIndex: number;
@@ -1275,6 +1323,7 @@ function VisualTemplateReviewPanes({
               selectedBlockId={selectedBlockId}
               onSelect={onSelectBlock}
               onMarkSelectedBlockDecorative={onMarkSelectedBlockDecorative}
+              onMarkSelectedCellDecorative={onMarkSelectedCellDecorative}
               migrationSaving={migrationSaving}
             />
           </div>
@@ -3874,12 +3923,18 @@ function SourceBlocksList({
   selectedBlockId,
   onSelect,
   onMarkSelectedBlockDecorative,
+  onMarkSelectedCellDecorative,
   migrationSaving,
 }: {
   blocks: TemplateMigrationDraft["source"]["blocks"];
   selectedBlockId: string | null;
   onSelect: (blockId: string) => void;
   onMarkSelectedBlockDecorative: (decorative: boolean) => void | Promise<void>;
+  onMarkSelectedCellDecorative: (
+    sourceBlockId: string,
+    cellIndex: number,
+    decorative: boolean,
+  ) => void | Promise<void>;
   migrationSaving: boolean;
 }) {
   const selectedBlock = blocks.find((block) => block.id === selectedBlockId);
@@ -3911,6 +3966,47 @@ function SourceBlocksList({
           </p>
         </div>
       </div>
+      {selectedBlock?.cellMetadata?.length ? (
+        <div className="mb-2 rounded-md border bg-background p-2">
+          <p className="text-[10px] font-medium uppercase text-muted-foreground">
+            Selected row cells
+          </p>
+          <div className="mt-2 grid gap-1 sm:grid-cols-2">
+            {selectedBlock.cellMetadata.map((cell, cellIndex) => (
+              <div
+                key={`${selectedBlock.id}-cell-${cellIndex}`}
+                className="flex items-center justify-between gap-2 rounded-sm border border-border/70 bg-muted/20 px-2 py-1"
+              >
+                <span className="min-w-0 truncate text-xs">
+                  {cell.decorative ? (
+                    <span className="mr-1 rounded-sm bg-amber-700/10 px-1 text-[10px] text-amber-800">
+                      non-template
+                    </span>
+                  ) : null}
+                  {cell.text}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-6 shrink-0 px-1.5 text-[10px]"
+                  disabled={migrationSaving}
+                  aria-label={`${cell.decorative ? "Use" : "Mark"} cell ${cellIndex + 1} from ${selectedBlock.id} ${cell.decorative ? "as template" : "non-template"}`}
+                  onClick={() =>
+                    void onMarkSelectedCellDecorative(
+                      selectedBlock.id,
+                      cellIndex,
+                      !cell.decorative,
+                    )
+                  }
+                >
+                  {cell.decorative ? "Use" : "Ignore"}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <div className="max-h-[360px] space-y-1 overflow-auto rounded-md border bg-muted/10 p-2">
         {blocks.slice(0, 80).map((block) => (
           <button
@@ -3943,6 +4039,11 @@ function SourceBlocksList({
                     key={`${block.id}-${index}`}
                     className="rounded-sm border border-border/70 bg-background/60 px-1.5 py-0.5"
                   >
+                    {block.cellMetadata?.[index]?.decorative ? (
+                      <span className="mr-1 rounded-sm bg-amber-700/10 px-1 text-[10px] text-amber-800">
+                        non-template
+                      </span>
+                    ) : null}
                     {cell}
                   </span>
                 ))}
