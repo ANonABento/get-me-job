@@ -242,6 +242,10 @@ type SemanticDraftSection = NonNullable<
   NonNullable<TemplateMigrationDraft["semanticResume"]>["sections"]
 >[number];
 
+type SemanticDraftResume = NonNullable<
+  TemplateMigrationDraft["semanticResume"]
+>;
+
 const slotAssignmentOptions: Array<[TemplateMigrationSlotPath, string]> = [
   ["contact.name", "Name"],
   ["contact.email", "Email"],
@@ -559,26 +563,33 @@ export function CustomTemplateManagerDialog({
     updates: { type?: SemanticSectionType; title?: string },
   ) {
     if (!migrationDraft?.semanticResume) return;
+    const nextSemantic = {
+      ...migrationDraft.semanticResume,
+      sections: (migrationDraft.semanticResume.sections ?? []).map((section) =>
+        section.id === sectionId ? { ...section, ...updates } : section,
+      ),
+    };
+    await handleUpdateSemanticResume(nextSemantic, "Semantic mapping updated");
+  }
+
+  async function handleUpdateSemanticResume(
+    semanticResume: SemanticDraftResume,
+    successTitle = "Semantic tree updated",
+  ) {
+    if (!migrationDraft?.semanticResume) return;
     setMigrationSaving(true);
     try {
-      const nextSemantic = {
-        ...migrationDraft.semanticResume,
-        sections: (migrationDraft.semanticResume.sections ?? []).map(
-          (section) =>
-            section.id === sectionId ? { ...section, ...updates } : section,
-        ),
-      };
       await patchMigrationDraft({
-        semanticResume: nextSemantic,
+        semanticResume,
       });
       addToast({
         type: "success",
-        title: "Semantic mapping updated",
+        title: successTitle,
       });
     } catch (error) {
       addToast({
         type: "error",
-        title: "Could not update semantic mapping",
+        title: "Could not update semantic tree",
         description:
           error instanceof Error ? error.message : "Please try again.",
       });
@@ -974,6 +985,7 @@ export function CustomTemplateManagerDialog({
                       onUpdateRepeatGroup={handleUpdateRepeatGroup}
                       onCreateRepeatGroup={handleCreateRepeatGroup}
                       onUpdateSemanticSection={handleUpdateSemanticSection}
+                      onUpdateSemanticResume={handleUpdateSemanticResume}
                       onUpdateStyleTokens={handleUpdateStyleTokens}
                       migrationSaving={migrationSaving}
                       previewHtml={previewHtml}
@@ -1084,6 +1096,7 @@ function VisualTemplateReviewPanes({
   onUpdateRepeatGroup,
   onCreateRepeatGroup,
   onUpdateSemanticSection,
+  onUpdateSemanticResume,
   onUpdateStyleTokens,
   migrationSaving,
   previewHtml,
@@ -1112,6 +1125,10 @@ function VisualTemplateReviewPanes({
   onUpdateSemanticSection: (
     sectionId: string,
     updates: { type?: SemanticSectionType; title?: string },
+  ) => void | Promise<void>;
+  onUpdateSemanticResume: (
+    semanticResume: SemanticDraftResume,
+    successTitle?: string,
   ) => void | Promise<void>;
   onUpdateStyleTokens: (
     styleTokens: EditableStyleTokens,
@@ -1171,6 +1188,7 @@ function VisualTemplateReviewPanes({
           <SemanticTreePane
             draft={draft}
             onUpdateSection={onUpdateSemanticSection}
+            onUpdateSemanticResume={onUpdateSemanticResume}
             migrationSaving={migrationSaving}
           />
         ) : activePane === "style" ? (
@@ -2050,12 +2068,17 @@ function migrationNotes(draft: TemplateMigrationDraft): string[] {
 function SemanticTreePane({
   draft,
   onUpdateSection,
+  onUpdateSemanticResume,
   migrationSaving,
 }: {
   draft: TemplateMigrationDraft;
   onUpdateSection: (
     sectionId: string,
     updates: { type?: SemanticSectionType; title?: string },
+  ) => void | Promise<void>;
+  onUpdateSemanticResume: (
+    semanticResume: SemanticDraftResume,
+    successTitle?: string,
   ) => void | Promise<void>;
   migrationSaving: boolean;
 }) {
@@ -2092,8 +2115,10 @@ function SemanticTreePane({
           sections.map((section) => (
             <SemanticSectionCard
               key={section.id}
+              semantic={semantic}
               section={section}
               onUpdateSection={onUpdateSection}
+              onUpdateSemanticResume={onUpdateSemanticResume}
               migrationSaving={migrationSaving}
             />
           ))
@@ -2113,14 +2138,21 @@ function SemanticTreePane({
 }
 
 function SemanticSectionCard({
+  semantic,
   section,
   onUpdateSection,
+  onUpdateSemanticResume,
   migrationSaving,
 }: {
+  semantic: SemanticDraftResume | undefined;
   section: SemanticDraftSection;
   onUpdateSection: (
     sectionId: string,
     updates: { type?: SemanticSectionType; title?: string },
+  ) => void | Promise<void>;
+  onUpdateSemanticResume: (
+    semanticResume: SemanticDraftResume,
+    successTitle?: string,
   ) => void | Promise<void>;
   migrationSaving: boolean;
 }) {
@@ -2132,6 +2164,36 @@ function SemanticSectionCard({
     setTitle(section.title);
     setType(section.type);
   }, [section.id, section.title, section.type]);
+
+  function moveBullet(
+    itemIndex: number,
+    bulletIndex: number,
+    direction: -1 | 1,
+  ) {
+    if (!semantic) return;
+    const targetItemIndex = itemIndex + direction;
+    if (targetItemIndex < 0 || targetItemIndex >= section.items.length) return;
+    const bullet = section.items[itemIndex]?.bullets?.[bulletIndex];
+    if (!bullet) return;
+    const nextSemantic: SemanticDraftResume = {
+      ...semantic,
+      sections: (semantic.sections ?? []).map((candidate) => {
+        if (candidate.id !== section.id) return candidate;
+        const items = candidate.items.map((item) => ({
+          ...item,
+          meta: [...(item.meta ?? [])],
+          bullets: [...(item.bullets ?? [])],
+          evidenceRefs: [...(item.evidenceRefs ?? [])],
+        }));
+        items[itemIndex].bullets.splice(bulletIndex, 1);
+        const insertionIndex =
+          direction < 0 ? items[targetItemIndex].bullets.length : 0;
+        items[targetItemIndex].bullets.splice(insertionIndex, 0, bullet);
+        return { ...candidate, items };
+      }),
+    };
+    void onUpdateSemanticResume(nextSemantic, "Bullet moved");
+  }
 
   return (
     <div className="rounded-sm border border-border bg-muted/10 p-2">
@@ -2193,8 +2255,8 @@ function SemanticSectionCard({
         <span>{section.items.length} items</span>
       </div>
       <div className="mt-2 space-y-2">
-        {section.items.slice(0, 8).map((item, index) => (
-          <div key={`${section.id}-${index}`} className="border-l pl-2">
+        {section.items.slice(0, 8).map((item, itemIndex) => (
+          <div key={`${section.id}-${itemIndex}`} className="border-l pl-2">
             <div className="flex items-baseline justify-between gap-2">
               <p className="font-medium text-foreground">
                 {item.primary || "Untitled item"}
@@ -2210,8 +2272,45 @@ function SemanticSectionCard({
             ) : null}
             {item.bullets?.length ? (
               <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted-foreground">
-                {item.bullets.slice(0, 5).map((bullet) => (
-                  <li key={bullet}>{bullet}</li>
+                {item.bullets.slice(0, 5).map((bullet, bulletIndex) => (
+                  <li key={`${bullet}-${bulletIndex}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <span>{bullet}</span>
+                      {section.items.length > 1 ? (
+                        <span className="flex shrink-0 gap-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-6 px-1.5 text-[10px]"
+                            disabled={migrationSaving || itemIndex === 0}
+                            aria-label={`Move bullet ${bulletIndex + 1} from ${item.primary || `item ${itemIndex + 1}`} to previous item`}
+                            onClick={() =>
+                              moveBullet(itemIndex, bulletIndex, -1)
+                            }
+                          >
+                            Prev
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-6 px-1.5 text-[10px]"
+                            disabled={
+                              migrationSaving ||
+                              itemIndex === section.items.length - 1
+                            }
+                            aria-label={`Move bullet ${bulletIndex + 1} from ${item.primary || `item ${itemIndex + 1}`} to next item`}
+                            onClick={() =>
+                              moveBullet(itemIndex, bulletIndex, 1)
+                            }
+                          >
+                            Next
+                          </Button>
+                        </span>
+                      ) : null}
+                    </div>
+                  </li>
                 ))}
               </ul>
             ) : null}

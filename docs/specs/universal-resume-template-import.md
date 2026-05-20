@@ -646,11 +646,14 @@ As of the latest implementation slice, the system has:
 - A strict visual dogfood suite with all required fixture classes covered.
 - A reusable renderer that consumes section order and entry component settings
   for header fields and bullet-vs-paragraph achievement rendering.
+- Basic semantic review controls for section type/title correction and moving
+  bullets between adjacent items.
 
 Known remaining gaps:
 
-- Split/merge semantic items and move-bullet controls are not complete in the
-  app review UI.
+- Split/merge semantic items are not complete in the app review UI.
+- Move-bullet controls are basic adjacent-item controls; richer drag/drop or
+  arbitrary target selection is still not complete.
 - Style token candidate selection is not complete; direct token overrides exist
   for only part of the desired surface.
 - Decorative/non-template source evidence marking is not complete.
