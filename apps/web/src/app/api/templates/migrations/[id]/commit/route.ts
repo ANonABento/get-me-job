@@ -12,6 +12,8 @@ export const dynamic = "force-dynamic";
 
 const LOW_VISUAL_FIDELITY_MESSAGE =
   "Could not read enough layout structure from this file. Try DOCX/LaTeX, or use a selectable PDF with visible text.";
+const REUSABLE_TEMPLATE_NOT_READY_MESSAGE =
+  "Reusable template artifacts are not ready to save. Review semantic mapping, style tokens, and reusable render before committing.";
 
 interface RouteContext {
   params: { id: string };
@@ -52,6 +54,19 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
       { status: 422 },
     );
   }
+  if (draft.reusableTemplate) {
+    const readinessIssues = reusableTemplateReadinessIssues(draft);
+    if (readinessIssues.length) {
+      return NextResponse.json(
+        {
+          error: REUSABLE_TEMPLATE_NOT_READY_MESSAGE,
+          code: "reusable_template_not_ready",
+          issues: readinessIssues,
+        },
+        { status: 422 },
+      );
+    }
+  }
 
   const saved = draft.reusableTemplate
     ? saveReusableResumeTemplate(authResult.userId, {
@@ -80,6 +95,66 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
     },
     draft: updated ? publicDraft(updated) : null,
   });
+}
+
+function reusableTemplateReadinessIssues(draft: {
+  reusableTemplate?: {
+    sectionOrder?: unknown;
+    components?: unknown;
+  } | null;
+  reusableHtml?: unknown;
+  semanticResume?: { sections?: unknown } | null;
+  styleTokens?: unknown;
+  universalAnalysis?: {
+    scores?: {
+      semanticCoverage?: unknown;
+      styleCoverage?: unknown;
+      layoutResilience?: unknown;
+    };
+  } | null;
+}): string[] {
+  const issues: string[] = [];
+  const sectionOrder = Array.isArray(draft.reusableTemplate?.sectionOrder)
+    ? draft.reusableTemplate.sectionOrder
+    : [];
+  const components = Array.isArray(draft.reusableTemplate?.components)
+    ? draft.reusableTemplate.components
+    : [];
+  const semanticSections = Array.isArray(draft.semanticResume?.sections)
+    ? draft.semanticResume.sections
+    : [];
+  const scores = draft.universalAnalysis?.scores ?? {};
+
+  if (!sectionOrder.length) {
+    issues.push("Reusable template has no section order.");
+  }
+  if (!components.length) {
+    issues.push("Reusable template has no reusable components.");
+  }
+  if (typeof draft.reusableHtml !== "string" || !draft.reusableHtml.trim()) {
+    issues.push("Reusable render HTML is missing.");
+  }
+  if (!semanticSections.length) {
+    issues.push("Semantic resume sections are missing.");
+  }
+  if (!draft.styleTokens || typeof draft.styleTokens !== "object") {
+    issues.push("Style tokens are missing.");
+  }
+  if (numberScore(scores.semanticCoverage) < 0.55) {
+    issues.push("Semantic coverage is below the save threshold.");
+  }
+  if (numberScore(scores.styleCoverage) < 0.45) {
+    issues.push("Style coverage is below the save threshold.");
+  }
+  if (numberScore(scores.layoutResilience) < 0.7) {
+    issues.push("Layout resilience is below the save threshold.");
+  }
+
+  return issues;
+}
+
+function numberScore(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
 function publicDraft<T extends { userId?: string }>(

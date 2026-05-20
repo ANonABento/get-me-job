@@ -90,12 +90,9 @@ describe("/api/templates/migrations/:id/commit", () => {
   });
 
   it("saves a reusable template when the reviewed draft has V4 artifacts", async () => {
-    mocks.getTemplateMigrationDraft.mockReturnValue({
-      ...sampleDraft(),
-      reusableTemplate: sampleReusableTemplate(),
-    });
+    mocks.getTemplateMigrationDraft.mockReturnValue(sampleReusableDraft());
     mocks.updateTemplateMigrationDraft.mockReturnValue({
-      ...sampleDraft(),
+      ...sampleReusableDraft(),
       status: "committed",
       committedTemplateId: "template-v4",
     });
@@ -156,10 +153,11 @@ describe("/api/templates/migrations/:id/commit", () => {
   it("saves reusable V4 artifacts even when legacy V3 evidence is low fidelity", async () => {
     mocks.getTemplateMigrationDraft.mockReturnValue({
       ...sampleLowFidelityV3Draft(),
-      reusableTemplate: sampleReusableTemplate(),
+      ...sampleReusableArtifacts(),
     });
     mocks.updateTemplateMigrationDraft.mockReturnValue({
       ...sampleLowFidelityV3Draft(),
+      ...sampleReusableArtifacts(),
       status: "committed",
       committedTemplateId: "template-v4",
     });
@@ -188,6 +186,76 @@ describe("/api/templates/migrations/:id/commit", () => {
         id: "template-v4",
         schemaVersion: 4,
       },
+    });
+  });
+
+  it("rejects reusable V4 saves when semantic artifacts are incomplete", async () => {
+    mocks.getTemplateMigrationDraft.mockReturnValue({
+      ...sampleReusableDraft(),
+      reusableHtml: "",
+      reusableTemplate: {
+        ...sampleReusableTemplate(),
+        components: [],
+        sectionOrder: [],
+      },
+    });
+
+    const response = await POST(
+      new NextRequest(
+        "http://localhost/api/templates/migrations/draft-1/commit",
+        {
+          method: "POST",
+        },
+      ),
+      { params: { id: "draft-1" } },
+    );
+
+    expect(response.status).toBe(422);
+    expect(mocks.saveReusableResumeTemplate).not.toHaveBeenCalled();
+    expect(mocks.updateTemplateMigrationDraft).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toMatchObject({
+      code: "reusable_template_not_ready",
+      issues: expect.arrayContaining([
+        "Reusable template has no section order.",
+        "Reusable template has no reusable components.",
+        "Reusable render HTML is missing.",
+      ]),
+    });
+  });
+
+  it("rejects reusable V4 saves below semantic readiness thresholds", async () => {
+    mocks.getTemplateMigrationDraft.mockReturnValue({
+      ...sampleReusableDraft(),
+      universalAnalysis: {
+        ...sampleReusableArtifacts().universalAnalysis,
+        scores: {
+          sourceEvidence: 1,
+          semanticCoverage: 0.3,
+          styleCoverage: 0.3,
+          layoutResilience: 0.4,
+        },
+      },
+    });
+
+    const response = await POST(
+      new NextRequest(
+        "http://localhost/api/templates/migrations/draft-1/commit",
+        {
+          method: "POST",
+        },
+      ),
+      { params: { id: "draft-1" } },
+    );
+
+    expect(response.status).toBe(422);
+    expect(mocks.saveReusableResumeTemplate).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toMatchObject({
+      code: "reusable_template_not_ready",
+      issues: expect.arrayContaining([
+        "Semantic coverage is below the save threshold.",
+        "Style coverage is below the save threshold.",
+        "Layout resilience is below the save threshold.",
+      ]),
     });
   });
 });
@@ -300,6 +368,73 @@ function sampleLowFidelityV3Draft() {
   };
 }
 
+function sampleReusableDraft() {
+  return {
+    ...sampleDraft(),
+    ...sampleReusableArtifacts(),
+  };
+}
+
+function sampleReusableArtifacts() {
+  return {
+    universalAnalysis: {
+      version: 1,
+      sourceType: "pdf",
+      filename: "resume.pdf",
+      readiness: "ready",
+      scores: {
+        sourceEvidence: 1,
+        semanticCoverage: 0.9,
+        styleCoverage: 0.8,
+        layoutResilience: 0.9,
+      },
+      sourceSignals: [],
+      sections: [],
+      repeatableSections: ["experience"],
+      styleSignals: [],
+      warnings: [],
+    },
+    semanticResume: {
+      version: 1,
+      sourceType: "pdf",
+      filename: "resume.pdf",
+      contact: {
+        name: "Jane Rivera",
+        email: "jane@example.com",
+        phone: "",
+        location: "",
+        linkedin: "",
+        github: "",
+        confidence: 0.9,
+        evidenceRefs: ["block-1"],
+      },
+      sections: [
+        {
+          id: "section-experience",
+          type: "experience",
+          title: "Experience",
+          confidence: 0.9,
+          evidenceRefs: ["block-2"],
+          items: [
+            {
+              primary: "Software Engineer",
+              secondary: "Example Co",
+              meta: [],
+              bullets: ["Built reusable templates."],
+              confidence: 0.9,
+              evidenceRefs: ["block-2"],
+            },
+          ],
+        },
+      ],
+      warnings: [],
+    },
+    styleTokens: sampleReusableTemplate().tokens,
+    reusableTemplate: sampleReusableTemplate(),
+    reusableHtml: "<article>Jane Rivera</article>",
+  };
+}
+
 function sampleReusableTemplate() {
   return {
     schemaVersion: 4,
@@ -331,8 +466,18 @@ function sampleReusableTemplate() {
       layout: {},
       warnings: [],
     },
-    components: [],
-    sectionOrder: [],
+    components: [
+      {
+        id: "component-header",
+        kind: "HeaderBlock",
+      },
+      {
+        id: "component-experience",
+        kind: "SectionHeading",
+        sectionType: "experience",
+      },
+    ],
+    sectionOrder: ["experience"],
     diagnostics: [],
   };
 }

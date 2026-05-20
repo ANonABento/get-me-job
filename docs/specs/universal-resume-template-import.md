@@ -451,6 +451,11 @@ Save readiness should require:
 - a stress render without duplicate content or severe overflow.
 - visible warnings for low-confidence section, item, or style mappings.
 
+The commit API must enforce the reusable-template readiness gate, not only the
+review UI. A V4 save must fail when semantic sections, style tokens, reusable
+components, reusable HTML, or core analysis scores are missing or below the
+configured thresholds.
+
 ## Phase 1 Deliverables
 
 - `analyzeUniversalTemplateImport(source)` API.

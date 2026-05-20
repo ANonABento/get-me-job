@@ -1767,11 +1767,45 @@ function migrationReadiness(draft: TemplateMigrationDraft): {
 function visualTemplateBlockingMessage(
   draft: TemplateMigrationDraft,
 ): string | null {
+  const reusableIssue = reusableTemplateBlockingMessage(draft);
+  if (reusableIssue) return reusableIssue;
   return !draft.reusableTemplate &&
     draft.templateV3 &&
     draft.fidelity?.status === "low"
     ? LOW_VISUAL_FIDELITY_MESSAGE
     : null;
+}
+
+function reusableTemplateBlockingMessage(
+  draft: TemplateMigrationDraft,
+): string | null {
+  if (!draft.reusableTemplate) return null;
+  if (!draft.reusableHtml?.trim()) {
+    return "Reusable render is missing. Review the mismatch report before saving.";
+  }
+  if (!draft.reusableTemplate.sectionOrder?.length) {
+    return "Reusable template sections are missing. Review the semantic tree before saving.";
+  }
+  if (!draft.reusableTemplate.components?.length) {
+    return "Reusable template components are missing. Review the reusable render before saving.";
+  }
+  if (!draft.semanticResume?.sections?.length) {
+    return "Semantic sections are missing. Review the semantic tree before saving.";
+  }
+  if (!draft.styleTokens) {
+    return "Style tokens are missing. Review the style tokens before saving.";
+  }
+  const scores = draft.universalAnalysis?.scores ?? {};
+  if ((scores.semanticCoverage ?? 0) < 0.55) {
+    return "Semantic coverage is too low to save. Fix section and item mappings first.";
+  }
+  if ((scores.styleCoverage ?? 0) < 0.45) {
+    return "Style coverage is too low to save. Review typography and spacing tokens first.";
+  }
+  if ((scores.layoutResilience ?? 0) < 0.7) {
+    return "Layout resilience is too low to save. Review the stress render first.";
+  }
+  return null;
 }
 
 function mappedSlotCount(draft: TemplateMigrationDraft): number {
