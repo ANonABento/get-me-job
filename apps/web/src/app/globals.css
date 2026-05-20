@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* react-grid-layout base CSS — required for cell positioning to work.
+   Color/handle overrides are scoped to .bento-builder-grid below so the
+   library's hard-coded `background: red` placeholder doesn't bleed
+   through. See P3 of docs/bento-builder-redesign-spec.md. */
+@import "react-grid-layout/css/styles.css";
+@import "react-resizable/css/styles.css";
+
 /* ============================================================
    Slothing editorial tokens (Kev handoff, May 2026)
    These are STATIC tokens that coexist with the runtime
@@ -657,4 +664,97 @@
   .stagger-children > *:nth-child(6) {
     animation-delay: 250ms;
   }
+}
+
+/* ============================================================
+   react-grid-layout — scoped overrides for the bento builder
+   ============================================================
+   The bento layout builder (P3 of docs/bento-builder-redesign-spec.md)
+   uses react-grid-layout for cell drag + resize + push-neighbors
+   collision. Its default CSS hard-codes `background: red` on the drop
+   placeholder and ships a base64 chevron SVG for the resize handle —
+   both bypass our editorial tokens, so we scope the entire stylesheet
+   under .bento-builder-grid and override the colors here.
+   --------------------------------------------------------- */
+.bento-builder-grid .react-grid-layout {
+  position: relative;
+  transition: height 200ms ease;
+}
+.bento-builder-grid .react-grid-item {
+  transition-property: left, top, width, height;
+}
+.bento-builder-grid .react-grid-item.cssTransforms {
+  transition-property: transform, width, height;
+}
+.bento-builder-grid .react-grid-item.resizing {
+  transition: none;
+  z-index: 1;
+  will-change: width, height;
+}
+.bento-builder-grid .react-grid-item.react-draggable-dragging {
+  transition: none;
+  z-index: 3;
+  will-change: transform;
+}
+.bento-builder-grid .react-grid-item.dropping {
+  visibility: hidden;
+}
+/* Drop placeholder — what the user sees while dragging a cell. The
+   library default is `background: red`; ours uses the editorial brand
+   token so it reads as "drop here" without screaming. */
+.bento-builder-grid .react-grid-item.react-grid-placeholder {
+  background-color: hsl(var(--primary) / 0.18);
+  border: 2px dashed hsl(var(--primary) / 0.5);
+  border-radius: var(--r-md, 0.5rem);
+  transition-duration: 100ms;
+  z-index: 2;
+  user-select: none;
+}
+.bento-builder-grid .react-grid-item.react-grid-placeholder.placeholder-resizing {
+  transition: none;
+}
+/* Resize handles — visible-only on hover so they don't decorate every
+   cell at idle. Library default uses a base64 SVG; ours uses a
+   simple corner triangle drawn with CSS so we keep everything in
+   editorial tokens. */
+.bento-builder-grid .react-resizable-handle {
+  position: absolute;
+  background-image: none;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.bento-builder-grid .react-grid-item:hover .react-resizable-handle,
+.bento-builder-grid .react-grid-item.resizing .react-resizable-handle {
+  opacity: 1;
+}
+.bento-builder-grid .react-resizable-handle-se {
+  bottom: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  cursor: se-resize;
+  border-right: 2px solid hsl(var(--muted-foreground) / 0.6);
+  border-bottom: 2px solid hsl(var(--muted-foreground) / 0.6);
+  border-bottom-right-radius: 4px;
+  padding: 0 2px 2px 0;
+}
+.bento-builder-grid .react-resizable-handle-e {
+  top: 50%;
+  right: 0;
+  margin-top: -16px;
+  width: 6px;
+  height: 32px;
+  cursor: ew-resize;
+  border-right: 2px solid hsl(var(--muted-foreground) / 0.5);
+  border-radius: 2px;
+}
+.bento-builder-grid .react-resizable-handle-s {
+  left: 50%;
+  bottom: 0;
+  margin-left: -16px;
+  width: 32px;
+  height: 6px;
+  cursor: ns-resize;
+  border-bottom: 2px solid hsl(var(--muted-foreground) / 0.5);
+  border-radius: 2px;
 }

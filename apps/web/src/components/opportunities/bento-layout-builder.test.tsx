@@ -167,3 +167,64 @@ describe("BentoLayoutBuilder — keyboard a11y (phase 9)", () => {
     expect(screen.queryByText(/^Columns$/)).toBeNull();
   });
 });
+
+describe("BentoLayoutBuilder — tone palette (P2)", () => {
+  it("each cell exposes a palette button; opening it reveals 3 tone swatches", () => {
+    render(
+      <BentoLayoutBuilder value={DEFAULT_BENTO_LAYOUT} onChange={vi.fn()} />,
+    );
+
+    // One palette per visible cell. Aria-label includes "Cell tone".
+    const paletteButtons = screen.getAllByRole("button", {
+      name: /^Cell tone /,
+    });
+    expect(paletteButtons.length).toBe(
+      DEFAULT_BENTO_LAYOUT.desktop.cells.length,
+    );
+    // No swatch menu rendered until the user opens one.
+    expect(screen.queryByRole("menuitemradio")).toBeNull();
+
+    fireEvent.click(paletteButtons[0]!);
+
+    // Now exactly 3 swatches (Paper / Muted / Accent) render as
+    // menuitemradio entries with aria-checked.
+    const swatches = screen.getAllByRole("menuitemradio");
+    expect(swatches).toHaveLength(3);
+    expect(
+      swatches.some((s) => s.getAttribute("aria-checked") === "true"),
+    ).toBe(true);
+  });
+
+  it("clicking a tone swatch writes back through onChange and closes the menu", () => {
+    const onChange = vi.fn();
+    render(
+      <BentoLayoutBuilder value={DEFAULT_BENTO_LAYOUT} onChange={onChange} />,
+    );
+
+    fireEvent.click(screen.getAllByRole("button", { name: /^Cell tone / })[0]!);
+    // Pick a non-default tone so the change is observable.
+    const accentSwatch = screen
+      .getAllByRole("menuitemradio")
+      .find((s) => s.getAttribute("title") === "Accent");
+    expect(accentSwatch).toBeDefined();
+    fireEvent.click(accentSwatch!);
+
+    expect(onChange).toHaveBeenCalled();
+    const next = onChange.mock.calls.at(-1)![0] as BentoLayoutPreference;
+    expect(next.desktop.cells[0]!.tone).toBe("accent");
+    // Menu closes after selection.
+    expect(screen.queryByRole("menuitemradio")).toBeNull();
+  });
+
+  it("Cols/Rows numeric pickers are removed from the DOM (P3 — sizing happens via edge drag)", () => {
+    render(
+      <BentoLayoutBuilder value={DEFAULT_BENTO_LAYOUT} onChange={vi.fn()} />,
+    );
+
+    // The legacy SpanPicker labels were "Cols" and "Rows". Both
+    // should be gone in P3 — cell sizing now happens via the RGL
+    // edge resize handles.
+    expect(screen.queryAllByText(/^Cols$/).length).toBe(0);
+    expect(screen.queryAllByText(/^Rows$/).length).toBe(0);
+  });
+});

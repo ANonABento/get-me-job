@@ -2,27 +2,39 @@
 
 /**
  * `<BentoLayoutBuilder>` — controlled editor for a BentoLayoutPreference.
- * Replaces the F.1 section-based reorderer.
  *
  * Three panels:
  *   1. Top bar — Desktop/Mobile tab + Columns picker (2/3/4) + Reset.
- *   2. Grid editor — visible bento cells with drag handles + chunk
- *      chip-clusters inside each cell. Drag a cell to reorder; drag a
- *      chunk chip to a different cell to regroup. Each cell has a kebab
- *      menu for: rename / set tone / change span / split-out / delete.
+ *   2. Grid editor — cells laid out on a real Tetris-style grid via
+ *      react-grid-layout. Drag a cell to move it; drag its right or
+ *      bottom edge to resize; neighbors push out of the way on
+ *      collision (vertical compaction). Each cell has a palette icon
+ *      popover for tone + an X to remove. P2+P3 of
+ *      docs/bento-builder-redesign-spec.md.
  *   3. Trays — "Hidden chunks" tray (chunks in `disabled[]`, drag back
  *      into a cell) and "Mobile priority" tray (drag cells to reorder
  *      the mobile flow).
  *
- * Drag is dnd-kit-based. We use a single DndContext at the root so
- * chunks can move between cells and into/out of the disabled tray.
- * Cells reorder via a separate sortable wrapper using cell IDs.
+ * Hybrid drag system:
+ *   - react-grid-layout drives cell-level drag + resize + collision.
+ *   - @dnd-kit drives chunk-chip drag (chunks moving between cells,
+ *     or into the disabled tray). Chunks live INSIDE a RGL cell, so
+ *     the RGL drag is scoped to the cell's grip handle via
+ *     `draggableHandle` to avoid conflicts.
  *
  * The builder is fully controlled — `value` + `onChange`. The modal
  * wrapper (layout-builder-modal.tsx) owns persistence + debounce.
  */
-import { useMemo, useState } from "react";
-import { Eye, EyeOff, GripVertical, Plus, RotateCcw, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Eye,
+  EyeOff,
+  GripVertical,
+  Palette,
+  Plus,
+  RotateCcw,
+  X,
+} from "lucide-react";
 import {
   DndContext,
   type DragEndEvent,
@@ -43,15 +55,19 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import GridLayout, {
+  WidthProvider,
+  type Layout as RGLLayout,
+} from "react-grid-layout";
+// NOTE: RGL ships base positioning CSS at react-grid-layout/css/styles.css
+// + react-resizable/css/styles.css. Both are imported from globals.css
+// rather than this file so Vitest (jsdom + Vite) doesn't trip on
+// resolving the css path through pnpm's nested peers. Color overrides
+// for the placeholder + handles live in globals.css under
+// .bento-builder-grid so we use editorial tokens, not the library's
+// hard-coded reds.
 
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
   CELL_TONES,
@@ -63,6 +79,15 @@ import {
 import { CHUNK_LABELS, type ChunkKey } from "@/lib/opportunities/layout-chunks";
 import { DEFAULT_BENTO_LAYOUT } from "@/lib/opportunities/default-bento";
 
+/**
+ * react-grid-layout's WidthProvider wires the container width into the
+ * grid so we don't have to compute it. It uses `window` so it only
+ * runs client-side; the modal is already a client component.
+ */
+const ResponsiveGridLayout = WidthProvider(GridLayout);
+
+const ROW_HEIGHT_PX = 80;
+
 const COLUMN_OPTIONS: BentoColumns[] = [2, 3, 4];
 
 const TONE_LABELS: Record<CellTone, string> = {
@@ -70,6 +95,40 @@ const TONE_LABELS: Record<CellTone, string> = {
   muted: "Muted",
   accent: "Accent",
 };
+
+/**
+ * P2: bento ↔ react-grid-layout adapter. Bento uses 1-indexed
+ * gridCol/gridRow; RGL uses 0-indexed x/y. Conversion is straight
+ * subtraction, but pinning it in one place keeps the off-by-one
+ * confined.
+ */
+function bentoCellToRGL(cell: BentoCell): RGLLayout {
+  return {
+    i: cell.id,
+    x: cell.gridCol - 1,
+    y: cell.gridRow - 1,
+    w: cell.colSpan,
+    h: cell.rowSpan,
+  };
+}
+
+function rglLayoutToBentoUpdates(
+  layout: readonly RGLLayout[],
+): Map<string, Pick<BentoCell, "gridCol" | "gridRow" | "colSpan" | "rowSpan">> {
+  const updates = new Map<
+    string,
+    Pick<BentoCell, "gridCol" | "gridRow" | "colSpan" | "rowSpan">
+  >();
+  for (const item of layout) {
+    updates.set(item.i, {
+      gridCol: item.x + 1,
+      gridRow: item.y + 1,
+      colSpan: item.w,
+      rowSpan: item.h,
+    });
+  }
+  return updates;
+}
 
 export interface BentoLayoutBuilderProps {
   value: BentoLayoutPreference;
@@ -170,24 +229,8 @@ export function BentoLayoutBuilder({
     const activeStr = String(active.id);
     const overStr = String(over.id);
 
-    // Cell reorder (drag a cell sortable handle onto another cell).
-    if (
-      activeStr.startsWith(CELL_PREFIX) &&
-      overStr.startsWith(CELL_PREFIX) &&
-      activeStr !== overStr
-    ) {
-      const ids = desktop.cells.map((c) => c.id);
-      const oldIdx = ids.indexOf(activeStr.slice(CELL_PREFIX.length));
-      const newIdx = ids.indexOf(overStr.slice(CELL_PREFIX.length));
-      if (oldIdx < 0 || newIdx < 0) return;
-      const nextCells = arrayMove(desktop.cells, oldIdx, newIdx);
-      // Reassign gridRow in declaration order so the grid stays sane
-      // (the user can refine row/col placement later via the cell
-      // inspector, but reorder should produce a predictable result).
-      const renumbered = renumberRows(nextCells, desktop.columns);
-      setDesktop({ ...desktop, cells: renumbered });
-      return;
-    }
+    // P3: cell-level drag is now owned by react-grid-layout via
+    // onCellLayoutChange below. dnd-kit no longer touches cell IDs.
 
     // Mobile-priority reorder.
     if (activeStr.startsWith("mp:") && overStr.startsWith("mp:")) {
@@ -300,14 +343,53 @@ export function BentoLayoutBuilder({
     });
   };
 
-  const cellIds = useMemo(
-    () => desktop.cells.map((c) => `${CELL_PREFIX}${c.id}`),
-    [desktop.cells],
-  );
   const mobilePriorityIds = useMemo(
     () => desktop.mobilePriority.map((id) => `mp:${id}`),
     [desktop.mobilePriority],
   );
+
+  /**
+   * P3: react-grid-layout `layout` array, derived from the current
+   * cells on every render. We pass this to <ResponsiveGridLayout> as
+   * a controlled prop so the live preview moves with the grid editor.
+   */
+  const rglLayout = useMemo<RGLLayout[]>(
+    () => desktop.cells.map(bentoCellToRGL),
+    [desktop.cells],
+  );
+
+  /**
+   * RGL fires `onLayoutChange` on mount with whatever layout the
+   * vertical compactor produces — that's not user intent, so we
+   * suppress it. After mount, every fire is genuine drag/resize and
+   * we diff against the current cells to avoid no-op onChange (which
+   * would otherwise debounce-PATCH on every mount).
+   */
+  const rglMountedRef = useRef(false);
+  const handleRGLLayoutChange = (next: readonly RGLLayout[]) => {
+    if (!rglMountedRef.current) {
+      rglMountedRef.current = true;
+      return;
+    }
+    const updates = rglLayoutToBentoUpdates(next);
+    let changed = false;
+    const nextCells = desktop.cells.map((cell) => {
+      const update = updates.get(cell.id);
+      if (!update) return cell;
+      if (
+        update.gridCol === cell.gridCol &&
+        update.gridRow === cell.gridRow &&
+        update.colSpan === cell.colSpan &&
+        update.rowSpan === cell.rowSpan
+      ) {
+        return cell;
+      }
+      changed = true;
+      return { ...cell, ...update };
+    });
+    if (!changed) return;
+    setDesktop({ ...desktop, cells: nextCells });
+  };
 
   return (
     <DndContext
@@ -393,24 +475,35 @@ export function BentoLayoutBuilder({
 
         {activeTab === "desktop" ? (
           <>
-            {/* Grid editor */}
-            <div
-              className="grid auto-rows-min gap-3 rounded-md border bg-bg-2/40 p-3"
-              style={{
-                gridTemplateColumns: `repeat(${desktop.columns}, minmax(0, 1fr))`,
-              }}
-            >
-              <SortableContext items={cellIds} strategy={rectSortingStrategy}>
+            {/* Grid editor — react-grid-layout owns the cell drag +
+                resize + push-neighbors collision. Wrapping div carries
+                the bento-builder-grid class for scoped CSS overrides
+                of RGL's default styles. */}
+            <div className="bento-builder-grid rounded-md border bg-bg-2/40 p-3">
+              <ResponsiveGridLayout
+                className="layout"
+                layout={rglLayout}
+                cols={desktop.columns}
+                rowHeight={ROW_HEIGHT_PX}
+                margin={[12, 12]}
+                containerPadding={[0, 0]}
+                draggableHandle=".bento-cell-drag-handle"
+                resizeHandles={["se", "e", "s"]}
+                compactType="vertical"
+                preventCollision={false}
+                isBounded={true}
+                onLayoutChange={handleRGLLayoutChange}
+              >
                 {desktop.cells.map((cell) => (
-                  <CellEditor
-                    key={cell.id}
-                    cell={cell}
-                    columns={desktop.columns}
-                    onUpdate={(updates) => updateCell(cell.id, updates)}
-                    onRemove={() => removeCell(cell.id)}
-                  />
+                  <div key={cell.id} data-cell-id={cell.id}>
+                    <CellEditor
+                      cell={cell}
+                      onUpdate={(updates) => updateCell(cell.id, updates)}
+                      onRemove={() => removeCell(cell.id)}
+                    />
+                  </div>
                 ))}
-              </SortableContext>
+              </ResponsiveGridLayout>
             </div>
 
             {/* Disabled tray */}
@@ -461,64 +554,54 @@ export function BentoLayoutBuilder({
 }
 
 /**
- * One editable cell. Drop zone for chunks (drag a chunk chip into the
- * cell to add it). Inline header with drag handle + label edit +
- * tone/span/remove controls. Body shows the cell's chunks as
- * sortable chips so the user can drag them between cells.
+ * One editable cell. P3 simplification:
+ * - Cell positioning + sizing is owned by react-grid-layout in the
+ *   parent. CellEditor no longer carries any drag handles for itself;
+ *   the `.bento-cell-drag-handle` grip below is what RGL latches onto
+ *   for drag-to-move (resize is on the cell edges, drawn by RGL).
+ * - SpanPickers (Cols/Rows numeric dropdowns) are gone. Sizing is
+ *   direct manipulation now.
+ * - Tone Select dropdown is replaced by a palette icon + popover (P2).
+ *
+ * The cell still acts as a dnd-kit droppable target so chunk chips
+ * dragged from another cell or from the Hidden tray land here. Chunks
+ * inside the cell remain sortable via @dnd-kit.
  */
 function CellEditor({
   cell,
-  columns,
   onUpdate,
   onRemove,
 }: {
   cell: BentoCell;
-  columns: BentoColumns;
   onUpdate(updates: Partial<BentoCell>): void;
   onRemove(): void;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef: setSortableRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: `${CELL_PREFIX}${cell.id}` });
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: `${CELL_PREFIX}${cell.id}`,
   });
 
-  // Both sortable + droppable refs need to attach to the cell.
-  const setRef = (node: HTMLElement | null) => {
-    setSortableRef(node);
-    setDropRef(node);
-  };
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    gridColumn: `span ${cell.colSpan}`,
-    gridRow: `span ${cell.rowSpan}`,
-  };
+  const tone = cell.tone ?? "default";
 
   return (
     <div
-      ref={setRef}
-      style={style}
+      ref={setDropRef}
       className={cn(
-        "flex flex-col gap-2 rounded-md border bg-paper p-3",
-        isDragging && "opacity-40",
+        "flex h-full flex-col gap-2 rounded-md border bg-paper p-3",
+        tone === "muted" && "bg-rule-strong-bg",
+        tone === "accent" && "border-brand bg-brand-soft/40",
         isOver && "ring-2 ring-primary ring-offset-1",
       )}
     >
       <div className="flex items-center gap-2">
+        {/* The .bento-cell-drag-handle class is RGL's draggableHandle
+            target — only mousedowns on this element start a cell-level
+            drag. Chunks inside the dropzone use data-rgl-cancel-drag
+            via the parent's draggableCancel to keep RGL out of their
+            way. */}
         <button
           type="button"
-          className="cursor-grab rounded p-0.5 text-muted-foreground hover:bg-muted active:cursor-grabbing"
+          className="bento-cell-drag-handle cursor-grab rounded p-0.5 text-muted-foreground hover:bg-muted active:cursor-grabbing"
           aria-label={`Drag cell ${cell.label || cell.id}`}
-          {...attributes}
-          {...listeners}
         >
           <GripVertical className="h-4 w-4" />
         </button>
@@ -531,6 +614,12 @@ function CellEditor({
           }
           className="min-w-0 flex-1 bg-transparent text-xs font-mono uppercase tracking-[0.16em] text-muted-foreground placeholder:text-muted-foreground/60 focus:outline-none"
         />
+        <TonePalette
+          value={tone}
+          onChange={(next) =>
+            onUpdate({ tone: next === "default" ? undefined : next })
+          }
+        />
         <button
           type="button"
           onClick={onRemove}
@@ -540,45 +629,12 @@ function CellEditor({
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
-      <div className="grid grid-cols-2 gap-2 text-[10px]">
-        <SpanPicker
-          label="Cols"
-          value={cell.colSpan}
-          max={columns}
-          onChange={(value) => onUpdate({ colSpan: value })}
-        />
-        <SpanPicker
-          label="Rows"
-          value={cell.rowSpan}
-          max={3}
-          onChange={(value) => onUpdate({ rowSpan: value })}
-        />
-      </div>
-      <Select
-        value={cell.tone ?? "default"}
-        onValueChange={(value) =>
-          onUpdate({
-            tone: value === "default" ? undefined : (value as CellTone),
-          })
-        }
-      >
-        <SelectTrigger className="h-7 text-[11px]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {CELL_TONES.map((tone) => (
-            <SelectItem key={tone} value={tone} className="text-xs">
-              {TONE_LABELS[tone]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
       {/* Chunks */}
       <SortableContext
         items={cell.chunks.map((c) => `${CHUNK_PREFIX}${c}`)}
         strategy={rectSortingStrategy}
       >
-        <div className="flex min-h-[40px] flex-wrap items-start gap-1 rounded border border-dashed border-rule p-2">
+        <div className="flex min-h-[40px] flex-1 flex-wrap items-start gap-1 rounded border border-dashed border-rule p-2">
           {cell.chunks.length === 0 && (
             <span className="text-[11px] text-muted-foreground">
               Drag chunks here
@@ -593,35 +649,76 @@ function CellEditor({
   );
 }
 
-function SpanPicker({
-  label,
+/**
+ * P2: palette icon + 3-swatch popover. Replaces the Paper/Muted/Accent
+ * dropdown that was taking the same space as the drag handle. Lives
+ * inline because we don't have a shared Popover primitive yet — the
+ * outside-click effect closes the menu when the user clicks elsewhere.
+ */
+function TonePalette({
   value,
-  max,
   onChange,
 }: {
-  label: string;
-  value: number;
-  max: number;
-  onChange(next: number): void;
+  value: CellTone;
+  onChange(next: CellTone): void;
 }) {
-  const options = Array.from({ length: max }, (_, i) => i + 1);
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: MouseEvent) {
+      if (!wrapRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [open]);
+
   return (
-    <label className="flex items-center justify-between gap-2 rounded border bg-card px-2 py-1 text-[11px]">
-      <span className="font-mono uppercase tracking-[0.12em] text-muted-foreground">
-        {label}
-      </span>
-      <select
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-        className="bg-transparent text-foreground focus:outline-none"
+    <div ref={wrapRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-label={`Cell tone (${TONE_LABELS[value]}) — click to change`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title={`Tone: ${TONE_LABELS[value]}`}
+        className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
       >
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
+        <Palette className="h-3.5 w-3.5" />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full z-20 mt-1 flex gap-1 rounded-md border bg-card p-1 shadow-sm"
+        >
+          {CELL_TONES.map((tone) => (
+            <button
+              key={tone}
+              type="button"
+              role="menuitemradio"
+              aria-checked={value === tone}
+              onClick={() => {
+                onChange(tone);
+                setOpen(false);
+              }}
+              className={cn(
+                "h-6 w-6 rounded border transition-all",
+                tone === "default" && "bg-paper",
+                tone === "muted" && "bg-rule-strong-bg",
+                tone === "accent" && "border-brand bg-brand-soft",
+                value === tone && "ring-2 ring-primary ring-offset-1",
+              )}
+              title={TONE_LABELS[tone]}
+            >
+              <span className="sr-only">{TONE_LABELS[tone]}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -785,19 +882,6 @@ function MobilePriorityRow({
       )}
     </li>
   );
-}
-
-/**
- * After a cell reorder, renumber gridRow values so the cells stack in
- * declaration order. Preserves colSpan/rowSpan; gridCol resets to 1 so
- * the user gets a clean vertical stack they can refine.
- */
-function renumberRows(cells: BentoCell[], _columns: number): BentoCell[] {
-  return cells.map((cell, i) => ({
-    ...cell,
-    gridRow: i + 1,
-    gridCol: 1,
-  }));
 }
 
 function nextCellSuffix(cells: BentoCell[]): number {
