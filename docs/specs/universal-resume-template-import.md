@@ -648,8 +648,9 @@ As of the latest implementation slice, the system has:
   for header fields and bullet-vs-paragraph achievement rendering.
 - Basic semantic review controls for section type/title correction and moving
   bullets between adjacent or explicitly selected items.
-- Basic split/merge controls for semantic items, preserving merged item headers
-  as achievement text so user content is not silently dropped.
+- Basic split/merge controls for semantic items, including explicit merge target
+  selection, preserving merged item headers as achievement text so user content
+  is not silently dropped.
 - Source evidence can be marked non-template/decorative from review; reusable
   semantic artifacts regenerate from the remaining evidence.
 - Semantic item primary, secondary, date, location, URL, and metadata fields can
@@ -662,8 +663,8 @@ As of the latest implementation slice, the system has:
 
 Known remaining gaps:
 
-- Split/merge semantic item controls are basic adjacent operations; arbitrary
-  item targets and drag/drop are still not complete.
+- Split controls are still bullet-origin operations; merge controls support
+  explicit item targets within the section. Drag/drop is still not complete.
 - Move-bullet controls support adjacent buttons and arbitrary item target
   selection within the section; drag/drop is still not complete.
 - Decorative source marking is block-level only; finer-grained row/cell/run

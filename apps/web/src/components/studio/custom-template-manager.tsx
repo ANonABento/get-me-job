@@ -2302,9 +2302,10 @@ function SemanticSectionCard({
     void onUpdateSemanticResume(nextSemantic, "Semantic item split");
   }
 
-  function mergeItemIntoPrevious(itemIndex: number) {
-    if (!semantic || itemIndex <= 0) return;
+  function mergeItemIntoTarget(itemIndex: number, targetItemIndex: number) {
+    if (!semantic || itemIndex === targetItemIndex) return;
     const item = section.items[itemIndex];
+    if (targetItemIndex < 0 || targetItemIndex >= section.items.length) return;
     if (!item) return;
     const nextSemantic: SemanticDraftResume = {
       ...semantic,
@@ -2316,20 +2317,20 @@ function SemanticSectionCard({
           bullets: [...(candidateItem.bullets ?? [])],
           evidenceRefs: [...(candidateItem.evidenceRefs ?? [])],
         }));
-        const previous = items[itemIndex - 1];
+        const target = items[targetItemIndex];
         const current = items[itemIndex];
         const mergedHeader = semanticItemHeaderText(current);
-        previous.bullets = [
-          ...previous.bullets,
+        target.bullets = [
+          ...target.bullets,
           ...(mergedHeader ? [mergedHeader] : []),
           ...current.bullets,
         ];
-        previous.evidenceRefs = uniqueStrings([
-          ...previous.evidenceRefs,
+        target.evidenceRefs = uniqueStrings([
+          ...target.evidenceRefs,
           ...current.evidenceRefs,
         ]);
-        previous.confidence = Math.min(
-          previous.confidence ?? 0.7,
+        target.confidence = Math.min(
+          target.confidence ?? 0.7,
           current.confidence ?? 0.7,
         );
         items.splice(itemIndex, 1);
@@ -2434,7 +2435,7 @@ function SemanticSectionCard({
             )}
             migrationSaving={migrationSaving}
             onUpdateItem={updateItem}
-            onMergeItemIntoPrevious={mergeItemIntoPrevious}
+            onMergeItemIntoTarget={mergeItemIntoTarget}
             onMoveBullet={moveBullet}
             onSplitItemFromBullet={splitItemFromBullet}
           />
@@ -2451,7 +2452,7 @@ function SemanticItemCard({
   itemLabels,
   migrationSaving,
   onUpdateItem,
-  onMergeItemIntoPrevious,
+  onMergeItemIntoTarget,
   onMoveBullet,
   onSplitItemFromBullet,
 }: {
@@ -2466,7 +2467,7 @@ function SemanticItemCard({
       Partial<Pick<SemanticDraftItem, "secondary" | "dateRange">> &
       Partial<Pick<SemanticDraftItem, "location" | "url" | "meta">>,
   ) => void;
-  onMergeItemIntoPrevious: (itemIndex: number) => void;
+  onMergeItemIntoTarget: (itemIndex: number, targetItemIndex: number) => void;
   onMoveBullet: (
     itemIndex: number,
     bulletIndex: number,
@@ -2569,10 +2570,30 @@ function SemanticItemCard({
               className="h-8"
               disabled={migrationSaving || itemIndex === 0}
               aria-label={`Merge ${item.primary || `item ${itemIndex + 1}`} into previous item`}
-              onClick={() => onMergeItemIntoPrevious(itemIndex)}
+              onClick={() => onMergeItemIntoTarget(itemIndex, itemIndex - 1)}
             >
               Merge
             </Button>
+          ) : null}
+          {itemCount > 1 ? (
+            <select
+              className="h-8 max-w-40 rounded-sm border border-border bg-background px-2 text-xs text-foreground"
+              disabled={migrationSaving}
+              aria-label={`Merge target for ${item.primary || `item ${itemIndex + 1}`}`}
+              value={String(itemIndex)}
+              onChange={(event) =>
+                onMergeItemIntoTarget(
+                  itemIndex,
+                  Number(event.currentTarget.value),
+                )
+              }
+            >
+              {itemLabels.map((label, optionIndex) => (
+                <option key={`${label}-${optionIndex}`} value={optionIndex}>
+                  {optionIndex === itemIndex ? "Current item" : label}
+                </option>
+              ))}
+            </select>
           ) : null}
         </div>
       </div>
