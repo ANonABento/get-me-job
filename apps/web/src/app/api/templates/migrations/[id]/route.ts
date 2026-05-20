@@ -56,6 +56,12 @@ const sourceCellDecisionSchema = z.object({
   decorative: z.boolean(),
 });
 
+const sourceRunDecisionSchema = z.object({
+  sourceBlockId: z.string().min(1),
+  runIndex: z.number().int().min(0),
+  decorative: z.boolean(),
+});
+
 const semanticContactSchema = z.object({
   name: z.string().default(""),
   email: z.string().default(""),
@@ -116,6 +122,7 @@ const updateMigrationSchema = z.object({
   slotCorrections: z.array(slotCorrectionSchema).optional(),
   sourceBlockDecisions: z.array(sourceBlockDecisionSchema).optional(),
   sourceCellDecisions: z.array(sourceCellDecisionSchema).optional(),
+  sourceRunDecisions: z.array(sourceRunDecisionSchema).optional(),
   resetStyleTokens: z.boolean().optional(),
 });
 
@@ -185,6 +192,9 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   if (parsed.data.sourceCellDecisions?.length) {
     source = applySourceCellDecisions(source, parsed.data.sourceCellDecisions);
   }
+  if (parsed.data.sourceRunDecisions?.length) {
+    source = applySourceRunDecisions(source, parsed.data.sourceRunDecisions);
+  }
   if (parsed.data.slotCorrections?.length) {
     resume = applySlotCorrections(
       resume,
@@ -200,7 +210,8 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   }
   if (
     (parsed.data.sourceBlockDecisions?.length ||
-      parsed.data.sourceCellDecisions?.length) &&
+      parsed.data.sourceCellDecisions?.length ||
+      parsed.data.sourceRunDecisions?.length) &&
     !parsed.data.slotCorrections?.length
   ) {
     templateV3 = rebuildVisualTemplateForSource(templateV3, source);
@@ -217,6 +228,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     semanticResume ??
     (parsed.data.sourceBlockDecisions?.length ||
     parsed.data.sourceCellDecisions?.length ||
+    parsed.data.sourceRunDecisions?.length ||
     shouldResetStyleTokens
       ? inferResumeSemanticIR(effectiveSource)
       : styleTokens
@@ -356,6 +368,32 @@ function applySourceCellDecisions(
   };
 }
 
+function applySourceRunDecisions(
+  source: SourceDocumentIR,
+  decisions: Array<z.infer<typeof sourceRunDecisionSchema>>,
+): SourceDocumentIR {
+  const byId = new Map(
+    decisions.map((decision) => [
+      `${decision.sourceBlockId}:${decision.runIndex}`,
+      decision.decorative,
+    ]),
+  );
+  return {
+    ...source,
+    blocks: source.blocks.map((block) => {
+      if (!block.runs?.length) return block;
+      return {
+        ...block,
+        runs: block.runs.map((run, runIndex) => {
+          const key = `${block.id}:${runIndex}`;
+          if (!byId.has(key)) return run;
+          return { ...run, decorative: byId.get(key) ?? false };
+        }),
+      };
+    }),
+  };
+}
+
 function sourceWithoutDecorativeBlocks(
   source: SourceDocumentIR,
 ): SourceDocumentIR {
@@ -364,12 +402,21 @@ function sourceWithoutDecorativeBlocks(
     blocks: source.blocks
       .filter((block) => !block.decorative)
       .map((block) => {
-        if (!block.cellMetadata?.length) return block;
-        const cellMetadata = block.cellMetadata.filter(
+        let nextBlock = block;
+        if (block.runs?.length) {
+          const runs = block.runs.filter((run) => !run.decorative);
+          nextBlock = {
+            ...nextBlock,
+            runs,
+            text: runs.map((run) => run.text).join(""),
+          };
+        }
+        if (!nextBlock.cellMetadata?.length) return nextBlock;
+        const cellMetadata = nextBlock.cellMetadata.filter(
           (cell) => !cell.decorative,
         );
         return {
-          ...block,
+          ...nextBlock,
           text: cellMetadata.map((cell) => cell.text).join(" | "),
           cells: cellMetadata.map((cell) => cell.text),
           cellMetadata,
@@ -377,9 +424,10 @@ function sourceWithoutDecorativeBlocks(
       })
       .filter(
         (block) =>
-          block.type !== "table-row" ||
-          !block.cellMetadata ||
-          block.cellMetadata.length > 0,
+          block.text.trim().length > 0 &&
+          (block.type !== "table-row" ||
+            !block.cellMetadata ||
+            block.cellMetadata.length > 0),
       ),
   };
 }

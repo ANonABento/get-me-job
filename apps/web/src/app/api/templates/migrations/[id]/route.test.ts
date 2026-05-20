@@ -294,6 +294,62 @@ describe("/api/templates/migrations/:id", () => {
     );
   });
 
+  it("marks source inline runs as decorative and regenerates reusable artifacts from remaining evidence", async () => {
+    mocks.getTemplateMigrationDraft.mockReturnValueOnce({
+      ...sampleDraft(),
+      source: {
+        ...sampleDraft().source,
+        blocks: [
+          {
+            id: "block-name",
+            pageId: "page-1",
+            type: "paragraph",
+            text: "Name: Jane Rivera",
+            runs: [{ text: "Name: " }, { text: "Jane Rivera" }],
+          },
+        ],
+      },
+    });
+
+    const response = await PATCH(
+      jsonRequest("PATCH", {
+        sourceRunDecisions: [
+          {
+            sourceBlockId: "block-name",
+            runIndex: 0,
+            decorative: true,
+          },
+        ],
+      }),
+      { params: { id: "draft-1" } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.updateTemplateMigrationDraft).toHaveBeenCalledWith(
+      "draft-1",
+      "user-1",
+      expect.objectContaining({
+        source: expect.objectContaining({
+          blocks: expect.arrayContaining([
+            expect.objectContaining({
+              id: "block-name",
+              runs: expect.arrayContaining([
+                expect.objectContaining({
+                  text: "Name: ",
+                  decorative: true,
+                }),
+              ]),
+            }),
+          ]),
+        }),
+        semanticResume: expect.objectContaining({
+          sections: expect.any(Array),
+        }),
+        reusableHtml: expect.not.stringContaining("Name:"),
+      }),
+    );
+  });
+
   it("marks source table cells as decorative and regenerates reusable artifacts from remaining evidence", async () => {
     mocks.getTemplateMigrationDraft.mockReturnValueOnce({
       ...sampleDraft(),

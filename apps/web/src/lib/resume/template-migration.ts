@@ -64,6 +64,7 @@ export interface SourceInlineRun {
   text: string;
   href?: string;
   style?: SourceBlock["style"];
+  decorative?: boolean;
 }
 
 export interface SourceCellBlock {
@@ -118,6 +119,7 @@ export interface SourceBlock {
   cells?: string[];
   tableMetadata?: SourceTableMetadata;
   rowMetadata?: SourceTableRowMetadata;
+  runs?: SourceInlineRun[];
   cellMetadata?: Array<{
     text: string;
     widthPt?: number;

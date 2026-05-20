@@ -146,6 +146,10 @@ interface TemplateMigrationDraft {
       pageId?: string;
       slotHint?: TemplateMigrationSlotPath;
       decorative?: boolean;
+      runs?: Array<{
+        text: string;
+        decorative?: boolean;
+      }>;
       cells?: string[];
       cellMetadata?: Array<{
         text: string;
@@ -591,6 +595,41 @@ export function CustomTemplateManagerDialog({
         title: decorative
           ? "Source cell marked non-template"
           : "Source cell restored",
+      });
+    } catch (error) {
+      addToast({
+        type: "error",
+        title: "Could not update source evidence",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setMigrationSaving(false);
+    }
+  }
+
+  async function handleMarkSelectedRunDecorative(
+    sourceBlockId: string,
+    runIndex: number,
+    decorative: boolean,
+  ) {
+    if (!migrationDraft) return;
+    setMigrationSaving(true);
+    try {
+      await patchMigrationDraft({
+        sourceRunDecisions: [
+          {
+            sourceBlockId,
+            runIndex,
+            decorative,
+          },
+        ],
+      });
+      addToast({
+        type: "success",
+        title: decorative
+          ? "Source run marked non-template"
+          : "Source run restored",
       });
     } catch (error) {
       addToast({
@@ -1088,6 +1127,9 @@ export function CustomTemplateManagerDialog({
                       onMarkSelectedCellDecorative={
                         handleMarkSelectedCellDecorative
                       }
+                      onMarkSelectedRunDecorative={
+                        handleMarkSelectedRunDecorative
+                      }
                       selectedExperienceIndex={selectedExperienceIndex}
                       selectedEducationIndex={selectedEducationIndex}
                       selectedProjectIndex={selectedProjectIndex}
@@ -1203,6 +1245,7 @@ function VisualTemplateReviewPanes({
   onSelectBlock,
   onMarkSelectedBlockDecorative,
   onMarkSelectedCellDecorative,
+  onMarkSelectedRunDecorative,
   selectedExperienceIndex,
   selectedEducationIndex,
   selectedProjectIndex,
@@ -1230,6 +1273,11 @@ function VisualTemplateReviewPanes({
   onMarkSelectedCellDecorative: (
     sourceBlockId: string,
     cellIndex: number,
+    decorative: boolean,
+  ) => void | Promise<void>;
+  onMarkSelectedRunDecorative: (
+    sourceBlockId: string,
+    runIndex: number,
     decorative: boolean,
   ) => void | Promise<void>;
   selectedExperienceIndex: number;
@@ -1338,6 +1386,7 @@ function VisualTemplateReviewPanes({
               onSelect={onSelectBlock}
               onMarkSelectedBlockDecorative={onMarkSelectedBlockDecorative}
               onMarkSelectedCellDecorative={onMarkSelectedCellDecorative}
+              onMarkSelectedRunDecorative={onMarkSelectedRunDecorative}
               migrationSaving={migrationSaving}
             />
           </div>
@@ -4230,6 +4279,7 @@ function SourceBlocksList({
   onSelect,
   onMarkSelectedBlockDecorative,
   onMarkSelectedCellDecorative,
+  onMarkSelectedRunDecorative,
   migrationSaving,
 }: {
   blocks: TemplateMigrationDraft["source"]["blocks"];
@@ -4241,9 +4291,16 @@ function SourceBlocksList({
     cellIndex: number,
     decorative: boolean,
   ) => void | Promise<void>;
+  onMarkSelectedRunDecorative: (
+    sourceBlockId: string,
+    runIndex: number,
+    decorative: boolean,
+  ) => void | Promise<void>;
   migrationSaving: boolean;
 }) {
   const selectedBlock = blocks.find((block) => block.id === selectedBlockId);
+  const selectedRuns =
+    selectedBlock?.runs?.filter((run) => run.text.trim()) ?? [];
   return (
     <div className="mt-4">
       <div className="mb-2 flex items-center justify-between gap-2">
@@ -4310,6 +4367,50 @@ function SourceBlocksList({
                 </Button>
               </div>
             ))}
+          </div>
+        </div>
+      ) : null}
+      {selectedBlock && selectedRuns.length > 1 ? (
+        <div className="mb-2 rounded-md border bg-background p-2">
+          <p className="text-[10px] font-medium uppercase text-muted-foreground">
+            Selected inline runs
+          </p>
+          <div className="mt-2 grid gap-1 sm:grid-cols-2">
+            {selectedBlock.runs?.map((run, runIndex) => {
+              if (!run.text.trim()) return null;
+              return (
+                <div
+                  key={`${selectedBlock.id}-run-${runIndex}`}
+                  className="flex items-center justify-between gap-2 rounded-sm border border-border/70 bg-muted/20 px-2 py-1"
+                >
+                  <span className="min-w-0 truncate text-xs">
+                    {run.decorative ? (
+                      <span className="mr-1 rounded-sm bg-amber-700/10 px-1 text-[10px] text-amber-800">
+                        non-template
+                      </span>
+                    ) : null}
+                    {run.text}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 shrink-0 px-1.5 text-[10px]"
+                    disabled={migrationSaving}
+                    aria-label={`${run.decorative ? "Use" : "Mark"} run ${runIndex + 1} from ${selectedBlock.id} ${run.decorative ? "as template" : "non-template"}`}
+                    onClick={() =>
+                      void onMarkSelectedRunDecorative(
+                        selectedBlock.id,
+                        runIndex,
+                        !run.decorative,
+                      )
+                    }
+                  >
+                    {run.decorative ? "Use" : "Ignore"}
+                  </Button>
+                </div>
+              );
+            })}
           </div>
         </div>
       ) : null}

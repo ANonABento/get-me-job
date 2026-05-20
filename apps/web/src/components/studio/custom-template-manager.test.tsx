@@ -1142,6 +1142,106 @@ describe("CustomTemplateManagerDialog", () => {
     );
   });
 
+  it("lets reviewers mark inline runs as non-template evidence", async () => {
+    const patchBodies: unknown[] = [];
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/templates/migrate") {
+          const draft = migrationDraft();
+          Object.assign(draft.source.blocks[0]!, {
+            text: "Name: Jane Rivera",
+            runs: [{ text: "Name: " }, { text: "Jane Rivera" }],
+          });
+          return Response.json({
+            draft,
+            warnings: [],
+            confidence: "high",
+          });
+        }
+        if (url === "/api/templates/v3/preview") {
+          return Response.json({
+            html: "<html><body><article>Rendered migrated resume</article></body></html>",
+            pdfOptions: { format: "Letter" },
+          });
+        }
+        if (url === "/api/templates/migrations/draft-1") {
+          const body = JSON.parse(
+            String((init as RequestInit | undefined)?.body),
+          ) as {
+            sourceRunDecisions?: Array<{
+              sourceBlockId: string;
+              runIndex: number;
+              decorative: boolean;
+            }>;
+          };
+          patchBodies.push(body);
+          const next = migrationDraft();
+          const blocksWithRuns = next.source.blocks as Array<{
+            id: string;
+            text: string;
+            runs?: Array<{ text: string; decorative?: boolean }>;
+          }>;
+          Object.assign(blocksWithRuns[0]!, {
+            text: "Name: Jane Rivera",
+            runs: [{ text: "Name: " }, { text: "Jane Rivera" }],
+          });
+          const decision = body.sourceRunDecisions?.[0];
+          const block = blocksWithRuns.find(
+            (candidate) => candidate.id === decision?.sourceBlockId,
+          );
+          if (block && "runs" in block && block.runs && decision) {
+            Object.assign(block.runs[decision.runIndex]!, {
+              decorative: decision.decorative,
+            });
+          }
+          return Response.json({ draft: next });
+        }
+        return Response.json({ templates: [] });
+      },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderDialog();
+
+    const inputs =
+      document.querySelectorAll<HTMLInputElement>("input[type='file']");
+    fireEvent.change(inputs[0], {
+      target: {
+        files: [
+          new File(["%PDF-1.7"], "resume.pdf", {
+            type: "application/pdf",
+          }),
+        ],
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("resume.pdf")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Source Evidence" }));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Mark run 1 from block-1 non-template",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(patchBodies.at(-1)).toEqual({
+        sourceRunDecisions: [
+          {
+            sourceBlockId: "block-1",
+            runIndex: 0,
+            decorative: true,
+          },
+        ],
+      });
+    });
+    expect((await screen.findAllByText("non-template")).length).toBeGreaterThan(
+      0,
+    );
+  });
+
   it("lets reviewers edit semantic item fields", async () => {
     const patchBodies: unknown[] = [];
     const fetchMock = vi.fn(
