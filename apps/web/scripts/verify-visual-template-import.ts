@@ -8,6 +8,7 @@ import { generateResumeHTMLV3 } from "@/lib/resume/template-v3-renderer";
 import {
   buildVisualTemplateStressResume,
   compareVisualTemplateImages,
+  verifyReusableTemplateRender,
   verifyVisualTemplateRender,
 } from "@/lib/resume/template-visual-verification";
 import {
@@ -18,6 +19,7 @@ import {
 import {
   buildReusableResumeTemplateIR,
   renderReusableResumeTemplateHTML,
+  renderTailoredResumeWithReusableTemplate,
 } from "@/lib/resume/universal-template-renderer";
 
 interface Args {
@@ -80,18 +82,19 @@ async function main() {
     args.mode === "both" ? (["source", "stress"] as const) : [args.mode];
   const reports = [];
   for (const mode of modes) {
-    const resume =
+    const html =
       mode === "source"
-        ? draft.resume
-        : buildVisualTemplateStressResume(draft.resume);
-    const html = generateResumeHTMLV3(resume, draft.templateV3);
+        ? reusableHtml
+        : renderTailoredResumeWithReusableTemplate(
+            buildVisualTemplateStressResume(draft.resume),
+            reusableTemplate,
+          );
     const htmlPath = path.join(args.outDir, `${mode}.html`);
     const screenshotPath = path.join(args.outDir, `${mode}.png`);
     writeFileSync(htmlPath, html);
-    const report = await verifyVisualTemplateRender({
+    const report = await verifyReusableTemplateRender({
       html,
       source: draft.source,
-      template: draft.templateV3,
       screenshotPath,
     });
     const imageComparison =
@@ -110,6 +113,26 @@ async function main() {
       );
     }
     reports.push({ mode, report, htmlPath, screenshotPath, imageComparison });
+  }
+
+  const legacyHtml =
+    args.mode === "stress"
+      ? null
+      : generateResumeHTMLV3(draft.resume, draft.templateV3);
+  if (legacyHtml) {
+    const legacyHtmlPath = path.join(args.outDir, "legacy-source.html");
+    const legacyScreenshotPath = path.join(args.outDir, "legacy-source.png");
+    writeFileSync(legacyHtmlPath, legacyHtml);
+    const legacyReport = await verifyVisualTemplateRender({
+      html: legacyHtml,
+      source: draft.source,
+      template: draft.templateV3,
+      screenshotPath: legacyScreenshotPath,
+    });
+    writeJson(
+      path.join(args.outDir, "legacy-source-report.json"),
+      legacyReport,
+    );
   }
 
   const summary = {

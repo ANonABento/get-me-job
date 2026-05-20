@@ -356,6 +356,46 @@ describe("universal template import analysis", () => {
     );
   });
 
+  it("recovers implicit skills lists that extraction nests under another section", () => {
+    const source: SourceDocumentIR = {
+      sourceType: "pdf",
+      filename: "implicit-skills.pdf",
+      pages: [{ id: "page-1", number: 1, widthPt: 612, heightPt: 792 }],
+      rawText: "",
+      diagnostics: [],
+      blocks: [
+        styledBlock("b1", "Jordan Patel", { fontSizePt: 22, bold: true }),
+        styledBlock("b2", "jordan@example.com", { fontSizePt: 9 }),
+        styledBlock("b3", "EDUCATION", { fontSizePt: 11, bold: true }),
+        tableRow("b4", ["Design University", "BFA Interaction Design", "2018"]),
+        styledBlock("b5", "React, TypeScript, Design Systems, Performance", {
+          fontSizePt: 9,
+        }),
+        styledBlock("b6", "EXPERIENCE", { fontSizePt: 11, bold: true }),
+        tableRow("b7", ["Product Designer", "Studio", "2022 - Present"]),
+        bulletRow("b8", "Designed customer-facing workflow improvements"),
+      ],
+    };
+
+    const semantic = inferResumeSemanticIR(source);
+    const education = semantic.sections.find(
+      (section) => section.type === "education",
+    );
+    const skills = semantic.sections.find(
+      (section) => section.type === "skills",
+    );
+
+    expect(skills?.items.map((item) => item.primary)).toEqual([
+      "React",
+      "TypeScript",
+      "Design Systems",
+      "Performance",
+    ]);
+    expect(
+      education?.items.flatMap((item) => item.bullets).join(" "),
+    ).not.toMatch(/React|TypeScript|Design Systems|Performance/);
+  });
+
   it("renders arbitrary tailored resume content through a saved reusable template", () => {
     const source: SourceDocumentIR = {
       sourceType: "docx",

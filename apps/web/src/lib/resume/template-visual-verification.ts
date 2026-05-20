@@ -144,6 +144,60 @@ export async function verifyVisualTemplateRender({
   };
 }
 
+export async function verifyReusableTemplateRender({
+  html,
+  source,
+  screenshotPath,
+}: {
+  html: string;
+  source: SourceDocumentIR;
+  screenshotPath?: string;
+}): Promise<VisualTemplateVerificationReport> {
+  const sourceMetrics = collectReusableTemplateSourceMetrics(source);
+  const render = await measureRenderedTemplate(html, source, screenshotPath, {
+    rootSelector: ".resume-template",
+    candidateSelector:
+      ".resume-template h1, .rt-contact, .rt-section h2, .rt-entry, .rt-entry-head, .rt-entry li, .rt-entry strong, .rt-entry span, .rt-entry time",
+    requireSourceNodeLinks: false,
+  });
+  return {
+    source: sourceMetrics,
+    render,
+    findings: findingsFor(sourceMetrics, render, {
+      requireSourceNodeLinks: false,
+    }),
+  };
+}
+
+function collectReusableTemplateSourceMetrics(
+  source: SourceDocumentIR,
+): VisualTemplateSourceMetrics {
+  const page = source.pages[0];
+  return {
+    sourceType: source.sourceType,
+    pageCount: source.pages.length,
+    page: {
+      widthPt: page?.widthPt ?? 612,
+      heightPt: page?.heightPt ?? 792,
+    },
+    blockCount: source.blocks.length,
+    textBlockCount: source.blocks.filter((block) => block.text.trim()).length,
+    positionedBlockCount: source.blocks.filter((block) => block.bbox).length,
+    tableRowCount: source.blocks.filter((block) => block.type === "table-row")
+      .length,
+    tableCellCount: source.blocks.reduce(
+      (sum, block) => sum + (block.cellMetadata?.length ?? 0),
+      0,
+    ),
+    rawTextCharacters: source.rawText.length,
+    sourceLineCount: normalizedLines(source.rawText).length,
+    templateFlow: "reusable-semantic",
+    templateNodeCount: 0,
+    templateSlotCount: 0,
+    templateRepeatGroupCount: 0,
+  };
+}
+
 export function buildVisualTemplateStressResume(
   base: TailoredResume,
 ): TailoredResume {
@@ -364,7 +418,16 @@ async function measureRenderedTemplate(
   html: string,
   source: SourceDocumentIR,
   screenshotPath?: string,
+  options: {
+    rootSelector?: string;
+    candidateSelector?: string;
+    requireSourceNodeLinks?: boolean;
+  } = {},
 ): Promise<VisualTemplateRenderMetrics> {
+  const rootSelector = options.rootSelector ?? ".resume-v3";
+  const candidateSelector =
+    options.candidateSelector ??
+    "[data-v3-node-id], .v3-text, .v3-section-title, .v3-cell, .v3-table";
   const pageInfo = source.pages[0];
   const width = Math.ceil(((pageInfo?.widthPt ?? 612) * 4) / 3) + 260;
   const height = Math.ceil(((pageInfo?.heightPt ?? 792) * 4) / 3) + 260;
@@ -390,10 +453,11 @@ async function measureRenderedTemplate(
     }, {});
     const sourceLines = normalizedLines(source.rawText);
     await page.evaluate("globalThis.__name = (fn) => fn");
-    const metrics = (await page.locator(".resume-v3").evaluate(
+    const metrics = (await page.locator(rootSelector).evaluate(
       (
         root,
         input: {
+          candidateSelector: string;
           sourceBoxes: Record<
             string,
             {
@@ -409,7 +473,7 @@ async function measureRenderedTemplate(
       ) => {
         const ptToPx = 4 / 3;
         const overflowTolerancePx = 2.5;
-        const { sourceBoxes, sourceLines } = input;
+        const { candidateSelector, sourceBoxes, sourceLines } = input;
         const normalizeBrowserLines = (text: string) =>
           text
             .split(/\r?\n/)
@@ -418,9 +482,7 @@ async function measureRenderedTemplate(
         const rootRect = root.getBoundingClientRect();
         const rootElement = root as HTMLElement;
         const candidates = Array.from(
-          document.querySelectorAll<HTMLElement>(
-            "[data-v3-node-id], .v3-text, .v3-section-title, .v3-cell, .v3-table",
-          ),
+          document.querySelectorAll<HTMLElement>(candidateSelector),
         );
         const visibleTextBlocks = candidates.filter((element) => {
           const rect = element.getBoundingClientRect();
@@ -544,10 +606,10 @@ async function measureRenderedTemplate(
           },
         };
       },
-      { sourceBoxes, sourceLines },
+      { candidateSelector, sourceBoxes, sourceLines },
     )) as VisualTemplateRenderMetrics;
     if (screenshotPath) {
-      await page.locator(".resume-v3").screenshot({ path: screenshotPath });
+      await page.locator(rootSelector).screenshot({ path: screenshotPath });
     }
     return metrics;
   } finally {
@@ -559,7 +621,9 @@ async function measureRenderedTemplate(
 function findingsFor(
   source: VisualTemplateSourceMetrics,
   render: VisualTemplateRenderMetrics,
+  options: { requireSourceNodeLinks?: boolean } = {},
 ): VisualTemplateVerificationReport["findings"] {
+  const requireSourceNodeLinks = options.requireSourceNodeLinks ?? true;
   const findings: VisualTemplateVerificationReport["findings"] = [];
   if (render.estimatedPages > source.pageCount) {
     findings.push({
@@ -576,6 +640,7 @@ function findingsFor(
     });
   }
   if (
+    requireSourceNodeLinks &&
     source.positionedBlockCount > 0 &&
     render.absoluteDrift.comparedCount === 0
   ) {

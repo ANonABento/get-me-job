@@ -326,14 +326,16 @@ export function inferResumeSemanticIR(
     0,
     sectionRuns[0]?.startIndex ?? Math.min(lines.length, 6),
   );
-  const sections = sectionRuns.map((run, index) => ({
-    id: `section-${index + 1}`,
-    type: run.type,
-    title: run.title,
-    items: parseSemanticSectionItems(run.type, run.lines),
-    confidence: run.confidence,
-    evidenceRefs: run.evidenceRefs,
-  }));
+  const sections = recoverImplicitSkillsSection(
+    sectionRuns.map((run, index) => ({
+      id: `section-${index + 1}`,
+      type: run.type,
+      title: run.title,
+      items: parseSemanticSectionItems(run.type, run.lines),
+      confidence: run.confidence,
+      evidenceRefs: run.evidenceRefs,
+    })),
+  );
 
   return {
     version: 1,
@@ -877,6 +879,107 @@ function parseSemanticSectionItems(
   if (type === "experience") return parseStructuredItems(lines, "experience");
   if (type === "projects") return parseStructuredItems(lines, "projects");
   return parsePlainSemanticItems(lines);
+}
+
+function recoverImplicitSkillsSection(
+  sections: SemanticSection[],
+): SemanticSection[] {
+  if (sections.some((section) => section.type === "skills")) return sections;
+  const recoveredItems: SemanticResumeItem[] = [];
+  const nextSections = sections.map((section) => ({
+    ...section,
+    items: section.items
+      .map((item) => {
+        const retainedBullets: string[] = [];
+        for (const bullet of item.bullets) {
+          const skills = implicitSkillsFromText(bullet);
+          if (skills.length) {
+            recoveredItems.push(...skillsToSemanticItems(skills, item));
+          } else {
+            retainedBullets.push(bullet);
+          }
+        }
+        const primarySkills =
+          section.type !== "summary"
+            ? implicitSkillsFromText(item.primary)
+            : [];
+        if (primarySkills.length && !item.secondary && !item.dateRange) {
+          recoveredItems.push(...skillsToSemanticItems(primarySkills, item));
+          return { ...item, primary: "", bullets: retainedBullets };
+        }
+        return { ...item, bullets: retainedBullets };
+      })
+      .filter((item) => item.primary || item.bullets.length),
+  }));
+  const uniqueRecovered = dedupeSemanticSkillItems(recoveredItems);
+  if (!uniqueRecovered.length) return sections;
+  return [
+    ...nextSections,
+    {
+      id: "section-implicit-skills",
+      type: "skills",
+      title: "Skills",
+      items: uniqueRecovered,
+      confidence: 0.64,
+      evidenceRefs: uniqueRecovered.flatMap((item) => item.evidenceRefs),
+    },
+  ];
+}
+
+function implicitSkillsFromText(text: string): string[] {
+  const skills = splitSkillText(text);
+  if (skills.length < 3 || skills.length > 12) return [];
+  if (
+    /\b(?:built|led|managed|created|developed|designed|reduced|improved|owned)\b/i.test(
+      text,
+    )
+  ) {
+    return [];
+  }
+  const skillLikeCount = skills.filter(isSkillLikePhrase).length;
+  return skillLikeCount >= Math.max(2, Math.ceil(skills.length * 0.5))
+    ? skills
+    : [];
+}
+
+function isSkillLikePhrase(value: string): boolean {
+  const text = value.trim();
+  if (!text || text.length > 36) return false;
+  if (/\d{4}/.test(text)) return false;
+  if (
+    /\b(?:react|typescript|javascript|python|node|next\.?js|sql|postgres|graphql|tailwind|css|html|figma|design systems?|performance|accessibility|a11y|ros|docker|kubernetes|aws|gcp|azure|latex|pdf)\b/i.test(
+      text,
+    )
+  ) {
+    return true;
+  }
+  if (/^[A-Z0-9+#.]{2,}(?:\s+[A-Z0-9+#.]{2,})?$/.test(text)) return true;
+  return /^[A-Z][A-Za-z0-9+#.]+(?:\s+[A-Z][A-Za-z0-9+#.]+){0,3}$/.test(text);
+}
+
+function skillsToSemanticItems(
+  skills: string[],
+  evidence: Pick<SemanticResumeItem, "evidenceRefs">,
+): SemanticResumeItem[] {
+  return skills.map((skill) => ({
+    primary: skill,
+    meta: [],
+    bullets: [],
+    confidence: 0.66,
+    evidenceRefs: evidence.evidenceRefs,
+  }));
+}
+
+function dedupeSemanticSkillItems(
+  items: SemanticResumeItem[],
+): SemanticResumeItem[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = item.primary.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function parseStructuredItems(
