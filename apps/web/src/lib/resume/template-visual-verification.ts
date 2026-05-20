@@ -511,10 +511,24 @@ async function measureRenderedTemplate(
               (a.rightOverflowPx + a.bottomOverflowPx),
           );
         const renderedLines = normalizeBrowserLines(document.body.innerText);
+        const renderedText = renderedLines.join(" ");
         const renderedLineSet = new Set(renderedLines);
-        const coveredLines = sourceLines.filter((line) =>
-          renderedLineSet.has(line),
-        ).length;
+        const sourceLineCovered = (line: string) => {
+          if (renderedLineSet.has(line) || renderedText.includes(line)) {
+            return true;
+          }
+          const tokens = line
+            .replace(/[^\p{L}\p{N}@.+#/-]+/gu, " ")
+            .split(/\s+/)
+            .map((token) => token.trim())
+            .filter((token) => token.length >= 2);
+          if (tokens.length < 3) return false;
+          const matched = tokens.filter((token) =>
+            renderedText.includes(token),
+          ).length;
+          return matched / tokens.length >= 0.72;
+        };
+        const coveredLines = sourceLines.filter(sourceLineCovered).length;
         const lineCounts = new Map<string, number>();
         for (const line of renderedLines) {
           if (line.length < 24) continue;

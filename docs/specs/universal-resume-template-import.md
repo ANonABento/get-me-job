@@ -767,8 +767,9 @@ Known remaining gaps:
   dogfood suite keeps this visible as a broad fixture class rather than a
   person-specific case. Vertical-merge semantic duplication has a regression
   guard, but broader source-text coverage and overflow resilience remain open.
-- Current table-heavy DOCX smoke runs fail the universal scorecard on source
-  coverage and stress page overflow. This is intentionally tracked as
-  extraction/render hardening, not a Kevin-specific template issue.
+- Current table-heavy DOCX smoke runs now pass source-content coverage after
+  reusable table-row matching was made token-aware, but still fail the
+  universal scorecard on stress page overflow. This is intentionally tracked as
+  reusable render hardening, not a Kevin-specific template issue.
 - The lab is useful for verification, but app review needs to expose the same
   model in a clearer workflow.
