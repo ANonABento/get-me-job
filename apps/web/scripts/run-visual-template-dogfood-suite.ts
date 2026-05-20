@@ -74,8 +74,15 @@ function main() {
     path.join(args.outDir, "suite-summary.json"),
     `${JSON.stringify(suiteSummary, null, 2)}\n`,
   );
+  writeFileSync(
+    path.join(args.outDir, "lab.html"),
+    renderLabHtml(suiteSummary, args.outDir),
+  );
   console.log(
     `[visual-template-suite] wrote ${path.join(args.outDir, "suite-summary.json")}`,
+  );
+  console.log(
+    `[visual-template-suite] lab ${path.join(args.outDir, "lab.html")}`,
   );
 }
 
@@ -118,6 +125,533 @@ function parseArgs(argv: string[]) {
 
 function sanitizeBasename(value: string): string {
   return value.replace(/[^a-z0-9.-]+/gi, "-").replace(/^-|-$/g, "");
+}
+
+function renderLabHtml(
+  suiteSummary: {
+    createdAt: string;
+    outDir: string;
+    caseCount: number;
+    cases: Array<Record<string, unknown>>;
+  },
+  outDir: string,
+): string {
+  const data = JSON.stringify(makeBrowserSummary(suiteSummary, outDir));
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Visual Template Lab</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f1ea;
+      --panel: #fffdf8;
+      --ink: #171514;
+      --muted: #6d6256;
+      --line: #d8cfc1;
+      --accent: #9b5c2f;
+      --bad: #a33b2f;
+      --warn: #9a6a16;
+      --good: #27694e;
+      --mono: "SFMono-Regular", "Roboto Mono", "Cascadia Mono", monospace;
+      --sans: Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      min-width: 1180px;
+    }
+    button, select, input { font: inherit; }
+    .shell {
+      display: grid;
+      grid-template-columns: 300px minmax(760px, 1fr) 340px;
+      min-height: 100dvh;
+    }
+    .rail, .inspector {
+      background: #ece5d8;
+      border-right: 1px solid var(--line);
+      padding: 18px;
+    }
+    .inspector {
+      border-right: 0;
+      border-left: 1px solid var(--line);
+    }
+    .brand {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+    .stamp, .label, .metric-label {
+      font-family: var(--mono);
+      color: var(--muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .case-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 18px;
+    }
+    .case-button {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--ink);
+      text-align: left;
+      padding: 10px;
+      display: grid;
+      gap: 7px;
+      cursor: pointer;
+    }
+    .case-button[aria-selected="true"] {
+      background: var(--panel);
+      border-color: var(--accent);
+    }
+    .case-title {
+      font-weight: 700;
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .case-meta {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      border: 1px solid var(--line);
+      padding: 2px 6px;
+      font: 10px var(--mono);
+      color: var(--muted);
+      background: rgba(255,255,255,.36);
+    }
+    .chip.bad { color: var(--bad); border-color: rgba(163,59,47,.4); }
+    .chip.warn { color: var(--warn); border-color: rgba(154,106,22,.42); }
+    .chip.good { color: var(--good); border-color: rgba(39,105,78,.38); }
+    main {
+      padding: 18px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 14px;
+      min-width: 0;
+    }
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: end;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 14px;
+    }
+    .toolbar h2 {
+      margin: 0 0 6px;
+      font-size: 24px;
+      letter-spacing: 0;
+      line-height: 1.05;
+    }
+    .path {
+      color: var(--muted);
+      font: 11px/1.35 var(--mono);
+      overflow-wrap: anywhere;
+    }
+    .controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .seg {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      background: var(--panel);
+    }
+    .seg button {
+      border: 0;
+      border-right: 1px solid var(--line);
+      background: transparent;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .seg button:last-child { border-right: 0; }
+    .seg button[aria-pressed="true"] {
+      background: var(--ink);
+      color: var(--panel);
+    }
+    .viewer {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      min-height: 0;
+    }
+    .pane {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+    .pane-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 42px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .pane-body {
+      min-height: 0;
+      overflow: auto;
+      padding: 14px;
+      background: #d9d0c1;
+    }
+    .frame-wrap {
+      display: grid;
+      place-items: start center;
+      min-width: 100%;
+    }
+    img.preview {
+      max-width: 100%;
+      background: white;
+      border: 1px solid rgba(23,21,20,.16);
+      box-shadow: 0 20px 40px rgba(52,43,33,.12);
+    }
+    iframe.preview {
+      width: 816px;
+      height: 1056px;
+      border: 1px solid rgba(23,21,20,.16);
+      background: white;
+      transform-origin: top center;
+    }
+    .overlay-stage {
+      position: relative;
+      width: 816px;
+      height: 1056px;
+      background: white;
+      border: 1px solid rgba(23,21,20,.16);
+      box-shadow: 0 20px 40px rgba(52,43,33,.12);
+    }
+    .overlay-stage img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .overlay-stage img.top {
+      opacity: var(--overlay-opacity, .5);
+      mix-blend-mode: multiply;
+    }
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .metric {
+      border-top: 1px solid var(--line);
+      padding-top: 8px;
+    }
+    .metric-value {
+      font: 18px/1.1 var(--mono);
+      margin-top: 4px;
+    }
+    .finding-list, .links {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .finding {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.38);
+      padding: 8px;
+      display: grid;
+      gap: 4px;
+    }
+    .finding.error { border-color: rgba(163,59,47,.55); }
+    .finding.warning { border-color: rgba(154,106,22,.55); }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(155,92,47,.4);
+    }
+    .json {
+      margin-top: 14px;
+      max-height: 320px;
+      overflow: auto;
+      background: #171514;
+      color: #f8f2e9;
+      padding: 12px;
+      font: 11px/1.45 var(--mono);
+      white-space: pre-wrap;
+    }
+    .range {
+      display: inline-grid;
+      grid-template-columns: auto 120px;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="rail">
+      <div class="brand">
+        <h1>Visual Template Lab</h1>
+        <div class="stamp" id="createdAt"></div>
+      </div>
+      <div class="case-list" id="caseList"></div>
+    </aside>
+    <main>
+      <section class="toolbar">
+        <div>
+          <div class="label">Selected fixture</div>
+          <h2 id="title"></h2>
+          <div class="path" id="sourcePath"></div>
+        </div>
+        <div class="controls">
+          <div class="seg" id="leftMode"></div>
+          <div class="seg" id="rightMode"></div>
+          <label class="range"><span>Overlay</span><input id="overlayOpacity" type="range" min="0" max="100" value="50"></label>
+        </div>
+      </section>
+      <section class="viewer">
+        <div class="pane">
+          <div class="pane-head"><span id="leftLabel"></span><a id="leftOpen" href="#" target="_blank">Open</a></div>
+          <div class="pane-body"><div class="frame-wrap" id="leftPane"></div></div>
+        </div>
+        <div class="pane">
+          <div class="pane-head"><span id="rightLabel"></span><a id="rightOpen" href="#" target="_blank">Open</a></div>
+          <div class="pane-body"><div class="frame-wrap" id="rightPane"></div></div>
+        </div>
+      </section>
+    </main>
+    <aside class="inspector">
+      <div class="label">Metrics</div>
+      <div class="metric-grid" id="metrics"></div>
+      <div class="label" style="margin-top:18px">Findings</div>
+      <div class="finding-list" id="findings"></div>
+      <div class="label" style="margin-top:18px">Artifacts</div>
+      <div class="links" id="links"></div>
+      <pre class="json" id="json"></pre>
+    </aside>
+  </div>
+  <script>
+    const suite = ${data};
+    const state = { caseIndex: 0, left: "reference", right: "render", overlay: 50 };
+    const modes = [
+      ["reference", "Reference"],
+      ["render", "Source render"],
+      ["diff", "Diff"],
+      ["stress", "Stress render"],
+      ["html", "Rendered HTML"],
+      ["overlay", "Overlay"]
+    ];
+    const $ = (id) => document.getElementById(id);
+    function pct(value) { return Math.round((value || 0) * 100) + "%"; }
+    function num(value, digits = 1) { return Number(value || 0).toFixed(digits); }
+    function rel(file) { return file || ""; }
+    function activeCase() { return suite.cases[state.caseIndex]; }
+    function report(item, mode) { return item.reports.find((entry) => entry.mode === mode); }
+    function severity(item) {
+      const findings = item.reports.flatMap((entry) => entry.findings || []);
+      if (findings.some((finding) => finding.severity === "error")) return "bad";
+      if (findings.some((finding) => finding.severity === "warning")) return "warn";
+      return "good";
+    }
+    function renderCases() {
+      $("createdAt").textContent = suite.createdAt.slice(5, 16).replace("T", " ");
+      $("caseList").innerHTML = suite.cases.map((item, index) => {
+        const src = report(item, "source");
+        const stress = report(item, "stress");
+        return '<button class="case-button" aria-selected="' + (index === state.caseIndex) + '" data-index="' + index + '">' +
+          '<span class="case-title">' + item.templateName + '</span>' +
+          '<span class="case-meta">' +
+          '<span class="chip">' + item.sourceType + '</span>' +
+          '<span class="chip ' + severity(item) + '">' + severity(item).toUpperCase() + '</span>' +
+          '<span class="chip">SRC ' + (src ? src.overflowElements : "-") + ' overflow</span>' +
+          '<span class="chip">STR ' + (stress ? stress.repeatedLineCount : "-") + ' repeat</span>' +
+          '</span></button>';
+      }).join("");
+      document.querySelectorAll(".case-button").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.caseIndex = Number(button.dataset.index);
+          render();
+        });
+      });
+    }
+    function modeButtons(id, side) {
+      $(id).innerHTML = modes.map(([key, label]) =>
+        '<button aria-pressed="' + (state[side] === key) + '" data-mode="' + key + '">' + label + '</button>'
+      ).join("");
+      $(id).querySelectorAll("button").forEach((button) => {
+        button.addEventListener("click", () => {
+          state[side] = button.dataset.mode;
+          render();
+        });
+      });
+    }
+    function artifact(item, mode) {
+      const src = report(item, "source");
+      const stress = report(item, "stress");
+      const comparison = src && src.imageComparison;
+      if (mode === "reference") return { label: "Reference", type: "image", path: item.referenceImagePath };
+      if (mode === "render") return { label: "Source render", type: "image", path: src && src.screenshotPath };
+      if (mode === "diff") return { label: "Diff", type: "image", path: comparison && comparison.diffPath };
+      if (mode === "stress") return { label: "Stress render", type: "image", path: stress && stress.screenshotPath };
+      if (mode === "html") return { label: "Rendered HTML", type: "frame", path: src && src.htmlPath };
+      if (mode === "overlay") return { label: "Overlay", type: "overlay", reference: item.referenceImagePath, render: src && src.screenshotPath };
+      return { label: "Missing", type: "missing" };
+    }
+    function paintPane(side) {
+      const item = activeCase();
+      const data = artifact(item, state[side]);
+      $(side + "Label").textContent = data.label;
+      const link = $(side + "Open");
+      const pane = $(side + "Pane");
+      const path = data.path || data.render || data.reference || "";
+      link.href = path;
+      link.style.visibility = path ? "visible" : "hidden";
+      if (data.type === "image" && data.path) {
+        pane.innerHTML = '<img class="preview" src="' + data.path + '" alt="' + data.label + '">';
+      } else if (data.type === "frame" && data.path) {
+        pane.innerHTML = '<iframe class="preview" src="' + data.path + '"></iframe>';
+      } else if (data.type === "overlay" && data.reference && data.render) {
+        pane.innerHTML = '<div class="overlay-stage" style="--overlay-opacity:' + (state.overlay / 100) + '"><img src="' + data.reference + '" alt="Reference"><img class="top" src="' + data.render + '" alt="Render"></div>';
+      } else {
+        pane.innerHTML = '<div class="path">No artifact for this mode.</div>';
+      }
+    }
+    function metric(label, value, tone) {
+      return '<div class="metric"><div class="metric-label">' + label + '</div><div class="metric-value" style="color:var(--' + (tone || "ink") + ')">' + value + '</div></div>';
+    }
+    function renderInspector() {
+      const item = activeCase();
+      const src = report(item, "source");
+      const stress = report(item, "stress");
+      const comparison = src && src.imageComparison;
+      $("metrics").innerHTML = [
+        metric("Source overflow", src ? src.overflowElements : "-", src && src.overflowElements ? "bad" : "good"),
+        metric("Stress repeats", stress ? stress.repeatedLineCount : "-", stress && stress.repeatedLineCount ? "warn" : "good"),
+        metric("Source coverage", src ? pct(src.sourceLineCoverage) : "-", src && src.sourceLineCoverage < .55 ? "warn" : "good"),
+        metric("Stress coverage", stress ? pct(stress.sourceLineCoverage) : "-", stress && stress.sourceLineCoverage < .55 ? "warn" : "good"),
+        metric("Image diff", comparison ? num(comparison.meanAbsoluteDiff) : "-", comparison && comparison.meanAbsoluteDiff > 32 ? "bad" : "good"),
+        metric("Changed pixels", comparison ? pct(comparison.changedPixelRatio) : "-", comparison && comparison.changedPixelRatio > .42 ? "bad" : "good"),
+      ].join("");
+      const findings = item.reports.flatMap((entry) => (entry.findings || []).map((finding) => ({...finding, mode: entry.mode})));
+      $("findings").innerHTML = findings.map((finding) =>
+        '<div class="finding ' + finding.severity + '"><div class="stamp">' + finding.mode + ' / ' + finding.severity + ' / ' + finding.code + '</div><div>' + finding.message + '</div></div>'
+      ).join("");
+      const base = item.caseDir;
+      $("links").innerHTML = [
+        ["summary.json", base + "/summary.json"],
+        ["template-v3.json", base + "/template-v3.json"],
+        ["source-ir.json", base + "/source-ir.json"],
+        ["source-report.json", base + "/source-report.json"],
+        ["stress-report.json", base + "/stress-report.json"],
+        ["source.html", src && src.htmlPath],
+        ["stress.html", stress && stress.htmlPath],
+      ].filter(([, href]) => href).map(([label, href]) => '<a target="_blank" href="' + href + '">' + label + '</a>').join("");
+      $("json").textContent = JSON.stringify(item, null, 2);
+    }
+    function render() {
+      const item = activeCase();
+      $("title").textContent = item.templateName + " / " + item.sourceType;
+      $("sourcePath").textContent = item.source;
+      renderCases();
+      modeButtons("leftMode", "left");
+      modeButtons("rightMode", "right");
+      paintPane("left");
+      paintPane("right");
+      renderInspector();
+      $("overlayOpacity").value = state.overlay;
+    }
+    $("overlayOpacity").addEventListener("input", (event) => {
+      state.overlay = Number(event.target.value);
+      document.querySelectorAll(".overlay-stage").forEach((node) => {
+        node.style.setProperty("--overlay-opacity", state.overlay / 100);
+      });
+    });
+    render();
+  </script>
+</body>
+</html>`;
+}
+
+function makeBrowserSummary(
+  suiteSummary: {
+    createdAt: string;
+    outDir: string;
+    caseCount: number;
+    cases: Array<Record<string, unknown>>;
+  },
+  outDir: string,
+) {
+  return {
+    ...suiteSummary,
+    outDir: ".",
+    cases: suiteSummary.cases.map((item) => {
+      const summary = item as {
+        outDir: string;
+        source: string;
+        referenceImagePath?: string | null;
+        reports: Array<Record<string, unknown>>;
+      };
+      return {
+        ...summary,
+        caseDir: relativeForHtml(outDir, summary.outDir),
+        referenceImagePath: summary.referenceImagePath
+          ? relativeForHtml(outDir, summary.referenceImagePath)
+          : null,
+        reports: summary.reports.map((report) =>
+          rewriteReportPaths(report, outDir),
+        ),
+      };
+    }),
+  };
+}
+
+function rewriteReportPaths(report: Record<string, unknown>, outDir: string) {
+  const copy = { ...report } as Record<string, unknown>;
+  for (const key of ["htmlPath", "screenshotPath"]) {
+    if (typeof copy[key] === "string") {
+      copy[key] = relativeForHtml(outDir, copy[key]);
+    }
+  }
+  if (copy.imageComparison && typeof copy.imageComparison === "object") {
+    const comparison = { ...(copy.imageComparison as Record<string, unknown>) };
+    if (typeof comparison.diffPath === "string") {
+      comparison.diffPath = relativeForHtml(outDir, comparison.diffPath);
+    }
+    copy.imageComparison = comparison;
+  }
+  return copy;
+}
+
+function relativeForHtml(fromDir: string, filename: string): string {
+  return path.relative(fromDir, filename).split(path.sep).join("/");
 }
 
 main();
