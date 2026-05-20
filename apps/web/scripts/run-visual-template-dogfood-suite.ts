@@ -8,6 +8,14 @@ interface SuiteCase {
   name: string;
   source: string;
   reference?: string;
+  fixtureClass?: string;
+  expectedSections?: string[];
+  expectedStyleTraits?: string[];
+}
+
+interface FixtureManifest {
+  version: 1;
+  cases: SuiteCase[];
 }
 
 const defaultCases: SuiteCase[] = [
@@ -38,7 +46,9 @@ function main() {
         name: sanitizeBasename(path.basename(source)),
         source,
       }))
-    : defaultCases.filter((item) => existsSync(item.source));
+    : loadManifestCases(args.manifest).filter((item) =>
+        existsSync(item.source),
+      );
 
   const summaries = [];
   for (const item of cases) {
@@ -59,15 +69,33 @@ function main() {
       cwd: process.cwd(),
       stdio: "inherit",
     });
-    summaries.push(
-      JSON.parse(readFileSync(path.join(caseOutDir, "summary.json"), "utf8")),
+    const summary = JSON.parse(
+      readFileSync(path.join(caseOutDir, "summary.json"), "utf8"),
+    ) as Record<string, unknown>;
+    const scorecard = scoreCase(summary, item);
+    summary.fixture = {
+      name: item.name,
+      class: item.fixtureClass ?? "ad-hoc",
+      expectedSections: item.expectedSections ?? [],
+      expectedStyleTraits: item.expectedStyleTraits ?? [],
+    };
+    summary.scorecard = scorecard;
+    writeFileSync(
+      path.join(caseOutDir, "scorecard.json"),
+      `${JSON.stringify(scorecard, null, 2)}\n`,
     );
+    writeFileSync(
+      path.join(caseOutDir, "summary.json"),
+      `${JSON.stringify(summary, null, 2)}\n`,
+    );
+    summaries.push(summary);
   }
 
   const suiteSummary = {
     createdAt: new Date().toISOString(),
     outDir: args.outDir,
     caseCount: summaries.length,
+    aggregate: aggregateScorecards(summaries),
     cases: summaries,
   };
   writeFileSync(
@@ -108,6 +136,7 @@ function parseArgs(argv: string[]) {
     }
   }
   const outIndex = argv.findIndex((arg) => arg === "--out");
+  const manifestIndex = argv.findIndex((arg) => arg === "--manifest");
   const defaultOut = path.join(
     process.cwd(),
     ".dogfood",
@@ -118,9 +147,161 @@ function parseArgs(argv: string[]) {
     sources,
     referenceBySource,
     outDir: path.resolve(outIndex >= 0 ? argv[outIndex + 1] : defaultOut),
+    manifest:
+      manifestIndex >= 0
+        ? path.resolve(argv[manifestIndex + 1])
+        : path.join(
+            process.cwd(),
+            "tests",
+            "fixtures",
+            "visual-template-import",
+            "manifest.json",
+          ),
     strict: argv.includes("--strict"),
     strictVisual: argv.includes("--strict-visual"),
   };
+}
+
+function loadManifestCases(manifestPath: string): SuiteCase[] {
+  if (!existsSync(manifestPath)) return defaultCases;
+  const manifest = JSON.parse(
+    readFileSync(manifestPath, "utf8"),
+  ) as FixtureManifest;
+  return manifest.cases.map((item) => ({
+    ...item,
+    source: path.resolve(process.cwd(), item.source),
+    reference: item.reference
+      ? path.resolve(process.cwd(), item.reference)
+      : undefined,
+  }));
+}
+
+function scoreCase(summary: Record<string, unknown>, item: SuiteCase) {
+  const universalAnalysis = objectAt(summary, "universalAnalysis");
+  const scores = objectAt(universalAnalysis, "scores");
+  const semanticResume = objectAt(summary, "semanticResume");
+  const sections = Array.isArray(semanticResume.sections)
+    ? semanticResume.sections
+    : [];
+  const detectedSections = sections
+    .map((section) => (isRecord(section) ? String(section.type ?? "") : ""))
+    .filter(Boolean);
+  const expectedSections = item.expectedSections ?? [];
+  const matchedSections = expectedSections.filter((section) =>
+    detectedSections.includes(section),
+  );
+  const reusableTemplate = objectAt(summary, "reusableTemplate");
+  const reusableSectionCount = Array.isArray(reusableTemplate.sectionOrder)
+    ? reusableTemplate.sectionOrder.length
+    : 0;
+  const reports = Array.isArray(summary.reports) ? summary.reports : [];
+  const stressReport = reports.find(
+    (report) => isRecord(report) && report.mode === "stress",
+  );
+  const sourceReport = reports.find(
+    (report) => isRecord(report) && report.mode === "source",
+  );
+  const semanticCoverage = numberAt(scores, "semanticCoverage");
+  const styleCoverage = numberAt(scores, "styleCoverage");
+  const layoutResilience =
+    1 -
+    Math.min(
+      1,
+      numberAt(stressReport, "overflowElements") * 0.3 +
+        numberAt(stressReport, "repeatedLineCount") * 0.15,
+    );
+  const referenceResemblance =
+    1 -
+    Math.min(
+      1,
+      numberAt(objectAt(sourceReport, "imageComparison"), "changedPixelRatio"),
+    );
+  const sectionCoverage = expectedSections.length
+    ? matchedSections.length / expectedSections.length
+    : 1;
+  const pass =
+    sectionCoverage >= 0.75 &&
+    semanticCoverage >= 0.55 &&
+    styleCoverage >= 0.45 &&
+    layoutResilience >= 0.7 &&
+    reusableSectionCount > 0;
+
+  return {
+    fixtureClass: item.fixtureClass ?? "ad-hoc",
+    pass,
+    scores: {
+      sectionCoverage,
+      semanticCoverage,
+      styleCoverage,
+      layoutResilience,
+      referenceResemblance,
+    },
+    expectedSections,
+    detectedSections,
+    matchedSections,
+    reusableSectionCount,
+    notes: [
+      ...(sectionCoverage < 0.75 ? ["Expected sections were missed."] : []),
+      ...(semanticCoverage < 0.55 ? ["Semantic coverage below gate."] : []),
+      ...(styleCoverage < 0.45 ? ["Style coverage below gate."] : []),
+      ...(layoutResilience < 0.7
+        ? ["Stress render resilience below gate."]
+        : []),
+      ...(reusableSectionCount === 0
+        ? ["No reusable sections generated."]
+        : []),
+    ],
+  };
+}
+
+function aggregateScorecards(summaries: Array<Record<string, unknown>>) {
+  const scorecards = summaries
+    .map((summary) => summary.scorecard)
+    .filter(isRecord);
+  const count = scorecards.length;
+  const passed = scorecards.filter((scorecard) => scorecard.pass).length;
+  return {
+    passed,
+    failed: count - passed,
+    passRate: count ? passed / count : 0,
+    averageScores: {
+      sectionCoverage: averageScore(scorecards, "sectionCoverage"),
+      semanticCoverage: averageScore(scorecards, "semanticCoverage"),
+      styleCoverage: averageScore(scorecards, "styleCoverage"),
+      layoutResilience: averageScore(scorecards, "layoutResilience"),
+      referenceResemblance: averageScore(scorecards, "referenceResemblance"),
+    },
+  };
+}
+
+function averageScore(
+  scorecards: Record<string, unknown>[],
+  key: string,
+): number {
+  if (!scorecards.length) return 0;
+  return (
+    scorecards.reduce(
+      (total, scorecard) =>
+        total + numberAt(objectAt(scorecard, "scores"), key),
+      0,
+    ) / scorecards.length
+  );
+}
+
+function objectAt(source: unknown, key: string): Record<string, unknown> {
+  if (!isRecord(source)) return {};
+  const value = source[key];
+  return isRecord(value) ? value : {};
+}
+
+function numberAt(source: unknown, key: string): number {
+  if (!isRecord(source)) return 0;
+  const value = source[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 function sanitizeBasename(value: string): string {
@@ -500,8 +681,10 @@ function renderLabHtml(
         return '<button class="case-button" aria-selected="' + (index === state.caseIndex) + '" data-index="' + index + '">' +
           '<span class="case-title">' + item.templateName + '</span>' +
           '<span class="case-meta">' +
+          '<span class="chip">' + ((item.fixture && item.fixture.class) || "fixture") + '</span>' +
           '<span class="chip">' + item.sourceType + '</span>' +
           '<span class="chip ' + severity(item) + '">' + severity(item).toUpperCase() + '</span>' +
+          '<span class="chip ' + (item.scorecard && item.scorecard.pass ? "good" : "warn") + '">SCORE ' + (item.scorecard && item.scorecard.pass ? "PASS" : "REVIEW") + '</span>' +
           '<span class="chip">SRC ' + (src ? src.overflowElements : "-") + ' overflow</span>' +
           '<span class="chip">STR ' + (stress ? stress.repeatedLineCount : "-") + ' repeat</span>' +
           '</span></button>';
@@ -577,6 +760,8 @@ function renderLabHtml(
         metric("Stress coverage", stress ? pct(stress.sourceLineCoverage) : "-", stress && stress.sourceLineCoverage < .55 ? "warn" : "good"),
         metric("Semantic", item.universalAnalysis ? pct(item.universalAnalysis.scores.semanticCoverage) : "-", item.universalAnalysis && item.universalAnalysis.scores.semanticCoverage < .55 ? "warn" : "good"),
         metric("Style", item.universalAnalysis ? pct(item.universalAnalysis.scores.styleCoverage) : "-", item.universalAnalysis && item.universalAnalysis.scores.styleCoverage < .55 ? "warn" : "good"),
+        metric("Section score", item.scorecard ? pct(item.scorecard.scores.sectionCoverage) : "-", item.scorecard && item.scorecard.scores.sectionCoverage < .75 ? "warn" : "good"),
+        metric("Suite gate", item.scorecard ? (item.scorecard.pass ? "PASS" : "REVIEW") : "-", item.scorecard && item.scorecard.pass ? "good" : "warn"),
         metric("Reusable sections", item.reusableTemplate ? item.reusableTemplate.sectionOrder.length : "-", item.reusableTemplate && !item.reusableTemplate.sectionOrder.length ? "warn" : "good"),
         metric("Reusable components", item.reusableTemplate ? item.reusableTemplate.components.length : "-", item.reusableTemplate && item.reusableTemplate.components.length < 2 ? "warn" : "good"),
         metric("Image diff", comparison ? num(comparison.meanAbsoluteDiff) : "-", comparison && comparison.meanAbsoluteDiff > 32 ? "bad" : "good"),

@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "name": "mid-engineer-one-page-pdf",
+      "fixtureClass": "one-page engineering resume",
+      "source": "tests/fixtures/personas/mid-engineer/resume.pdf",
+      "expectedSections": ["experience", "education", "skills"],
+      "expectedStyleTraits": ["single-page", "section-headings", "bullets"]
+    },
+    {
+      "name": "senior-ic-dense-pdf",
+      "fixtureClass": "dense project-heavy resume",
+      "source": "tests/fixtures/personas/senior-ic/resume.pdf",
+      "expectedSections": ["experience", "projects", "education", "skills"],
+      "expectedStyleTraits": ["dense-text", "section-headings", "bullets"]
+    },
+    {
+      "name": "heavy-formatting-pdf",
+      "fixtureClass": "two-column or heavy-format resume",
+      "source": "tests/fixtures/personas/heavy-formatting/resume.pdf",
+      "expectedSections": ["experience", "education", "skills"],
+      "expectedStyleTraits": ["layout-structure", "section-headings"]
+    },
+    {
+      "name": "career-gap-pdf",
+      "fixtureClass": "business resume",
+      "source": "tests/fixtures/personas/career-gap/resume.pdf",
+      "expectedSections": ["experience", "education", "skills"],
+      "expectedStyleTraits": ["chronology", "section-headings"]
+    },
+    {
+      "name": "table-heavy-docx",
+      "fixtureClass": "table-heavy DOCX",
+      "source": "tests/fixtures/dogfood/table-docx-resume.docx",
+      "expectedSections": ["experience", "education", "skills"],
+      "expectedStyleTraits": ["tables", "cell-borders", "bullets"]
+    },
+    {
+      "name": "latex-overleaf-resume",
+      "fixtureClass": "LaTeX resume",
+      "source": "tests/fixtures/dogfood/overleaf-resume.tex",
+      "expectedSections": ["experience", "projects", "education"],
+      "expectedStyleTraits": ["latex-macros", "compact-spacing", "bullets"]
+    },
+    {
+      "name": "non-english-spanish-pdf",
+      "fixtureClass": "non-US language/date resume",
+      "source": "tests/fixtures/personas/non-english-spanish/resume.pdf",
+      "expectedSections": ["experience", "education", "skills"],
+      "expectedStyleTraits": ["non-english", "date-variants"]
+    },
+    {
+      "name": "entry-cs-grad-pdf",
+      "fixtureClass": "entry-level resume",
+      "source": "tests/fixtures/personas/entry-cs-grad/resume.pdf",
+      "expectedSections": ["education", "projects", "skills"],
+      "expectedStyleTraits": ["project-heavy", "education-first"]
+    }
+  ]
+}
