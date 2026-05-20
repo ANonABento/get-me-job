@@ -51,8 +51,9 @@ export interface ReusableTemplateSourceEvidence {
     text?: string;
     cellMetadata?: Array<{
       text?: string;
-      blocks?: Array<{ type?: string; text?: string }>;
+      blocks?: Array<{ type?: string; text?: string; listMarker?: string }>;
     }>;
+    listMarker?: string;
   }>;
 }
 
@@ -70,6 +71,7 @@ export interface EntryComponent {
     dateRange: boolean;
   };
   bulletList: boolean;
+  bulletMarker?: "disc" | "decimal" | "dash" | "none";
 }
 
 export function buildReusableResumeTemplateIR(
@@ -297,6 +299,7 @@ function sectionComponent(
             dateRange: true,
           },
           bulletList: inferSectionBulletList(section, sourceEvidence),
+          bulletMarker: inferSectionBulletMarker(section, sourceEvidence),
         },
       },
     ],
@@ -324,7 +327,32 @@ function inferSectionBulletList(
         Boolean(block),
     );
   if (!referencedBlocks.length) return true;
-  return referencedBlocks.some(hasVisualBulletEvidence);
+  return (
+    referencedBlocks.some(hasVisualBulletEvidence) ||
+    sourceEvidence.blocks.some(hasVisualBulletEvidence)
+  );
+}
+
+function inferSectionBulletMarker(
+  section: SemanticSection,
+  sourceEvidence?: ReusableTemplateSourceEvidence,
+): EntryComponent["bulletMarker"] {
+  if (!sourceEvidence?.blocks.length) return undefined;
+  const sourceBlocksById = new Map(
+    sourceEvidence.blocks.map((block) => [block.id, block]),
+  );
+  const referencedMarkers = section.items
+    .flatMap((item) => item.evidenceRefs)
+    .map((ref) => sourceBlocksById.get(ref))
+    .filter(
+      (block): block is ReusableTemplateSourceEvidence["blocks"][number] =>
+        Boolean(block),
+    )
+    .flatMap(visualBulletMarkers);
+  const markers = referencedMarkers.length
+    ? referencedMarkers
+    : sourceEvidence.blocks.flatMap(visualBulletMarkers);
+  return mostCommonMarker(markers);
 }
 
 function scalarListSection(
@@ -492,6 +520,7 @@ function defaultEntryComponent(id: string): EntryComponent {
       dateRange: true,
     },
     bulletList: true,
+    bulletMarker: undefined,
   };
 }
 
@@ -508,6 +537,58 @@ function hasVisualBulletEvidence(
         looksLikeBulletText(cellBlock.text ?? ""),
     );
   });
+}
+
+function visualBulletMarkers(
+  block: ReusableTemplateSourceEvidence["blocks"][number],
+): Array<NonNullable<EntryComponent["bulletMarker"]>> {
+  const markers: Array<NonNullable<EntryComponent["bulletMarker"]>> = [];
+  if (block.type === "list-item") {
+    markers.push(normalizeBulletMarker(block.listMarker) ?? "disc");
+  } else {
+    const marker = markerFromText(block.text ?? "");
+    if (marker) markers.push(marker);
+  }
+  for (const cell of block.cellMetadata ?? []) {
+    const marker = markerFromText(cell.text ?? "");
+    if (marker) markers.push(marker);
+    for (const cellBlock of cell.blocks ?? []) {
+      if (cellBlock.type === "list-item") {
+        markers.push(normalizeBulletMarker(cellBlock.listMarker) ?? "disc");
+      } else {
+        const cellBlockMarker = markerFromText(cellBlock.text ?? "");
+        if (cellBlockMarker) markers.push(cellBlockMarker);
+      }
+    }
+  }
+  return markers;
+}
+
+function normalizeBulletMarker(
+  value: string | undefined,
+): EntryComponent["bulletMarker"] {
+  if (value === "decimal") return "decimal";
+  if (value === "dash") return "dash";
+  if (value === "none") return "none";
+  if (value === "disc") return "disc";
+  return undefined;
+}
+
+function markerFromText(text: string): EntryComponent["bulletMarker"] {
+  if (/^\s*\d+[.)]\s+/.test(text)) return "decimal";
+  if (/^\s*[-\u2043]\s+/.test(text)) return "dash";
+  if (/^\s*(?:[*]|\u2022|\u2023|\u25e6)\s+/.test(text)) return "disc";
+  return undefined;
+}
+
+function mostCommonMarker(
+  markers: Array<NonNullable<EntryComponent["bulletMarker"]>>,
+): EntryComponent["bulletMarker"] {
+  if (!markers.length) return undefined;
+  const counts = new Map<NonNullable<EntryComponent["bulletMarker"]>, number>();
+  for (const marker of markers)
+    counts.set(marker, (counts.get(marker) ?? 0) + 1);
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
 }
 
 function looksLikeBulletText(text: string): boolean {
@@ -543,7 +624,7 @@ function renderEntry(
     </div>
     ${
       bullets.length && component.bulletList
-        ? `<ul>${bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join("")}</ul>`
+        ? `<ul class="rt-list-${component.bulletMarker ?? "disc"}">${bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join("")}</ul>`
         : bullets.length
           ? `<div class="rt-entry-lines">${bullets
               .map((bullet) => `<p>${escapeHtml(bullet)}</p>`)
@@ -601,6 +682,10 @@ body { margin: 0; background: #f4f4f5; color: ${bodyColor}; font-family: ${fontF
 .rt-date-below .rt-entry-head { display: block; }
 .rt-date-below .rt-entry-head time { display: block; margin-top: 1pt; text-align: left; }
 .rt-entry ul { margin: 2pt 0 0 13pt; padding: 0; }
+.rt-entry ul.rt-list-decimal { list-style-type: decimal; }
+.rt-entry ul.rt-list-dash, .rt-entry ul.rt-list-none { list-style: none; margin-left: 0; }
+.rt-entry ul.rt-list-dash li::before { content: "- "; }
+.rt-entry ul.rt-list-none li::before { content: ""; }
 .rt-entry li { margin: 0 0 ${pt(tokens.spacing.bulletGapPt?.value, 1.5)}; }
 .rt-entry-lines { margin-top: 2pt; display: grid; gap: ${pt(tokens.spacing.bulletGapPt?.value, 1.5)}; }
 .rt-entry-lines p { margin: 0; }

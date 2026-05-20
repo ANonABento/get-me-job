@@ -944,6 +944,56 @@ describe("universal template import analysis", () => {
     expect(html).toContain("rt-entry-lines");
     expect(html).not.toContain("<ul>");
   });
+
+  it("infers reusable list marker style from source evidence", () => {
+    const source: SourceDocumentIR = {
+      sourceType: "docx",
+      filename: "numbered-achievements.docx",
+      pages: [{ id: "page-1", number: 1, widthPt: 612, heightPt: 792 }],
+      rawText: "",
+      diagnostics: [],
+      blocks: [
+        styledBlock("b1", "Template Owner", { fontSizePt: 24, bold: true }),
+        styledBlock("b2", "EXPERIENCE", { fontSizePt: 11, bold: true }),
+        tableRow("b3", ["Analyst", "Source Co", "2024"]),
+        bulletRow("b4", "First numbered achievement.", "decimal"),
+        bulletRow("b5", "Second numbered achievement.", "decimal"),
+      ],
+    };
+    const semantic = inferResumeSemanticIR(source);
+    const template = buildReusableResumeTemplateIR(
+      semantic,
+      inferImportedTemplateStyleTokens(source),
+      source,
+    );
+    const html = renderTailoredResumeWithReusableTemplate(
+      {
+        contact: { name: "New Candidate", email: "new@example.com" },
+        summary: "",
+        experiences: [
+          {
+            title: "Operations Analyst",
+            company: "Delta Systems",
+            dates: "2026 - Present",
+            highlights: ["Maintained numbered achievement styling."],
+          },
+        ],
+        projects: [],
+        skills: [],
+        education: [],
+      },
+      template,
+    );
+
+    expect(
+      template.components
+        .find((component) => component.kind === "Section")
+        ?.components.find((component) => component.kind === "EntryList")
+        ?.itemComponent.bulletMarker,
+    ).toBe("decimal");
+    expect(html).toContain('class="rt-list-decimal"');
+    expect(html).toContain("list-style-type: decimal");
+  });
 });
 
 function styledBlock(
@@ -988,6 +1038,7 @@ function tableRow(
 function bulletRow(
   id: string,
   text: string,
+  listMarker: "disc" | "decimal" | "dash" | "none" = "disc",
 ): SourceDocumentIR["blocks"][number] {
   return {
     id,
@@ -1003,6 +1054,7 @@ function bulletRow(
             id: `${id}-cell-1`,
             type: "list-item",
             text,
+            listMarker,
             runs: [{ text }],
           },
         ],
