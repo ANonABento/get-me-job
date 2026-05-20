@@ -2455,6 +2455,10 @@ function SemanticSectionCard({
 }) {
   const [title, setTitle] = useState(section.title);
   const [type, setType] = useState<SemanticSectionType>(section.type);
+  const [draggedBullet, setDraggedBullet] = useState<{
+    itemIndex: number;
+    bulletIndex: number;
+  } | null>(null);
   const dirty = title !== section.title || type !== section.type;
 
   useEffect(() => {
@@ -2715,6 +2719,20 @@ function SemanticSectionCard({
             onUpdateItem={updateItem}
             onMergeItemIntoTarget={mergeItemIntoTarget}
             onMoveBullet={moveBullet}
+            draggedBullet={draggedBullet}
+            onBulletDragStart={(bulletItemIndex, bulletIndex) =>
+              setDraggedBullet({ itemIndex: bulletItemIndex, bulletIndex })
+            }
+            onBulletDragEnd={() => setDraggedBullet(null)}
+            onBulletDrop={(targetItemIndex) => {
+              if (!draggedBullet) return;
+              moveBullet(
+                draggedBullet.itemIndex,
+                draggedBullet.bulletIndex,
+                targetItemIndex,
+              );
+              setDraggedBullet(null);
+            }}
             onSplitItemFromBullet={splitItemFromBullet}
           />
         ))}
@@ -2732,6 +2750,10 @@ function SemanticItemCard({
   onUpdateItem,
   onMergeItemIntoTarget,
   onMoveBullet,
+  draggedBullet,
+  onBulletDragStart,
+  onBulletDragEnd,
+  onBulletDrop,
   onSplitItemFromBullet,
 }: {
   item: SemanticDraftItem;
@@ -2751,6 +2773,10 @@ function SemanticItemCard({
     bulletIndex: number,
     targetItemIndex: number,
   ) => void;
+  draggedBullet: { itemIndex: number; bulletIndex: number } | null;
+  onBulletDragStart: (itemIndex: number, bulletIndex: number) => void;
+  onBulletDragEnd: () => void;
+  onBulletDrop: (targetItemIndex: number) => void;
   onSplitItemFromBullet: (itemIndex: number, bulletIndex: number) => void;
 }) {
   const [primary, setPrimary] = useState(item.primary);
@@ -2784,7 +2810,20 @@ function SemanticItemCard({
   ]);
 
   return (
-    <div className="border-l pl-2">
+    <div
+      className="border-l pl-2"
+      aria-label={`Semantic item ${semanticItemHeaderText(item) || `item ${itemIndex + 1}`}`}
+      onDragOver={(event) => {
+        if (migrationSaving || itemCount < 2 || !draggedBullet) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+      }}
+      onDrop={(event) => {
+        if (migrationSaving || !draggedBullet) return;
+        event.preventDefault();
+        onBulletDrop(itemIndex);
+      }}
+    >
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_132px_auto]">
         <label className="space-y-1">
           <span className="block text-[10px] font-medium uppercase text-muted-foreground">
@@ -2913,7 +2952,26 @@ function SemanticItemCard({
       {item.bullets?.length ? (
         <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted-foreground">
           {item.bullets.slice(0, 5).map((bullet, bulletIndex) => (
-            <li key={`${bullet}-${bulletIndex}`}>
+            <li
+              key={`${bullet}-${bulletIndex}`}
+              draggable={!migrationSaving && itemCount > 1}
+              aria-label={`Semantic bullet ${bulletIndex + 1} from ${item.primary || `item ${itemIndex + 1}`}`}
+              className={
+                draggedBullet?.itemIndex === itemIndex &&
+                draggedBullet.bulletIndex === bulletIndex
+                  ? "opacity-60"
+                  : ""
+              }
+              onDragStart={(event) => {
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData(
+                  "text/plain",
+                  `${itemIndex}:${bulletIndex}`,
+                );
+                onBulletDragStart(itemIndex, bulletIndex);
+              }}
+              onDragEnd={onBulletDragEnd}
+            >
               <div className="flex items-start justify-between gap-2">
                 <span>{bullet}</span>
                 <span className="flex shrink-0 gap-1">
