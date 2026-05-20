@@ -44,7 +44,7 @@ function renderWithIntl(ui: ReactElement) {
 }
 
 describe("KanbanBoard", () => {
-  it("renders widened cards with two-line title clamp and title attribute", () => {
+  it("renders widened cards with three-line title clamp and title attribute", () => {
     renderWithIntl(
       <KanbanBoard
         opportunities={[baseOpportunity]}
@@ -57,7 +57,9 @@ describe("KanbanBoard", () => {
     const title = screen.getByRole("heading", {
       name: "Member of Technical Staff",
     });
-    expect(title).toHaveClass("line-clamp-2");
+    // audit/13: bumped to line-clamp-3 so titles like "Welding
+    // Engineering Assistant" don't truncate in the ~200px lane width.
+    expect(title).toHaveClass("line-clamp-3");
     expect(title).toHaveAttribute("title", "Member of Technical Staff");
     expect(screen.getByText("Anthropic")).toBeInTheDocument();
   });

@@ -389,8 +389,13 @@ function OpportunityKanbanCard({
             href={`/opportunities/${opportunity.id}`}
             className="group inline-flex min-h-11 items-center"
           >
+            {/* audit/13: line-clamp-2 truncated titles like "Welding
+                Engineering Assistant" on the narrow kanban lane
+                (≈200px). Bump to 3 lines — most posting titles fit
+                without truncation; the rare 4+ line title still
+                truncates but the tooltip carries the full string. */}
             <h3
-              className="line-clamp-2 text-base font-semibold leading-6 group-hover:text-primary"
+              className="line-clamp-3 text-base font-semibold leading-6 group-hover:text-primary"
               title={opportunity.title}
             >
               {opportunity.title}
