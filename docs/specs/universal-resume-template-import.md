@@ -743,7 +743,8 @@ As of the latest implementation slice, the system has:
   rows, and education sections use an explicit reusable `EducationRow`
   component. Headers now include an explicit nested `ContactLine` component,
   and generic entries now expose nested `EntryHeader`, `MetaLine`, and
-  `BulletList` components.
+  `BulletList` components. Section dividers and heading/body spacing are now
+  explicit reusable `Rule` and `Spacer` child components.
 - Semantic contact inference uses hyperlink targets as source evidence, so
   generic visible labels like "GitHub" or "LinkedIn" still populate reusable
   contact fields from their hrefs.
@@ -816,6 +817,14 @@ Known remaining gaps:
 - V4 reusable templates model generic entries with nested `EntryHeader`,
   `MetaLine`, and `BulletList` components while retaining backwards
   compatibility for older entry flags.
+- V4 reusable templates model section dividers and heading/body gaps with
+  reusable `Rule` and `Spacer` components while retaining legacy heading-border
+  rendering for older component trees.
+- V4 reusable templates model unknown-titled section headings with a dedicated
+  `CustomSection` component that preserves the literal source title and groups
+  bullet lines under the preceding header so user edits reflow through the same
+  component. The dogfood scorecard accepts `CustomSection` as a valid section
+  body kind.
 - App review mismatch reports now expose the same gate model as the lab:
   extraction, semantic, style, render, and app wiring statuses with review
   actions.
