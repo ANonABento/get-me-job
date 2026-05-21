@@ -242,7 +242,17 @@ function genericSummary() {
           kind: "Section",
           components: [
             { kind: "SectionHeading" },
-            { kind: "EntryList", itemComponent: { kind: "Entry" } },
+            {
+              kind: "EntryList",
+              itemComponent: {
+                kind: "Entry",
+                components: [
+                  { kind: "EntryHeader" },
+                  { kind: "MetaLine" },
+                  { kind: "BulletList" },
+                ],
+              },
+            },
           ],
         },
         {

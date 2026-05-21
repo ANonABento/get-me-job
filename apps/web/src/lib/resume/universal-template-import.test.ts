@@ -458,7 +458,21 @@ describe("universal template import analysis", () => {
             expect.objectContaining({ kind: "ContactLine" }),
           ]),
         }),
-        expect.objectContaining({ kind: "Section" }),
+        expect.objectContaining({
+          kind: "Section",
+          components: expect.arrayContaining([
+            expect.objectContaining({
+              kind: "EntryList",
+              itemComponent: expect.objectContaining({
+                components: expect.arrayContaining([
+                  expect.objectContaining({ kind: "EntryHeader" }),
+                  expect.objectContaining({ kind: "MetaLine" }),
+                  expect.objectContaining({ kind: "BulletList" }),
+                ]),
+              }),
+            }),
+          ]),
+        }),
       ]),
     );
     expect(template.sectionOrder).toEqual(["experience"]);

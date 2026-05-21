@@ -81,7 +81,24 @@ export interface EntryComponent {
   };
   bulletList: boolean;
   bulletMarker?: "disc" | "decimal" | "dash" | "none";
+  components?: EntryChildComponent[];
 }
+
+export type EntryChildComponent =
+  | {
+      kind: "EntryHeader";
+      id: string;
+      primary: boolean;
+      secondary: boolean;
+      dateRange: boolean;
+    }
+  | { kind: "MetaLine"; id: string; meta: boolean; location: boolean }
+  | {
+      kind: "BulletList";
+      id: string;
+      list: boolean;
+      marker?: EntryComponent["bulletMarker"];
+    };
 
 export function buildReusableResumeTemplateIR(
   semantic: ResumeSemanticIR,
@@ -290,6 +307,8 @@ function sectionComponent(
   section: SemanticSection,
   sourceEvidence?: ReusableTemplateSourceEvidence,
 ): SectionComponent {
+  const bulletList = inferSectionBulletList(section, sourceEvidence);
+  const bulletMarker = inferSectionBulletMarker(section, sourceEvidence);
   const bodyComponent: SectionChildComponent =
     section.type === "skills"
       ? {
@@ -314,8 +333,13 @@ function sectionComponent(
                 meta: true,
                 dateRange: true,
               },
-              bulletList: inferSectionBulletList(section, sourceEvidence),
-              bulletMarker: inferSectionBulletMarker(section, sourceEvidence),
+              bulletList,
+              bulletMarker,
+              components: defaultEntryChildComponents(
+                `section-${section.type}-entry`,
+                bulletList,
+                bulletMarker,
+              ),
             },
           };
 
@@ -589,7 +613,36 @@ function defaultEntryComponent(id: string): EntryComponent {
     },
     bulletList: true,
     bulletMarker: undefined,
+    components: defaultEntryChildComponents(`${id}-entry`, true, undefined),
   };
+}
+
+function defaultEntryChildComponents(
+  id: string,
+  bulletList: boolean,
+  bulletMarker: EntryComponent["bulletMarker"],
+): EntryChildComponent[] {
+  return [
+    {
+      kind: "EntryHeader",
+      id: `${id}-header`,
+      primary: true,
+      secondary: true,
+      dateRange: true,
+    },
+    {
+      kind: "MetaLine",
+      id: `${id}-meta`,
+      meta: true,
+      location: true,
+    },
+    {
+      kind: "BulletList",
+      id: `${id}-bullets`,
+      list: bulletList,
+      marker: bulletMarker,
+    },
+  ];
 }
 
 function hasVisualBulletEvidence(
@@ -667,10 +720,55 @@ function renderEntry(
   item: SemanticSection["items"][number],
   component: EntryComponent,
 ): string {
-  const meta = component.header.meta
-    ? [...item.meta, item.location].filter(Boolean).join(" | ")
+  const children =
+    component.components ?? legacyEntryChildComponents(component);
+  const legacyChildren = legacyEntryChildComponents(component);
+  const header =
+    children.find(
+      (child): child is Extract<EntryChildComponent, { kind: "EntryHeader" }> =>
+        child.kind === "EntryHeader",
+    ) ??
+    legacyChildren.find(
+      (child): child is Extract<EntryChildComponent, { kind: "EntryHeader" }> =>
+        child.kind === "EntryHeader",
+    )!;
+  const metaLine = children.find(
+    (child): child is Extract<EntryChildComponent, { kind: "MetaLine" }> =>
+      child.kind === "MetaLine",
+  );
+  const bulletList =
+    children.find(
+      (child): child is Extract<EntryChildComponent, { kind: "BulletList" }> =>
+        child.kind === "BulletList",
+    ) ??
+    legacyChildren.find(
+      (child): child is Extract<EntryChildComponent, { kind: "BulletList" }> =>
+        child.kind === "BulletList",
+    )!;
+  const effectiveHeader = {
+    primary: header.primary && component.header.primary,
+    secondary: header.secondary && component.header.secondary,
+    dateRange: header.dateRange && component.header.dateRange,
+  };
+  const effectiveMetaLine = metaLine
+    ? {
+        meta: metaLine.meta && component.header.meta,
+        location: metaLine.location && component.header.meta,
+      }
+    : undefined;
+  const effectiveBulletList = {
+    list: bulletList.list && component.bulletList,
+    marker: bulletList.marker ?? component.bulletMarker,
+  };
+  const meta = effectiveMetaLine
+    ? [
+        ...(effectiveMetaLine.meta ? item.meta : []),
+        effectiveMetaLine.location ? item.location : undefined,
+      ]
+        .filter(Boolean)
+        .join(" | ")
     : "";
-  const secondary = [component.header.secondary ? item.secondary : "", meta]
+  const secondary = [effectiveHeader.secondary ? item.secondary : "", meta]
     .filter(Boolean)
     .join(" — ");
   const bullets = item.bullets.filter((bullet) => bullet.trim());
@@ -678,21 +776,21 @@ function renderEntry(
     <div class="rt-entry-head">
       <div>
         ${
-          component.header.primary
+          effectiveHeader.primary
             ? `<strong>${escapeHtml(item.primary)}</strong>`
             : ""
         }
         ${secondary ? `<span>${escapeHtml(secondary)}</span>` : ""}
       </div>
       ${
-        component.header.dateRange && item.dateRange
+        effectiveHeader.dateRange && item.dateRange
           ? `<time>${escapeHtml(item.dateRange)}</time>`
           : ""
       }
     </div>
     ${
-      bullets.length && component.bulletList
-        ? `<ul class="rt-list-${component.bulletMarker ?? "disc"}">${bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join("")}</ul>`
+      bullets.length && effectiveBulletList.list
+        ? `<ul class="rt-list-${effectiveBulletList.marker ?? "disc"}">${bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join("")}</ul>`
         : bullets.length
           ? `<div class="rt-entry-lines">${bullets
               .map((bullet) => `<p>${escapeHtml(bullet)}</p>`)
@@ -700,6 +798,32 @@ function renderEntry(
           : ""
     }
   </section>`;
+}
+
+function legacyEntryChildComponents(
+  component: EntryComponent,
+): EntryChildComponent[] {
+  return [
+    {
+      kind: "EntryHeader",
+      id: `${component.id}-header`,
+      primary: component.header.primary,
+      secondary: component.header.secondary,
+      dateRange: component.header.dateRange,
+    },
+    {
+      kind: "MetaLine",
+      id: `${component.id}-meta`,
+      meta: component.header.meta,
+      location: component.header.meta,
+    },
+    {
+      kind: "BulletList",
+      id: `${component.id}-bullets`,
+      list: component.bulletList,
+      marker: component.bulletMarker,
+    },
+  ];
 }
 
 function renderSkillList(

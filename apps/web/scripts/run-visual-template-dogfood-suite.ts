@@ -241,12 +241,18 @@ export function scoreCase(summary: Record<string, unknown>, item: SuiteCase) {
     reusableComponentKinds.includes("EntryList") ||
     reusableComponentKinds.includes("SkillList") ||
     reusableComponentKinds.includes("EducationRow");
+  const hasReusableEntryComponents =
+    !reusableComponentKinds.includes("EntryList") ||
+    (reusableComponentKinds.includes("EntryHeader") &&
+      reusableComponentKinds.includes("MetaLine") &&
+      reusableComponentKinds.includes("BulletList"));
   const hasRequiredReusableComponents =
     reusableComponentKinds.includes("HeaderBlock") &&
     reusableComponentKinds.includes("ContactLine") &&
     reusableComponentKinds.includes("Section") &&
     reusableComponentKinds.includes("SectionHeading") &&
-    hasReusableSectionBody;
+    hasReusableSectionBody &&
+    hasReusableEntryComponents;
   const reports = Array.isArray(summary.reports) ? summary.reports : [];
   const stressReport = reports.find(
     (report) => isRecord(report) && report.mode === "stress",
