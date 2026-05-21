@@ -49,6 +49,8 @@ export interface SectionComponent {
 
 export type SectionChildComponent =
   | { kind: "SectionHeading"; id: string; title: string }
+  | { kind: "Rule"; id: string; role: "section-divider" }
+  | { kind: "Spacer"; id: string; size: "section-heading-gap" }
   | { kind: "EntryList"; id: string; itemComponent: EntryComponent }
   | { kind: "SkillList"; id: string; separator: "comma" | "bullet" }
   | { kind: "EducationRow"; id: string };
@@ -355,6 +357,16 @@ function sectionComponent(
         id: `section-${section.type}-heading`,
         title: section.title,
       },
+      {
+        kind: "Rule",
+        id: `section-${section.type}-rule`,
+        role: "section-divider",
+      },
+      {
+        kind: "Spacer",
+        id: `section-${section.type}-heading-gap`,
+        size: "section-heading-gap",
+      },
       bodyComponent,
     ],
   };
@@ -547,10 +559,17 @@ function renderSection(
   const children = component.components.length
     ? component.components
     : defaultSectionChildren(component);
+  const hasExplicitRule = children.some((child) => child.kind === "Rule");
   const body = children
     .map((child) => {
       if (child.kind === "SectionHeading") {
-        return `<h2>${escapeHtml(child.title)}</h2>`;
+        return `<h2 class="${hasExplicitRule ? "rt-heading-has-rule" : ""}">${escapeHtml(child.title)}</h2>`;
+      }
+      if (child.kind === "Rule") {
+        return `<div class="rt-rule rt-rule-${child.role}" aria-hidden="true"></div>`;
+      }
+      if (child.kind === "Spacer") {
+        return `<div class="rt-spacer rt-spacer-${child.size}" aria-hidden="true"></div>`;
       }
       if (child.kind === "SkillList") {
         return renderSkillList(section, child);
@@ -581,6 +600,16 @@ function defaultSectionChildren(
       kind: "SectionHeading",
       id: `${component.id}-heading`,
       title: component.title,
+    },
+    {
+      kind: "Rule",
+      id: `${component.id}-rule`,
+      role: "section-divider",
+    },
+    {
+      kind: "Spacer",
+      id: `${component.id}-heading-gap`,
+      size: "section-heading-gap",
     },
     component.sectionType === "skills"
       ? {
@@ -916,6 +945,9 @@ body { margin: 0; background: #f4f4f5; color: ${bodyColor}; font-family: ${fontF
 .rt-section-title-left-rail .rt-section h2 { border-bottom: 0; padding-bottom: 0; }
 .rt-section-title-inline .rt-section h2 { display: inline-block; margin-right: 8pt; }
 .rt-section h2 { margin: 0 0 4pt; padding-bottom: 2pt; border-bottom: ${tokens.rules.sectionDivider?.widthPt ?? 0.75}pt ${tokens.rules.sectionDivider?.style ?? "solid"} ${ruleColor}; font-family: ${fontFamily(heading)}; font-size: ${pt(heading?.fontSizePt, 11)}; color: ${heading?.color ?? accent}; font-weight: ${heading?.fontWeight ?? "700"}; text-transform: ${heading?.textTransform ?? "uppercase"}; }
+.rt-section h2.rt-heading-has-rule { margin-bottom: 0; padding-bottom: 0; border-bottom: 0; }
+.rt-rule-section-divider { border-top: ${tokens.rules.sectionDivider?.widthPt ?? 0.75}pt ${tokens.rules.sectionDivider?.style ?? "solid"} ${ruleColor}; }
+.rt-spacer-section-heading-gap { height: ${pt(tokens.spacing.itemGapPt?.value, 4)}; }
 .rt-items { display: grid; gap: ${pt(tokens.spacing.itemGapPt?.value, 4)}; }
 .rt-entry-head { display: flex; justify-content: space-between; gap: 12pt; align-items: baseline; min-width: 0; }
 .rt-entry-head > div { min-width: 0; }

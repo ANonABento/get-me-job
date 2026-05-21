@@ -461,6 +461,9 @@ describe("universal template import analysis", () => {
         expect.objectContaining({
           kind: "Section",
           components: expect.arrayContaining([
+            expect.objectContaining({ kind: "SectionHeading" }),
+            expect.objectContaining({ kind: "Rule" }),
+            expect.objectContaining({ kind: "Spacer" }),
             expect.objectContaining({
               kind: "EntryList",
               itemComponent: expect.objectContaining({

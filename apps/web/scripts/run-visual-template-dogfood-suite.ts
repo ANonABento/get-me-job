@@ -251,6 +251,8 @@ export function scoreCase(summary: Record<string, unknown>, item: SuiteCase) {
     reusableComponentKinds.includes("ContactLine") &&
     reusableComponentKinds.includes("Section") &&
     reusableComponentKinds.includes("SectionHeading") &&
+    reusableComponentKinds.includes("Rule") &&
+    reusableComponentKinds.includes("Spacer") &&
     hasReusableSectionBody &&
     hasReusableEntryComponents;
   const reports = Array.isArray(summary.reports) ? summary.reports : [];

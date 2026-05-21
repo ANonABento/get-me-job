@@ -242,6 +242,8 @@ function genericSummary() {
           kind: "Section",
           components: [
             { kind: "SectionHeading" },
+            { kind: "Rule" },
+            { kind: "Spacer" },
             {
               kind: "EntryList",
               itemComponent: {
@@ -257,11 +259,21 @@ function genericSummary() {
         },
         {
           kind: "Section",
-          components: [{ kind: "SectionHeading" }, { kind: "EducationRow" }],
+          components: [
+            { kind: "SectionHeading" },
+            { kind: "Rule" },
+            { kind: "Spacer" },
+            { kind: "EducationRow" },
+          ],
         },
         {
           kind: "Section",
-          components: [{ kind: "SectionHeading" }, { kind: "SkillList" }],
+          components: [
+            { kind: "SectionHeading" },
+            { kind: "Rule" },
+            { kind: "Spacer" },
+            { kind: "SkillList" },
+          ],
         },
       ],
     },
