@@ -589,6 +589,106 @@ describe("universal template import analysis", () => {
     expect(html).not.toContain('<section class="rt-entry">');
   });
 
+  it("models unknown-titled section headings as reusable CustomSection components", () => {
+    const source: SourceDocumentIR = {
+      sourceType: "docx",
+      filename: "custom-section.docx",
+      pages: [{ id: "page-1", number: 1, widthPt: 612, heightPt: 792 }],
+      rawText: "",
+      diagnostics: [],
+      blocks: [
+        styledBlock("b1", "Jordan Patel", { fontSizePt: 24, bold: true }),
+        styledBlock("b2", "VOLUNTEERING", { fontSizePt: 11, bold: true }),
+        {
+          id: "b3",
+          pageId: "page-1",
+          type: "paragraph",
+          text: "Code Crew Mentor",
+        },
+        {
+          id: "b4",
+          pageId: "page-1",
+          type: "list-item",
+          text: "Mentored 12 students through resume reviews.",
+        },
+        {
+          id: "b5",
+          pageId: "page-1",
+          type: "list-item",
+          text: "Built scoring rubric used across the cohort.",
+        },
+      ],
+    };
+
+    const semantic = inferResumeSemanticIR(source);
+    const customSection = semantic.sections.find(
+      (section) => section.type === "custom",
+    );
+    expect(customSection).toMatchObject({
+      type: "custom",
+      title: "VOLUNTEERING",
+    });
+    expect(customSection?.items[0]).toMatchObject({
+      primary: "Code Crew Mentor",
+      bullets: [
+        "Mentored 12 students through resume reviews.",
+        "Built scoring rubric used across the cohort.",
+      ],
+    });
+
+    const template = buildReusableResumeTemplateIR(
+      semantic,
+      inferImportedTemplateStyleTokens(source),
+    );
+    const sectionComponent = template.components.find(
+      (component) =>
+        component.kind === "Section" && component.sectionType === "custom",
+    );
+    expect(sectionComponent).toMatchObject({
+      kind: "Section",
+      sectionType: "custom",
+      title: "VOLUNTEERING",
+      components: expect.arrayContaining([
+        expect.objectContaining({
+          kind: "SectionHeading",
+          title: "VOLUNTEERING",
+        }),
+        expect.objectContaining({ kind: "Rule" }),
+        expect.objectContaining({ kind: "Spacer" }),
+        expect.objectContaining({ kind: "CustomSection" }),
+      ]),
+    });
+
+    const html = renderReusableResumeTemplateHTML(semantic, template);
+    expect(html).toContain("VOLUNTEERING");
+    expect(html).toContain('class="rt-custom-section"');
+    expect(html).toContain("Code Crew Mentor");
+    expect(html).toContain("Mentored 12 students through resume reviews.");
+  });
+
+  it("does not promote contact-like lines into custom sections", () => {
+    const source: SourceDocumentIR = {
+      sourceType: "docx",
+      filename: "no-custom-section.docx",
+      pages: [{ id: "page-1", number: 1, widthPt: 612, heightPt: 792 }],
+      rawText: "",
+      diagnostics: [],
+      blocks: [
+        styledBlock("b1", "Jordan Patel", { fontSizePt: 24, bold: true }),
+        styledBlock("b2", "jordan@example.com | github.com/jordan", {
+          fontSizePt: 9,
+        }),
+        styledBlock("b3", "EXPERIENCE", { fontSizePt: 11, bold: true }),
+        tableRow("b4", ["Engineer", "Source Co", "2024"]),
+      ],
+    };
+
+    const semantic = inferResumeSemanticIR(source);
+    expect(semantic.sections.some((section) => section.type === "custom")).toBe(
+      false,
+    );
+  });
+
   it("infers reusable LaTeX style defaults when explicit run styles are absent", () => {
     const source: SourceDocumentIR = {
       sourceType: "tex",

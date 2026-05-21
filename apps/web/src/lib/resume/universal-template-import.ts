@@ -1145,10 +1145,32 @@ function groupSemanticLinesBySection(lines: SemanticSourceLine[]) {
       runs.push(current);
       return;
     }
+    if (title && looksLikeCustomSectionHeading(line, title)) {
+      current = {
+        type: "custom",
+        title,
+        confidence: line.sourceType === "heading" ? 0.7 : 0.55,
+        evidenceRefs: line.evidenceRefs,
+        startIndex: index,
+        lines: [],
+      };
+      runs.push(current);
+      return;
+    }
     current?.lines.push(line);
   });
 
   return runs;
+}
+
+function looksLikeCustomSectionHeading(
+  line: SemanticSourceLine,
+  title: string,
+): boolean {
+  if (line.sourceType !== "heading") return false;
+  if (title.length > 60) return false;
+  if (/[@|]|https?:\/\//i.test(title)) return false;
+  return /[A-Za-z]/.test(title);
 }
 
 function inferSemanticContact(lines: SemanticSourceLine[]): SemanticContact {
@@ -1201,7 +1223,33 @@ function parseSemanticSectionItems(
   if (type === "education") return parseStructuredItems(lines, "education");
   if (type === "experience") return parseStructuredItems(lines, "experience");
   if (type === "projects") return parseStructuredItems(lines, "projects");
+  if (type === "custom") return parseCustomSemanticItems(lines);
   return parsePlainSemanticItems(lines);
+}
+
+function parseCustomSemanticItems(
+  lines: SemanticSourceLine[],
+): SemanticResumeItem[] {
+  const items: SemanticResumeItem[] = [];
+  let current: SemanticResumeItem | null = null;
+  for (const line of lines) {
+    const text = line.text.trim();
+    if (!text) continue;
+    if (isBulletLine(text) && current) {
+      current.bullets.push(stripBulletMarker(text));
+      current.evidenceRefs.push(...line.evidenceRefs);
+      continue;
+    }
+    current = {
+      primary: stripBulletMarker(text),
+      meta: [],
+      bullets: [],
+      confidence: 0.62,
+      evidenceRefs: [...line.evidenceRefs],
+    };
+    items.push(current);
+  }
+  return items.filter((item) => item.primary || item.bullets.length);
 }
 
 function recoverImplicitSkillsSection(

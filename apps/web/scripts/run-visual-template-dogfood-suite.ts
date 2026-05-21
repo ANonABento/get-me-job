@@ -240,7 +240,8 @@ export function scoreCase(summary: Record<string, unknown>, item: SuiteCase) {
   const hasReusableSectionBody =
     reusableComponentKinds.includes("EntryList") ||
     reusableComponentKinds.includes("SkillList") ||
-    reusableComponentKinds.includes("EducationRow");
+    reusableComponentKinds.includes("EducationRow") ||
+    reusableComponentKinds.includes("CustomSection");
   const hasReusableEntryComponents =
     !reusableComponentKinds.includes("EntryList") ||
     (reusableComponentKinds.includes("EntryHeader") &&

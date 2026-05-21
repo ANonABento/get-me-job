@@ -171,6 +171,66 @@ describe("visual template dogfood suite scorecards", () => {
     expect(scorecard.matchedStyleTraits).not.toContain("links/icons");
   });
 
+  it("accepts CustomSection as a valid reusable section body component", () => {
+    const scorecard = scoreCase(
+      {
+        ...genericSummary(),
+        semanticResume: {
+          contact: { linkedin: "linkedin.com/in/example" },
+          sections: [
+            {
+              type: "custom",
+              items: [
+                { primary: "Code Crew Mentor", bullets: ["Mentored 12."] },
+              ],
+            },
+          ],
+        },
+        reusableTemplate: {
+          sectionOrder: ["custom"],
+          components: [
+            {
+              kind: "HeaderBlock",
+              components: [{ kind: "ContactLine" }],
+            },
+            {
+              kind: "Section",
+              components: [
+                { kind: "SectionHeading" },
+                { kind: "Rule" },
+                { kind: "Spacer" },
+                {
+                  kind: "CustomSection",
+                  itemComponent: {
+                    kind: "Entry",
+                    components: [
+                      { kind: "EntryHeader" },
+                      { kind: "MetaLine" },
+                      { kind: "BulletList" },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+      {
+        name: "custom-section-fixture",
+        source: "resume.pdf",
+        fixtureClass: "resume with custom sections",
+        expectedSections: ["custom"],
+        expectedStyleTraits: ["custom-sections"],
+      },
+    );
+
+    expect(scorecard.pass).toBe(true);
+    expect(scorecard.gateFailures).toEqual([]);
+    expect(scorecard.reusableComponentKinds).toEqual(
+      expect.arrayContaining(["CustomSection"]),
+    );
+  });
+
   it("fails when reusable sections have no renderable child components", () => {
     const scorecard = scoreCase(
       {

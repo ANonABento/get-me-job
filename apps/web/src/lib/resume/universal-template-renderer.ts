@@ -53,7 +53,8 @@ export type SectionChildComponent =
   | { kind: "Spacer"; id: string; size: "section-heading-gap" }
   | { kind: "EntryList"; id: string; itemComponent: EntryComponent }
   | { kind: "SkillList"; id: string; separator: "comma" | "bullet" }
-  | { kind: "EducationRow"; id: string };
+  | { kind: "EducationRow"; id: string }
+  | { kind: "CustomSection"; id: string; itemComponent: EntryComponent };
 
 export interface ReusableTemplateSourceEvidence {
   blocks: Array<{
@@ -323,27 +324,49 @@ function sectionComponent(
             kind: "EducationRow",
             id: `section-${section.type}-education-row`,
           }
-        : {
-            kind: "EntryList",
-            id: `section-${section.type}-items`,
-            itemComponent: {
-              kind: "Entry",
-              id: `section-${section.type}-entry`,
-              header: {
-                primary: true,
-                secondary: true,
-                meta: true,
-                dateRange: true,
-              },
-              bulletList,
-              bulletMarker,
-              components: defaultEntryChildComponents(
-                `section-${section.type}-entry`,
+        : section.type === "custom"
+          ? {
+              kind: "CustomSection",
+              id: `section-${section.type}-custom`,
+              itemComponent: {
+                kind: "Entry",
+                id: `section-${section.type}-entry`,
+                header: {
+                  primary: true,
+                  secondary: false,
+                  meta: false,
+                  dateRange: false,
+                },
                 bulletList,
                 bulletMarker,
-              ),
-            },
-          };
+                components: defaultEntryChildComponents(
+                  `section-${section.type}-entry`,
+                  bulletList,
+                  bulletMarker,
+                ),
+              },
+            }
+          : {
+              kind: "EntryList",
+              id: `section-${section.type}-items`,
+              itemComponent: {
+                kind: "Entry",
+                id: `section-${section.type}-entry`,
+                header: {
+                  primary: true,
+                  secondary: true,
+                  meta: true,
+                  dateRange: true,
+                },
+                bulletList,
+                bulletMarker,
+                components: defaultEntryChildComponents(
+                  `section-${section.type}-entry`,
+                  bulletList,
+                  bulletMarker,
+                ),
+              },
+            };
 
   return {
     kind: "Section",
@@ -579,6 +602,13 @@ function renderSection(
       ${section.items.map((item) => renderEducationRow(item)).join("\n")}
     </div>`;
       }
+      if (child.kind === "CustomSection") {
+        return `<div class="rt-custom-section">
+      ${section.items
+        .map((item) => renderEntry(item, child.itemComponent))
+        .join("\n")}
+    </div>`;
+      }
       return `<div class="rt-items">
       ${section.items
         .map((item) => renderEntry(item, child.itemComponent))
@@ -622,11 +652,17 @@ function defaultSectionChildren(
             kind: "EducationRow",
             id: `${component.id}-education-row`,
           }
-        : {
-            kind: "EntryList",
-            id: `${component.id}-items`,
-            itemComponent: defaultEntryComponent(component.id),
-          },
+        : component.sectionType === "custom"
+          ? {
+              kind: "CustomSection",
+              id: `${component.id}-custom`,
+              itemComponent: defaultEntryComponent(component.id),
+            }
+          : {
+              kind: "EntryList",
+              id: `${component.id}-items`,
+              itemComponent: defaultEntryComponent(component.id),
+            },
   ];
 }
 
@@ -949,6 +985,7 @@ body { margin: 0; background: #f4f4f5; color: ${bodyColor}; font-family: ${fontF
 .rt-rule-section-divider { border-top: ${tokens.rules.sectionDivider?.widthPt ?? 0.75}pt ${tokens.rules.sectionDivider?.style ?? "solid"} ${ruleColor}; }
 .rt-spacer-section-heading-gap { height: ${pt(tokens.spacing.itemGapPt?.value, 4)}; }
 .rt-items { display: grid; gap: ${pt(tokens.spacing.itemGapPt?.value, 4)}; }
+.rt-custom-section { display: grid; gap: ${pt(tokens.spacing.itemGapPt?.value, 4)}; }
 .rt-entry-head { display: flex; justify-content: space-between; gap: 12pt; align-items: baseline; min-width: 0; }
 .rt-entry-head > div { min-width: 0; }
 .rt-entry-head strong { font-family: ${fontFamily(entryTitle)}; font-size: ${pt(entryTitle?.fontSizePt, body?.fontSizePt ?? 10)}; color: ${entryTitle?.color ?? bodyColor}; font-weight: ${entryTitle?.fontWeight ?? "700"}; }
